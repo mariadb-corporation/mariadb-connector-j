@@ -383,8 +383,6 @@ public class PoolDataSourceTest extends Common {
 
       try (Connection connection = pool.getConnection()) {
         assertEquals(Connection.TRANSACTION_READ_COMMITTED, connection.getTransactionIsolation());
-        connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        assertEquals(Connection.TRANSACTION_SERIALIZABLE, connection.getTransactionIsolation());
       }
 
       try (Connection connection = pool.getConnection()) {

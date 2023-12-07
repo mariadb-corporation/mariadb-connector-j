@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.plugin.authentication.standard;
 
@@ -47,7 +47,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       final byte[] sm = new byte[64 + mlen];
 
       byte[] az = hash.digest(bytePwd);
-      az[0] &= 248;
+      az[0] &= (byte) 248;
       az[31] &= 63;
       az[31] |= 64;
 
@@ -120,6 +120,6 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       out.flush();
     }
 
-    return in.readPacket(true);
+    return in.readReusablePacket();
   }
 }

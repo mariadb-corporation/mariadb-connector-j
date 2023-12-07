@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.socket.impl;
 
@@ -30,6 +30,7 @@ public class PacketReader implements Reader {
   private final int maxQuerySizeToLog;
 
   private final MutableByte sequence;
+  private final StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
   private String serverThreadLog = "";
 
   /**
@@ -46,28 +47,17 @@ public class PacketReader implements Reader {
     this.logger = Loggers.getLogger(PacketReader.class);
   }
 
-  /**
-   * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading
-   * MySQL packet. (first that has not length = 16Mb)
-   *
-   * @param reUsable if can use existing reusable buf to avoid creating array
-   * @return array packet.
-   * @throws IOException if socket exception occur.
-   */
-  public ReadableByteBuf readPacket(boolean reUsable) throws IOException {
-    return readPacket(reUsable, logger.isTraceEnabled());
+  public ReadableByteBuf readableBufFromArray(byte[] buf) {
+    readBuf.buf(buf, buf.length, 0);
+    return readBuf;
   }
 
-  /**
-   * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading
-   * MySQL packet. (first that has not length = 16Mb)
-   *
-   * @param reUsable if can use existing reusable buf to avoid creating array
-   * @param traceEnable must trace packet.
-   * @return array packet.
-   * @throws IOException if socket exception occur.
-   */
-  public ReadableByteBuf readPacket(boolean reUsable, boolean traceEnable) throws IOException {
+  public ReadableByteBuf readReusablePacket() throws IOException {
+    return readReusablePacket(logger.isTraceEnabled());
+  }
+
+  @Override
+  public ReadableByteBuf readReusablePacket(boolean traceEnable) throws IOException {
     // ***************************************************
     // Read 4 byte header
     // ***************************************************
@@ -97,11 +87,85 @@ public class PacketReader implements Reader {
 
     // prepare array
     byte[] rawBytes;
-    if (reUsable && lastPacketLength < REUSABLE_BUFFER_LENGTH) {
+    if (lastPacketLength < REUSABLE_BUFFER_LENGTH) {
       rawBytes = reusableArray;
     } else {
       rawBytes = new byte[lastPacketLength];
     }
+
+    // ***************************************************
+    // Read content
+    // ***************************************************
+    remaining = lastPacketLength;
+    if (traceEnable) {
+      logger.trace("read content is started, remaining bytes: {}", remaining);
+    }
+    off = 0;
+    do {
+      int count = inputStream.read(rawBytes, off, remaining);
+      if (count < 0) {
+        throw new EOFException(
+            "unexpected end of stream, read "
+                + (lastPacketLength - remaining)
+                + " bytes from "
+                + lastPacketLength
+                + " (socket was closed by server)");
+      }
+      if (traceEnable) {
+        logger.trace("read {} bytes content is finished", count);
+      }
+      remaining -= count;
+      off += count;
+    } while (remaining > 0);
+
+    if (traceEnable) {
+      logger.trace(
+          "read: {}\n{}",
+          serverThreadLog,
+          LoggerHelper.hex(header, rawBytes, 0, lastPacketLength, maxQuerySizeToLog));
+    }
+
+    readBuf.buf(rawBytes, lastPacketLength, 0);
+    return readBuf;
+  }
+
+  /**
+   * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading
+   * MySQL packet. (first that has not length = 16Mb)
+   *
+   * @param traceEnable must trace packet.
+   * @return array packet.
+   * @throws IOException if socket exception occur.
+   */
+  public byte[] readPacket(boolean traceEnable) throws IOException {
+    // ***************************************************
+    // Read 4 byte header
+    // ***************************************************
+    int remaining = 4;
+    if (traceEnable) {
+      logger.trace("read header is started, remaining bytes: {}", remaining);
+    }
+    int off = 0;
+    do {
+      int count = inputStream.read(header, off, remaining);
+      if (count < 0) {
+        throw new EOFException(
+            "unexpected end of stream, read "
+                + off
+                + " bytes from 4 (socket was closed by server)");
+      }
+      if (traceEnable) {
+        logger.trace("read {} bytes header is finished", count);
+      }
+      remaining -= count;
+      off += count;
+    } while (remaining > 0);
+
+    int lastPacketLength =
+        (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+
+    // prepare array
+    byte[] rawBytes = new byte[lastPacketLength];
 
     // ***************************************************
     // Read content
@@ -159,7 +223,6 @@ public class PacketReader implements Reader {
         } while (remaining > 0);
 
         packetLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
-        sequence.set(header[3]);
 
         int currentbufLength = rawBytes.length;
         byte[] newRawBytes = new byte[currentbufLength + packetLength];
@@ -202,9 +265,71 @@ public class PacketReader implements Reader {
       } while (packetLength == MAX_PACKET_SIZE);
     }
 
-    return new StandardReadableByteBuf(rawBytes, lastPacketLength);
+    return rawBytes;
   }
 
+  @Override
+  public void skipPacket() throws IOException {
+    if (logger.isTraceEnabled()) {
+      readReusablePacket(logger.isTraceEnabled());
+      return;
+    }
+
+    // ***************************************************
+    // Read 4 byte header
+    // ***************************************************
+    int remaining = 4;
+    int off = 0;
+    do {
+      int count = inputStream.read(header, off, remaining);
+      if (count < 0) {
+        throw new EOFException(
+            "unexpected end of stream, read "
+                + off
+                + " bytes from 4 (socket was closed by server)");
+      }
+      remaining -= count;
+      off += count;
+    } while (remaining > 0);
+
+    int lastPacketLength =
+        (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+
+    remaining = lastPacketLength;
+    do {
+      remaining -= (int) inputStream.skip(remaining);
+    } while (remaining > 0);
+
+    // ***************************************************
+    // In case content length is big, content will be separate in many 16Mb packets
+    // ***************************************************
+    if (lastPacketLength == MAX_PACKET_SIZE) {
+      int packetLength;
+      do {
+        remaining = 4;
+        off = 0;
+        do {
+          int count = inputStream.read(header, off, remaining);
+          if (count < 0) {
+            throw new EOFException("unexpected end of stream, read " + off + " bytes from 4");
+          }
+          remaining -= count;
+          off += count;
+        } while (remaining > 0);
+
+        packetLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+
+        remaining = packetLength;
+        do {
+          remaining -= (int) inputStream.skip(remaining);
+        } while (remaining > 0);
+
+        lastPacketLength += packetLength;
+      } while (packetLength == MAX_PACKET_SIZE);
+    }
+  }
+
+  @Override
   public MutableByte getSequence() {
     return sequence;
   }

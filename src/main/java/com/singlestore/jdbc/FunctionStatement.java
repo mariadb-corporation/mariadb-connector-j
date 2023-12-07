@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc;
 
@@ -21,21 +21,18 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
    * @param procedureName procedure
    * @param arguments arguments
    * @param lock thread lock object
-   * @param canUseServerTimeout can use server timeout
-   * @param canUseServerMaxRows can use server max rows
    * @param canCachePrepStmts can cache server prepared result
    * @param resultSetType result set type
    * @param resultSetConcurrency concurrency type
    * @throws SQLException if any error occurs
    */
+  @SuppressWarnings({"this-escape"})
   public FunctionStatement(
       Connection con,
       String databaseName,
       String procedureName,
       String arguments,
       ReentrantLock lock,
-      boolean canUseServerTimeout,
-      boolean canUseServerMaxRows,
       boolean canCachePrepStmts,
       int resultSetType,
       int resultSetConcurrency)
@@ -46,8 +43,6 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
         lock,
         databaseName,
         procedureName,
-        canUseServerTimeout,
-        canUseServerMaxRows,
         canCachePrepStmts,
         resultSetType,
         resultSetConcurrency,

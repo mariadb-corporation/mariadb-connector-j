@@ -16,6 +16,7 @@ import java.io.Serializable;
  *
  * @author str4d
  */
+@SuppressWarnings("all")
 public class Field implements Serializable {
   private static final long serialVersionUID = 8746587465875676L;
 
@@ -35,6 +36,7 @@ public class Field implements Serializable {
 
   private final Encoding enc;
 
+  @SuppressWarnings({"this-escape"})
   public Field(int b, byte[] q, Encoding enc) {
     this.b = b;
     this.enc = enc;

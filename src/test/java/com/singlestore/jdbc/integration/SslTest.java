@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration;
 
@@ -40,6 +40,35 @@ public class SslTest extends Common {
                 || System.getenv("TEST_MAXSCALE_TLS_PORT").isEmpty()
             ? null
             : Integer.valueOf(System.getenv("TEST_MAXSCALE_TLS_PORT"));
+  }
+
+  public static String retrieveCertificatePath() throws Exception {
+    String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists(System.getenv("TEST_DB_SERVER_CERT"));
+    }
+
+    // try local server
+    if (serverCertificatePath == null) {
+
+      try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@ssl_cert")) {
+        assertTrue(rs.next());
+        serverCertificatePath = checkFileExists(rs.getString(1));
+      }
+    }
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists("../../ssl/server.crt");
+    }
+    return serverCertificatePath;
+  }
+
+  private static String checkFileExists(String path) throws IOException {
+    if (path == null) return null;
+    File f = new File(path);
+    if (f.exists()) {
+      return f.getCanonicalPath().replace("\\", "/");
+    }
+    return null;
   }
 
   private static void createSslUser(String user, String requirement) throws SQLException {

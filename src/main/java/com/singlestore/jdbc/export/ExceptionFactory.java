@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.export;
 
@@ -11,6 +11,7 @@ import com.singlestore.jdbc.HostAddress;
 import com.singlestore.jdbc.SingleStorePoolConnection;
 import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.message.server.OkPacket;
+import com.singlestore.jdbc.util.ThreadUtils;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -92,7 +93,7 @@ public class ExceptionFactory {
                 msg.append("\n  name:\"")
                     .append(thread.getName())
                     .append("\" pid:")
-                    .append(thread.getId())
+                    .append(ThreadUtils.getId(thread))
                     .append(" status:")
                     .append(thread.getState());
                 for (int i = 0; i < traces.length; i++) {
@@ -182,8 +183,6 @@ public class ExceptionFactory {
   public BatchUpdateException createBatchUpdate(
       List<Completion> res, int length, int[] responseMsg, SQLException sqle) {
     int[] updateCounts = new int[length];
-
-    int responseIncrement = 0;
     for (int i = 0; i < length; i++) {
       if (i >= responseMsg.length) {
         Arrays.fill(updateCounts, i, length, Statement.EXECUTE_FAILED);
@@ -191,10 +190,18 @@ public class ExceptionFactory {
       }
       int MsgResponseNo = responseMsg[i];
       if (MsgResponseNo < 1) {
-        updateCounts[responseIncrement++] = Statement.EXECUTE_FAILED;
+        updateCounts[0] = Statement.EXECUTE_FAILED;
         return new BatchUpdateException(updateCounts, sqle);
-      } else if (MsgResponseNo == 1 && res.size() > i && res.get(i) instanceof OkPacket) {
-        updateCounts[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+      } else if (MsgResponseNo == 1) {
+        if (i >= res.size() || res.get(i) == null) {
+          updateCounts[i] = Statement.EXECUTE_FAILED;
+          continue;
+        }
+        if (res.get(i) instanceof OkPacket) {
+          updateCounts[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+          continue;
+        }
+        updateCounts[i] = Statement.SUCCESS_NO_INFO;
       } else {
         // unknown.
         updateCounts[i] = Statement.SUCCESS_NO_INFO;

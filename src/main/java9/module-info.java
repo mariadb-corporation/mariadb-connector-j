@@ -80,5 +80,5 @@ module com.singlestore.jdbc {
       com.singlestore.jdbc.plugin.credential.token.JwtCredentialPlugin,
       com.singlestore.jdbc.plugin.credential.system.PropertiesCredentialPlugin;
   provides com.singlestore.jdbc.plugin.TlsSocketPlugin with
-      com.singlestore.jdbc.client.tls.DefaultTlsSocketPlugin;
+      com.singlestore.jdbc.plugin.tls.main.DefaultTlsSocketPlugin;
 }

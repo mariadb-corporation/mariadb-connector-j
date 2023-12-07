@@ -66,7 +66,6 @@ public class ErrorTest extends Common {
 
     try (Connection conn1 = createCon("includeThreadDumpInDeadlockExceptions")) {
 
-      conn1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
       Statement stmt1 = conn1.createStatement();
       stmt1.execute("start transaction");
       stmt1.execute("update deadlock set a = 3 where a = 0");
@@ -74,7 +73,6 @@ public class ErrorTest extends Common {
       try (Connection conn2 = createCon("&includeThreadDumpInDeadlockExceptions")) {
 
         Statement stmt2 = conn2.createStatement();
-        conn2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
 
         stmt2.execute("start transaction");
         try {

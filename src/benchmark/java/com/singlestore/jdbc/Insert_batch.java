@@ -5,12 +5,13 @@
 
 package com.singlestore.jdbc;
 
+import org.openjdk.jmh.annotations.Benchmark;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.openjdk.jmh.annotations.Benchmark;
 
 public class Insert_batch extends Common {
 
@@ -37,6 +38,11 @@ public class Insert_batch extends Common {
     @Benchmark
     public int[] rewrite(MyState state) throws Throwable {
         return run(state.connectionTextRewrite);
+    }
+
+    @Benchmark
+    public void binaryNoPipeline(MyState state) throws Throwable {
+        run(state.connectionBinaryNoPipeline);
     }
 
     private int[] run(Connection con) throws Throwable {

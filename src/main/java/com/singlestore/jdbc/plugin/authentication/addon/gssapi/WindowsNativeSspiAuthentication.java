@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.plugin.authentication.addon.gssapi;
 
@@ -42,20 +42,23 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
 
       // Step 1: send token to server
       byte[] tokenForTheServerOnTheClient = clientContext.getToken();
-      out.writeBytes(tokenForTheServerOnTheClient);
-      out.flush();
-
-      // Step 2: read server response token
-      if (clientContext.isContinue()) {
-        ReadableByteBuf buf = in.readPacket(true);
-        byte[] tokenForTheClientOnTheServer = new byte[buf.readableBytes()];
-        buf.readBytes(tokenForTheClientOnTheServer);
-        Sspi.SecBufferDesc continueToken =
-            new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
-        clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
+      if (tokenForTheServerOnTheClient != null && tokenForTheServerOnTheClient.length > 0) {
+        out.writeBytes(tokenForTheServerOnTheClient);
+        out.flush();
+      }
+      if (!clientContext.isContinue()) {
+        break;
       }
 
-    } while (clientContext.isContinue());
+      // Step 2: read server response token
+      ReadableByteBuf buf = in.readReusablePacket();
+      byte[] tokenForTheClientOnTheServer = new byte[buf.readableBytes()];
+      buf.readBytes(tokenForTheClientOnTheServer);
+      Sspi.SecBufferDesc continueToken =
+          new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
+      clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
+
+    } while (true);
 
     clientContext.dispose();
   }

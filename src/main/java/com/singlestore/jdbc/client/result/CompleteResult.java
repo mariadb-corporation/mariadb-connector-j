@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.result;
 
@@ -38,6 +38,7 @@ public class CompleteResult extends Result {
    * @throws IOException if Socket error occurs
    * @throws SQLException for all other kind of errors
    */
+  @SuppressWarnings({"this-escape"})
   public CompleteResult(
       Statement stmt,
       boolean binaryProtocol,
@@ -59,15 +60,47 @@ public class CompleteResult extends Result {
         context,
         resultSetType,
         closeOnCompletion,
-        traceEnable);
+        traceEnable,
+        false,
+        0);
     this.data = new byte[10][];
     if (maxRows > 0) {
-      while (readNext() && dataSize < maxRows) {}
-      if (!loaded) skipRemaining();
+      this.data = new byte[10][];
+      do {
+        readNext(reader.readPacket(traceEnable));
+      } while (!this.loaded && this.dataSize < maxRows);
+      if (!this.loaded) skipRemaining();
     } else {
-      while (readNext()) {}
+      // avoiding creating array of array since
+      byte[] buf = reader.readPacket(traceEnable);
+      if (buf[0] == (byte) 0xFF || (buf[0] == (byte) 0xFE && buf.length < 16777215)) {
+        // no rows
+        this.data = new byte[0][];
+        readNext(buf);
+      } else {
+        byte[] buf2 = reader.readPacket(traceEnable);
+        if (buf2[0] == (byte) 0xFF || (buf2[0] == (byte) 0xFE && buf2.length < 16777215)) {
+          // one row
+          this.data = new byte[1][];
+          this.data[0] = buf;
+          this.dataSize = 1;
+          readNext(buf2);
+        } else {
+          // multiple rows
+          this.data = new byte[10][];
+          this.data[0] = buf;
+          this.data[1] = buf2;
+          this.dataSize = 2;
+          do {
+            readNext(reader.readPacket(traceEnable));
+          } while (!this.loaded);
+        }
+      }
     }
-    loaded = true;
+  }
+
+  private CompleteResult(ColumnDecoder[] metadataList, CompleteResult prev) {
+    super(metadataList, prev);
   }
 
   /**
@@ -77,9 +110,11 @@ public class CompleteResult extends Result {
    * @param metadataList metadata
    * @param data result-set data
    * @param context connection context
+   * @param resultSetType result set type
    */
-  public CompleteResult(ColumnDecoder[] metadataList, byte[][] data, Context context) {
-    super(metadataList, data, context);
+  public CompleteResult(
+      ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
+    super(metadataList, data, context, resultSetType);
   }
 
   /**
@@ -90,12 +125,23 @@ public class CompleteResult extends Result {
    * @param data values
    * @param context connection context
    * @param flags column flags
+   * @param resultSetType result set type
    * @return result-set
    */
   public static ResultSet createResultSet(
-      String columnName, DataType columnType, String[][] data, Context context, int flags) {
+      String columnName,
+      DataType columnType,
+      String[][] data,
+      Context context,
+      int flags,
+      int resultSetType) {
     return createResultSet(
-        new String[] {columnName}, new DataType[] {columnType}, data, context, flags);
+        new String[] {columnName},
+        new DataType[] {columnType},
+        data,
+        context,
+        flags,
+        resultSetType);
   }
 
   /**
@@ -109,10 +155,16 @@ public class CompleteResult extends Result {
    *     (BIT(1)) values that are represented as "1" or "0" strings
    * @param context connection context
    * @param flags column flags
+   * @param resultSetType result set type
    * @return resultset
    */
   public static ResultSet createResultSet(
-      String[] columnNames, DataType[] columnTypes, String[][] data, Context context, int flags) {
+      String[] columnNames,
+      DataType[] columnTypes,
+      String[][] data,
+      Context context,
+      int flags,
+      int resultSetType) {
 
     int columnNameLength = columnNames.length;
     ColumnDecoder[] columns = new ColumnDecoder[columnNameLength];
@@ -146,7 +198,15 @@ public class CompleteResult extends Result {
       byte[] bb = baos.toByteArray();
       rows.add(bb);
     }
-    return new CompleteResult(columns, rows.toArray(new byte[0][0]), context);
+    return new CompleteResult(columns, rows.toArray(new byte[0][0]), context, resultSetType);
+  }
+
+  public CompleteResult useAliasAsName() {
+    ColumnDecoder[] newMeta = new ColumnDecoder[metadataList.length];
+    for (int i = 0; i < metadataList.length; i++) {
+      newMeta[i] = metadataList[i].useAliasAsName();
+    }
+    return new CompleteResult(newMeta, this);
   }
 
   @Override
@@ -308,11 +368,12 @@ public class CompleteResult extends Result {
   @Override
   public int getFetchSize() throws SQLException {
     checkClose();
-    return 0;
+    return super.getFetchSize();
   }
 
   @Override
   public void setFetchSize(int rows) throws SQLException {
     checkClose();
+    super.setFetchSize(rows);
   }
 }

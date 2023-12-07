@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.socket.impl;
 
@@ -34,8 +34,8 @@ public class PacketWriter implements Writer {
   private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
   private final int maxQuerySizeToLog;
   private final OutputStream out;
-  private int maxPacketLength = MAX_PACKET_LENGTH;
-  private Integer maxAllowedPacket;
+  private final Integer maxPacketLength = MAX_PACKET_LENGTH;
+  private final Integer maxAllowedPacket;
   private long cmdLength;
   private boolean permitTrace = true;
   private String serverThreadLog = "";
@@ -348,8 +348,15 @@ public class PacketWriter implements Writer {
   }
 
   public void writeAscii(String str) throws IOException {
-    byte[] arr = str.getBytes(StandardCharsets.US_ASCII);
-    writeBytes(arr, 0, arr.length);
+    int len = str.length();
+    if (len > buf.length - pos) {
+      byte[] arr = str.getBytes(StandardCharsets.US_ASCII);
+      writeBytes(arr, 0, arr.length);
+      return;
+    }
+    for (int off = 0; off < len; ) {
+      this.buf[this.pos++] = (byte) str.charAt(off++);
+    }
   }
 
   public void writeString(String str) throws IOException {
@@ -563,6 +570,9 @@ public class PacketWriter implements Writer {
         } else {
 
           // not enough space in buf, will fill buf
+          if (buf.length <= pos) {
+            writeSocket(false);
+          }
           if (noBackslashEscapes) {
             for (int i = 0; i < len; i++) {
               if (QUOTE == bytes[i]) {
@@ -708,6 +718,21 @@ public class PacketWriter implements Writer {
    */
   public void flush() throws IOException {
     writeSocket(true);
+    // if buf is big, and last query doesn't use at least half of it, resize buf to default
+    // value
+    if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
+      buf = new byte[SMALL_BUFFER_SIZE];
+    }
+
+    pos = 4;
+    cmdLength = 0;
+    mark = -1;
+  }
+
+  @Override
+  public void flushPipeline() throws IOException {
+    writeSocket(false);
+
     // if buf is big, and last query doesn't use at least half of it, resize buf to default
     // value
     if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {

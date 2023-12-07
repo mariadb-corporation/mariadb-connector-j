@@ -27,11 +27,6 @@ public class Select_100_cols extends Common {
     return run(state.connectionBinaryNoCache);
   }
 
-  @Benchmark
-  public int[] binaryNoPipeline(MyState state) throws Throwable {
-    return run(state.connectionBinaryNoPipeline);
-  }
-
   private int[] run(Connection con) throws Throwable {
 
     try (PreparedStatement prep = con.prepareStatement("select * FROM test100")) {

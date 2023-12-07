@@ -1,19 +1,30 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.util;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public final class ClientParser implements PrepareResult {
 
+  // This regex is referred from ServerPreparedStatement. It is used to determine whether input SQL
+  // string is of 'Insert' statement or not.
+  public static final Pattern INSERT_STATEMENT_PATTERN =
+      Pattern.compile(
+          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(INSERT)", Pattern.CASE_INSENSITIVE);
+
+  public static final Pattern INSERT_ON_DUPLICATE_KEY_UPDATE_STATEMENT_PATTERN =
+      Pattern.compile(
+          "^.+[^`](ON)\\s.*(DUPLICATE)\\s.*(KEY)\\s.*(UPDATE)[^`].+", Pattern.CASE_INSENSITIVE);
+
   private final String sql;
   private final byte[] query;
-  private List<Integer> paramPositions;
+  private final List<Integer> paramPositions;
   private final int paramCount;
 
   private ClientParser(String sql, byte[] query, List<Integer> paramPositions) {
@@ -21,6 +32,14 @@ public final class ClientParser implements PrepareResult {
     this.query = query;
     this.paramPositions = paramPositions;
     this.paramCount = paramPositions.size();
+  }
+
+  // isRewriteBatchedApplicable returns true if the parameter sql
+  // represents INSERT operation without 'ON DUPLICATE KEY UPDATE' clause
+  //
+  public boolean isRewriteBatchedApplicable() {
+    return INSERT_STATEMENT_PATTERN.matcher(this.sql).find()
+        && !INSERT_ON_DUPLICATE_KEY_UPDATE_STATEMENT_PATTERN.matcher(this.sql).find();
   }
 
   /**

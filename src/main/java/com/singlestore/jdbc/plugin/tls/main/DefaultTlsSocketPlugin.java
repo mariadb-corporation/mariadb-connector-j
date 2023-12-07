@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
-package com.singlestore.jdbc.client.tls;
+package com.singlestore.jdbc.plugin.tls.main;
 
 import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.client.tls.HostnameVerifier;
+import com.singlestore.jdbc.client.tls.SingleStoreX509KeyManager;
+import com.singlestore.jdbc.client.tls.SingleStoreX509TrustManager;
+import com.singlestore.jdbc.client.tls.SingleStoreX509TrustingManager;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.export.SslMode;
 import com.singlestore.jdbc.plugin.TlsSocketPlugin;
@@ -16,8 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -34,6 +37,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
@@ -41,6 +45,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   private static KeyManager loadClientCerts(
       String keyStoreUrl,
       String keyStorePassword,
+      String keyPassword,
       String storeType,
       ExceptionFactory exceptionFactory)
       throws SQLException {
@@ -48,11 +53,17 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     try {
       try (InputStream inStream = loadFromUrl(keyStoreUrl)) {
         char[] keyStorePasswordChars =
-            keyStorePassword == null ? null : keyStorePassword.toCharArray();
+            keyStorePassword == null
+                ? null
+                : (keyStorePassword.equals("")) ? null : keyStorePassword.toCharArray();
+        char[] keyStoreChars =
+            (keyPassword == null)
+                ? keyStorePasswordChars
+                : (keyPassword.equals("")) ? null : keyPassword.toCharArray();
         KeyStore ks =
             KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
         ks.load(inStream, keyStorePasswordChars);
-        return new SingleStoreX509KeyManager(ks, keyStorePasswordChars);
+        return new SingleStoreX509KeyManager(ks, keyStoreChars);
       }
     } catch (IOException | GeneralSecurityException ex) {
       throw exceptionFactory.create(
@@ -84,9 +95,26 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
 
   private static InputStream loadFromUrl(String keyStoreUrl) throws FileNotFoundException {
     try {
-      return new URL(keyStoreUrl).openStream();
-    } catch (IOException ioexception) {
+      return new URI(keyStoreUrl).toURL().openStream();
+    } catch (Exception exception) {
       return new FileInputStream(keyStoreUrl);
+    }
+  }
+
+  private static InputStream getInputStreamFromPath(String path) throws IOException {
+    try {
+      return new URI(path).toURL().openStream();
+    } catch (Exception e) {
+      if (path.startsWith("-----")) {
+        return new ByteArrayInputStream(path.getBytes());
+      } else {
+        File f = new File(path);
+        if (f.exists() && !f.isDirectory()) {
+          return f.toURI().toURL().openStream();
+        }
+        throw new IOException(
+            String.format("File not found for option `serverSslCert` (value: '%s')", path), e);
+      }
     }
   }
 
@@ -148,7 +176,19 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
             ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
           }
 
-          trustManager = new TrustManager[] {new SingleStoreX509TrustManager(ks, exceptionFactory)};
+          TrustManagerFactory tmf =
+              TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+          tmf.init(ks);
+          for (TrustManager tm : tmf.getTrustManagers()) {
+            if (tm instanceof X509TrustManager) {
+              trustManager = new X509TrustManager[] {(X509TrustManager) tm};
+              break;
+            }
+          }
+
+          if (trustManager == null) {
+            throw new SQLException("No X509TrustManager found");
+          }
 
         } catch (IOException ioEx) {
           throw exceptionFactory.create("Failed load keyStore", "08000", ioEx);
@@ -165,7 +205,11 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       keyManager =
           new KeyManager[] {
             loadClientCerts(
-                conf.keyStore(), conf.keyStorePassword(), conf.keyStoreType(), exceptionFactory)
+                conf.keyStore(),
+                conf.keyStorePassword(),
+                conf.keyPassword(),
+                conf.keyStoreType(),
+                exceptionFactory)
           };
     } else {
       String keyStore = System.getProperty("javax.net.ssl.keyStore");
@@ -176,7 +220,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         try {
           keyManager =
               new KeyManager[] {
-                loadClientCerts(keyStore, keyStorePassword, keyStoreType, exceptionFactory)
+                loadClientCerts(
+                    keyStore, keyStorePassword, keyStorePassword, keyStoreType, exceptionFactory)
               };
         } catch (SQLException queryException) {
           keyManager = null;
@@ -195,23 +240,6 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
       throw exceptionFactory.create(
           "SSLContext TLS Algorithm not unknown", "08000", noSuchAlgorithmEx);
-    }
-  }
-
-  private static InputStream getInputStreamFromPath(String path) throws IOException {
-    try {
-      return new URL(path).openStream();
-    } catch (MalformedURLException e) {
-      if (path.startsWith("-----")) {
-        return new ByteArrayInputStream(path.getBytes());
-      } else {
-        File f = new File(path);
-        if (f.exists() && !f.isDirectory()) {
-          return f.toURI().toURL().openStream();
-        }
-      }
-      throw new IOException(
-          String.format("Wrong value for option `serverSslCert` (value: '%s')", path));
     }
   }
 

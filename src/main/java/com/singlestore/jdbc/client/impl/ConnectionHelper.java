@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.impl;
 
@@ -18,7 +18,7 @@ import com.singlestore.jdbc.export.SslMode;
 import com.singlestore.jdbc.message.client.SslRequestPacket;
 import com.singlestore.jdbc.message.server.AuthSwitchPacket;
 import com.singlestore.jdbc.message.server.ErrorPacket;
-import com.singlestore.jdbc.message.server.InitialHandshakePacket;
+import com.singlestore.jdbc.message.server.OkPacket;
 import com.singlestore.jdbc.plugin.AuthenticationPlugin;
 import com.singlestore.jdbc.plugin.Credential;
 import com.singlestore.jdbc.plugin.CredentialPlugin;
@@ -165,8 +165,7 @@ public final class ConnectionHelper {
             | Capabilities.PLUGIN_AUTH
             | Capabilities.CONNECT_ATTRS
             | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-            | Capabilities.CLIENT_SESSION_TRACK
-            | Capabilities.EXTENDED_TYPE_INFO;
+            | Capabilities.CLIENT_SESSION_TRACK;
     if (configuration.useServerPrepStmts()
         && Boolean.parseBoolean(
             configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
@@ -183,6 +182,14 @@ public final class ConnectionHelper {
 
     if (configuration.allowLocalInfile()) {
       capabilities |= Capabilities.LOCAL_FILES;
+    }
+
+    // extendedTypeInfo is a technical option
+    boolean extendedTypeInfo =
+        Boolean.parseBoolean(
+            configuration.nonMappedOptions().getProperty("extendedTypeInfo", "true"));
+    if (extendedTypeInfo) {
+      capabilities |= Capabilities.EXTENDED_TYPE_INFO;
     }
 
     // useEof is a technical option
@@ -203,26 +210,10 @@ public final class ConnectionHelper {
                 && (hostAddress != null && !hostAddress.primary)))) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
-    return capabilities;
-  }
-
-  /**
-   * Default collation used for string exchanges with server. Always return 4 bytes utf8 collation
-   * for server that permit it.
-   *
-   * @param handshake initial handshake packet
-   * @return collation byte
-   */
-  public static byte decideLanguage(InitialHandshakePacket handshake) {
-    short serverLanguage = handshake.getDefaultCollation();
-    // return current server utf8mb4 collation
-    if (serverLanguage == 45 // utf8mb4_general_ci
-        || serverLanguage == 46 // utf8mb4_bin
-        || (serverLanguage >= 224 && serverLanguage <= 247)) {
-      return (byte) serverLanguage;
+    if (configuration.sslMode() != SslMode.DISABLE) {
+      capabilities |= Capabilities.SSL;
     }
-
-    return (byte) 33; // utf8_general_ci;
+    return capabilities;
   }
 
   /**
@@ -241,7 +232,7 @@ public final class ConnectionHelper {
 
     writer.permitTrace(true);
     Configuration conf = context.getConf();
-    ReadableByteBuf buf = reader.readPacket(false);
+    ReadableByteBuf buf = reader.readReusablePacket();
 
     authentication_loop:
     while (true) {
@@ -276,11 +267,7 @@ public final class ConnectionHelper {
           // OK_Packet -> Authenticated !
           // see https://mariadb.com/kb/en/library/ok_packet/
           // *************************************************************************************
-          buf.skip(); // 0x00 OkPacket Header
-          buf.readLongLengthEncodedNotNull(); // skip affectedRows
-          buf.readLongLengthEncodedNotNull(); // skip insert id
-          // insertId
-          context.setServerStatus(buf.readShort());
+          new OkPacket(buf, context);
           break authentication_loop;
 
         default:

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc;
 
@@ -65,8 +65,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * @param lock thread safe lock
    * @param databaseName database name
    * @param procedureName procedure name
-   * @param canUseServerTimeout indicate if server support server timeout
-   * @param canUseServerMaxRows indicate if server support server max rows
    * @param canCachePrepStmts can cache server prepared result
    * @param resultSetType resultset type
    * @param resultSetConcurrency resultset concurrency
@@ -79,8 +77,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
       ReentrantLock lock,
       String databaseName,
       String procedureName,
-      boolean canUseServerTimeout,
-      boolean canUseServerMaxRows,
       boolean canCachePrepStmts,
       int resultSetType,
       int resultSetConcurrency,
@@ -90,8 +86,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         sql,
         con,
         lock,
-        canUseServerTimeout,
-        canUseServerMaxRows,
         canCachePrepStmts,
         Statement.RETURN_GENERATED_KEYS,
         resultSetType,
@@ -2843,8 +2837,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
             NativeSql.parse(sql, con.getContext()),
             con,
             lock,
-            false,
-            false,
             Statement.NO_GENERATED_KEYS,
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY,

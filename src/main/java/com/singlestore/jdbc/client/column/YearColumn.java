@@ -44,6 +44,15 @@ public class YearColumn extends UnsignedSmallIntColumn {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
+  protected YearColumn(YearColumn prev) {
+    super(prev);
+  }
+
+  @Override
+  public YearColumn useAliasAsName() {
+    return new YearColumn(this);
+  }
+
   @Override
   public String defaultClassname(Configuration conf) {
     return conf.yearIsDateType() ? Date.class.getName() : Short.class.getName();

@@ -7,6 +7,11 @@ package com.singlestore.jdbc;
 
 import java.sql.Connection;
 
+/**
+ * Transaction isolation level.
+ *
+ * <p>Currently, SingleStore DB supports only READ-COMMITTED transaction level.
+ */
 public enum TransactionIsolation {
   /**
    * dirty reads and non-repeatable reads are prevented; phantom reads can occur. This level
@@ -59,6 +64,10 @@ public enum TransactionIsolation {
           .value
           .replaceAll(" |-|_", "")
           .equalsIgnoreCase(value.replaceAll(" |-|_", ""))) {
+        if (transactionIsolation != READ_COMMITTED) {
+          throw new IllegalArgumentException(
+              "SingleStore supports only 'READ-COMMITTED' transaction level");
+        }
         return transactionIsolation;
       }
     }

@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.export.ExceptionFactory;
+import java.util.function.Function;
 
 public interface Context {
 
@@ -16,6 +17,13 @@ public interface Context {
    * @return current server thread id
    */
   long getThreadId();
+
+  /**
+   * Indicate server connection Id (not truncated)
+   *
+   * @param connectionId connection id
+   */
+  void setThreadId(long connectionId);
 
   /**
    * Get connection initial seed
@@ -91,11 +99,11 @@ public interface Context {
   boolean canSkipMeta();
 
   /**
-   * Does server metadata exchange extended information
+   * Column decoder function
    *
-   * @return use metadata extended information
+   * @return Column decoder function
    */
-  boolean isExtendedInfo();
+  Function<ReadableByteBuf, ColumnDecoder> getColumnDecoderFunction();
 
   /**
    * has server warnings
@@ -130,7 +138,7 @@ public interface Context {
    *
    * @return connection transaction isolation level
    */
-  int getTransactionIsolationLevel();
+  Integer getTransactionIsolationLevel();
 
   /**
    * Set current connection transaction isolation level
@@ -165,4 +173,21 @@ public interface Context {
    * @param state indicate that some connection state has changed
    */
   void addStateFlag(int state);
+
+  /** Indicate the number of connection on this server */
+  void setTreadsConnected(long threadsConnected);
+
+  /**
+   * Retrieve current charset if session state get it
+   *
+   * @return current charset
+   */
+  String getCharset();
+
+  /**
+   * Indicate server charset change
+   *
+   * @param charset server charset
+   */
+  void setCharset(String charset);
 }

@@ -7,6 +7,7 @@ package com.singlestore.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
 import java.io.ByteArrayInputStream;
@@ -658,21 +659,27 @@ public class EnumCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getBlob() throws SQLException {
+  public void getBlob() throws Exception {
     getBlob(get());
   }
 
   @Test
-  public void getBlobPrepare() throws SQLException {
+  public void getBlobPrepare() throws Exception {
     getBlob(getPrepare(sharedConn));
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getBlob(1),
-        "Data type VARCHAR (not binary) cannot be decoded as Blob");
+  public void getBlob(ResultSet rs) throws Exception {
+    assertStreamEquals(new SingleStoreBlob("0".getBytes()), rs.getBlob(1));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(new SingleStoreBlob("1".getBytes()), rs.getBlob(2));
+    assertStreamEquals(new SingleStoreBlob("1".getBytes()), rs.getBlob("t2alias"));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(
+        new SingleStoreBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBlob(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test

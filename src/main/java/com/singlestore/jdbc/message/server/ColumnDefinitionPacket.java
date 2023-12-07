@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.message.server;
 
@@ -25,8 +25,23 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   private final int[] stringPos;
   protected final String extTypeName;
   protected final String extTypeFormat;
+  /** configuration: use alias as name */
   private boolean useAliasAsName;
 
+  /**
+   * Column definition constructor
+   *
+   * @param buf buffer
+   * @param charset charset
+   * @param columnLength maxium column length
+   * @param dataType data type
+   * @param decimals decimal length
+   * @param flags flags
+   * @param stringPos string position indexes
+   * @param extTypeName extended type name
+   * @param extTypeFormat extended type format
+   * @param useAliasAsName use alias as name
+   */
   public ColumnDefinitionPacket(
       ReadableByteBuf buf,
       int charset,
@@ -36,7 +51,8 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       int flags,
       int[] stringPos,
       String extTypeName,
-      String extTypeFormat) {
+      String extTypeFormat,
+      boolean useAliasAsName) {
     this.buf = buf;
     this.charset = charset;
     this.columnLength = columnLength;
@@ -46,6 +62,24 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.stringPos = stringPos;
     this.extTypeName = extTypeName;
     this.extTypeFormat = extTypeFormat;
+    this.useAliasAsName = useAliasAsName;
+  }
+
+  protected ColumnDefinitionPacket(ColumnDefinitionPacket prev, boolean useAliasAsName) {
+    this.buf = prev.buf;
+    this.charset = prev.charset;
+    this.columnLength = prev.columnLength;
+    this.dataType = prev.dataType;
+    this.decimals = prev.decimals;
+    this.flags = prev.flags;
+    this.stringPos = prev.stringPos;
+    this.extTypeName = prev.extTypeName;
+    this.extTypeFormat = prev.extTypeFormat;
+    this.useAliasAsName = useAliasAsName;
+  }
+
+  public String getCatalog() {
+    return "def";
   }
 
   @Override
@@ -196,10 +230,5 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   @Override
   public int hashCode() {
     return Objects.hash(charset, columnLength, dataType, decimals, flags);
-  }
-
-  @Override
-  public void useAliasAsName() {
-    useAliasAsName = true;
   }
 }

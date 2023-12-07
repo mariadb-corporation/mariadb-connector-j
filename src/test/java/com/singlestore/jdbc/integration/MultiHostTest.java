@@ -50,6 +50,7 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  @Disabled("SingleSore supports only READ COMMITTED transaction level")
   public void syncState() throws Exception {
     try (Connection con = createProxyConKeep("")) {
       Statement stmt = con.createStatement();

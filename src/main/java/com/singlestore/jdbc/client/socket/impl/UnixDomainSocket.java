@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.socket.impl;
 
@@ -208,6 +208,7 @@ public class UnixDomainSocket extends Socket {
      *
      * @param sunPath path
      */
+    @SuppressWarnings({"this-escape"})
     public SockAddr(String sunPath) {
       sun_family = AF_UNIX;
       byte[] arr = sunPath.getBytes();
@@ -227,7 +228,23 @@ public class UnixDomainSocket extends Socket {
     @Override
     public int read(byte[] bytesEntry, int off, int len) throws IOException {
       try {
-        return recv(fd, bytesEntry, len, 0);
+        if (off == 0) {
+          return recv(fd, bytesEntry, len, 0);
+        } else {
+          // Offset occurs when packet is not fully read.
+          // this usually occurs when packet size > 32K
+          //
+          // java has no simple method to have a pointer in array like in C
+          // There can be solution using completely native implementation like junixsocket
+          // but benchmarks show that standard case i.e. "return recv(fd, bytesEntry, len, 0);"
+          // is around 10% more performant
+          // Since having packet > 32K is a rare case, having an additional buffer copy is a good
+          // intermediate solution.
+          byte[] tmp = new byte[len];
+          int reads = recv(fd, tmp, len, 0);
+          System.arraycopy(tmp, 0, bytesEntry, off, reads);
+          return reads;
+        }
       } catch (LastErrorException lee) {
         throw new IOException("native read() failed : " + formatError(lee));
       }

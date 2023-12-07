@@ -1,1 +1,1 @@
-com.singlestore.jdbc.client.tls.DefaultTlsSocketPlugin
+com.singlestore.jdbc.plugin.tls.main.DefaultTlsSocketPlugin

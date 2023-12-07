@@ -46,7 +46,26 @@ public class DoubleColumn extends ColumnDefinitionPacket implements ColumnDecode
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected DoubleColumn(DoubleColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public DoubleColumn useAliasAsName() {
+    return new DoubleColumn(this);
   }
 
   @Override

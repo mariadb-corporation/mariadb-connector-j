@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.impl;
 
@@ -65,6 +65,7 @@ public class MultiPrimaryClient implements Client {
    * @param lock thread locker
    * @throws SQLException if fail to connect
    */
+  @SuppressWarnings({"this-escape"})
   public MultiPrimaryClient(Configuration conf, ReentrantLock lock) throws SQLException {
     this.conf = conf;
     this.lock = lock;
@@ -152,7 +153,7 @@ public class MultiPrimaryClient implements Client {
       }
     }
 
-    throw lastSqle;
+    throw (lastSqle != null) ? lastSqle : new SQLNonTransientConnectionException("No host");
   }
 
   /**
@@ -273,8 +274,9 @@ public class MultiPrimaryClient implements Client {
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
-        && currentClient.getContext().getTransactionIsolationLevel()
-            != oldCtx.getTransactionIsolationLevel()) {
+        && !Objects.equals(
+            currentClient.getContext().getTransactionIsolationLevel(),
+            oldCtx.getTransactionIsolationLevel())) {
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (oldCtx.getTransactionIsolationLevel()) {
         case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
@@ -485,7 +487,7 @@ public class MultiPrimaryClient implements Client {
   @Override
   public void close() throws SQLException {
     closed = true;
-    currentClient.close();
+    if (currentClient != null) currentClient.close();
   }
 
   @Override
@@ -532,6 +534,11 @@ public class MultiPrimaryClient implements Client {
   @Override
   public HostAddress getHostAddress() {
     return currentClient.getHostAddress();
+  }
+
+  @Override
+  public String getSocketIp() {
+    return currentClient.getSocketIp();
   }
 
   @Override

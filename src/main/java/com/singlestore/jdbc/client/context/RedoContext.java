@@ -6,6 +6,7 @@
 package com.singlestore.jdbc.client.context;
 
 import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.HostAddress;
 import com.singlestore.jdbc.client.PrepareCache;
 import com.singlestore.jdbc.client.impl.TransactionSaver;
 import com.singlestore.jdbc.export.ExceptionFactory;
@@ -22,6 +23,7 @@ public class RedoContext extends BaseContext {
   /**
    * Constructor
    *
+   * @param hostAddress host address
    * @param handshake server handshake
    * @param clientCapabilities client capabilities
    * @param conf configuration
@@ -29,12 +31,13 @@ public class RedoContext extends BaseContext {
    * @param prepareCache LRU prepare cache
    */
   public RedoContext(
+      HostAddress hostAddress,
       InitialHandshakePacket handshake,
       long clientCapabilities,
       Configuration conf,
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache) {
-    super(handshake, clientCapabilities, conf, exceptionFactory, prepareCache);
+    super(hostAddress, handshake, clientCapabilities, conf, exceptionFactory, prepareCache);
     this.transactionSaver = new TransactionSaver(conf.transactionReplaySize());
   }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.message.client;
 
@@ -12,6 +12,7 @@ import com.singlestore.jdbc.client.socket.impl.PacketWriter;
 import com.singlestore.jdbc.message.ClientMessage;
 import com.singlestore.jdbc.plugin.Credential;
 import com.singlestore.jdbc.plugin.authentication.standard.NativePasswordPlugin;
+import com.singlestore.jdbc.util.ThreadUtils;
 import com.singlestore.jdbc.util.VersionFactory;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import java.io.IOException;
@@ -99,7 +100,7 @@ public final class HandshakeResponse implements ClientMessage {
     writeStringLength(tmpWriter, System.getProperty("os.name"));
 
     writeStringLengthAscii(tmpWriter, _THREAD);
-    writeStringLength(tmpWriter, Long.toString(Thread.currentThread().getId()));
+    writeStringLength(tmpWriter, Long.toString(ThreadUtils.getId(Thread.currentThread())));
 
     writeStringLengthAscii(tmpWriter, _JAVA_VENDOR);
     writeStringLength(tmpWriter, System.getProperty("java.vendor"));

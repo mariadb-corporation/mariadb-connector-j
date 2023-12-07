@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc;
 
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.result.CompleteResult;
-import com.singlestore.jdbc.client.result.Result;
 import com.singlestore.jdbc.util.Version;
 import com.singlestore.jdbc.util.VersionFactory;
 import com.singlestore.jdbc.util.constants.ServerStatus;
@@ -171,8 +170,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   private ResultSet executeQuery(String sql) throws SQLException {
-    Statement stmt = connection.createStatement();
-    Result rs = (Result) stmt.executeQuery(sql);
+    Statement stmt =
+        connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    CompleteResult rs = (CompleteResult) stmt.executeQuery(sql);
     rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
     rs.useAliasAsName();
     return rs;
@@ -1643,7 +1643,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public int getDefaultTransactionIsolation() {
-    return java.sql.Connection.TRANSACTION_REPEATABLE_READ;
+    return java.sql.Connection.TRANSACTION_READ_COMMITTED;
   }
 
   /**
@@ -1669,10 +1669,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public boolean supportsTransactionIsolationLevel(int level) {
     switch (level) {
-      case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
       case java.sql.Connection.TRANSACTION_READ_COMMITTED:
-      case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
-      case java.sql.Connection.TRANSACTION_SERIALIZABLE:
         return true;
       default:
         return false;
@@ -2988,7 +2985,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       }
     };
 
-    return CompleteResult.createResultSet(columnNames, dataTypes, data, connection.getContext(), 0);
+    return CompleteResult.createResultSet(
+        columnNames,
+        dataTypes,
+        data,
+        connection.getContext(),
+        0,
+        ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   /**
@@ -3379,13 +3382,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       throws SQLException {
 
     String sql =
-        "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE,"
-            + " ' ' ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE,"
-            + " ' ' REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH,"
-            + " 0 ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' ' SCOPE_TABLE,"
-            + " 0 SOURCE_DATA_TYPE"
-            + " FROM DUAL "
-            + " WHERE 1=0";
+        "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE, ' '"
+            + " ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE, ' '"
+            + " REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH, 0"
+            + " ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' '"
+            + " SCOPE_TABLE, 0 SOURCE_DATA_TYPE FROM DUAL  WHERE 1=0";
 
     return executeQuery(sql);
   }
@@ -3485,7 +3486,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           }
         };
 
-    return CompleteResult.createResultSet(columnNames, types, data, connection.getContext(), 0);
+    return CompleteResult.createResultSet(
+        columnNames, types, data, connection.getContext(), 0, ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   /**

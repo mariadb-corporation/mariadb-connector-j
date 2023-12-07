@@ -1,19 +1,93 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.Statement;
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.ParameterMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.BitSet;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ProcedureParameterTest extends Common {
+
+  @BeforeAll
+  public static void beforeAll2() throws SQLException {
+    drop();
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE PROCEDURE useParameterName(a int) AS BEGIN  ECHO SELECT a;  END;");
+    stmt.execute(
+        "CREATE PROCEDURE withStrangeParameter(a DECIMAL(10,2)) AS BEGIN  ECHO SELECT a as b;  END;");
+    stmt.execute("FLUSH TABLES");
+  }
+
+  @AfterAll
+  public static void drop() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP PROCEDURE IF EXISTS useParameterName");
+    stmt.execute("DROP PROCEDURE IF EXISTS withStrangeParameter");
+  }
+
+  @Test
+  public void callUseParameterName() throws Exception {
+    CallableStatement stmt = sharedConn.prepareCall("{call useParameterName(?)}");
+    stmt.setInt("a", 1);
+    ResultSet rs = stmt.executeQuery();
+    assertTrue(rs.next());
+    int res = rs.getInt(1);
+    assertEquals(res, 1);
+  }
+
+  @Test
+  public void callWithoutBracket() throws Exception {
+
+    CallableStatement stmt = sharedConn.prepareCall("call useParameterName(?)");
+    stmt.setInt(1, 1);
+    ResultSet rs = stmt.executeQuery();
+    assertTrue(rs.next());
+    int res = rs.getInt(1);
+    assertEquals(res, 1);
+  }
+
+  @Test
+  public void callWithStrangeParameter() throws SQLException {
+
+    try (CallableStatement call = sharedConn.prepareCall("{call withStrangeParameter(?)}")) {
+      double expected = 5.43;
+      call.setDouble("a", expected);
+      try (ResultSet rs = call.executeQuery()) {
+        assertTrue(rs.next());
+        double res = rs.getDouble("b");
+        assertEquals(expected, res, 0);
+        // now fail due to three decimals
+        double tooMuch = 34.987;
+        call.setDouble("a", tooMuch);
+        try (ResultSet rs2 = call.executeQuery()) {
+          assertTrue(rs2.next());
+          assertNotEquals(rs2.getDouble("b"), tooMuch);
+        }
+      }
+    }
+  }
 
   @Test
   public void basicProcedure() throws SQLException {

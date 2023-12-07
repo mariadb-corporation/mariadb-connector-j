@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2023 SingleStore, Inc.
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.impl;
 
@@ -19,6 +19,17 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     this.pos = 0;
     this.buf = buf;
     this.limit = limit;
+  }
+
+  /**
+   * Packet buffer constructor, limit being the buffer length
+   *
+   * @param buf buffer
+   */
+  public StandardReadableByteBuf(byte[] buf) {
+    this.pos = 0;
+    this.buf = buf;
+    this.limit = buf.length;
   }
 
   public int readableBytes() {
@@ -74,7 +85,6 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
         return;
       default:
         pos += len & 0xff;
-        return;
     }
   }
 
@@ -270,9 +280,10 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   public StandardReadableByteBuf readLengthBuffer() {
     int len = this.readIntLengthEncodedNotNull();
-    byte[] tmp = new byte[len];
-    readBytes(tmp);
-    return new StandardReadableByteBuf(tmp, len);
+    StandardReadableByteBuf b = new StandardReadableByteBuf(buf, pos + len);
+    b.pos = pos;
+    pos += len;
+    return b;
   }
 
   public String readString(int length) {

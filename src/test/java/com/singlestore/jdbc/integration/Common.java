@@ -50,6 +50,7 @@ public class Common {
   public static Connection sharedConnBinary;
   public static String hostname;
   public static int port;
+  public static String database;
   public static String user;
   public static String password;
   public static TcpProxy proxy;
@@ -73,17 +74,18 @@ public class Common {
       user = get("DB_USER", prop);
       port = Integer.parseInt(get("DB_PORT", prop));
       password = get("DB_PASSWORD", prop);
+      database = get("DB_DATABASE", prop);
       mDefUrl =
           String.format(
               "jdbc:singlestore://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s",
-              hostname, port, get("DB_DATABASE", prop), user, password, defaultOther);
+              hostname, port, database, user, password, defaultOther);
 
     } catch (IOException io) {
       io.printStackTrace();
     }
   }
 
-  private static String get(String name, Properties prop) {
+  protected static String get(String name, Properties prop) {
     String val = System.getenv("TEST_" + name);
     if (val == null) val = System.getProperty("TEST_" + name);
     if (val == null) val = prop.getProperty(name);
@@ -99,6 +101,10 @@ public class Common {
     try (Statement stmt = sharedConn.createStatement()) {
       stmt.execute("CREATE OR REPLACE PROCEDURE dummy_proc() AS BEGIN END");
     }
+  }
+
+  public boolean isWindows() {
+    return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
   @AfterAll

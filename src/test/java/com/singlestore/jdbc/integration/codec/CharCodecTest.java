@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.integration.Common;
@@ -670,10 +671,16 @@ public class CharCodecTest extends CommonCodecTest {
   }
 
   public void getBlob(ResultSet rs) throws Exception {
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getBlob(1),
-        "Data type CHAR (not binary) cannot be decoded as Blob");
+    assertStreamEquals(new SingleStoreBlob("0".getBytes()), rs.getBlob(1));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(new SingleStoreBlob("1".getBytes()), rs.getBlob(2));
+    assertStreamEquals(new SingleStoreBlob("1".getBytes()), rs.getBlob("t2alias"));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(
+        new SingleStoreBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBlob(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test

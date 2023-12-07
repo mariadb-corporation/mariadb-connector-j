@@ -44,7 +44,26 @@ public class UnsignedTinyIntColumn extends ColumnDefinitionPacket implements Col
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected UnsignedTinyIntColumn(UnsignedTinyIntColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public UnsignedTinyIntColumn useAliasAsName() {
+    return new UnsignedTinyIntColumn(this);
   }
 
   @Override

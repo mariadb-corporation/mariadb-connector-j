@@ -1838,12 +1838,12 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(64, meta.getMaxTableNameLength());
     assertEquals(256, meta.getMaxTablesInSelect());
     assertEquals(0, meta.getMaxUserNameLength());
-    assertEquals(Connection.TRANSACTION_REPEATABLE_READ, meta.getDefaultTransactionIsolation());
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED, meta.getDefaultTransactionIsolation());
     assertTrue(meta.supportsTransactions());
-    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED));
+    assertFalse(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED));
     assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED));
-    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ));
-    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE));
+    assertFalse(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ));
+    assertFalse(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE));
     assertFalse(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE));
     assertTrue(meta.supportsDataDefinitionAndDataManipulationTransactions());
     assertFalse(meta.supportsDataManipulationTransactionsOnly());

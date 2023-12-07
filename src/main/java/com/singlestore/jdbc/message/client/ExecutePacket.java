@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.message.client;
 
@@ -18,12 +18,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 
+/** Execute command (COM_STMT_EXECUTE) */
 public final class ExecutePacket implements RedoableWithPrepareClientMessage {
-  private Parameters parameters;
   private final String command;
   private final ServerPreparedStatement prep;
-  private Prepare prepareResult;
   private InputStream localInfileInputStream;
+  private Prepare prepareResult;
+  private Parameters parameters;
 
   /**
    * Constructor
@@ -32,6 +33,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
    * @param parameters parameter
    * @param command sql command
    * @param prep prepared statement
+   * @param localInfileInputStream local infile input stream
    */
   public ExecutePacket(
       Prepare prepareResult,
@@ -62,6 +64,14 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     }
   }
 
+  /**
+   * COM_STMT_EXECUTE packet
+   *
+   * <p>int<1> 0x17 : COM_STMT_EXECUTE header int<4> statement id int<1> flags: int<4> Iteration
+   * count (always 1) if (param_count > 0) byte<(param_count + 7)/8> null bitmap byte<1>: send type
+   * to server (0 / 1) if (send type to server) for each parameter : byte<1>: field type byte<1>:
+   * parameter flag for each parameter (i.e param_count times) byte<n> binary parameter value
+   */
   @Override
   public int encode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
@@ -104,7 +114,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
         writer.writeByte(p.getBinaryEncodeType());
         writer.writeByte(0);
         if (p.isNull()) {
-          nullBitsBuffer[i / 8] |= (1 << (i % 8));
+          nullBitsBuffer[i / 8] |= (byte) (1 << (i % 8));
         }
       }
 

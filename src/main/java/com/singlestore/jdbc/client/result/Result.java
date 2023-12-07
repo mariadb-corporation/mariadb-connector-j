@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.result;
 
@@ -34,7 +34,7 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
@@ -61,50 +61,69 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Result implements ResultSet, Completion {
 
-  private static BinaryRowDecoder BINARY_ROW_DECODER = new BinaryRowDecoder();
-  private static TextRowDecoder TEXT_ROW_DECODER = new TextRowDecoder();
+  /** null length value */
   public static final int NULL_LENGTH = -1;
-  private final int maxIndex;
-  private final boolean closeOnCompletion;
-  private boolean forceAlias;
-  private final boolean traceEnable;
+
+  private static final BinaryRowDecoder BINARY_ROW_DECODER = new BinaryRowDecoder();
+  private static final TextRowDecoder TEXT_ROW_DECODER = new TextRowDecoder();
 
   /** result-set type */
   protected final int resultSetType;
-  /** connection exception factoy */
+
+  /** connection exception factory */
   protected final ExceptionFactory exceptionFactory;
+
   /** packet reader */
   protected final com.singlestore.jdbc.client.socket.Reader reader;
+
   /** connection context */
   protected final Context context;
+
   /** columns metadata */
   protected final ColumnDecoder[] metadataList;
 
   /** binary/text row decoder */
   protected final RowDecoder rowDecoder;
+
+  /** reusable row buffer decoder */
+  protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
+
+  protected final boolean traceEnable;
+  private final int maxIndex;
+  private final boolean closeOnCompletion;
+  private final MutableInt fieldLength = new MutableInt(0);
+  private final boolean forceAlias;
+  private final byte[] nullBitmap;
+
   /** data size */
   protected int dataSize = 0;
+
   /** rows */
   protected byte[][] data;
 
-  private byte[] nullBitmap;
-  protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
-  private MutableInt fieldLength = new MutableInt(0);
-
+  /** mutable field index */
   protected MutableInt fieldIndex = new MutableInt();
-  private Map<String, Integer> mapper = null;
+
   /** is fully loaded */
   protected boolean loaded;
+
   /** is an output parameter result-set */
   protected boolean outputParameter;
+
   /** current row pointer */
   protected int rowPointer = -1;
+
   /** is result-set closed */
   protected boolean closed;
+
   /** statement that initiate this result */
   protected Statement statement;
+
   /** row number limit */
   protected long maxRows;
+
+  private Map<String, Integer> mapper = null;
+  private int fetchSize;
 
   /**
    * Constructor for server's data
@@ -118,6 +137,8 @@ public abstract class Result implements ResultSet, Completion {
    * @param resultSetType result-set type
    * @param closeOnCompletion close statement on completion
    * @param traceEnable logger enabled
+   * @param forceAlias forced alias
+   * @param fetchSize fetch size
    */
   public Result(
       com.singlestore.jdbc.Statement stmt,
@@ -128,7 +149,9 @@ public abstract class Result implements ResultSet, Completion {
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
-      boolean traceEnable) {
+      boolean traceEnable,
+      boolean forceAlias,
+      int fetchSize) {
     this.maxRows = maxRows;
     this.statement = stmt;
     this.closeOnCompletion = closeOnCompletion;
@@ -139,12 +162,31 @@ public abstract class Result implements ResultSet, Completion {
     this.context = context;
     this.resultSetType = resultSetType;
     this.traceEnable = traceEnable;
+    this.forceAlias = forceAlias;
+    this.fetchSize = fetchSize;
     if (binaryProtocol) {
       rowDecoder = BINARY_ROW_DECODER;
       nullBitmap = new byte[(maxIndex + 9) / 8];
     } else {
       rowDecoder = TEXT_ROW_DECODER;
+      nullBitmap = null;
     }
+  }
+
+  protected Result(ColumnDecoder[] metadataList, Result prev) {
+    this.maxRows = prev.maxRows;
+    this.statement = prev.statement;
+    this.closeOnCompletion = prev.closeOnCompletion;
+    this.metadataList = metadataList;
+    this.maxIndex = metadataList.length;
+    this.reader = prev.reader;
+    this.exceptionFactory = prev.exceptionFactory;
+    this.context = prev.context;
+    this.resultSetType = prev.resultSetType;
+    this.traceEnable = prev.traceEnable;
+    this.forceAlias = true;
+    this.rowDecoder = prev.rowDecoder;
+    this.nullBitmap = prev.nullBitmap;
   }
 
   /**
@@ -153,8 +195,9 @@ public abstract class Result implements ResultSet, Completion {
    * @param metadataList column metadata
    * @param data raw data
    * @param context connection context
+   * @param resultSetType result set type
    */
-  public Result(ColumnDecoder[] metadataList, byte[][] data, Context context) {
+  public Result(ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
     this.metadataList = metadataList;
     this.maxIndex = this.metadataList.length;
     this.reader = null;
@@ -164,34 +207,35 @@ public abstract class Result implements ResultSet, Completion {
     this.data = data;
     this.dataSize = data.length;
     this.statement = null;
-    this.resultSetType = TYPE_FORWARD_ONLY;
+    this.resultSetType = resultSetType;
     this.closeOnCompletion = false;
     this.traceEnable = false;
-    rowDecoder = TEXT_ROW_DECODER;
+    this.rowDecoder = TEXT_ROW_DECODER;
+    this.nullBitmap = null;
+    this.forceAlias = false;
   }
 
   /**
    * Read new row
    *
+   * @param buf packet buffer
    * @return true if fully loaded
    * @throws IOException if any socket error occurs
    * @throws SQLException for all other type of errors
    */
   @SuppressWarnings("fallthrough")
-  protected boolean readNext() throws SQLException, IOException {
-    byte[] buf = reader.readPacket(false, traceEnable).buf();
+  protected boolean readNext(byte[] buf) throws SQLException, IOException {
     switch (buf[0]) {
       case (byte) 0xFF:
         loaded = true;
-        ErrorPacket errorPacket =
-            new ErrorPacket(new StandardReadableByteBuf(buf, buf.length), context);
+        ErrorPacket errorPacket = new ErrorPacket(reader.readableBufFromArray(buf), context);
         throw exceptionFactory.create(
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
         if ((context.isEofDeprecated() && buf.length < 16777215)
             || (!context.isEofDeprecated() && buf.length < 8)) {
-          ReadableByteBuf readBuf = new StandardReadableByteBuf(buf, buf.length);
+          ReadableByteBuf readBuf = reader.readableBufFromArray(buf);
           readBuf.skip(); // skip header
           int serverStatus;
           int warnings;
@@ -234,7 +278,7 @@ public abstract class Result implements ResultSet, Completion {
   @SuppressWarnings("fallthrough")
   protected void skipRemaining() throws SQLException, IOException {
     while (true) {
-      ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+      ReadableByteBuf buf = reader.readReusablePacket(traceEnable);
       switch (buf.getUnsignedByte()) {
         case 0xFF:
           loaded = true;
@@ -273,7 +317,7 @@ public abstract class Result implements ResultSet, Completion {
 
   /** Grow data array. */
   private void growDataArray() {
-    int newCapacity = data.length + (data.length >> 1);
+    int newCapacity = Math.max(10, data.length + (data.length >> 1));
     byte[][] newData = new byte[newCapacity][];
     System.arraycopy(data, 0, newData, 0, data.length);
     data = newData;
@@ -864,6 +908,16 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public abstract int getRow() throws SQLException;
 
+  /**
+   * set row decoder to current row data
+   *
+   * @param row row
+   */
+  public void setRow(byte[] row) {
+    rowBuf.buf(row, row.length, 0);
+    fieldIndex.set(-1);
+  }
+
   @Override
   public abstract boolean absolute(int row) throws SQLException;
 
@@ -1152,14 +1206,6 @@ public abstract class Result implements ResultSet, Completion {
     statement = stmt;
   }
 
-  /** Force using alias as name */
-  public void useAliasAsName() {
-    for (Column packet : metadataList) {
-      packet.useAliasAsName();
-    }
-    forceAlias = true;
-  }
-
   @Override
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
     if (map == null || map.isEmpty()) {
@@ -1300,8 +1346,8 @@ public abstract class Result implements ResultSet, Completion {
             StringCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
     if (s == null) return null;
     try {
-      return new URL(s);
-    } catch (MalformedURLException e) {
+      return new URI(s).toURL();
+    } catch (Exception e) {
       throw exceptionFactory.create(String.format("Could not parse '%s' as URL", s));
     }
   }
@@ -1691,11 +1737,6 @@ public abstract class Result implements ResultSet, Completion {
     rowBuf.buf(null, 0, 0);
   }
 
-  public void setRow(byte[] row) {
-    rowBuf.buf(row, row.length, 0);
-    fieldIndex.set(-1);
-  }
-
   public int findColumn(String label) throws SQLException {
     if (label == null) throw new SQLException("null is not a valid label value");
     if (mapper == null) {
@@ -1718,5 +1759,18 @@ public abstract class Result implements ResultSet, Completion {
       throw new SQLException(String.format("Unknown label '%s'. Possible value %s", label, keys));
     }
     return ind;
+  }
+
+  @Override
+  public int getFetchSize() throws SQLException {
+    return this.fetchSize;
+  }
+
+  @Override
+  public void setFetchSize(int fetchSize) throws SQLException {
+    if (fetchSize < 0) {
+      throw exceptionFactory.create(String.format("invalid fetch size %s", fetchSize));
+    }
+    this.fetchSize = fetchSize;
   }
 }

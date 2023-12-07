@@ -47,7 +47,26 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected BitColumn(BitColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public BitColumn useAliasAsName() {
+    return new BitColumn(this);
   }
 
   @Override

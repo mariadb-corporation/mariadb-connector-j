@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.message.server;
 
@@ -41,6 +41,16 @@ public class AuthSwitchPacket implements ServerMessage {
   }
 
   /**
+   * Get truncated seed (seed without ending 0x00 byte)
+   *
+   * @param seed connection seed
+   * @return truncated seed
+   */
+  public static byte[] getTruncatedSeed(byte[] seed) {
+    return (seed.length > 0) ? Arrays.copyOfRange(seed, 0, seed.length - 1) : new byte[0];
+  }
+
+  /**
    * Get authentication switch plugin information
    *
    * @return plugin
@@ -56,15 +66,5 @@ public class AuthSwitchPacket implements ServerMessage {
    */
   public byte[] getSeed() {
     return seed;
-  }
-
-  /**
-   * Get truncated seed (seed without ending 0x00 byte)
-   *
-   * @param seed connection seed
-   * @return truncated seed
-   */
-  public static byte[] getTruncatedSeed(byte[] seed) {
-    return (seed.length > 0) ? Arrays.copyOfRange(seed, 0, seed.length - 1) : new byte[0];
   }
 }

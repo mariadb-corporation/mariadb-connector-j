@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.impl;
 
@@ -16,6 +16,8 @@ import com.singlestore.jdbc.message.client.PreparePacket;
 import com.singlestore.jdbc.message.client.RedoableClientMessage;
 import com.singlestore.jdbc.message.client.RedoableWithPrepareClientMessage;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
+import com.singlestore.jdbc.util.log.Logger;
+import com.singlestore.jdbc.util.log.Loggers;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -23,6 +25,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /** Replay client wrapper */
 public class ReplayClient extends StandardClient {
+
+  private final Logger logger;
 
   /**
    * Constructor
@@ -37,6 +41,7 @@ public class ReplayClient extends StandardClient {
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
     super(conf, hostAddress, lock, skipPostCommands);
+    logger = Loggers.getLogger(ReplayClient.class);
   }
 
   @Override
@@ -151,11 +156,13 @@ public class ReplayClient extends StandardClient {
             PreparePacket preparePacket = new PreparePacket(cmd);
             sendQuery(preparePacket);
             prepare = (PrepareResultPacket) readPacket(preparePacket);
+            logger.info("replayed command after failover: " + preparePacket.description());
           }
           responseNo = querySaver.reEncode(writer, context, prepare);
         } else {
           responseNo = querySaver.reEncode(writer, context, null);
         }
+        logger.info("replayed command after failover: " + querySaver.description());
         for (int j = 0; j < responseNo; j++) {
           readResponse(querySaver);
         }

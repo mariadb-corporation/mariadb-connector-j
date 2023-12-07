@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.plugin.authentication.addon.gssapi;
 
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Reader;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.util.ThreadUtils;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.io.File;
@@ -15,7 +16,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
 import javax.security.auth.Subject;
@@ -106,7 +106,7 @@ public class StandardGssapiAuthentication implements GssapiAuth {
 
                   byte[] inToken = new byte[0];
                   byte[] outToken;
-                  while (!context.isEstablished()) {
+                  while (true) {
 
                     outToken = context.initSecContext(inToken, 0, inToken.length);
 
@@ -115,11 +115,12 @@ public class StandardGssapiAuthentication implements GssapiAuth {
                       out.writeBytes(outToken);
                       out.flush();
                     }
-                    if (!context.isEstablished()) {
-                      ReadableByteBuf buf = in.readPacket(true);
-                      inToken = new byte[buf.readableBytes()];
-                      buf.readBytes(inToken);
+                    if (context.isEstablished()) {
+                      break;
                     }
+                    ReadableByteBuf buf = in.readReusablePacket();
+                    inToken = new byte[buf.readableBytes()];
+                    buf.readBytes(inToken);
                   }
 
                 } catch (GSSException le) {
@@ -127,8 +128,8 @@ public class StandardGssapiAuthentication implements GssapiAuth {
                 }
                 return null;
               };
-          Subject.doAs(mySubject, action);
-        } catch (PrivilegedActionException exception) {
+          ThreadUtils.callAs(mySubject, () -> action);
+        } catch (Exception exception) {
           throw new SQLException("GSS-API authentication exception", "28000", 1045, exception);
         }
       } else {

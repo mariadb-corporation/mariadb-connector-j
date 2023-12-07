@@ -11,19 +11,56 @@ import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
+import com.singlestore.jdbc.client.impl.StandardReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Reader;
 import com.singlestore.jdbc.export.Prepare;
-import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.io.IOException;
 import java.sql.SQLException;
 
 public class PrepareResultPacket implements Completion, Prepare {
+
+  private final Logger logger;
+
+  static final ColumnDecoder CONSTANT_PARAMETER;
+
+  static {
+    byte[] bytes =
+        new byte[] {
+          0x03,
+          0x64,
+          0x65,
+          0x66,
+          0x00,
+          0x00,
+          0x00,
+          0x01,
+          0x3F,
+          0x00,
+          0x00,
+          0x0C,
+          0x3F,
+          0x00,
+          0x00,
+          0x00,
+          0x00,
+          0x00,
+          0x06,
+          (byte) 0x80,
+          0x00,
+          0x00,
+          0x00,
+          0x00
+        };
+    CONSTANT_PARAMETER = ColumnDecoder.decode(new StandardReadableByteBuf(bytes, bytes.length));
+  }
+
   private final ColumnDecoder[] parameters;
-  private ColumnDecoder[] columns;
   /** prepare statement id */
   protected int statementId;
+
+  private ColumnDecoder[] columns;
 
   /**
    * Prepare packet constructor (parsing)
@@ -35,7 +72,7 @@ public class PrepareResultPacket implements Completion, Prepare {
    */
   public PrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
-    Logger logger = Loggers.getLogger(PrepareResultPacket.class);
+    this.logger = Loggers.getLogger(PrepareResultPacket.class);
     boolean trace = logger.isTraceEnabled();
     buffer.readByte(); /* skip COM_STMT_PREPARE_OK */
     this.statementId = buffer.readInt();
@@ -43,26 +80,27 @@ public class PrepareResultPacket implements Completion, Prepare {
     final int numParams = buffer.readUnsignedShort();
     this.parameters = new ColumnDecoder[numParams];
     this.columns = new ColumnDecoder[numColumns];
+
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
-        parameters[i] =
-            ColumnDecoder.decode(
-                reader.readPacket(false, trace),
-                (context.getServerCapabilities() & Capabilities.EXTENDED_TYPE_INFO) > 0);
+        // skipping packet, since there is no metadata information.
+        // might change when https://jira.mariadb.org/browse/MDEV-15031 is done
+        parameters[i] = CONSTANT_PARAMETER;
+        reader.skipPacket();
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true, trace);
+        reader.skipPacket();
       }
     }
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
         columns[i] =
-            ColumnDecoder.decode(
-                reader.readPacket(false, trace),
-                (context.getServerCapabilities() & Capabilities.EXTENDED_TYPE_INFO) > 0);
+            context
+                .getColumnDecoderFunction()
+                .apply(new StandardReadableByteBuf(reader.readPacket(trace)));
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true, trace);
+        reader.skipPacket();
       }
     }
   }

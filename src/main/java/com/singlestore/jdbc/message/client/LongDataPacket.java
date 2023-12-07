@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.message.client;
 
@@ -37,6 +37,12 @@ public final class LongDataPacket implements ClientMessage {
     this.index = index;
   }
 
+  /**
+   * COM_STMT_SEND_LONG_DATA packet
+   *
+   * <p>int<1> 0x18 COM_STMT_SEND_LONG_DATA header int<4> statement id int<2> parameter number
+   * byte<EOF> data
+   */
   @Override
   public int encode(Writer writer, Context context) throws IOException, SQLException {
     writer.initPacket();

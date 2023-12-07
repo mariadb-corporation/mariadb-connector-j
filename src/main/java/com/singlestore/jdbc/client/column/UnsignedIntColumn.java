@@ -44,7 +44,26 @@ public class UnsignedIntColumn extends ColumnDefinitionPacket implements ColumnD
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected UnsignedIntColumn(UnsignedIntColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public UnsignedIntColumn useAliasAsName() {
+    return new UnsignedIntColumn(this);
   }
 
   @Override

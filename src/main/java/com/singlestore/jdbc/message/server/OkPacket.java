@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.message.server;
 
@@ -15,6 +15,8 @@ import com.singlestore.jdbc.util.log.Loggers;
 
 public class OkPacket implements Completion {
 
+  private final Logger logger;
+
   private final long affectedRows;
   private final long lastInsertId;
 
@@ -25,35 +27,51 @@ public class OkPacket implements Completion {
    * @param context connection context
    */
   public OkPacket(ReadableByteBuf buf, Context context) {
-    Logger logger = Loggers.getLogger(OkPacket.class);
+    logger = Loggers.getLogger(OkPacket.class);
     buf.skip(); // ok header
     this.affectedRows = buf.readLongLengthEncodedNotNull();
     this.lastInsertId = buf.readLongLengthEncodedNotNull();
     context.setServerStatus(buf.readUnsignedShort());
     context.setWarning(buf.readUnsignedShort());
+
     if (buf.readableBytes() > 0 && context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       buf.skip(buf.readIntLengthEncodedNotNull()); // skip info
       while (buf.readableBytes() > 0) {
-        if (buf.readIntLengthEncodedNotNull() > 0) {
-          switch (buf.readByte()) {
+        ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
+        while (sessionStateBuf.readableBytes() > 0) {
+          switch (sessionStateBuf.readByte()) {
             case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-              buf.readIntLengthEncodedNotNull();
-              String variable = buf.readString(buf.readIntLengthEncodedNotNull());
-              Integer len = buf.readLength();
-              String value = len == null ? null : buf.readString(len);
-              logger.debug("System variable change:  {} = {}", variable, value);
+              ReadableByteBuf tmpBufsv;
+              do {
+                tmpBufsv = sessionStateBuf.readLengthBuffer();
+                String variableSv = tmpBufsv.readString(tmpBufsv.readIntLengthEncodedNotNull());
+                Integer lenSv = tmpBufsv.readLength();
+                String valueSv = lenSv == null ? null : tmpBufsv.readString(lenSv);
+                logger.debug("System variable change:  {} = {}", variableSv, valueSv);
+                switch (variableSv) {
+                  case "character_set_client":
+                    context.setCharset(valueSv);
+                    break;
+                  case "connection_id":
+                    context.setThreadId(Long.parseLong(valueSv));
+                    break;
+                  case "threads_Connected":
+                    context.setTreadsConnected(Long.parseLong(valueSv));
+                    break;
+                }
+              } while (tmpBufsv.readableBytes() > 0);
               break;
 
             case StateChange.SESSION_TRACK_SCHEMA:
-              buf.readIntLengthEncodedNotNull();
-              Integer dbLen = buf.readLength();
-              String database = dbLen == null ? null : buf.readString(dbLen);
+              sessionStateBuf.readIntLengthEncodedNotNull();
+              Integer dbLen = sessionStateBuf.readLength();
+              String database = dbLen == null ? null : sessionStateBuf.readString(dbLen);
               context.setDatabase(database.isEmpty() ? null : database);
               logger.debug("Database change: is '{}'", database);
               break;
 
             default:
-              buf.skip(buf.readIntLengthEncodedNotNull());
+              // buf.skip(buf.readIntLengthEncodedNotNull());
           }
         }
       }

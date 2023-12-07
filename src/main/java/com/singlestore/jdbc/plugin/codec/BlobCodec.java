@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.plugin.codec;
 
@@ -57,24 +57,12 @@ public class BlobCodec implements Codec<Blob> {
     switch (column.getType()) {
       case CHAR:
       case VARCHAR:
-        if (!column.isBinary()) {
-          buf.skip(length.get());
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
       case BIT:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
-        if (!column.isBinary()) {
-          buf.skip(length.get());
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
         return buf.readBlob(length.get());
 
       default:
@@ -92,24 +80,12 @@ public class BlobCodec implements Codec<Blob> {
     switch (column.getType()) {
       case CHAR:
       case VARCHAR:
-        if (!column.isBinary()) {
-          buf.skip(length.get());
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
       case BIT:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
-        if (!column.isBinary()) {
-          buf.skip(length.get());
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
         buf.skip(length.get());
         return new SingleStoreBlob(buf.buf(), buf.pos() - length.get(), length.get());
 

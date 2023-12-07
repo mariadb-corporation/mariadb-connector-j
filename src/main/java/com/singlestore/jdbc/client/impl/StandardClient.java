@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.impl;
 
@@ -43,6 +43,7 @@ import com.singlestore.jdbc.util.constants.ServerStatus;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -140,6 +141,7 @@ public class StandardClient implements Client, AutoCloseable {
    * @param skipPostCommands must connection post command be skipped
    * @throws SQLException if connection fails
    */
+  @SuppressWarnings({"this-escape"})
   public StandardClient(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
@@ -192,12 +194,15 @@ public class StandardClient implements Client, AutoCloseable {
 
       assignStream(out, in, conf, null);
 
-      if (conf.socketTimeout() > 0) {
+      if (conf.connectTimeout() > 0) {
+        setSocketTimeout(conf.connectTimeout());
+      } else if (conf.socketTimeout() > 0) {
         setSocketTimeout(conf.socketTimeout());
       }
 
       // read server handshake
-      ReadableByteBuf buf = reader.readPacket(true);
+      ReadableByteBuf buf =
+          reader.readReusablePacket(Loggers.getLogger(StandardClient.class).isTraceEnabled());
       if (buf.getByte() == -1) {
         ErrorPacket errorPacket = new ErrorPacket(buf, null);
         throw this.exceptionFactory.create(
@@ -213,12 +218,14 @@ public class StandardClient implements Client, AutoCloseable {
       this.context =
           conf.transactionReplay()
               ? new RedoContext(
+                  hostAddress,
                   handshake,
                   clientCapabilities,
                   conf,
                   this.exceptionFactory,
                   new com.singlestore.jdbc.client.impl.PrepareCache(conf.prepStmtCacheSize(), this))
               : new BaseContext(
+                  hostAddress,
                   handshake,
                   clientCapabilities,
                   conf,
@@ -229,17 +236,20 @@ public class StandardClient implements Client, AutoCloseable {
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
 
-      byte exchangeCharset = ConnectionHelper.decideLanguage(handshake);
-
       // **********************************************************************
       // changing to SSL socket if needed
       // **********************************************************************
       SSLSocket sslSocket =
           ConnectionHelper.sslWrapper(
-              hostAddress, socket, clientCapabilities, exchangeCharset, context, writer);
+              hostAddress,
+              socket,
+              clientCapabilities,
+              (byte) handshake.getDefaultCollation(),
+              context,
+              writer);
 
       if (sslSocket != null) {
-        out = sslSocket.getOutputStream();
+        out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
         in =
             conf.useReadAheadInput()
                 ? new ReadAheadBufferedStream(sslSocket.getInputStream())
@@ -270,7 +280,7 @@ public class StandardClient implements Client, AutoCloseable {
               conf,
               host,
               clientCapabilities,
-              exchangeCharset)
+              (byte) handshake.getDefaultCollation())
           .encode(writer, context);
       writer.flush();
 
@@ -293,6 +303,7 @@ public class StandardClient implements Client, AutoCloseable {
       if (!skipPostCommands) {
         postConnectionQueries();
       }
+      setSocketTimeout(conf.socketTimeout());
     } catch (IOException ioException) {
       destroySocket();
 
@@ -347,10 +358,6 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add("set " + Security.parseSessionVariables(conf.sessionVariables()));
       resInd++;
     }
-    if (conf.transactionIsolation() != null) {
-      commands.add("set tx_isolation='" + conf.transactionIsolation().getValue() + "'");
-      resInd++;
-    }
     if (conf.autocommit() != null) {
       commands.add("set autocommit=" + (conf.autocommit() ? "true" : "false"));
       resInd++;
@@ -362,6 +369,10 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));
       resInd += 2;
+    }
+    if (context.getCharset() == null || !"utf8mb4".equals(context.getCharset())) {
+      commands.add("SET NAMES utf8mb4");
+      resInd++;
     }
     if (conf.initSql() != null) {
       commands.add(conf.initSql());
@@ -463,6 +474,7 @@ public class StandardClient implements Client, AutoCloseable {
         canRedo);
   }
 
+  @Override
   public List<Completion> execute(
       ClientMessage message, com.singlestore.jdbc.Statement stmt, boolean canRedo)
       throws SQLException {
@@ -477,6 +489,7 @@ public class StandardClient implements Client, AutoCloseable {
         canRedo);
   }
 
+  @Override
   public List<Completion> executePipeline(
       ClientMessage[] messages,
       com.singlestore.jdbc.Statement stmt,
@@ -488,7 +501,7 @@ public class StandardClient implements Client, AutoCloseable {
       boolean canRedo)
       throws SQLException {
     List<Completion> results = new ArrayList<>();
-
+    int perMsgCounter = 0;
     int readCounter = 0;
     int[] responseMsg = new int[messages.length];
     try {
@@ -511,7 +524,7 @@ public class StandardClient implements Client, AutoCloseable {
         }
         while (readCounter < messages.length) {
           readCounter++;
-          for (int j = 0; j < responseMsg[readCounter - 1]; j++) {
+          for (perMsgCounter = 0; perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
             results.addAll(
                 readResponse(
                     stmt,
@@ -527,7 +540,25 @@ public class StandardClient implements Client, AutoCloseable {
       return results;
     } catch (SQLException sqlException) {
       if (!closed) {
+        results.add(null);
         // read remaining results
+        perMsgCounter++;
+        for (; perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
+          try {
+            results.addAll(
+                readResponse(
+                    stmt,
+                    messages[readCounter - 1],
+                    fetchSize,
+                    maxRows,
+                    resultSetConcurrency,
+                    resultSetType,
+                    closeOnCompletion));
+          } catch (SQLException e) {
+            // eat
+          }
+        }
+
         for (int i = readCounter; i < messages.length; i++) {
           for (int j = 0; j < responseMsg[i]; j++) {
             try {
@@ -541,19 +572,19 @@ public class StandardClient implements Client, AutoCloseable {
                       resultSetType,
                       closeOnCompletion));
             } catch (SQLException e) {
-              // eat
+              results.add(null);
             }
           }
         }
-      }
 
-      // prepare associated to PrepareStatement need to be uncached
-      for (Completion result : results) {
-        if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
-          try {
-            ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
-          } catch (SQLException e) {
-            // eat
+        // prepare associated to PrepareStatement need to be uncached
+        for (Completion result : results) {
+          if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
+            try {
+              ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
+            } catch (SQLException e) {
+              // eat
+            }
           }
         }
       }
@@ -567,6 +598,7 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  @Override
   public List<Completion> execute(
       ClientMessage message,
       com.singlestore.jdbc.Statement stmt,
@@ -577,15 +609,13 @@ public class StandardClient implements Client, AutoCloseable {
       boolean closeOnCompletion,
       boolean canRedo)
       throws SQLException {
-
     if (stmt != null && stmt.getQueryTimeout() > 0) {
       Timer cancelTimer = new Timer();
       try {
         cancelTimer.schedule(getTimerTask(), stmt.getQueryTimeout() * 1000);
-        sendQuery(message);
-        return readResponse(
-            stmt,
+        return executeInternal(
             message,
+            stmt,
             fetchSize,
             maxRows,
             resultSetConcurrency,
@@ -595,7 +625,28 @@ public class StandardClient implements Client, AutoCloseable {
         cancelTimer.cancel();
       }
     } else {
-      sendQuery(message);
+      return executeInternal(
+          message,
+          stmt,
+          fetchSize,
+          maxRows,
+          resultSetConcurrency,
+          resultSetType,
+          closeOnCompletion);
+    }
+  }
+
+  private List<Completion> executeInternal(
+      ClientMessage message,
+      com.singlestore.jdbc.Statement stmt,
+      int fetchSize,
+      long maxRows,
+      int resultSetConcurrency,
+      int resultSetType,
+      boolean closeOnCompletion)
+      throws SQLException {
+    int nbResp = sendQuery(message);
+    if (nbResp == 1) {
       return readResponse(
           stmt,
           message,
@@ -604,6 +655,43 @@ public class StandardClient implements Client, AutoCloseable {
           resultSetConcurrency,
           resultSetType,
           closeOnCompletion);
+    } else {
+      if (streamStmt != null) {
+        streamStmt.fetchRemaining();
+        streamStmt = null;
+      }
+      List<Completion> completions = new ArrayList<>();
+      try {
+        while (nbResp-- > 0) {
+          readResults(
+              stmt,
+              message,
+              completions,
+              fetchSize,
+              maxRows,
+              resultSetConcurrency,
+              resultSetType,
+              closeOnCompletion);
+        }
+        return completions;
+      } catch (SQLException e) {
+        while (nbResp-- > 0) {
+          try {
+            readResults(
+                stmt,
+                message,
+                completions,
+                fetchSize,
+                maxRows,
+                resultSetConcurrency,
+                resultSetType,
+                closeOnCompletion);
+          } catch (SQLException ee) {
+            // eat
+          }
+        }
+        throw e;
+      }
     }
   }
 
@@ -762,8 +850,6 @@ public class StandardClient implements Client, AutoCloseable {
    * @param resultSetType type
    * @param closeOnCompletion must resultset close statement on completion
    * @throws SQLException if any exception
-   * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response
-   *     packets</a>
    */
   public Completion readPacket(
       com.singlestore.jdbc.Statement stmt,
@@ -928,6 +1014,13 @@ public class StandardClient implements Client, AutoCloseable {
     if (locked) {
       lock.unlock();
     }
+  }
+
+  @Override
+  public String getSocketIp() {
+    return this.socket.getInetAddress() == null
+        ? null
+        : this.socket.getInetAddress().getHostAddress();
   }
 
   public boolean isPrimary() {

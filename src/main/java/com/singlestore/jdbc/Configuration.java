@@ -90,7 +90,7 @@ public class Configuration {
   private boolean tcpAbortiveClose = false;
   private String localSocketAddress = null;
   private int socketTimeout = 0;
-  private boolean useReadAheadInput = true;
+  private boolean useReadAheadInput = false;
   private String tlsSocketType = null;
 
   // SSL
@@ -101,6 +101,7 @@ public class Configuration {
   private String trustStoreType = null;
   private String keyStore = null;
   private String keyStorePassword = null;
+  private String keyPassword = null;
   private String keyStoreType = null;
   private String enabledSslCipherSuites = null;
   private String enabledSslProtocolSuites = null;
@@ -196,6 +197,7 @@ public class Configuration {
       String trustStoreType,
       String keyStore,
       String keyStorePassword,
+      String keyPassword,
       String keyStoreType,
       String enabledSslCipherSuites,
       String enabledSslProtocolSuites,
@@ -270,6 +272,7 @@ public class Configuration {
     this.trustStoreType = trustStoreType;
     this.keyStore = keyStore;
     this.keyStorePassword = keyStorePassword;
+    this.keyPassword = keyPassword;
     this.keyStoreType = keyStoreType;
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
@@ -374,6 +377,7 @@ public class Configuration {
       String trustStoreType,
       String keyStore,
       String keyStorePassword,
+      String keyPassword,
       String keyStoreType,
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
@@ -492,6 +496,7 @@ public class Configuration {
     if (trustStoreType != null) this.trustStoreType = trustStoreType;
     if (keyStore != null) this.keyStore = keyStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
+    if (keyPassword != null) this.keyPassword = keyPassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
     if (useMysqlVersion != null) this.useMysqlVersion = useMysqlVersion;
     if (rewriteBatchedStatements != null) this.rewriteBatchedStatements = rewriteBatchedStatements;
@@ -776,6 +781,7 @@ public class Configuration {
         this.trustStoreType,
         this.keyStore,
         this.keyStorePassword,
+        this.keyPassword,
         this.keyStoreType,
         this.enabledSslCipherSuites,
         this.enabledSslProtocolSuites,
@@ -933,6 +939,15 @@ public class Configuration {
    */
   public String keyStorePassword() {
     return keyStorePassword;
+  }
+
+  /**
+   * key store alias password
+   *
+   * @return key store alias password
+   */
+  public String keyPassword() {
+    return keyPassword;
   }
 
   /**
@@ -1574,6 +1589,7 @@ public class Configuration {
     private String trustStoreType;
     private String keyStore;
     private String keyStorePassword;
+    private String keyPassword;
     private String keyStoreType;
     private String enabledSslCipherSuites;
     private String enabledSslProtocolSuites;
@@ -1675,6 +1691,17 @@ public class Configuration {
      */
     public Builder keyStorePassword(String keyStorePassword) {
       this.keyStorePassword = nullOrEmpty(keyStorePassword);
+      return this;
+    }
+
+    /**
+     * Client keystore alias password
+     *
+     * @param keyPassword client store alias password
+     * @return this {@link Builder}
+     */
+    public Builder keyPassword(String keyPassword) {
+      this.keyPassword = nullOrEmpty(keyPassword);
       return this;
     }
 
@@ -2261,6 +2288,7 @@ public class Configuration {
               this.trustStoreType,
               this.keyStore,
               this.keyStorePassword,
+              this.keyPassword,
               this.keyStoreType,
               this.useReadAheadInput,
               this.cachePrepStmts,

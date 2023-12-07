@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.message.server;
 
@@ -75,9 +75,8 @@ public final class InitialHandshakePacket implements ServerMessage {
     }
     reader.skip(6);
 
-    // MariaDB additional capabilities.
-    // Filled only if MariaDB server 10.2+
-    long mariaDbAdditionalCapacities = reader.readInt();
+    // SingleStoreDB additional capabilities.
+    long singleStoreDbAdditionalCapacities = reader.readInt();
     byte[] seed;
     if ((serverCapabilities4FirstBytes & Capabilities.SECURE_CONNECTION) != 0) {
       final byte[] seed2;
@@ -95,11 +94,10 @@ public final class InitialHandshakePacket implements ServerMessage {
     }
     reader.skip();
 
-    // since MariaDB 10.2
     long serverCapabilities;
     if ((serverCapabilities4FirstBytes & Capabilities.CLIENT_MYSQL) == 0) {
       serverCapabilities =
-          (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
+          (serverCapabilities4FirstBytes & 0xffffffffL) + (singleStoreDbAdditionalCapacities << 32);
     } else {
       serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
     }

@@ -44,7 +44,26 @@ public class SignedIntColumn extends ColumnDefinitionPacket implements ColumnDec
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected SignedIntColumn(SignedIntColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public SignedIntColumn useAliasAsName() {
+    return new SignedIntColumn(this);
   }
 
   @Override

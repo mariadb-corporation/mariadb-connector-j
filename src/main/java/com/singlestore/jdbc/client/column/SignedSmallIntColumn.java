@@ -44,7 +44,26 @@ public class SignedSmallIntColumn extends ColumnDefinitionPacket implements Colu
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected SignedSmallIntColumn(SignedSmallIntColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public SignedSmallIntColumn useAliasAsName() {
+    return new SignedSmallIntColumn(this);
   }
 
   @Override

@@ -44,7 +44,26 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected SignedMediumIntColumn(SignedMediumIntColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public SignedMediumIntColumn useAliasAsName() {
+    return new SignedMediumIntColumn(this);
   }
 
   @Override

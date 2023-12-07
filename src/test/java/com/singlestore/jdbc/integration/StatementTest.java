@@ -1,21 +1,40 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.ClientPreparedStatement;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.ServerPreparedStatement;
 import com.singlestore.jdbc.Statement;
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.DriverManager;
+import java.sql.JDBCType;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.SQLTimeoutException;
+import java.sql.SQLWarning;
+import java.sql.Types;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class StatementTest extends Common {
 
@@ -26,18 +45,72 @@ public class StatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS executeGenerated");
     stmt.execute("DROP TABLE IF EXISTS executeGenerated2");
     stmt.execute("DROP TABLE IF EXISTS testAffectedRow");
+    stmt.execute("DROP TABLE IF EXISTS bigIntId");
+    stmt.execute("DROP TABLE IF EXISTS testCONJ956");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE TABLE testCONJ956 (field varchar(300) NOT NULL)");
     stmt.execute("CREATE TABLE StatementTest (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute(
         "CREATE TABLE executeGenerated (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute(
         "CREATE TABLE executeGenerated2 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("CREATE TABLE testAffectedRow(id int)");
+    stmt.execute(
+        "CREATE TABLE bigIntId(`id` bigint(20) unsigned NOT NULL PRIMARY KEY AUTO_INCREMENT, val"
+            + " VARCHAR(256))");
+    createSequenceTables();
+    stmt.execute("FLUSH TABLES");
+  }
+
+  @Test
+  public void ensureGetGeneratedKeysReturnsEmptyResult() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE TABLE IF NOT EXISTS key_test (id INT(11) NOT NULL)");
+    try (PreparedStatement ps =
+        sharedConn.prepareStatement(
+            "INSERT INTO key_test(id) VALUES(5)", Statement.RETURN_GENERATED_KEYS)) {
+      ps.execute();
+      ResultSet rs = ps.getGeneratedKeys();
+      assertFalse(rs.next());
+    }
+    try (PreparedStatement ps =
+        sharedConn.prepareStatement(
+            "UPDATE key_test set id=7 WHERE id=5", Statement.RETURN_GENERATED_KEYS)) {
+      ps.execute();
+      ResultSet rs = ps.getGeneratedKeys();
+      assertFalse(rs.next());
+    }
+
+    stmt.execute("DROP TABLE key_test");
+  }
+
+  @Test
+  public void unsignedMetadataResult() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS unsignedMetadataResult");
+    stmt.execute(
+        "CREATE TABLE unsignedMetadataResult("
+            + "c1 SMALLINT UNSIGNED, "
+            + "c2 MEDIUMINT UNSIGNED, "
+            + "c3 INTEGER UNSIGNED, "
+            + "c4 BIGINT UNSIGNED, "
+            + "c5 DOUBLE UNSIGNED, "
+            + "c6 FLOAT UNSIGNED, "
+            + "c7 DECIMAL UNSIGNED)");
+    stmt.execute("INSERT INTO unsignedMetadataResult VALUES(11,12,13,14,15,16,17)");
+    assertTrue(stmt.execute("SELECT * FROM unsignedMetadataResult"));
+
+    ResultSet rs = stmt.getResultSet();
+    ResultSetMetaData rsMetaData = rs.getMetaData();
+    for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+      assertTrue(rsMetaData.getColumnTypeName(i).contains("UNSIGNED"));
+    }
+    stmt.execute("DROP TABLE unsignedMetadataResult");
   }
 
   @Test
@@ -67,25 +140,36 @@ public class StatementTest extends Common {
   }
 
   @Test
-  public void ensureGetGeneratedKeysReturnsEmptyResult() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE IF NOT EXISTS key_test (id INT(11) NOT NULL)");
-    try (PreparedStatement ps =
-        sharedConn.prepareStatement(
-            "INSERT INTO key_test(id) VALUES(5)", Statement.RETURN_GENERATED_KEYS)) {
-      ps.execute();
-      ResultSet rs = ps.getGeneratedKeys();
-      assertFalse(rs.next());
+  public void setObjectError() throws SQLException {
+    try (PreparedStatement prep = sharedConn.prepareStatement("SELECT ?")) {
+      assertThrowsContains(
+          SQLException.class, () -> prep.setObject(1, "", Types.ARRAY), "Type not supported");
+      assertThrowsContains(
+          SQLException.class, () -> prep.setObject(1, "", JDBCType.ARRAY), "Type not supported");
+      assertThrowsContains(
+          SQLException.class,
+          () -> prep.setObject(1, "a", JDBCType.BLOB),
+          "Cannot convert a string to a Blob");
+      assertThrowsContains(
+          SQLException.class,
+          () -> prep.setObject(1, 'a', JDBCType.BLOB),
+          "Cannot convert a character to a Blob");
     }
-    try (PreparedStatement ps =
-        sharedConn.prepareStatement(
-            "UPDATE key_test set id=7 WHERE id=5", Statement.RETURN_GENERATED_KEYS)) {
-      ps.execute();
-      ResultSet rs = ps.getGeneratedKeys();
-      assertFalse(rs.next());
-    }
+  }
 
-    stmt.execute("DROP TABLE key_test");
+  @Test
+  public void conj956() throws SQLException {
+    StringBuilder sb = new StringBuilder();
+    String sQuery = "SELECT EXISTS (SELECT 1 FROM testCONJ956 WHERE ((field=?)))";
+    for (int i = 1; i <= 300; i++) {
+      sb.append("a");
+      if (i < 204) {
+        continue;
+      }
+      PreparedStatement stmt = sharedConn.prepareStatement(sQuery);
+      stmt.setString(1, sb.toString());
+      stmt.executeQuery();
+    }
   }
 
   @Test
@@ -364,6 +448,46 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void getGeneratedKeysType() throws SQLException {
+    try (java.sql.Statement stmt =
+        sharedConn.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE,
+            ResultSet.CLOSE_CURSORS_AT_COMMIT)) {
+      stmt.addBatch("DROP TABLE IF EXISTS table0_0;");
+      stmt.addBatch("CREATE TABLE table0_0(id INT AUTO_INCREMENT PRIMARY KEY,value INT);");
+      stmt.addBatch("INSERT INTO table0_0 VALUES(1, -179653912)");
+      stmt.addBatch("INSERT INTO table0_0 VALUES(2, 1207965915)");
+      stmt.executeBatch();
+      stmt.executeUpdate(
+          "INSERT INTO table0_0 VALUES(3, 667711856)", Statement.RETURN_GENERATED_KEYS);
+      try (ResultSet rs = stmt.getGeneratedKeys()) {
+        Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, stmt.getResultSetType());
+        Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+        Assertions.assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+        Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
+      }
+    }
+  }
+
+  @Test
+  public void testNegativeFetchSize() throws SQLException {
+    try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testNegativeFetchSize");
+      stmt.execute(
+          "CREATE TABLE testNegativeFetchSize(id INT PRIMARY KEY AUTO_INCREMENT,value FLOAT)");
+      stmt.addBatch("INSERT INTO testNegativeFetchSize (value)  VALUES(0.05)");
+      stmt.addBatch("DELETE FROM testNegativeFetchSize WHERE id <= 2");
+      stmt.addBatch("INSERT INTO testNegativeFetchSize (value) VALUES(0.03)");
+      stmt.executeBatch();
+      try (ResultSet rs = stmt.getGeneratedKeys()) {
+        assertThrowsContains(
+            SQLSyntaxErrorException.class, () -> rs.setFetchSize(-2), "invalid fetch size -2");
+      }
+    }
+  }
+
+  @Test
   public void largeMaxRows() throws SQLException {
     Statement stmt = createCon().createStatement();
     assertEquals(0L, stmt.getLargeMaxRows());
@@ -507,8 +631,6 @@ public class StatementTest extends Common {
               sql,
               con,
               new ReentrantLock(),
-              false,
-              false,
               ResultSet.FETCH_FORWARD,
               ResultSet.CONCUR_READ_ONLY,
               Statement.NO_GENERATED_KEYS,
@@ -523,8 +645,6 @@ public class StatementTest extends Common {
               sql,
               con,
               new ReentrantLock(),
-              false,
-              false,
               false,
               ResultSet.FETCH_FORWARD,
               ResultSet.CONCUR_READ_ONLY,

@@ -7,6 +7,7 @@ package com.singlestore.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
 import java.io.ByteArrayInputStream;
@@ -577,6 +578,9 @@ public class VarcharCodecTest extends CommonCodecTest {
         Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152 + offset,
         rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
+    rs.next();
+    assertNull(rs.getTimestamp(2));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -793,10 +797,16 @@ public class VarcharCodecTest extends CommonCodecTest {
   }
 
   public void getBlob(ResultSet rs) throws Exception {
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getBlob(1),
-        "Data type VARCHAR (not binary) cannot be decoded as Blob");
+    assertStreamEquals(new SingleStoreBlob("0".getBytes()), rs.getBlob(1));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(new SingleStoreBlob("1".getBytes()), rs.getBlob(2));
+    assertStreamEquals(new SingleStoreBlob("1".getBytes()), rs.getBlob("t2alias"));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(
+        new SingleStoreBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBlob(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test

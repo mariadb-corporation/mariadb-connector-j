@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.socket.impl;
 
@@ -24,10 +24,13 @@ public class CompressInputStream extends InputStream {
 
   private int end;
   private int pos;
-  private byte[] buf;
+  private volatile byte[] buf;
 
   /**
    * Constructor. When this handler is used, driver expect packet with 7 byte compression header
+   *
+   * <p>Implementation doesn't use synchronized/semaphore because all used are already locked by
+   * Statement/PreparedStatement Reentrant lock
    *
    * @param in socket input stream
    * @param compressionSequence compression sequence
@@ -194,7 +197,7 @@ public class CompressInputStream extends InputStream {
    */
   @Override
   public long skip(long n) throws IOException {
-    throw new IOException("Skip from compress socket not implemented");
+    return read(new byte[(int) n], 0, (int) n);
   }
 
   /**
@@ -259,7 +262,7 @@ public class CompressInputStream extends InputStream {
    * @see InputStream#reset()
    */
   @Override
-  public synchronized void mark(int readlimit) {
+  public void mark(int readlimit) {
     in.mark(readlimit);
   }
 
@@ -301,7 +304,7 @@ public class CompressInputStream extends InputStream {
    * @see IOException
    */
   @Override
-  public synchronized void reset() throws IOException {
+  public void reset() throws IOException {
     in.reset();
   }
 

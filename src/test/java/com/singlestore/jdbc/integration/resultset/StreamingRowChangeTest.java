@@ -461,6 +461,28 @@ public class StreamingRowChangeTest extends Common {
   }
 
   @Test
+  public void getFetchSizeNoFetchOnStmt() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    final ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
+    assertEquals(0, rs.getFetchSize());
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertTrue(rs.next());
+    assertEquals(2, rs.getInt(1));
+
+    rs.setFetchSize(2);
+    assertEquals(2, rs.getFetchSize());
+
+    for (int i = 3; i < 9; i++) {
+      assertTrue(rs.next());
+      assertEquals(i, rs.getInt(1));
+    }
+    assertFalse(rs.next());
+    Common.assertThrowsContains(sqle, () -> rs.setFetchSize(-2), "invalid fetch size -2");
+  }
+
+  @Test
   public void removeStreaming() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);

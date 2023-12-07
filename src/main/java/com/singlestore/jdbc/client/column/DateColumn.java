@@ -48,7 +48,26 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected DateColumn(DateColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public DateColumn useAliasAsName() {
+    return new DateColumn(this);
   }
 
   @Override

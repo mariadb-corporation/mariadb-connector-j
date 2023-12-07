@@ -171,27 +171,8 @@ public class ConfigurationTest extends Common {
   @Test
   public void testConfigurationIsolation() throws Throwable {
     Configuration conf =
-        Configuration.parse(
-            "jdbc:singlestore://localhost/test?transactionIsolation=REPEATABLE-READ");
-    assertTrue(TransactionIsolation.REPEATABLE_READ == conf.transactionIsolation());
-
-    conf =
-        Configuration.parse(
-            "jdbc:singlestore://localhost/test?transactionIsolation=repeatable-read");
-    assertTrue(TransactionIsolation.REPEATABLE_READ == conf.transactionIsolation());
-
-    conf =
         Configuration.parse("jdbc:singlestore://localhost/test?transactionIsolation=readCommitted");
     assertTrue(TransactionIsolation.READ_COMMITTED == conf.transactionIsolation());
-
-    conf =
-        Configuration.parse(
-            "jdbc:singlestore://localhost/test?transactionIsolation=READ-UNCOMMITTED");
-    assertTrue(TransactionIsolation.READ_UNCOMMITTED == conf.transactionIsolation());
-
-    conf =
-        Configuration.parse("jdbc:singlestore://localhost/test?transactionIsolation=SERIALIZABLE");
-    assertTrue(TransactionIsolation.SERIALIZABLE == conf.transactionIsolation());
 
     try {
       Configuration.parse("jdbc:singlestore://localhost/test?transactionIsolation=wrong_val");
@@ -806,12 +787,11 @@ public class ConfigurationTest extends Common {
             .tcpKeepInterval(50)
             .poolValidMinDelay(260)
             .useResetConnection(true)
-            .useReadAheadInput(false)
             .cachePrepStmts(false)
             .serverSslCert("mycertPath")
             .build();
     assertEquals(
-        "jdbc:singlestore://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true",
+        "jdbc:singlestore://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true",
         conf.toString());
   }
 

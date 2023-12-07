@@ -11,6 +11,7 @@ import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
+import com.singlestore.jdbc.client.impl.StandardReadableByteBuf;
 import com.singlestore.jdbc.client.result.CompleteResult;
 import com.singlestore.jdbc.client.result.StreamingResult;
 import com.singlestore.jdbc.client.result.UpdatableResult;
@@ -31,6 +32,44 @@ import java.util.regex.Pattern;
 
 public interface ClientMessage {
 
+  /**
+   * Check that file requested correspond to request.
+   *
+   * @param sql current command sql
+   * @param parameters current command parameter
+   * @param fileName file path request
+   * @param context current connection context
+   * @return true if file name correspond to demand and query is a load local infile
+   */
+  static boolean validateLocalFileName(
+      String sql, Parameters parameters, String fileName, Context context) {
+    String reg =
+        "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+            + Pattern.quote(fileName.replace("\\", "\\\\"))
+            + "'";
+
+    Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
+    if (pattern.matcher(sql).find()) {
+      return true;
+    }
+
+    if (parameters != null) {
+      pattern =
+          Pattern.compile(
+              "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+              Pattern.CASE_INSENSITIVE);
+      if (pattern.matcher(sql).find() && parameters.size() > 0) {
+        String paramString = parameters.get(0).bestEffortStringValue(context);
+        if (paramString != null) {
+          return paramString
+              .toLowerCase()
+              .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
+        }
+        return true;
+      }
+    }
+    return false;
+  }
   /**
    * Encode client message to socket.
    *
@@ -114,7 +153,7 @@ public interface ClientMessage {
       ClientMessage message)
       throws IOException, SQLException {
 
-    ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+    ReadableByteBuf buf = reader.readReusablePacket(traceEnable);
 
     switch (buf.getByte()) {
 
@@ -138,7 +177,7 @@ public interface ClientMessage {
       case (byte) 0xfb:
         buf.skip(1); // skip header
         SQLException exception = null;
-
+        reader.getSequence().set((byte) 1);
         InputStream is = getLocalInfileInputStream();
         if (is == null) {
           String fileName = buf.readStringNullEnd();
@@ -207,24 +246,35 @@ public interface ClientMessage {
         int fieldCount = buf.readIntLengthEncodedNotNull();
 
         ColumnDecoder[] ci;
-        boolean canSkipMeta = context.canSkipMeta() && this.canSkipMeta();
-        boolean skipMeta = canSkipMeta ? buf.readByte() == 0 : false;
-        if (canSkipMeta && skipMeta) {
-          ci = ((BasePreparedStatement) stmt).getMeta();
+        if (context.canSkipMeta() && this.canSkipMeta()) {
+          if (buf.readByte() == 0) {
+            // skip meta
+            ci = ((BasePreparedStatement) stmt).getMeta();
+          } else {
+            // can skip meta, but meta might have changed
+            ci = new ColumnDecoder[fieldCount];
+            for (int i = 0; i < fieldCount; i++) {
+              ci[i] =
+                  context
+                      .getColumnDecoderFunction()
+                      .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
+            }
+            ((BasePreparedStatement) stmt).updateMeta(ci);
+          }
         } else {
-          // read columns information's
+          // always read meta
           ci = new ColumnDecoder[fieldCount];
           for (int i = 0; i < fieldCount; i++) {
             ci[i] =
-                ColumnDecoder.decode(
-                    reader.readPacket(false, traceEnable), context.isExtendedInfo());
+                context
+                    .getColumnDecoderFunction()
+                    .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
           }
         }
-        if (canSkipMeta && !skipMeta) ((BasePreparedStatement) stmt).updateMeta(ci);
 
         // intermediate EOF
         if (!context.isEofDeprecated()) {
-          reader.readPacket(true, traceEnable);
+          reader.skipPacket();
         }
 
         // read resultSet
@@ -273,6 +323,11 @@ public interface ClientMessage {
     }
   }
 
+  /**
+   * Get current local infile input stream.
+   *
+   * @return default to null
+   */
   default InputStream getLocalInfileInputStream() {
     return null;
   }
@@ -285,43 +340,6 @@ public interface ClientMessage {
    * @return true if file name correspond to demand and query is a load local infile
    */
   default boolean validateLocalFileName(String fileName, Context context) {
-    return false;
-  }
-
-  /**
-   * Check that file requested correspond to request.
-   *
-   * @param sql current command sql
-   * @param parameters current command parameter
-   * @param fileName file path request
-   * @param context current connection context
-   * @return true if file name correspond to demand and query is a load local infile
-   */
-  static boolean validateLocalFileName(
-      String sql, Parameters parameters, String fileName, Context context) {
-    Pattern pattern =
-        Pattern.compile(
-            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
-                + fileName
-                + "'",
-            Pattern.CASE_INSENSITIVE);
-    if (pattern.matcher(sql).find()) {
-      return true;
-    }
-
-    if (parameters != null) {
-      pattern =
-          Pattern.compile(
-              "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
-              Pattern.CASE_INSENSITIVE);
-      if (pattern.matcher(sql).find() && parameters.size() > 0) {
-        String paramString = parameters.get(0).bestEffortStringValue(context);
-        if (paramString != null) {
-          return paramString.toLowerCase().equals("'" + fileName.toLowerCase() + "'");
-        }
-        return true;
-      }
-    }
     return false;
   }
 }

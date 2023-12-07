@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.result;
 
@@ -14,9 +14,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class StreamingResult extends Result {
 
+  private static final int MAX_FETCH_SIZE = 16384;
   private final ReentrantLock lock;
   private int dataFetchTime;
-  private int fetchSize;
+  private int requestedFetchSize;
 
   /**
    * Constructor
@@ -34,6 +35,7 @@ public class StreamingResult extends Result {
    * @param traceEnable can network log be logged
    * @throws SQLException if any error occurs
    */
+  @SuppressWarnings({"this-escape"})
   public StreamingResult(
       Statement stmt,
       boolean binaryProtocol,
@@ -57,11 +59,13 @@ public class StreamingResult extends Result {
         context,
         resultSetType,
         closeOnCompletion,
-        traceEnable);
+        traceEnable,
+        false,
+        fetchSize);
     this.lock = lock;
     this.dataFetchTime = 0;
-    this.fetchSize = fetchSize;
-    this.data = new byte[Math.max(fetchSize, 10)][];
+    this.requestedFetchSize = fetchSize;
+    this.data = new byte[Math.min(MAX_FETCH_SIZE, Math.max(fetchSize, 10))][];
 
     addStreamingValue();
   }
@@ -93,13 +97,18 @@ public class StreamingResult extends Result {
       // read only fetchSize values
       int fetchSizeTmp =
           (maxRows <= 0)
-              ? fetchSize
-              : Math.min(fetchSize, Math.max(0, (int) (maxRows - dataFetchTime * fetchSize)));
-      while (fetchSizeTmp > 0 && readNext()) {
+              ? super.getFetchSize()
+              : Math.min(
+                  super.getFetchSize(),
+                  Math.max(0, (int) (maxRows - dataFetchTime * super.getFetchSize())));
+      do {
+        byte[] buf = reader.readPacket(traceEnable);
+        readNext(buf);
         fetchSizeTmp--;
-      }
+      } while (fetchSizeTmp > 0 && !loaded);
       dataFetchTime++;
-      if (maxRows > 0 && dataFetchTime * fetchSize >= maxRows && !loaded) skipRemaining();
+      if (maxRows > 0 && (long) dataFetchTime * super.getFetchSize() >= maxRows && !loaded)
+        skipRemaining();
     } catch (IOException ioe) {
       throw exceptionFactory.create("Error while streaming resultSet data", "08000", ioe);
     } finally {
@@ -351,21 +360,26 @@ public class StreamingResult extends Result {
   }
 
   @Override
-  public int getFetchSize() {
-    return this.fetchSize;
+  public int getFetchSize() throws SQLException {
+    checkClose();
+    return requestedFetchSize;
   }
 
   @Override
   public void setFetchSize(int fetchSize) throws SQLException {
-    if (fetchSize < 0) {
-      throw exceptionFactory.create(String.format("invalid fetch size %s", fetchSize));
-    }
+    // ensure huge fetch size won't create OOM because of array size exceeding VM limit
+    // when using fetchSize with value different from 0, value must be small because goal is to
+    // ensure not having too
+    // much data in memory
+    // so fetch size when explicitly different from 0 is limited to 16K rows
+    super.setFetchSize(Math.min(MAX_FETCH_SIZE, fetchSize));
+    this.requestedFetchSize = fetchSize;
+    checkClose();
     if (fetchSize == 0) {
       // fetch all results
-      while (!loaded) {
+      while (!this.loaded) {
         addStreamingValue();
       }
     }
-    this.fetchSize = fetchSize;
   }
 }

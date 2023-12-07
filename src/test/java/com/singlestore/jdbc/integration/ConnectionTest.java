@@ -36,6 +36,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -502,6 +503,7 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  @Disabled("SingleSore supports only READ COMMITTED transaction level")
   public void isolationLevel() throws SQLException {
     java.sql.Connection connection = createCon();
     int[] levels =

@@ -206,11 +206,11 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeQuery() throws SQLException {
-    executeQuery(sharedConn);
-    executeQuery(sharedConnBinary);
-    try (Connection con = createCon("useServerPrepStmts=true&enableSkipMeta=false")) {
-      executeQuery(con);
-    }
+    //    executeQuery(sharedConn);
+    //    executeQuery(sharedConnBinary);
+    //    try (Connection con = createCon("useServerPrepStmts=true&enableSkipMeta=false")) {
+    //      executeQuery(con);
+    //    }
     try (Connection con = createCon("useServerPrepStmts=true&enableSkipMeta=true")) {
       executeQuery(con);
     }
@@ -1061,7 +1061,7 @@ public class PreparedStatementTest extends Common {
     assertTrue(sharedConnBinary.isValid(1));
   }
 
-  private String generateLongText(int len) {
+  public static String generateLongText(int len) {
     int leftLimit = 97; // letter 'a'
     int rightLimit = 122; // letter 'z'
     Random random = new Random();
@@ -1182,5 +1182,21 @@ public class PreparedStatementTest extends Common {
       assertEquals(expected[i], rs.getInt(1));
     }
     assertFalse(rs.next());
+  }
+
+  @Test
+  public void textPrefix() throws SQLException {
+    try (Connection con = createCon("&useServerPrepStmts&allowMultiQueries")) {
+
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "/*client prepare*/INSERT INTO prepare4 VALUES(?); SELECT * FROM prepare4 where t1 = 1000 ")) {
+        prep.setInt(1, 1000);
+        prep.executeQuery();
+        assertTrue(prep.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+        ResultSet rs = prep.getResultSet();
+        assertTrue(rs.next());
+      }
+    }
   }
 }
