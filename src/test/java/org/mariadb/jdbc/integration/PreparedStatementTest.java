@@ -1293,6 +1293,68 @@ public class PreparedStatementTest extends Common {
   }
 
   @Test
+  public void closeOnCompletionClose() throws Exception {
+    closeOnCompletionClose(sharedConn);
+    closeOnCompletionClose(sharedConnBinary);
+  }
+  @Test
+  public void closeOnCompletionStreamingClose() throws Exception {
+    try (Connection conn = createCon("&allowMultiQueries")) {
+      try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1;SELECT 2")) {
+        pstmt.execute();
+        pstmt.closeOnCompletion();
+        assertTrue(pstmt.getMoreResults(org.mariadb.jdbc.Statement.CLOSE_CURRENT_RESULT));
+        assertFalse(pstmt.getMoreResults(java.sql.Statement.CLOSE_CURRENT_RESULT));
+        assertThrows(SQLException.class, () -> pstmt.execute());
+      }
+
+      try (PreparedStatement pstmt = conn.prepareStatement("SELECT * from sequence_1_to_10;SELECT * from sequence_1_to_10")) {
+        pstmt.execute();
+        pstmt.closeOnCompletion();
+        assertTrue(pstmt.getMoreResults(org.mariadb.jdbc.Statement.CLOSE_CURRENT_RESULT));
+        try (ResultSet rs = pstmt.getResultSet()) {
+          assertTrue(rs.next());
+        }
+        assertThrows(SQLException.class, () -> pstmt.execute());
+      }
+      try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1;SELECT 2")) {
+        pstmt.execute();
+        pstmt.closeOnCompletion();
+        assertTrue(pstmt.getMoreResults(org.mariadb.jdbc.Statement.CLOSE_CURRENT_RESULT));
+        assertFalse(pstmt.getMoreResults(java.sql.Statement.CLOSE_CURRENT_RESULT));
+        assertThrows(SQLException.class, () -> pstmt.execute());
+      }
+
+      try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1;SELECT 2")) {
+        pstmt.setFetchSize(1);
+        pstmt.execute();
+        pstmt.closeOnCompletion();
+        assertTrue(pstmt.getMoreResults(org.mariadb.jdbc.Statement.CLOSE_CURRENT_RESULT));
+        try (ResultSet rs = pstmt.getResultSet()) {
+          assertTrue(rs.next());
+        }
+        assertThrows(SQLException.class, () -> pstmt.execute());
+      }
+    }
+  }
+
+  private void closeOnCompletionClose(Connection connection) throws Exception {
+    try (PreparedStatement pstmt = connection.prepareStatement("SELECT 1;")) {
+      pstmt.execute();
+      pstmt.closeOnCompletion();
+      assertFalse(pstmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+      assertThrows(SQLSyntaxErrorException.class, () -> pstmt.execute());
+    }
+    try (PreparedStatement pstmt = connection.prepareStatement("SELECT 1;")) {
+      pstmt.setFetchSize(1);
+      pstmt.execute();
+      pstmt.closeOnCompletion();
+      assertFalse(pstmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+      assertThrows(SQLSyntaxErrorException.class, () -> pstmt.execute());
+    }
+  }
+
+  @Test
   public void textPrefix() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts&allowMultiQueries")) {
 

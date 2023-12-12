@@ -1307,6 +1307,24 @@ public class Statement implements java.sql.Statement {
   public void closeOnCompletion() throws SQLException {
     checkNotClosed();
     this.closeOnCompletion = true;
+
+    // set closeOnCompletion on last result-set
+    if (results != null && results.size() > 0) {
+      for (int i = results.size(); i > 0; i--) {
+        Completion completion = results.get(i - 1);
+        if (completion instanceof Result) {
+          ((Result) completion).closeOnCompletion();
+          return;
+        }
+      }
+    } else {
+      if (currResult != null && currResult instanceof ResultSet) {
+        Result res = (Result)currResult;
+        if (res.streaming() || res.loaded()) {
+          res.closeOnCompletion();
+        }
+      }
+    }
   }
 
   /**
