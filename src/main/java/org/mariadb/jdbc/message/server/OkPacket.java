@@ -62,7 +62,8 @@ public class OkPacket implements Completion {
             case StateChange.SESSION_TRACK_SCHEMA:
               sessionStateBuf.readIntLengthEncodedNotNull();
               Integer dbLen = sessionStateBuf.readLength();
-              String database = dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
+              String database =
+                  dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
               context.setDatabase(database);
               logger.debug("Database change: is '{}'", database);
               break;

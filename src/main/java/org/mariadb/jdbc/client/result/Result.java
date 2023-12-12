@@ -156,6 +156,11 @@ public abstract class Result implements ResultSet, Completion {
     this.forceAlias = true;
     this.rowDecoder = prev.rowDecoder;
     this.nullBitmap = prev.nullBitmap;
+    this.data = prev.data;
+    this.dataSize = prev.dataSize;
+    this.fetchSize = prev.fetchSize;
+    this.loaded = prev.loaded;
+    this.outputParameter = prev.outputParameter;
   }
 
   /**

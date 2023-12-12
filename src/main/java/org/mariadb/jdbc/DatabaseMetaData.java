@@ -10,6 +10,7 @@ import java.util.*;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.result.CompleteResult;
+import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
@@ -554,10 +555,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   private ResultSet executeQuery(String sql) throws SQLException {
     Statement stmt =
         connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    // statement is required when streaming, but hibernate rely on statement tracking.
+    // so in case of defaultFetchSize set, force metadata to load result-set
+    stmt.setFetchSize(0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery(sql);
-    rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
-    rs.useAliasAsName();
-    return rs;
+    CompleteResult newRes = rs.newResultsetWithUseAliasAsName();
+    newRes.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
+    return newRes;
   }
 
   private String escapeQuote(String value) {
@@ -995,6 +999,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getExportedKeys(String catalog, String schema, String table)
       throws SQLException {
+    if (table == null || table.isEmpty()) {
+      throw new SQLException("'table' parameter in getExportedKeys cannot be null");
+    }
     StringBuilder sb =
         new StringBuilder("SELECT ")
             .append(
@@ -1031,9 +1038,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "KCU.REFERENCED_TABLE_SCHEMA",
             database,
             conf.useCatalogTerm() == CatalogTerm.UseSchema);
-    patternCond(firstCondition, sb, "KCU.REFERENCED_TABLE_NAME", table);
+    sb.append(firstCondition ? " WHERE " : " AND ")
+            .append("KCU.REFERENCED_TABLE_NAME = ").append(escapeQuote(table));
     sb.append(" ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ");
-
     return executeQuery(sb.toString());
   }
 
@@ -1047,7 +1054,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getImportedKeysUsingInformationSchema(final String database, String table)
       throws SQLException {
-    if (table == null) {
+    if (table == null || table.isEmpty()) {
       throw new SQLException("'table' parameter in getImportedKeys cannot be null");
     }
     StringBuilder sb =
