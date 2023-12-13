@@ -1297,6 +1297,7 @@ public class PreparedStatementTest extends Common {
     closeOnCompletionClose(sharedConn);
     closeOnCompletionClose(sharedConnBinary);
   }
+
   @Test
   public void closeOnCompletionStreamingClose() throws Exception {
     try (Connection conn = createCon("&allowMultiQueries")) {
@@ -1308,7 +1309,8 @@ public class PreparedStatementTest extends Common {
         assertThrows(SQLException.class, () -> pstmt.execute());
       }
 
-      try (PreparedStatement pstmt = conn.prepareStatement("SELECT * from sequence_1_to_10;SELECT * from sequence_1_to_10")) {
+      try (PreparedStatement pstmt =
+          conn.prepareStatement("SELECT * from sequence_1_to_10;SELECT * from sequence_1_to_10")) {
         pstmt.execute();
         pstmt.closeOnCompletion();
         assertTrue(pstmt.getMoreResults(org.mariadb.jdbc.Statement.CLOSE_CURRENT_RESULT));

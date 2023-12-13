@@ -1713,9 +1713,9 @@ public class DatabaseMetadataTest extends Common {
   public void getImportedKeysBasic() throws SQLException {
     Assumptions.assumeFalse(isXpand());
     assertThrowsContains(
-            SQLException.class,
-            () -> sharedConn.getMetaData().getImportedKeys(null, null, ""),
-            "'table' parameter in getImportedKeys cannot be null");
+        SQLException.class,
+        () -> sharedConn.getMetaData().getImportedKeys(null, null, ""),
+        "'table' parameter in getImportedKeys cannot be null");
     testResultSetColumns(
         sharedConn.getMetaData().getImportedKeys(null, null, "cross1"),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME"

@@ -10,7 +10,6 @@ import java.util.*;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.result.CompleteResult;
-import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
