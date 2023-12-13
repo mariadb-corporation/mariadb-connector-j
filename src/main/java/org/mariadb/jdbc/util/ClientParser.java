@@ -13,12 +13,21 @@ public final class ClientParser implements PrepareResult {
   private final byte[] query;
   private final List<Integer> paramPositions;
   private final int paramCount;
+  private final boolean isInsert;
+  private final boolean isInsertDuplicate;
 
-  private ClientParser(String sql, byte[] query, List<Integer> paramPositions) {
+  private ClientParser(
+      String sql,
+      byte[] query,
+      List<Integer> paramPositions,
+      boolean isInsert,
+      boolean isInsertDuplicate) {
     this.sql = sql;
     this.query = query;
     this.paramPositions = paramPositions;
     this.paramCount = paramPositions.size();
+    this.isInsert = isInsert;
+    this.isInsertDuplicate = isInsertDuplicate;
   }
 
   /**
@@ -39,6 +48,8 @@ public final class ClientParser implements PrepareResult {
     byte lastChar = 0x00;
 
     boolean singleQuotes = false;
+    boolean isInsert = false;
+    boolean isInsertDupplicate = false;
     byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
     for (int i = 0; i < queryLength; i++) {
@@ -105,6 +116,50 @@ public final class ClientParser implements PrepareResult {
           }
           break;
 
+        case (byte) 'I':
+        case (byte) 'i':
+          if (state == LexState.Normal && !isInsert) {
+            if (i + 6 < queryLength
+                && (query[i + 1] == (byte) 'n' || query[i + 1] == (byte) 'N')
+                && (query[i + 2] == (byte) 's' || query[i + 2] == (byte) 'S')
+                && (query[i + 3] == (byte) 'e' || query[i + 3] == (byte) 'E')
+                && (query[i + 4] == (byte) 'r' || query[i + 4] == (byte) 'R')
+                && (query[i + 5] == (byte) 't' || query[i + 5] == (byte) 'T')) {
+              if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) {
+                break;
+              }
+              if (query[i + 6] > ' ' && "();><=-+,".indexOf(query[i + 6]) == -1) {
+                break;
+              }
+              i += 5;
+              isInsert = true;
+            }
+          }
+          break;
+        case (byte) 'D':
+        case (byte) 'd':
+          if (isInsert && state == LexState.Normal) {
+            if (i + 9 < queryLength
+                && (query[i + 1] == (byte) 'u' || query[i + 1] == (byte) 'U')
+                && (query[i + 2] == (byte) 'p' || query[i + 2] == (byte) 'P')
+                && (query[i + 3] == (byte) 'l' || query[i + 3] == (byte) 'L')
+                && (query[i + 4] == (byte) 'i' || query[i + 4] == (byte) 'I')
+                && (query[i + 5] == (byte) 'c' || query[i + 5] == (byte) 'C')
+                && (query[i + 6] == (byte) 'a' || query[i + 6] == (byte) 'A')
+                && (query[i + 7] == (byte) 't' || query[i + 7] == (byte) 'T')
+                && (query[i + 8] == (byte) 'e' || query[i + 8] == (byte) 'E')) {
+              if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) {
+                break;
+              }
+              if (query[i + 9] > ' ' && "();><=-+,".indexOf(query[i + 9]) == -1) {
+                break;
+              }
+              i += 9;
+              isInsertDupplicate = true;
+            }
+          }
+          break;
+
         case (byte) '\\':
           if (noBackslashEscapes) {
             break;
@@ -129,7 +184,7 @@ public final class ClientParser implements PrepareResult {
       lastChar = car;
     }
 
-    return new ClientParser(queryString, query, paramPositions);
+    return new ClientParser(queryString, query, paramPositions, isInsert, isInsertDupplicate);
   }
 
   public String getSql() {
@@ -146,6 +201,14 @@ public final class ClientParser implements PrepareResult {
 
   public int getParamCount() {
     return paramCount;
+  }
+
+  public boolean isInsert() {
+    return isInsert;
+  }
+
+  public boolean isInsertDuplicate() {
+    return isInsertDuplicate;
   }
 
   enum LexState {

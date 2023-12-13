@@ -1319,7 +1319,7 @@ public class Statement implements java.sql.Statement {
       }
     } else {
       if (currResult != null && currResult instanceof ResultSet) {
-        Result res = (Result)currResult;
+        Result res = (Result) currResult;
         if (res.streaming() || res.loaded()) {
           res.closeOnCompletion();
         }

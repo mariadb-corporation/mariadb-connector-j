@@ -12,7 +12,8 @@ import org.mariadb.jdbc.util.ClientParser;
 @SuppressWarnings("ConstantConditions")
 public class ClientParserTest {
 
-  private void parse(String sql, String[] expected, String[] expectedNoBackSlash) {
+  private void parse(
+      String sql, String[] expected, String[] expectedNoBackSlash, boolean isInsertDuplicate) {
     ClientParser parser = ClientParser.parameterParts(sql, false);
     assertEquals(expected.length, parser.getParamCount() + 1, displayErr(parser, expected));
 
@@ -38,6 +39,8 @@ public class ClientParserTest {
     assertEquals(
         expectedNoBackSlash[expectedNoBackSlash.length - 1],
         new String(parser.getQuery(), pos, paramPos - pos));
+
+    assertEquals(isInsertDuplicate, parser.isInsertDuplicate());
   }
 
   private String displayErr(ClientParser parser, String[] exp) {
@@ -66,10 +69,32 @@ public class ClientParserTest {
     parse(
         "SELECT '\\\\test' /*test* #/ ;`*/",
         new String[] {"SELECT '\\\\test' /*test* #/ ;`*/"},
-        new String[] {"SELECT '\\\\test' /*test* #/ ;`*/"});
+        new String[] {"SELECT '\\\\test' /*test* #/ ;`*/"},
+        false);
     parse(
         "DO '\\\"', \"\\'\"",
         new String[] {"DO '\\\"', \"\\'\""},
-        new String[] {"DO '\\\"', \"\\'\""});
+        new String[] {"DO '\\\"', \"\\'\""},
+        false);
+    parse(
+        "INSERT INTO TABLE(id,val) VALUES (1,2)",
+        new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2)"},
+        new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2)"},
+        false);
+    parse(
+        "INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE KEY UPDATE",
+        new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE KEY UPDATE"},
+        new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE KEY UPDATE"},
+        true);
+    parse(
+        "INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE",
+        new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE"},
+        new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE"},
+        false);
+    parse(
+        "INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE",
+        new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE"},
+        new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE"},
+        false);
   }
 }
