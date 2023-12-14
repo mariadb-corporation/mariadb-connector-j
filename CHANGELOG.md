@@ -1,5 +1,25 @@
 # Change Log
 
+## [3.3.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.2) (Dec 2023)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.1...3.3.2)
+
+##### Bugs Fixed
+
+* CONJ-1117 new option `returnMultiValuesGeneratedIds` for connector 2.x compatibility, so getGeneratedKeys() return all
+  ids of multi-value inserts
+* CONJ-1140 regression caussing ClassCastException on DatabaseMetaData when use with option defaultFetchSize set
+* CONJ-1129 Metadata.getPrimaryKeys table comparison using like in place of strict equality
+* CONJ-1130 ensuring batch parameter are cleared after SQL Failure
+* CONJ-1131 NullPointerException when Calling getGeneratedKeys() after an SQL Failure
+* CONJ-1132 Ensuring reseting result for getUpdateCount() after an SQL Failure
+* CONJ-1135 ensuring BULK command not used when using INSERT ON DUPLICATE KEY UPDATE in order to always have unique
+  affected rows by default
+* CONJ-1136 wrong decoding for Resultset.getByte() results for binary varchar fields
+* CONJ-1137 ensuring never having NPE in OkPacket when setting auto commit
+* CONJ-1138 Inconsistency in Behavior of PreparedStatement After closeOnCompletion() Between MariaDB and MySQL
+  Connectors
+
 ## [3.3.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.1) (Nov 2023)
 
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.0...3.3.1)
@@ -357,10 +377,13 @@ example:
 ```sql
 START TRANSACTION;
 select next_val(hibernate_sequence);
-INSERT INTO myCar(id, name) VALUE (?, ?) //with parameters: 1, 'car1'
-INSERT INTO myCarDetail(id, carId, name) VALUE (?, ?, ?) //with parameters: 2, 1, 'detail1'
-INSERT INTO myCarDetail(id, carId, name) VALUE (?, ?, ?) //with parameters: 3, 2, 'detail2'
-COMMIT;
+INSERT INTO myCar(id, name) VALUE (?, ?) //
+with parameters: 1, 'car1'
+INSERT INTO myCarDetail(id, carId, name) VALUE (?, ?, ?) //
+with parameters: 2, 1, 'detail1'
+INSERT INTO myCarDetail(id, carId, name) VALUE (?, ?, ?) //
+with parameters: 3, 2, 'detail2'
+    COMMIT;
 ```
 
 ### Allow setup of TCP_KEEPIDLE, TCP_KEEPCOUNT, TCP_KEEPINTERVAL
