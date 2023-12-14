@@ -64,7 +64,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     boolean noBackslashEscapes =
         (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
     parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-    isCommandInsert = parser.isInsert() && !parser.isInsertDuplicate();
+    isInsertDuplicate = parser.isInsertDuplicate();
+    isCommandInsert = parser.isInsert() && !isInsertDuplicate;
     parameters = new ParameterList(parser.getParamCount());
   }
 

@@ -68,6 +68,7 @@ public class Configuration {
   private CatalogTerm useCatalogTerm = CatalogTerm.UseCatalog;
   private boolean createDatabaseIfNotExist = false;
   private boolean useLocalSessionState = false;
+  private boolean returnMultiValuesGeneratedIds = false;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -169,6 +170,7 @@ public class Configuration {
       CatalogTerm useCatalogTerm,
       boolean createDatabaseIfNotExist,
       boolean useLocalSessionState,
+      boolean returnMultiValuesGeneratedIds,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -245,6 +247,7 @@ public class Configuration {
     this.useMysqlMetadata = useMysqlMetadata;
     this.useCatalogTerm = useCatalogTerm;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     this.useLocalSessionState = useLocalSessionState;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
@@ -359,6 +362,7 @@ public class Configuration {
       String useCatalogTerm,
       Boolean createDatabaseIfNotExist,
       Boolean useLocalSessionState,
+      Boolean returnMultiValuesGeneratedIds,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -456,6 +460,8 @@ public class Configuration {
     }
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     if (useLocalSessionState != null) this.useLocalSessionState = useLocalSessionState;
+    if (returnMultiValuesGeneratedIds != null)
+      this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -1040,6 +1046,7 @@ public class Configuration {
         this.useCatalogTerm,
         this.createDatabaseIfNotExist,
         this.useLocalSessionState,
+        this.returnMultiValuesGeneratedIds,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
@@ -1582,6 +1589,15 @@ public class Configuration {
   }
 
   /**
+   * Returns multi-values generated ids. For mariadb 2.x connector compatibility
+   *
+   * @return must returns multi-values generated ids.
+   */
+  public boolean returnMultiValuesGeneratedIds() {
+    return returnMultiValuesGeneratedIds;
+  }
+
+  /**
    * On deadlock exception, must driver execute additional commands to show innodb status in error
    * description.
    *
@@ -1890,6 +1906,7 @@ public class Configuration {
     private String useCatalogTerm;
     private Boolean createDatabaseIfNotExist;
     private Boolean useLocalSessionState;
+    private Boolean returnMultiValuesGeneratedIds;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -2621,6 +2638,17 @@ public class Configuration {
     }
 
     /**
+     * indicate if connector must return multi-generated ids. (For connector 2.x compatibility)
+     *
+     * @param returnMultiValuesGeneratedIds must return multi-values generated ids
+     * @return this {@link Builder}
+     */
+    public Builder returnMultiValuesGeneratedIds(Boolean returnMultiValuesGeneratedIds) {
+      this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
+      return this;
+    }
+
+    /**
      * On dead-lock exception must add innodb status in exception error message. If enabled, an
      * additional command will be done to retrieve innodb status when dead-lock occurs.
      *
@@ -2936,6 +2964,7 @@ public class Configuration {
               this.useCatalogTerm,
               this.createDatabaseIfNotExist,
               this.useLocalSessionState,
+              this.returnMultiValuesGeneratedIds,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

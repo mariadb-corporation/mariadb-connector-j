@@ -395,6 +395,15 @@ public class StandardClient implements Client, AutoCloseable {
         }
         throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
       }
+
+      if (conf.returnMultiValuesGeneratedIds()) {
+        ClientMessage query = new QueryPacket("SELECT @@auto_increment_increment");
+        List<Completion> res = execute(query, true);
+        ResultSet rs = (ResultSet) res.get(0);
+        if (rs.next()) {
+          context.setAutoIncrement(rs.getLong(1));
+        }
+      }
     }
   }
 
@@ -425,6 +434,14 @@ public class StandardClient implements Client, AutoCloseable {
             && ((context.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) != conf.autocommit())) {
       sessionCommands.add(
           "autocommit=" + ((conf.autocommit() == null || conf.autocommit()) ? "1" : "0"));
+    }
+
+    if (conf.returnMultiValuesGeneratedIds()
+        && ((context.getVersion().isMariaDBServer()
+                && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
+            || context.getVersion().versionGreaterOrEqual(5, 7, 0))) {
+      sessionCommands.add(
+          "session_track_system_variables = CONCAT(@@global.session_track_system_variables,',auto_increment_increment')");
     }
 
     // add configured session variable if configured

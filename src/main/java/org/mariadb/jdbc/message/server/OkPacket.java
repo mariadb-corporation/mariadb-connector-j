@@ -55,6 +55,8 @@ public class OkPacket implements Completion {
                   case "threads_Connected":
                     context.setTreadsConnected(Long.parseLong(valueSv));
                     break;
+                  case "auto_increment_increment":
+                    context.setAutoIncrement(Long.parseLong(valueSv));
                 }
               } while (tmpBufsv.readableBytes() > 0);
               break;

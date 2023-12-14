@@ -99,10 +99,18 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       if (sql == null) {
         isCommandInsert = false;
       } else {
-        ClientParser parser = ClientParser.parameterParts(sql, (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0);
-        isCommandInsert = parser.isInsert() && !parser.isInsertDuplicate();
+        ClientParser parser =
+            ClientParser.parameterParts(
+                sql, (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0);
+        isInsertDuplicate = parser.isInsertDuplicate();
+        isCommandInsert = parser.isInsert() && !isInsertDuplicate;
       }
     }
+  }
+
+  @Override
+  public String getLastSql() {
+    return sql;
   }
 
   /**

@@ -1038,7 +1038,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             database,
             conf.useCatalogTerm() == CatalogTerm.UseSchema);
     sb.append(firstCondition ? " WHERE " : " AND ")
-            .append("KCU.REFERENCED_TABLE_NAME = ").append(escapeQuote(table));
+        .append("KCU.REFERENCED_TABLE_NAME = ")
+        .append(escapeQuote(table));
     sb.append(" ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ");
     return executeQuery(sb.toString());
   }
