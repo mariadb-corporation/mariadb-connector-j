@@ -182,8 +182,8 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists primarykeytest1");
     stmt.execute("CREATE TABLE primarykeytest1 ( id1 integer, constraint pk primary key(id1))");
     stmt.execute(
-        "CREATE TABLE primarykeytest2 (id2a integer, id2b integer, constraint pk primary key(id2a,"
-            + " id2b), constraint fk1 foreign key(id2a) references primarykeytest1(id1), "
+        "CREATE TABLE primarykeytest2 (`id2'a` integer, id2b integer, constraint pk primary key(`id2'a`,"
+            + " id2b), constraint fk1 foreign key(`id2'a`) references primarykeytest1(id1), "
             + " constraint fk2 foreign key(id2b) references primarykeytest1(id1))");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
@@ -194,6 +194,7 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(sharedConn.getCatalog(), rs.getString("table_cat"));
       assertNull(rs.getString("table_schem"));
       assertEquals("primarykeytest2", rs.getString("table_name"));
+      assertEquals(counter == 1 ? "id2'a" : "id2b", rs.getString("column_name"));
       assertEquals(counter, rs.getShort("key_seq"));
       assertEquals("PRIMARY", rs.getString("pk_name"));
     }
@@ -591,7 +592,7 @@ public class DatabaseMetadataTest extends Common {
   public void exportedKeysTest() throws SQLException {
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
-    ResultSet rs = dbmd.getExportedKeys(sharedConn.getCatalog(), null, "cross%");
+    ResultSet rs = dbmd.getExportedKeys(sharedConn.getCatalog(), null, "cross1");
     Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
     Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
     assertTrue(rs.next());
@@ -615,9 +616,10 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(
         "PRIMARY".equals(rs.getString("PK_NAME"))
             || "__idx_cross1__PRIMARY".equals(rs.getString("PK_NAME")));
+    assertFalse(rs.next());
 
+    rs = dbmd.getExportedKeys(sharedConn.getCatalog(), null, "cross2");
     assertTrue(rs.next());
-
     assertEquals(sharedConn.getCatalog(), rs.getString("PKTABLE_CAT"));
     assertNull(rs.getString("PKTABLE_SCHEM"));
     assertEquals("cross2", rs.getString("PKTABLE_NAME"));
@@ -666,7 +668,7 @@ public class DatabaseMetadataTest extends Common {
       DatabaseMetaData dbmd = con.getMetaData();
       assertEquals(database, con.getSchema());
       assertEquals("def", con.getCatalog());
-      ResultSet rs = dbmd.getExportedKeys(null, con.getSchema(), "cross%");
+      ResultSet rs = dbmd.getExportedKeys(null, con.getSchema(), "cross1");
       assertTrue(rs.next());
       assertEquals("def", rs.getString("PKTABLE_CAT"));
       assertEquals(database, rs.getString("PKTABLE_SCHEM"));
@@ -689,8 +691,10 @@ public class DatabaseMetadataTest extends Common {
           "PRIMARY".equals(rs.getString("PK_NAME"))
               || "__idx_cross1__PRIMARY".equals(rs.getString("PK_NAME")));
 
-      assertTrue(rs.next());
+      assertFalse(rs.next());
 
+      rs = dbmd.getExportedKeys(null, con.getSchema(), "cross2");
+      assertTrue(rs.next());
       assertEquals("def", rs.getString("PKTABLE_CAT"));
       assertEquals(database, rs.getString("PKTABLE_SCHEM"));
       assertEquals("cross2", rs.getString("PKTABLE_NAME"));
@@ -1691,8 +1695,16 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getPrimaryKeysBasic() throws SQLException {
+    assertThrowsContains(
+        SQLException.class,
+        () -> sharedConn.getMetaData().getPrimaryKeys(null, null, null),
+        "'table' parameter is mandatory in getPrimaryKeys()");
+    assertThrowsContains(
+        SQLException.class,
+        () -> sharedConn.getMetaData().getPrimaryKeys(null, null, ""),
+        "'table' parameter is mandatory in getPrimaryKeys()");
     testResultSetColumns(
-        sharedConn.getMetaData().getPrimaryKeys(null, null, null),
+        sharedConn.getMetaData().getPrimaryKeys(null, null, "getTimePrecision"),
         "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ"
             + " short,PK_NAME String");
   }
@@ -1700,8 +1712,12 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void getImportedKeysBasic() throws SQLException {
     Assumptions.assumeFalse(isXpand());
+    assertThrowsContains(
+        SQLException.class,
+        () -> sharedConn.getMetaData().getImportedKeys(null, null, ""),
+        "'table' parameter in getImportedKeys cannot be null");
     testResultSetColumns(
-        sharedConn.getMetaData().getImportedKeys(null, null, ""),
+        sharedConn.getMetaData().getImportedKeys(null, null, "cross1"),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME"
             + " String,FKTABLE_CAT String,FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME"
             + " String,KEY_SEQ short,UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME"
@@ -1712,7 +1728,7 @@ public class DatabaseMetadataTest extends Common {
   public void getExportedKeysBasic() throws SQLException {
     Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
-        sharedConn.getMetaData().getExportedKeys(null, null, ""),
+        sharedConn.getMetaData().getExportedKeys(null, null, "cross1"),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME"
             + " String,FKTABLE_CAT String,FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME"
             + " String,KEY_SEQ short,UPDATE_RULE short, DELETE_RULE short,FK_NAME String,PK_NAME"

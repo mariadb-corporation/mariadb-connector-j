@@ -34,6 +34,8 @@ public class BaseContext implements Context {
   /** Server status context */
   protected int serverStatus;
 
+  private Long autoIncrement;
+
   private long threadId;
   private String charset;
 
@@ -188,6 +190,15 @@ public class BaseContext implements Context {
 
   public void setTreadsConnected(long threadsConnected) {
     if (hostAddress != null) hostAddress.setThreadsConnected(threadsConnected);
+  }
+
+  @Override
+  public Long getAutoIncrement() {
+    return autoIncrement;
+  }
+
+  public void setAutoIncrement(long autoIncrement) {
+    this.autoIncrement = autoIncrement;
   }
 
   public String getCharset() {

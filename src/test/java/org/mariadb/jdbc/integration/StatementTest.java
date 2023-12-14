@@ -72,6 +72,30 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void getUpdateCountValueOnFail() throws SQLException {
+    try (Statement st = sharedConn.createStatement()) {
+      st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
+      try (Statement stmt = sharedConn.createStatement()) {
+        assertEquals(-1, stmt.getUpdateCount());
+        assertEquals(
+            0,
+            stmt.executeUpdate(
+                "CREATE TABLE getUpdateCountValueOnFail(id VARCHAR(5) PRIMARY KEY,value BOOL)"));
+        assertEquals(0, stmt.getUpdateCount());
+        try {
+          stmt.executeUpdate(
+              "CREATE TABLE getUpdateCountValueOnFail(id TINYINT PRIMARY KEY,value SMALLINT");
+        } catch (Exception e) {
+          // eat
+        }
+        assertEquals(-1, stmt.getUpdateCount());
+      } finally {
+        st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
+      }
+    }
+  }
+
+  @Test
   public void longGeneratedId() throws SQLException {
     longGeneratedId(BigInteger.ONE);
     longGeneratedId(BigInteger.valueOf(Integer.MAX_VALUE));
@@ -222,6 +246,7 @@ public class StatementTest extends Common {
   @Test
   public void executeGenerated() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("TRUNCATE TABLE executeGenerated");
     assertFalse(stmt.execute("INSERT INTO executeGenerated(t2) values (100)"));
 
     SQLException e = Assertions.assertThrows(SQLException.class, stmt::getGeneratedKeys);
@@ -233,6 +258,129 @@ public class StatementTest extends Common {
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
+  }
+
+  @Test
+  public void executeGeneratedMultiValues() throws SQLException {
+    // normal
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("TRUNCATE TABLE executeGenerated");
+    assertFalse(
+        stmt.execute(
+            "INSERT INTO executeGenerated(t2) values (100), (101)",
+            Statement.RETURN_GENERATED_KEYS));
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertFalse(rs.next());
+
+    try (PreparedStatement prep =
+        sharedConn.prepareStatement(
+            "INSERT INTO executeGenerated(t2) values (?), (?)", Statement.RETURN_GENERATED_KEYS)) {
+      prep.setInt(1, 104);
+      prep.setInt(2, 105);
+      prep.execute();
+      rs = prep.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(3, rs.getInt(1));
+      assertFalse(rs.next());
+    }
+
+    // with returnMultiValuesGeneratedIds options
+    stmt.execute("TRUNCATE TABLE executeGenerated");
+    try (Connection conn = createCon("&returnMultiValuesGeneratedIds")) {
+      Statement stmt2 = conn.createStatement();
+      assertFalse(
+          stmt2.execute(
+              "INSERT INTO executeGenerated(t2) values (102), (103)",
+              Statement.RETURN_GENERATED_KEYS));
+      rs = stmt2.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertFalse(rs.next());
+      stmt.execute("TRUNCATE TABLE executeGenerated");
+
+      try (PreparedStatement prep =
+          conn.prepareStatement(
+              "INSERT INTO executeGenerated(t2) values (?), (?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        stmt2.execute("SET auto_increment_increment = 3");
+        prep.setInt(1, 104);
+        prep.setInt(2, 105);
+        prep.execute();
+        rs = prep.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(4, rs.getInt(1));
+        assertFalse(rs.next());
+        ResultSet rs2 = stmt2.executeQuery("SELECT * FROM executeGenerated");
+        assertTrue(rs2.next());
+        assertEquals(1, rs2.getInt(1));
+        assertTrue(rs2.next());
+        assertEquals(4, rs2.getInt(1));
+        assertFalse(rs2.next());
+      }
+      stmt.execute("TRUNCATE TABLE executeGenerated");
+      try (PreparedStatement prep =
+          conn.prepareStatement(
+              "INSERT INTO executeGenerated(t2) values (?), (?) ON DUPLICATE KEY UPDATE t2=CONCAT(t2,'a')",
+              Statement.RETURN_GENERATED_KEYS)) {
+        prep.setInt(1, 106);
+        prep.setInt(2, 107);
+        prep.execute();
+        rs = prep.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertFalse(rs.next());
+      }
+    }
+
+    // with returnMultiValuesGeneratedIds options
+    stmt.execute("TRUNCATE TABLE executeGenerated");
+    try (Connection conn = createCon("&returnMultiValuesGeneratedIds&useServerPrepStmts")) {
+      Statement stmt2 = conn.createStatement();
+      assertFalse(
+          stmt2.execute(
+              "INSERT INTO executeGenerated(t2) values (102), (103)",
+              Statement.RETURN_GENERATED_KEYS));
+      rs = stmt2.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertFalse(rs.next());
+      stmt.execute("TRUNCATE TABLE executeGenerated");
+      try (PreparedStatement prep =
+          conn.prepareStatement(
+              "INSERT INTO executeGenerated(t2) values (?), (?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        prep.setInt(1, 104);
+        prep.setInt(2, 105);
+        prep.execute();
+        rs = prep.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertFalse(rs.next());
+      }
+      stmt.execute("TRUNCATE TABLE executeGenerated");
+      try (PreparedStatement prep =
+          conn.prepareStatement(
+              "INSERT INTO executeGenerated(t2) values (?), (?) ON DUPLICATE KEY UPDATE t2=CONCAT(t2,'a')",
+              Statement.RETURN_GENERATED_KEYS)) {
+        prep.setInt(1, 106);
+        prep.setInt(2, 107);
+        prep.execute();
+        rs = prep.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertFalse(rs.next());
+      }
+    }
   }
 
   @Test

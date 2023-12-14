@@ -55,6 +55,8 @@ public class OkPacket implements Completion {
                   case "threads_Connected":
                     context.setTreadsConnected(Long.parseLong(valueSv));
                     break;
+                  case "auto_increment_increment":
+                    context.setAutoIncrement(Long.parseLong(valueSv));
                 }
               } while (tmpBufsv.readableBytes() > 0);
               break;
@@ -62,13 +64,14 @@ public class OkPacket implements Completion {
             case StateChange.SESSION_TRACK_SCHEMA:
               sessionStateBuf.readIntLengthEncodedNotNull();
               Integer dbLen = sessionStateBuf.readLength();
-              String database = dbLen == null ? null : sessionStateBuf.readString(dbLen);
-              context.setDatabase(database.isEmpty() ? null : database);
+              String database =
+                  dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
+              context.setDatabase(database);
               logger.debug("Database change: is '{}'", database);
               break;
 
             default:
-              // buf.skip(buf.readIntLengthEncodedNotNull());
+              buf.skip(buf.readIntLengthEncodedNotNull());
           }
         }
       }

@@ -554,10 +554,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   private ResultSet executeQuery(String sql) throws SQLException {
     Statement stmt =
         connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    // statement is required when streaming, but hibernate rely on statement tracking.
+    // so in case of defaultFetchSize set, force metadata to load result-set
+    stmt.setFetchSize(0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery(sql);
-    rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
-    rs.useAliasAsName();
-    return rs;
+    CompleteResult newRes = rs.newResultsetWithUseAliasAsName();
+    newRes.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
+    return newRes;
   }
 
   private String escapeQuote(String value) {
@@ -661,25 +664,22 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @throws SQLException if a database access error occurs
    */
   public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
-    // MySQL 8 now use 'PRI' in place of 'pri'
+    if (table == null || table.isEmpty()) {
+      throw new SQLException("'table' parameter is mandatory in getPrimaryKeys()");
+    }
     StringBuilder sb =
         new StringBuilder("SELECT ")
             .append(
                 conf.useCatalogTerm() == CatalogTerm.UseCatalog
-                    ? "A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM"
-                    : "A.TABLE_CATALOG TABLE_CAT, A.TABLE_SCHEMA TABLE_SCHEM")
+                    ? "TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM"
+                    : "TABLE_CATALOG TABLE_CAT, TABLE_SCHEMA TABLE_SCHEM")
             .append(
-                ", A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
-                    + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
-                    + " WHERE A.COLUMN_KEY in ('PRI','pri') AND B.INDEX_NAME='PRIMARY'");
+                ", TABLE_NAME, COLUMN_NAME, SEQ_IN_INDEX KEY_SEQ, INDEX_NAME PK_NAME "
+                    + " FROM INFORMATION_SCHEMA.STATISTICS"
+                    + " WHERE INDEX_NAME='PRIMARY'");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schema;
-    databaseCond(false, sb, "A.TABLE_SCHEMA", database, false);
-    databaseCond(false, sb, "B.TABLE_SCHEMA", database, false);
-    patternCond(false, sb, "A.TABLE_NAME", table);
-    patternCond(false, sb, "B.TABLE_NAME", table);
-    sb.append(
-        " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME ="
-            + " B.COLUMN_NAME ORDER BY A.COLUMN_NAME");
+    databaseCond(false, sb, "TABLE_SCHEMA", database, false);
+    sb.append(" AND TABLE_NAME = ").append(escapeQuote(table)).append(" ORDER BY COLUMN_NAME");
 
     return executeQuery(sb.toString());
   }
@@ -998,6 +998,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getExportedKeys(String catalog, String schema, String table)
       throws SQLException {
+    if (table == null || table.isEmpty()) {
+      throw new SQLException("'table' parameter in getExportedKeys cannot be null");
+    }
     StringBuilder sb =
         new StringBuilder("SELECT ")
             .append(
@@ -1034,9 +1037,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "KCU.REFERENCED_TABLE_SCHEMA",
             database,
             conf.useCatalogTerm() == CatalogTerm.UseSchema);
-    patternCond(firstCondition, sb, "KCU.REFERENCED_TABLE_NAME", table);
+    sb.append(firstCondition ? " WHERE " : " AND ")
+        .append("KCU.REFERENCED_TABLE_NAME = ")
+        .append(escapeQuote(table));
     sb.append(" ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ");
-
     return executeQuery(sb.toString());
   }
 
@@ -1050,7 +1054,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getImportedKeysUsingInformationSchema(final String database, String table)
       throws SQLException {
-    if (table == null) {
+    if (table == null || table.isEmpty()) {
       throw new SQLException("'table' parameter in getImportedKeys cannot be null");
     }
     StringBuilder sb =

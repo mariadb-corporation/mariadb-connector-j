@@ -64,6 +64,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     boolean noBackslashEscapes =
         (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
     parser = ClientParser.parameterParts(sql, noBackslashEscapes);
+    isInsertDuplicate = parser.isInsertDuplicate();
+    isCommandInsert = parser.isInsert() && !isInsertDuplicate;
     parameters = new ParameterList(parser.getParamCount());
   }
 
@@ -97,6 +99,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   resultSetType,
                   closeOnCompletion,
                   false);
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       localInfileInputStream = null;
       lock.unlock();
@@ -498,6 +504,11 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       }
       currResult = results.remove(0);
       return updates;
+
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       batchParameters.clear();
       lock.unlock();
@@ -533,6 +544,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       return updates;
 
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       batchParameters.clear();
       lock.unlock();

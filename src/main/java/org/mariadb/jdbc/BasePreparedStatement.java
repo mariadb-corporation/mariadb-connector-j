@@ -12,7 +12,6 @@ import java.sql.Date;
 import java.sql.ParameterMetaData;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.codec.*;
@@ -20,12 +19,12 @@ import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.codec.*;
+import org.mariadb.jdbc.util.ClientParser;
 import org.mariadb.jdbc.util.ParameterList;
+import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Common methods for prepare statement, for client and server prepare statement. */
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {
-  private static final Pattern INSERT_STATEMENT_PATTERN =
-      Pattern.compile("^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*(INSERT)", Pattern.CASE_INSENSITIVE);
 
   /** prepare statement sql command */
   protected final String sql;
@@ -96,8 +95,22 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   protected void checkIfInsertCommand() {
-    if (isCommandInsert == null)
-      isCommandInsert = sql != null && INSERT_STATEMENT_PATTERN.matcher(sql).find();
+    if (isCommandInsert == null) {
+      if (sql == null) {
+        isCommandInsert = false;
+      } else {
+        ClientParser parser =
+            ClientParser.parameterParts(
+                sql, (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0);
+        isInsertDuplicate = parser.isInsertDuplicate();
+        isCommandInsert = parser.isInsert() && !isInsertDuplicate;
+      }
+    }
+  }
+
+  @Override
+  public String getLastSql() {
+    return sql;
   }
 
   /**

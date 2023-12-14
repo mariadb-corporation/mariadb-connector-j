@@ -200,7 +200,7 @@ public class CompleteResult extends Result {
     return new CompleteResult(columns, rows.toArray(new byte[0][0]), context, resultSetType);
   }
 
-  public CompleteResult useAliasAsName() {
+  public CompleteResult newResultsetWithUseAliasAsName() {
     ColumnDecoder[] newMeta = new ColumnDecoder[metadataList.length];
     for (int i = 0; i < metadataList.length; i++) {
       newMeta[i] = metadataList[i].useAliasAsName();

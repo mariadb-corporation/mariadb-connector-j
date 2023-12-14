@@ -49,7 +49,6 @@ public interface ServerVersion {
    */
   boolean versionGreaterOrEqual(int major, int minor, int patch);
 
-
   /**
    * Utility method to check if database version is greater than parameters.
    *

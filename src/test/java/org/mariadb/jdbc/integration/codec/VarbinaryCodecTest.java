@@ -113,7 +113,7 @@ public class VarbinaryCodecTest extends CommonCodecTest {
     testObject(rs, BigInteger.class, BigInteger.valueOf(0));
     testObject(rs, Double.class, (double) 0);
     testObject(rs, Float.class, (float) 0);
-    testObject(rs, Byte.class, (byte) 0);
+    testObject(rs, Byte.class, (byte) '0');
     testArrObject(rs, new byte[] {(byte) '0'});
     testObject(rs, Boolean.class, Boolean.FALSE);
     testObject(rs, Clob.class, new MariaDbClob("0".getBytes()));
@@ -219,15 +219,10 @@ public class VarbinaryCodecTest extends CommonCodecTest {
   }
 
   public void getByte(ResultSet rs) throws SQLException {
-    assertEquals((byte) 0, rs.getByte(1));
+    assertEquals((byte) '0', rs.getByte(1));
     assertFalse(rs.wasNull());
-    assertEquals((byte) 1, rs.getByte(2));
-    assertEquals((byte) 1, rs.getByte("t2alias"));
-    assertFalse(rs.wasNull());
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getByte(3),
-        "value 'some\uD83C\uDF1F' (VARSTRING) cannot be decoded as Byte");
+    assertEquals((byte) '1', rs.getByte(2));
+    assertEquals((byte) '1', rs.getByte("t2alias"));
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());

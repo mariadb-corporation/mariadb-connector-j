@@ -93,6 +93,113 @@ public class BatchTest extends Common {
   }
 
   @Test
+  public void executeBatchAfterError() throws SQLException {
+    try (Statement st = sharedConn.createStatement()) {
+      st.addBatch("DROP TABLE IF EXISTS executeBatchAfterError");
+      try (Statement stmt = sharedConn.createStatement()) {
+        assertEquals(-1, stmt.getUpdateCount());
+        stmt.addBatch("CREATE TABLE executeBatchAfterError(id VARCHAR(5) PRIMARY KEY,value BOOL)");
+        stmt.addBatch("CREATE TABLE executeBatchAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+        try {
+          stmt.executeBatch();
+        } catch (Exception e) {
+          // eat
+        }
+        assertEquals(-1, stmt.getUpdateCount());
+      } finally {
+        st.addBatch("DROP TABLE IF EXISTS executeBatchAfterError");
+      }
+    }
+  }
+
+  @Test
+  public void executeLargeBatchAfterError() throws SQLException {
+    try (Statement st = sharedConn.createStatement()) {
+      st.addBatch("DROP TABLE IF EXISTS executeBatchAfterError");
+      try (Statement stmt = sharedConn.createStatement()) {
+        assertEquals(-1, stmt.getUpdateCount());
+        stmt.addBatch("CREATE TABLE executeBatchAfterError(id VARCHAR(5) PRIMARY KEY,value BOOL)");
+        stmt.addBatch("CREATE TABLE executeBatchAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+        try {
+          stmt.executeLargeBatch();
+        } catch (Exception e) {
+          // eat
+        }
+        assertEquals(-1, stmt.getUpdateCount());
+      } finally {
+        st.addBatch("DROP TABLE IF EXISTS executeBatchAfterError");
+      }
+    }
+  }
+
+  @Test
+  public void batchGeneratedKeys() throws SQLException {
+    try (Statement st = sharedConn.createStatement()) {
+      st.execute("DROP TABLE IF EXISTS batchGeneratedKeys");
+      st.execute("CREATE TABLE batchGeneratedKeys(id SMALLINT PRIMARY KEY,value BIGINT)");
+
+      try (Statement stmt = sharedConn.createStatement()) {
+
+        try (ResultSet rs = stmt.getGeneratedKeys()) {
+          assertFalse(rs.next());
+        }
+
+        stmt.addBatch("INSERT INTO batchGeneratedKeys VALUES(1679640894, -601)");
+        stmt.addBatch("UPDATE batchGeneratedKeys SET value = 226 WHERE id <= 0");
+
+        try {
+          stmt.executeBatch();
+        } catch (Exception e) {
+          // eat
+        }
+
+        try (ResultSet rs = stmt.getGeneratedKeys()) {
+          assertFalse(rs.next());
+        }
+      } finally {
+        st.execute("DROP TABLE IF EXISTS batchGeneratedKeys");
+      }
+    }
+  }
+
+  @Test
+  public void testBatchParameterClearAfterError() throws SQLException {
+    try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testBatchParameterClearAfterError");
+      stmt.execute(
+          "CREATE TABLE testBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+      stmt.addBatch("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)");
+      stmt.addBatch("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)");
+
+      assertThrows(BatchUpdateException.class, stmt::executeBatch);
+      stmt.execute("TRUNCATE testBatchParameterClearAfterError");
+      stmt.executeBatch();
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM testBatchParameterClearAfterError")) {
+        assertFalse(rs.next());
+      }
+    }
+  }
+
+  @Test
+  public void testLargeBatchParameterClearAfterError() throws SQLException {
+    try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testLargeBatchParameterClearAfterError");
+      stmt.execute(
+          "CREATE TABLE testLargeBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+      stmt.addBatch("INSERT INTO testLargeBatchParameterClearAfterError VALUES(1, 1)");
+      stmt.addBatch("INSERT INTO testLargeBatchParameterClearAfterError VALUES(1, 1)");
+
+      assertThrows(BatchUpdateException.class, stmt::executeLargeBatch);
+      stmt.execute("TRUNCATE testLargeBatchParameterClearAfterError");
+      stmt.executeLargeBatch();
+      try (ResultSet rs =
+          stmt.executeQuery("SELECT * FROM testLargeBatchParameterClearAfterError")) {
+        assertFalse(rs.next());
+      }
+    }
+  }
+
+  @Test
   public void wrongParameter() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       wrongParameter(con);
@@ -144,6 +251,9 @@ public class BatchTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false);
     }
+    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts")) {
+      differentParameterType(con, false);
+    }
     try (Connection con =
         createCon("&useServerPrepStmts=false&useBulkStmts&useBulkStmtsForInserts")) {
       differentParameterType(con, isMariaDBServer() && !isXpand());
@@ -154,6 +264,9 @@ public class BatchTest extends Common {
       differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts=false")) {
+      differentParameterType(con, false);
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts")) {
       differentParameterType(con, false);
     }
     try (Connection con =
@@ -229,8 +342,8 @@ public class BatchTest extends Common {
     assertEquals(3, rs.getInt(1));
     assertNull(rs.getString(2));
     assertFalse(rs.next());
-    stmt.execute("TRUNCATE BatchTest");
 
+    stmt.execute("TRUNCATE BatchTest");
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
       prep.setInt(1, 1);
@@ -329,6 +442,34 @@ public class BatchTest extends Common {
         assertEquals(1, res[1]);
       }
     }
+
+    stmt.execute("TRUNCATE BatchTest");
+    try (PreparedStatement prep =
+        con.prepareStatement(
+            "INSERT INTO BatchTest(t1, t2) VALUES (?,?) ON DUPLICATE KEY UPDATE t2='changed'")) {
+      prep.setInt(1, 5);
+      prep.setInt(2, 5);
+      prep.addBatch();
+
+      prep.setInt(1, 5);
+      prep.setInt(2, 6);
+      prep.addBatch();
+      int[] res = prep.executeBatch();
+      assertEquals(2, res.length);
+      if (expectSuccessUnknown) {
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+      } else {
+        assertEquals(1, res[0]);
+        assertEquals(2, res[1]);
+      }
+    }
+    rs = stmt.executeQuery("SELECT * FROM BatchTest");
+    assertTrue(rs.next());
+    assertEquals(5, rs.getInt(1));
+    assertEquals("changed", rs.getString(2));
+    assertFalse(rs.next());
+
     con.rollback();
   }
 

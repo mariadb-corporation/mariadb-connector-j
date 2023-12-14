@@ -157,6 +157,11 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
 
   @Override
   public byte decodeByteText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+    if (isBinary()) {
+      byte b = buf.readByte();
+      if (length.get() > 1) buf.skip(length.get() - 1);
+      return b;
+    }
     String str = buf.readString(length.get());
     long result;
     try {

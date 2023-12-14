@@ -24,6 +24,20 @@ public interface Context {
   void setThreadId(long connectionId);
 
   /**
+   * Get server current auto_increment value
+   *
+   * @return server auto increment
+   */
+  Long getAutoIncrement();
+
+  /**
+   * Set server autoincrement value
+   *
+   * @param autoIncrement current server autoincrement value
+   */
+  void setAutoIncrement(long autoIncrement);
+
+  /**
    * Get connection initial seed
    *
    * @return initial seed

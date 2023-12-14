@@ -59,7 +59,6 @@ public abstract class Result implements ResultSet, Completion {
 
   protected final boolean traceEnable;
   private final int maxIndex;
-  private final boolean closeOnCompletion;
   private final MutableInt fieldLength = new MutableInt(0);
   private final boolean forceAlias;
   private final byte[] nullBitmap;
@@ -91,6 +90,7 @@ public abstract class Result implements ResultSet, Completion {
   /** row number limit */
   protected long maxRows;
 
+  private boolean closeOnCompletion;
   private Map<String, Integer> mapper = null;
   private int fetchSize;
 
@@ -156,6 +156,11 @@ public abstract class Result implements ResultSet, Completion {
     this.forceAlias = true;
     this.rowDecoder = prev.rowDecoder;
     this.nullBitmap = prev.nullBitmap;
+    this.data = prev.data;
+    this.dataSize = prev.dataSize;
+    this.fetchSize = prev.fetchSize;
+    this.loaded = prev.loaded;
+    this.outputParameter = prev.outputParameter;
   }
 
   /**
@@ -236,6 +241,10 @@ public abstract class Result implements ResultSet, Completion {
         data[dataSize++] = buf;
     }
     return true;
+  }
+
+  public void closeOnCompletion() throws SQLException {
+    this.closeOnCompletion = true;
   }
 
   /**
@@ -348,7 +357,7 @@ public abstract class Result implements ResultSet, Completion {
       }
     }
     this.closed = true;
-    if (closeOnCompletion) {
+    if (closeOnCompletion && (context.getServerStatus() & ServerStatus.MORE_RESULTS_EXISTS) == 0) {
       statement.close();
     }
   }
