@@ -6,10 +6,8 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.*;
 
 public class ErrorTest extends Common {
 
@@ -144,6 +142,15 @@ public class ErrorTest extends Common {
           assertTrue(sqle.getMessage().contains("deadlock information"));
         }
       }
+    }
+  }
+  @Test
+  public void connectionErrorFormat() throws SQLException {
+    try {
+      DriverManager.getConnection("jdbc:mariadb://localhost:3000/db");
+      fail("Must have thrown an error");
+    } catch (SQLException e) {
+      assertEquals("08000", e.getSQLState());
     }
   }
 }
