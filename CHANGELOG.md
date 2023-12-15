@@ -19,6 +19,7 @@
 * CONJ-1137 ensuring never having NPE in OkPacket when setting auto commit
 * CONJ-1138 Inconsistency in Behavior of PreparedStatement After closeOnCompletion() Between MariaDB and MySQL
   Connectors
+* CONJ-1049 Metadata getTableTypes result was not ordered by TABLE_TYPE
 
 ## [3.3.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.1) (Nov 2023)
 

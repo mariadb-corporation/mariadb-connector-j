@@ -244,13 +244,16 @@ public class ResultSetMetadataTest extends Common {
     ResultSetMetaData rsMeta = rs.getMetaData();
     assertEquals("TABLE_TYPE", rsMeta.getColumnName(1));
     assertEquals("", rsMeta.getTableName(1));
-    assertEquals("TABLE", rs.getString(1));
+
+    assertEquals("LOCAL TEMPORARY", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("SYSTEM TABLE", rs.getString(1));
     assertTrue(rs.next());
     assertEquals("SYSTEM VIEW", rs.getString(1));
     assertTrue(rs.next());
-    assertEquals("VIEW", rs.getString(1));
+    assertEquals("TABLE", rs.getString(1));
     assertTrue(rs.next());
-    assertEquals("LOCAL TEMPORARY", rs.getString(1));
+    assertEquals("VIEW", rs.getString(1));
     assertFalse(rs.next());
   }
 }
