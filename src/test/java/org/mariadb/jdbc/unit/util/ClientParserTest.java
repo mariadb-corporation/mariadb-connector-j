@@ -97,4 +97,17 @@ public class ClientParserTest {
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE"},
         false);
   }
+
+  @Test
+  public void ClientParserInsertFlag() {
+    assertFalse(ClientParser.parameterParts("WRONG INSERT_COMMAND", true).isInsert());
+    assertFalse(ClientParser.parameterParts("INSERT_COMMAND WRONG ", true).isInsert());
+    assertFalse(ClientParser.parameterParts("WRONGINSERT COMMAND", true).isInsert());
+    assertFalse(ClientParser.parameterParts("WRONG INSERT", true).isInsert());
+    assertFalse(ClientParser.parameterParts("WRONG small insert", true).isInsert());
+    assertFalse(ClientParser.parameterParts("INSERT DUPLICATE", true).isInsertDuplicate());
+    assertFalse(ClientParser.parameterParts("INSERT duplicate", true).isInsertDuplicate());
+    assertFalse(ClientParser.parameterParts("INSERT _duplicate key", true).isInsertDuplicate());
+    assertFalse(ClientParser.parameterParts("INSERT duplicate_ key", true).isInsertDuplicate());
+  }
 }

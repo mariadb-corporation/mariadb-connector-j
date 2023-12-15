@@ -2401,7 +2401,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   public ResultSet getTableTypes() throws SQLException {
     return executeQuery(
-        "SELECT 'TABLE' TABLE_TYPE "
+        "SELECT 'SYSTEM TABLE' TABLE_TYPE "
+            + "UNION 'TABLE' TABLE_TYPE "
             + "UNION SELECT 'SYSTEM VIEW' TABLE_TYPE "
             + "UNION SELECT 'VIEW' TABLE_TYPE "
             + "UNION SELECT 'LOCAL TEMPORARY' TABLE_TYPE");
