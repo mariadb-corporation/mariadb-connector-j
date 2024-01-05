@@ -75,6 +75,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
   private static final float MIN_COMPRESSION_RATIO = 0.9f;
   private final byte[] header = new byte[7];
   private final byte[] subHeader = new byte[4];
+  private boolean subHeaderIsGenerated = false;
   private int maxPacketLength = MAX_PACKET_LENGTH;
   private int compressSeqNo;
   private byte[] remainingData = new byte[0];
@@ -161,6 +162,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             subHeader[1] = (byte) (pos >>> 8);
             subHeader[2] = (byte) (pos >>> 16);
             subHeader[3] = (byte) this.seqNo++;
+            subHeaderIsGenerated = true;
             deflater.write(subHeader, 0, 4);
             deflater.write(buf, 0, uncompressSize - (remainingData.length + 4));
             deflater.finish();
@@ -272,10 +274,13 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
       if (remainingData.length != 0) {
         out.write(remainingData);
       }
-      subHeader[0] = (byte) pos;
-      subHeader[1] = (byte) (pos >>> 8);
-      subHeader[2] = (byte) (pos >>> 16);
-      subHeader[3] = (byte) this.seqNo++;
+      // Avoid generating the sub header twice
+      if (!subHeaderIsGenerated){
+        subHeader[0] = (byte) pos;
+        subHeader[1] = (byte) (pos >>> 8);
+        subHeader[2] = (byte) (pos >>> 16);
+        subHeader[3] = (byte) this.seqNo++;
+      }
       out.write(subHeader, 0, 4);
       out.write(buf, 0, uncompressSize - (remainingData.length + 4));
       cmdLength += remainingData.length;
