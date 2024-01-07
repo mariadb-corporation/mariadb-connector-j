@@ -274,11 +274,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
       if (remainingData.length != 0) {
         out.write(remainingData);
       }
-      // Avoid generating the sub header twice
+      subHeader[0] = (byte) pos;
+      subHeader[1] = (byte) (pos >>> 8);
+      subHeader[2] = (byte) (pos >>> 16);
+      // Avoid increasing the sequence of subHeader twice
       if (!subHeaderIsGenerated){
-        subHeader[0] = (byte) pos;
-        subHeader[1] = (byte) (pos >>> 8);
-        subHeader[2] = (byte) (pos >>> 16);
         subHeader[3] = (byte) this.seqNo++;
       }
       out.write(subHeader, 0, 4);
