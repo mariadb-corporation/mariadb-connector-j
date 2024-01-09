@@ -102,7 +102,7 @@ public class StandardClient implements Client, AutoCloseable {
                     try (StandardClient cli =
                         new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
                       cli.execute(new QueryPacket("KILL " + context.getThreadId()), false);
-                    } catch (SQLException e) {
+                    } catch (Exception e) {
                       // eat
                     }
                   } else {
@@ -379,7 +379,7 @@ public class StandardClient implements Client, AutoCloseable {
       commands.addAll(Arrays.asList(initialCommands));
       resInd += initialCommands.length;
     }
-    commands.add("SELECT @@max_allowed_packet, @@wait_timeout, @@aggregator_id");
+    commands.add("SELECT @@max_allowed_packet, @@aggregator_id");
     try {
       List<Completion> res;
       ClientMessage[] msgs = new ClientMessage[commands.size()];
@@ -399,8 +399,10 @@ public class StandardClient implements Client, AutoCloseable {
 
       // read max allowed packet
       Result result = (Result) res.get(resInd);
-      result.next();
-      this.aggregatorId = result.getBigInteger(3);
+      if (result.next()) {
+        this.writer.setMaxAllowedPacket(result.getInt(1));
+        this.aggregatorId = result.getBigInteger(2);
+      }
     } catch (SQLException sqlException) {
       throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
     }

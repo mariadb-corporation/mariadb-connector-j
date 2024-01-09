@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration;
 
@@ -314,6 +314,157 @@ public class PreparedStatementTest extends Common {
     rs.close();
     Assertions.assertTrue(rs.isClosed());
     Assertions.assertTrue(preparedStatement.isClosed());
+  }
+
+  @Test
+  public void closeOnCompletionClose() throws Exception {
+    closeOnCompletionClose(sharedConn);
+    closeOnCompletionClose(sharedConnBinary);
+  }
+
+  @Test
+  public void closeOnCompletionStreamingClose() throws Exception {
+    try (Connection conn = createCon("&allowMultiQueries")) {
+      try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1;SELECT 2")) {
+        pstmt.execute();
+        pstmt.closeOnCompletion();
+        assertTrue(pstmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+        assertFalse(pstmt.getMoreResults(java.sql.Statement.CLOSE_CURRENT_RESULT));
+        assertThrows(SQLException.class, () -> pstmt.execute());
+      }
+
+      try (PreparedStatement pstmt =
+          conn.prepareStatement("SELECT * from sequence_1_to_10;SELECT * from sequence_1_to_10")) {
+        pstmt.execute();
+        pstmt.closeOnCompletion();
+        assertTrue(pstmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+        try (ResultSet rs = pstmt.getResultSet()) {
+          assertTrue(rs.next());
+        }
+        assertThrows(SQLException.class, () -> pstmt.execute());
+      }
+      try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1;SELECT 2")) {
+        pstmt.execute();
+        pstmt.closeOnCompletion();
+        assertTrue(pstmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+        assertFalse(pstmt.getMoreResults(java.sql.Statement.CLOSE_CURRENT_RESULT));
+        assertThrows(SQLException.class, () -> pstmt.execute());
+      }
+
+      try (PreparedStatement pstmt = conn.prepareStatement("SELECT 1;SELECT 2")) {
+        pstmt.setFetchSize(1);
+        pstmt.execute();
+        pstmt.closeOnCompletion();
+        assertTrue(pstmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+        try (ResultSet rs = pstmt.getResultSet()) {
+          assertTrue(rs.next());
+        }
+        assertThrows(SQLException.class, () -> pstmt.execute());
+      }
+    }
+  }
+
+  private void closeOnCompletionClose(Connection connection) throws Exception {
+    try (PreparedStatement pstmt = connection.prepareStatement("SELECT 1;")) {
+      pstmt.execute();
+      pstmt.closeOnCompletion();
+      assertFalse(pstmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+      assertThrows(SQLSyntaxErrorException.class, () -> pstmt.execute());
+    }
+    try (PreparedStatement pstmt = connection.prepareStatement("SELECT 1;")) {
+      pstmt.setFetchSize(1);
+      pstmt.execute();
+      pstmt.closeOnCompletion();
+      assertFalse(pstmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+      assertThrows(SQLSyntaxErrorException.class, () -> pstmt.execute());
+    }
+  }
+
+  @Test
+  public void getUpdateCountValueOnFail() throws SQLException {
+    getUpdateCountValueOnFail(sharedConn);
+    getUpdateCountValueOnFail(sharedConnBinary);
+  }
+
+  private void getUpdateCountValueOnFail(Connection conn) throws SQLException {
+    try (Statement st = conn.createStatement()) {
+      st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
+      try (PreparedStatement prep =
+          conn.prepareStatement(
+              "CREATE TABLE getUpdateCountValueOnFail(id VARCHAR(5) PRIMARY KEY,value BOOL)")) {
+        assertEquals(-1, prep.getUpdateCount());
+        assertEquals(0, prep.executeUpdate());
+        assertEquals(0, prep.getUpdateCount());
+        try {
+          prep.executeUpdate();
+        } catch (Exception e) {
+          // eat
+        }
+        assertEquals(-1, prep.getUpdateCount());
+      } finally {
+        st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
+      }
+    }
+  }
+
+  @Test
+  public void testBatchParameterClearAfterError() throws SQLException {
+    testBatchParameterClearAfterError(sharedConn);
+    testBatchParameterClearAfterError(sharedConnBinary);
+  }
+
+  public void testBatchParameterClearAfterError(Connection conn) throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testBatchParameterClearAfterError");
+      stmt.execute(
+          "CREATE TABLE testBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+      try (PreparedStatement prep =
+          conn.prepareStatement("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)")) {
+        prep.setInt(1, 1);
+        prep.setInt(2, 1);
+        prep.addBatch();
+        prep.setInt(1, 1);
+        prep.setInt(2, 1);
+        prep.addBatch();
+        assertThrows(BatchUpdateException.class, prep::executeBatch);
+        stmt.execute("TRUNCATE testBatchParameterClearAfterError");
+        prep.executeBatch();
+      }
+
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM testBatchParameterClearAfterError")) {
+        assertFalse(rs.next());
+      }
+    }
+  }
+
+  @Test
+  public void testLargeBatchParameterClearAfterError() throws SQLException {
+    testLargeBatchParameterClearAfterError(sharedConn);
+    testLargeBatchParameterClearAfterError(sharedConnBinary);
+  }
+
+  public void testLargeBatchParameterClearAfterError(Connection conn) throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testBatchParameterClearAfterError");
+      stmt.execute(
+          "CREATE TABLE testBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+      try (PreparedStatement prep =
+          conn.prepareStatement("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)")) {
+        prep.setInt(1, 1);
+        prep.setInt(2, 1);
+        prep.addBatch();
+        prep.setInt(1, 1);
+        prep.setInt(2, 1);
+        prep.addBatch();
+        assertThrows(BatchUpdateException.class, prep::executeLargeBatch);
+        stmt.execute("TRUNCATE testBatchParameterClearAfterError");
+        prep.executeLargeBatch();
+      }
+
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM testBatchParameterClearAfterError")) {
+        assertFalse(rs.next());
+      }
+    }
   }
 
   @Test
@@ -665,8 +816,8 @@ public class PreparedStatementTest extends Common {
   }
 
   // TODO: PLAT-5877
-  @Disabled
   @Test
+  @Disabled
   public void moreRowLimitedResults() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       moreRowLimitedResults(con);
@@ -682,7 +833,7 @@ public class PreparedStatementTest extends Common {
     stmt.setFetchSize(3);
     stmt.setMaxRows(5);
     stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from prepare4; SELECT * FROM prepare4;SELECT 2; END");
+        "CREATE PROCEDURE multi() AUTHORIZE AS CURRENT_USER AS BEGIN  ECHO SELECT * FROM prepare4 order by t1;  END");
     stmt.execute("CALL multi()");
     Assertions.assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();

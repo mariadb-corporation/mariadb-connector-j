@@ -35,7 +35,7 @@ public class PacketWriter implements Writer {
   private final int maxQuerySizeToLog;
   private final OutputStream out;
   private final Integer maxPacketLength = MAX_PACKET_LENGTH;
-  private final Integer maxAllowedPacket;
+  private Integer maxAllowedPacket;
   private long cmdLength;
   private boolean permitTrace = true;
   private String serverThreadLog = "";
@@ -142,6 +142,16 @@ public class PacketWriter implements Writer {
     buf[pos] = (byte) value;
     buf[pos + 1] = (byte) (value >> 8);
     pos += 2;
+  }
+
+  @Override
+  public void setMaxAllowedPacket(int maxAllowedPacket) {
+    if (this.maxAllowedPacket == null) {
+      this.maxAllowedPacket = maxAllowedPacket;
+    } else {
+      this.maxAllowedPacket = Math.min(this.maxAllowedPacket, maxAllowedPacket);
+    }
+    logger.debug("set maxAllowedPacket = {}", this.maxAllowedPacket);
   }
 
   /**

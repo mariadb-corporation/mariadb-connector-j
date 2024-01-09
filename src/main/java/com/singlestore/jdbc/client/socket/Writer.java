@@ -49,6 +49,9 @@ public interface Writer {
    */
   void writeShort(short value) throws IOException;
 
+  /** Set max allowed packet size. */
+  void setMaxAllowedPacket(int maxAllowedPacket);
+
   /**
    * Write int value into buf. flush buf if too small.
    *

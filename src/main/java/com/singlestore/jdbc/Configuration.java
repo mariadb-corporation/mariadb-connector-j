@@ -18,8 +18,11 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ServiceLoader;
 
@@ -70,6 +73,7 @@ public class Configuration {
   // various
   private Boolean autocommit = null;
   private boolean createDatabaseIfNotExist = false;
+  private boolean returnMultiValuesGeneratedIds = false;
   private String initSql = null;
   private TransactionIsolation transactionIsolation = TransactionIsolation.READ_COMMITTED;
   private int defaultFetchSize = 0;
@@ -170,6 +174,7 @@ public class Configuration {
       Properties nonMappedOptions,
       Boolean autocommit,
       boolean createDatabaseIfNotExist,
+      boolean returnMultiValuesGeneratedIds,
       String initSql,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
@@ -245,6 +250,7 @@ public class Configuration {
     this.nonMappedOptions = nonMappedOptions;
     this.autocommit = autocommit;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     this.initSql = initSql;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
@@ -354,6 +360,7 @@ public class Configuration {
       String connectionAttributes,
       Boolean autocommit,
       Boolean createDatabaseIfNotExist,
+      Boolean returnMultiValuesGeneratedIds,
       String initSql,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -454,6 +461,8 @@ public class Configuration {
     this.connectionAttributes = connectionAttributes;
     if (autocommit != null) this.autocommit = autocommit;
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    if (returnMultiValuesGeneratedIds != null)
+      this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     if (initSql != null) this.initSql = initSql;
     if (includeThreadDumpInDeadlockExceptions != null)
       this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
@@ -744,6 +753,126 @@ public class Configuration {
     }
   }
 
+  /**
+   * Permit to have string information on how string is parsed. example :
+   * Configuration.toConf("jdbc:singlestore://localhost/test") will return a String containing:
+   * <code>
+   * Configuration:
+   *  * resulting Url : jdbc:singlestore://localhost/test
+   * Unknown options : None
+   *
+   * Non default options :
+   *  * database : test
+   *
+   * default options :
+   *  * user : null
+   *  ...
+   * </code>
+   *
+   * @param url url string
+   * @return string describing the configuration parsed from url
+   * @throws SQLException if parsing fails
+   */
+  public static String toConf(String url) throws SQLException {
+    Configuration conf = Configuration.parseInternal(url, new Properties());
+    StringBuilder sb = new StringBuilder();
+    StringBuilder sbUnknownOpts = new StringBuilder();
+
+    if (conf.nonMappedOptions.isEmpty()) {
+      sbUnknownOpts.append("None");
+    } else {
+      for (Map.Entry<Object, Object> entry : conf.nonMappedOptions.entrySet()) {
+        sbUnknownOpts.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue());
+      }
+    }
+    sb.append("Configuration:")
+        .append("\n * resulting Url : ")
+        .append(conf.initialUrl)
+        .append("\nUnknown options : ")
+        .append(sbUnknownOpts)
+        .append("\n")
+        .append("\nNon default options : ");
+
+    Configuration defaultConf = Configuration.parse("jdbc:singlestore://localhost/");
+    StringBuilder sbDefaultOpts = new StringBuilder();
+    StringBuilder sbDifferentOpts = new StringBuilder();
+    try {
+      List<String> propertyToSkip = Arrays.asList("initialUrl", "logger", "codecs", "$jacocoData");
+      Field[] fields = Configuration.class.getDeclaredFields();
+      Arrays.sort(fields, Comparator.comparing(Field::getName));
+
+      for (Field field : fields) {
+        if (!propertyToSkip.contains(field.getName())) {
+          Object fieldValue = field.get(conf);
+          if (fieldValue == null) {
+            (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+                .append("\n * ")
+                .append(field.getName())
+                .append(" : ")
+                .append(fieldValue);
+          } else {
+            if (field.getName().equals("haMode")) {
+              (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+                  .append("\n * ")
+                  .append(field.getName())
+                  .append(" : ")
+                  .append(fieldValue);
+              continue;
+            }
+            switch (fieldValue.getClass().getSimpleName()) {
+              case "String":
+              case "Boolean":
+              case "HaMode":
+              case "Integer":
+              case "SslMode":
+                (Objects.equals(fieldValue, field.get(defaultConf))
+                        ? sbDefaultOpts
+                        : sbDifferentOpts)
+                    .append("\n * ")
+                    .append(field.getName())
+                    .append(" : ")
+                    .append(fieldValue);
+                break;
+              case "ArrayList":
+                (Objects.equals(fieldValue.toString(), field.get(defaultConf).toString())
+                        ? sbDefaultOpts
+                        : sbDifferentOpts)
+                    .append("\n * ")
+                    .append(field.getName())
+                    .append(" : ")
+                    .append(fieldValue);
+                break;
+              case "Properties":
+                break;
+              default:
+                throw new IllegalArgumentException(
+                    "field type not expected for fields " + field.getName());
+            }
+          }
+        }
+      }
+
+      String diff = sbDifferentOpts.toString();
+      if (diff.isEmpty()) {
+        sb.append("None\n");
+      } else {
+        sb.append(diff);
+      }
+
+      sb.append("\n\ndefault options :");
+      String same = sbDefaultOpts.toString();
+      if (same.isEmpty()) {
+        sb.append("None\n");
+      } else {
+        sb.append(same);
+      }
+
+    } catch (IllegalArgumentException | IllegalAccessException e) {
+      throw new IllegalArgumentException("Wrong parsing", e);
+    }
+    return sb.toString();
+  }
+
   public Configuration clone(String username, String password) {
     return new Configuration(
         username != null && username.isEmpty() ? null : username,
@@ -754,6 +883,7 @@ public class Configuration {
         this.nonMappedOptions,
         this.autocommit,
         this.createDatabaseIfNotExist,
+        this.returnMultiValuesGeneratedIds,
         this.initSql,
         this.transactionIsolation,
         this.defaultFetchSize,
@@ -1244,6 +1374,15 @@ public class Configuration {
   }
 
   /**
+   * Returns multi-values generated ids.
+   *
+   * @return must returns multi-values generated ids.
+   */
+  public boolean returnMultiValuesGeneratedIds() {
+    return returnMultiValuesGeneratedIds;
+  }
+
+  /**
    * Execute initial command when connection is established
    *
    * @return initial SQL command
@@ -1557,6 +1696,7 @@ public class Configuration {
     // various
     private Boolean autocommit;
     private Boolean createDatabaseIfNotExist;
+    private Boolean returnMultiValuesGeneratedIds;
     private String initSql;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
@@ -2041,6 +2181,17 @@ public class Configuration {
     }
 
     /**
+     * indicate if connector must return multi-generated ids. (For connector 2.x compatibility)
+     *
+     * @param returnMultiValuesGeneratedIds must return multi-values generated ids
+     * @return this {@link Builder}
+     */
+    public Builder returnMultiValuesGeneratedIds(Boolean returnMultiValuesGeneratedIds) {
+      this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
+      return this;
+    }
+
+    /**
      * permit to execute an SQL command on connection creation
      *
      * @param initSql initial SQL command
@@ -2264,6 +2415,7 @@ public class Configuration {
               this.connectionAttributes,
               this.autocommit,
               this.createDatabaseIfNotExist,
+              this.returnMultiValuesGeneratedIds,
               this.initSql,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

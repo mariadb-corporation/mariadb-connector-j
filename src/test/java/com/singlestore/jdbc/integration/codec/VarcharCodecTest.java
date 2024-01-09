@@ -29,10 +29,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class VarcharCodecTest extends CommonCodecTest {
-  static String fourByteUnicode = minVersion(7, 5, 0) ? "🌟" : "";
+  static String fourByteUnicode;
 
   @AfterAll
   public static void after2() throws SQLException {
+    fourByteUnicode = minVersion(7, 5, 0) ? "🌟" : "";
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS StringCodec");
     stmt.execute("DROP TABLE IF EXISTS StringParamCodec");
@@ -870,12 +871,10 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARCHAR, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    // TODO: PLAT-5895
-    // assertEquals(255, meta.getPrecision(1));
+    assertEquals(255, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    // TODO: PLAT-5895
-    // assertEquals(255, meta.getColumnDisplaySize(1));
+    assertEquals(255, meta.getColumnDisplaySize(1));
   }
 
   @Test

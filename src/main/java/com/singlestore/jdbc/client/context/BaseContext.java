@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+// Copyright (c) 2021-2023 SingleStore, Inc.
 
 package com.singlestore.jdbc.client.context;
 
@@ -177,18 +177,22 @@ public class BaseContext implements Context {
     if (prepareCache != null) prepareCache.reset();
   }
 
+  @Override
   public int getStateFlag() {
     return stateFlag;
   }
 
+  @Override
   public void resetStateFlag() {
     stateFlag = 0;
   }
 
+  @Override
   public void addStateFlag(int state) {
     stateFlag |= state;
   }
 
+  @Override
   public void setTreadsConnected(long threadsConnected) {
     if (hostAddress != null) hostAddress.setThreadsConnected(threadsConnected);
   }
@@ -197,6 +201,7 @@ public class BaseContext implements Context {
     return charset;
   }
 
+  @Override
   public void setCharset(String charset) {
     this.charset = charset;
   }

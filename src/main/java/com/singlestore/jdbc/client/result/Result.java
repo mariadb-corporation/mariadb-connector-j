@@ -90,7 +90,7 @@ public abstract class Result implements ResultSet, Completion {
 
   protected final boolean traceEnable;
   private final int maxIndex;
-  private final boolean closeOnCompletion;
+  private boolean closeOnCompletion;
   private final MutableInt fieldLength = new MutableInt(0);
   private final boolean forceAlias;
   private final byte[] nullBitmap;
@@ -269,6 +269,10 @@ public abstract class Result implements ResultSet, Completion {
     return true;
   }
 
+  public void closeOnCompletion() throws SQLException {
+    this.closeOnCompletion = true;
+  }
+
   /**
    * Skip remaining rows to keep connection state ok, without needing remaining data.
    *
@@ -379,7 +383,7 @@ public abstract class Result implements ResultSet, Completion {
       }
     }
     this.closed = true;
-    if (closeOnCompletion) {
+    if (closeOnCompletion && (context.getServerStatus() & ServerStatus.MORE_RESULTS_EXISTS) == 0) {
       statement.close();
     }
   }

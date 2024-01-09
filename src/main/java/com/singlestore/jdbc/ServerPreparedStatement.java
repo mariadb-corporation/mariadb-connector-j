@@ -80,6 +80,10 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     String cmd = escapeTimeout(sql);
     try {
       executeStandard(cmd);
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       localInfileInputStream = null;
       lock.unlock();
@@ -491,7 +495,10 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       }
       currResult = results.remove(0);
       return updates;
-
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       localInfileInputStream = null;
       batchParameters.clear();
@@ -527,7 +534,10 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
       currResult = results.remove(0);
       return updates;
-
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       batchParameters.clear();
       lock.unlock();

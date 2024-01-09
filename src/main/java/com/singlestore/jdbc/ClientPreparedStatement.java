@@ -14,6 +14,7 @@ import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.ClientMessage;
 import com.singlestore.jdbc.message.client.PreparePacket;
 import com.singlestore.jdbc.message.client.QueryWithParametersPacket;
+import com.singlestore.jdbc.message.client.RewriteQueryMultiPacket;
 import com.singlestore.jdbc.message.server.OkPacket;
 import com.singlestore.jdbc.util.ClientParser;
 import com.singlestore.jdbc.util.ParameterList;
@@ -74,6 +75,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   resultSetType,
                   closeOnCompletion,
                   false);
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       localInfileInputStream = null;
       lock.unlock();
@@ -82,7 +87,6 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
   private void executeInternalPreparedBatch() throws SQLException {
     checkNotClosed();
-    checkIfInsertCommand();
     Configuration conf = con.getContext().getConf();
     if (conf.rewriteBatchedStatements()
         && parser.isRewriteBatchedApplicable()
@@ -131,6 +135,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
   private ClientMessage[] getClientMessageForRewriteBatchedStatement() {
     ParameterList parameterList = new ParameterList();
+    final int originalParamCount = parser.getParamCount();
     StringBuilder builder = new StringBuilder(parser.getSql());
     int index = 0;
     // Iterate over the batch, re-create the Client Parser with modified parts, grouped all
@@ -159,7 +164,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     ClientParser parserWithRewriteBatchedStatement =
         ClientParser.parameterParts(builder.toString(), isNoBackslashEscapesApplied());
     return new ClientMessage[] {
-      new QueryWithParametersPacket(null, parserWithRewriteBatchedStatement, parameterList, null)
+      new RewriteQueryMultiPacket(
+          originalParamCount, parserWithRewriteBatchedStatement, parameterList)
     };
   }
 
@@ -470,6 +476,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       }
       currResult = results.remove(0);
       return updates;
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       batchParameters.clear();
       lock.unlock();
@@ -490,6 +500,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       return updates;
 
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       batchParameters.clear();
       lock.unlock();

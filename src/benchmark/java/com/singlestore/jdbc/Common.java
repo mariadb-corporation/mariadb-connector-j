@@ -43,9 +43,9 @@ public class Common {
 
     // conf
     public static final String host = System.getProperty("TEST_HOST", "localhost");
-    public static final int port = Integer.parseInt(System.getProperty("TEST_PORT", "5506"));
+    public static final int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
     public static final String username = System.getProperty("TEST_USERNAME", "root");
-    public static final String password = System.getProperty("TEST_PASSWORD", "root");
+    public static final String password = System.getProperty("TEST_PASSWORD", "LbRootPass1");
     public static final String database = System.getProperty("TEST_DATABASE", "test");
     public final static String other = System.getProperty("TEST_OTHER", "");
     public static final long fileSize = 16777216 * 2; // 32 MB

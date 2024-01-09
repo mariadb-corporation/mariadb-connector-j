@@ -29,15 +29,12 @@ import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 import javax.sql.PooledConnection;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
-// TODO: PLAT-5853
 public class LoggingTest extends Common {
 
   @Test
-  @Disabled
   void basicLogging() throws Exception {
     File tempFile = File.createTempFile("log", ".tmp");
 
@@ -48,7 +45,7 @@ public class LoggingTest extends Common {
     logger.detachAndStopAllAppenders();
 
     LoggerContext context = new LoggerContext();
-    FileAppender<ILoggingEvent> fa = new FileAppender<ILoggingEvent>();
+    FileAppender<ILoggingEvent> fa = new FileAppender<>();
     fa.setName("FILE");
     fa.setImmediateFlush(true);
     PatternLayoutEncoder pa = new PatternLayoutEncoder();
@@ -83,41 +80,32 @@ public class LoggingTest extends Common {
     ds.close();
     try {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
-      String defaultRequest =
-          "+--------------------------------------------------+\n"
-              + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-              + "+--------------------------------------------------+------------------+\n"
-              + "| 23 00 00 00 03 53 45 54  20 53 45 53 53 49 4F 4E | #....SET SESSION |\n"
-              + "| 20 54 52 41 4E 53 41 43  54 49 4F 4E 20 52 45 41 |  TRANSACTION REA |\n"
-              + "| 44 20 57 52 49 54 45                             | D WRITE          |\n"
-              + "+--------------------------------------------------+------------------+";
-      Assertions.assertTrue(
-          contents.contains(defaultRequest)
-              || contents.contains(defaultRequest.replace("\r\n", "\n")),
-          contents);
       String selectOne =
-          "+--------------------------------------------------+\n"
-              + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-              + "+--------------------------------------------------+------------------+\n"
-              + "| 09 00 00 00 03 53 45 4C  45 43 54 20 31          | .....SELECT 1    |\n"
-              + "+--------------------------------------------------+------------------+\n";
+          "       +--------------------------------------------------+\n"
+              + "       |  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
+              + "+------+--------------------------------------------------+------------------+\n"
+              + "|000000| 09 00 00 00 03 53 45 4C  45 43 54 20 31          | .....SELECT 1    |\n"
+              + "+------+--------------------------------------------------+------------------+\n";
       Assertions.assertTrue(
           contents.contains(selectOne) || contents.contains(selectOne.replace("\r\n", "\n")),
           contents);
       String rowResult =
-          "+--------------------------------------------------+\n"
-              + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-              + "+--------------------------------------------------+------------------+\n"
-              + "| 02 00 00 03 01 31                                | .....1           |\n"
-              + "+--------------------------------------------------+------------------+\n";
+          "       +--------------------------------------------------+\n"
+              + "       |  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
+              + "+------+--------------------------------------------------+------------------+\n"
+              + "|000000| 02 00 00 03 01 31                                | .....1           |\n"
+              + "+------+--------------------------------------------------+------------------+\n";
       String rowResultWithEof =
-          "+--------------------------------------------------+\n"
-              + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-              + "+--------------------------------------------------+------------------+\n"
-              + "| 02 00 00 04 01 31                                | .....1           |\n"
-              + "+--------------------------------------------------+------------------+\n";
+          "       +--------------------------------------------------+\n"
+              + "       |  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
+              + "+------+--------------------------------------------------+------------------+\n"
+              + "|000000| 02 00 00 04 01 31                                | .....1           |\n"
+              + "+------+--------------------------------------------------+------------------+\n";
       Assertions.assertTrue(
-          contents.contains(rowResult) || contents.contains(rowResult.replace("\r\n", "\n")),
+          contents.contains(rowResult)
+              || contents.contains(rowResult.replace("\r\n", "\n"))
+              || contents.contains(rowResultWithEof)
+              || contents.contains(rowResultWithEof.replace("\r\n", "\n")),
           contents);
 
       Assertions.assertTrue(
