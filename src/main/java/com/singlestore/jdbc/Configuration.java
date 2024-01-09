@@ -1151,9 +1151,8 @@ public class Configuration {
   }
 
   /**
-   * Must tinyint be considered as Bit
+   * Must tinyint be considered as Bit (TINYINT is always has reserved length = 4)
    *
-   * @apiNote TINYINT is always has reserved length = 4
    * @return true if tinyint must be considered as Bit
    */
   public boolean tinyInt1isBit() {

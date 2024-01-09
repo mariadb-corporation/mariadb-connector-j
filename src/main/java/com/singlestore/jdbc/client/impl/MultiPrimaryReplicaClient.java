@@ -90,7 +90,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
 
   /**
    * Reconnect connection, trying to continue transparently if possible. Different cases. * replica
-   * fails => reconnect to replica or to master if no replica available
+   * fails - reconnect to replica or to master if no replica available
    *
    * <p>if reconnect succeed on replica / use master, no problem, continuing without interruption //
    * if reconnect primary, then replay transaction / throw exception if was in transaction.

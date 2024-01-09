@@ -16,7 +16,7 @@ public final class QuitPacket implements ClientMessage {
   /**
    * COM_QUIT packet
    *
-   * <p>int<1> 0x01 : COM_QUIT Header
+   * <p>int[1] 0x01 : COM_QUIT Header
    */
   @Override
   public int encode(Writer writer, Context context) throws IOException {

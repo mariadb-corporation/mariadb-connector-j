@@ -174,7 +174,11 @@ public interface Context {
    */
   void addStateFlag(int state);
 
-  /** Indicate the number of connection on this server */
+  /**
+   * Indicate the number of connection on this server.
+   *
+   * @param threadsConnected number of threads
+   */
   void setTreadsConnected(long threadsConnected);
 
   /**

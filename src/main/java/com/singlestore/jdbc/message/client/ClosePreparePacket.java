@@ -23,7 +23,7 @@ public final class ClosePreparePacket implements ClientMessage {
     this.statementId = statementId;
   }
 
-  /** COM_STMT_CLOSE packet. int<1> 0x19 COM_STMT_CLOSE header int<4> Statement id */
+  /** COM_STMT_CLOSE packet. int[1] 0x19 COM_STMT_CLOSE header int[4] Statement id */
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     assert statementId != 0;

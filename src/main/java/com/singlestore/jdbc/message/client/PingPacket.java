@@ -17,7 +17,7 @@ public final class PingPacket implements ClientMessage {
   /**
    * COM_PING packet
    *
-   * <p>int<1> 0x0e : COM_PING Header
+   * <p>int[1] 0x0e : COM_PING Header
    */
   @Override
   public int encode(Writer writer, Context context) throws IOException {

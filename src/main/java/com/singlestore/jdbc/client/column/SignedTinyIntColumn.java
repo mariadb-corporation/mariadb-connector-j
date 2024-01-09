@@ -18,11 +18,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
 
-/**
- * Column metadata definition
- *
- * @implNote S2 always returns length 4 for TINYINT
- */
+/** Column metadata definition (S2 always returns length 4 for TINYINT) */
 public class SignedTinyIntColumn extends ColumnDefinitionPacket implements ColumnDecoder {
 
   /**

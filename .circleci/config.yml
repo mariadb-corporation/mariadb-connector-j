@@ -115,7 +115,12 @@ jobs:
           paths:
             - ~/.m2
           key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
-      - run: mvn test
+      - run: |
+          if [ "${{ parameters.java_version }}" = "8" ]; then
+            mvn test -P java8
+          else
+            mvn test
+          fi
       - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: target/surefire-reports

@@ -216,7 +216,7 @@ public class Statement implements java.sql.Statement {
    * Abort current command result if streaming. result-set will be incomplete and closed, but ensure
    * connection state
    */
-  public void abort() throws SQLException {
+  public void abort() {
     lock.lock();
     try {
       if (!closed) {

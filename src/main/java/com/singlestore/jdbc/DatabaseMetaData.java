@@ -140,7 +140,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * This function is to return the version of S2
    *
    * @return S2 version object
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException if an error occurs
    */
   public Version getSingleStoreVersion() throws java.sql.SQLException {
     if (this.singleStoreVersion == null) {
@@ -156,7 +156,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * This function is to return the version of MySQL
    *
    * @return MySQL Version Object
-   * @throws java.sql.SQLException
+   * @throws java.sql.SQLException if an error occurs
    */
   private Version getMySQLVersion() throws java.sql.SQLException {
     if (this.version == null) {

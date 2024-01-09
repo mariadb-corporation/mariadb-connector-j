@@ -17,7 +17,7 @@ public final class ResetPacket implements ClientMessage {
   /**
    * COM_RESET_CONNECTION packet
    *
-   * <p>int<1> 0x1f : COM_RESET_CONNECTION Header
+   * <p>int[1] 0x1f : COM_RESET_CONNECTION Header
    */
   @Override
   public int encode(Writer writer, Context context) throws IOException {

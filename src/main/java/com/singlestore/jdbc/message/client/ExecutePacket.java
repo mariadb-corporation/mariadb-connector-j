@@ -67,10 +67,10 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
   /**
    * COM_STMT_EXECUTE packet
    *
-   * <p>int<1> 0x17 : COM_STMT_EXECUTE header int<4> statement id int<1> flags: int<4> Iteration
-   * count (always 1) if (param_count > 0) byte<(param_count + 7)/8> null bitmap byte<1>: send type
-   * to server (0 / 1) if (send type to server) for each parameter : byte<1>: field type byte<1>:
-   * parameter flag for each parameter (i.e param_count times) byte<n> binary parameter value
+   * <p>int[1] 0x17 : COM_STMT_EXECUTE header int[4] statement id int[1] flags: int[4] Iteration
+   * count (always 1) if (param_count ] 0) byte[(param_count + 7)/8] null bitmap byte[1]: send type
+   * to server (0 / 1) if (send type to server) for each parameter : byte[1]: field type byte[1]:
+   * parameter flag for each parameter (i.e param_count times) byte[n] binary parameter value
    */
   @Override
   public int encode(Writer writer, Context context, Prepare newPrepareResult)

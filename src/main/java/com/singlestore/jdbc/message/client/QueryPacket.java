@@ -44,7 +44,7 @@ public final class QueryPacket implements RedoableClientMessage {
   /**
    * COM_QUERY packet
    *
-   * <p>int<1> 0x03 : COM_QUERY header string<EOF> SQL statement
+   * <p>int[1] 0x03 : COM_QUERY header string[EOF] SQL statement
    */
   @Override
   public int encode(Writer writer, Context context) throws IOException {

@@ -103,7 +103,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   /**
    * Retrieves the designated parameter's SQL type.
    *
-   * @param param the first parameter is 1, the second is 2, ...
+   * @param idx the first parameter is 1, the second is 2, ...
    * @return SQL type from <code>java.sql.Types</code>
    * @throws SQLException because not supported
    */

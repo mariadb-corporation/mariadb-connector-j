@@ -150,6 +150,7 @@ public class BlobImpl implements Serializable {
    * @param pattern the byte array for which to search
    * @param start the position at which to begin searching; the first position is 1
    * @return the position at which the pattern appears, else -1
+   * @throws java.sql.SQLException if an error occurs
    */
   public long position(final byte[] pattern, final long start) throws SQLException {
     if (pattern.length == 0) {
@@ -184,6 +185,7 @@ public class BlobImpl implements Serializable {
    * @param start the position in the <code>BLOB</code> value at which to begin searching; the first
    *     position is 1
    * @return the position at which the pattern begins, else -1
+   * @throws java.sql.SQLException if an error occurs
    */
   public long position(final Blob pattern, final long start) throws SQLException {
     byte[] blobBytes = pattern.getBytes(1, (int) pattern.length());
@@ -203,6 +205,7 @@ public class BlobImpl implements Serializable {
    * @param bytes the array of bytes to be written to the <code>BLOB</code> value that this <code>
    *     Blob</code> object represents
    * @return the number of bytes written
+   * @throws java.sql.SQLException if an error occurs
    * @see #getBytes
    */
   public int setBytes(final long pos, final byte[] bytes) throws SQLException {

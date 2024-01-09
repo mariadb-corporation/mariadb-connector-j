@@ -113,11 +113,7 @@ public class StandardClient implements Client, AutoCloseable {
                     }
                   }
                   if (streamStmt != null) {
-                    try {
-                      streamStmt.abort();
-                    } catch (SQLException e) {
-                      // eat
-                    }
+                    streamStmt.abort();
                   }
                   closeSocket();
                 }
@@ -848,8 +844,10 @@ public class StandardClient implements Client, AutoCloseable {
    * @param fetchSize default fetch size
    * @param resultSetConcurrency concurrency
    * @param resultSetType type
+   * @param maxRows max rows
    * @param closeOnCompletion must resultset close statement on completion
    * @throws SQLException if any exception
+   * @return completion result
    */
   public Completion readPacket(
       com.singlestore.jdbc.Statement stmt,

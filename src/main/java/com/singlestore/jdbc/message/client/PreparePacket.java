@@ -37,7 +37,7 @@ public final class PreparePacket implements ClientMessage {
   /**
    * COM_STMT_PREPARE packet
    *
-   * <p>int<1> 0x16 COM_STMT_PREPARE header string<EOF> SQL Statement
+   * <p>int[1] 0x16 COM_STMT_PREPARE header string[EOF] SQL Statement
    */
   @Override
   public int encode(Writer writer, Context context) throws IOException {

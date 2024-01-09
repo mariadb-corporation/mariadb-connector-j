@@ -40,8 +40,8 @@ public final class LongDataPacket implements ClientMessage {
   /**
    * COM_STMT_SEND_LONG_DATA packet
    *
-   * <p>int<1> 0x18 COM_STMT_SEND_LONG_DATA header int<4> statement id int<2> parameter number
-   * byte<EOF> data
+   * <p>int[1] 0x18 COM_STMT_SEND_LONG_DATA header int[4] statement id int[2] parameter number
+   * byte[EOF] data
    */
   @Override
   public int encode(Writer writer, Context context) throws IOException, SQLException {

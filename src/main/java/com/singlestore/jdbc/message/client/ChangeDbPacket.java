@@ -25,7 +25,7 @@ public final class ChangeDbPacket implements RedoableClientMessage {
   /**
    * COM_INIT_DB packet
    *
-   * <p>int<1> 0x02 : COM_INIT_DB Header string<NUL> schema name
+   * <p>int[1] 0x02 : COM_INIT_DB Header string[NUL] schema name
    */
   @Override
   public int encode(Writer writer, Context context) throws IOException {

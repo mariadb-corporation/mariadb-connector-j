@@ -19,6 +19,7 @@ public interface GssapiAuth {
    * @param in socket reader
    * @param servicePrincipalName SPN
    * @param mechanisms mechanisms
+   * @param jaasApplicationName application name
    * @throws IOException if any socket error occurs
    * @throws SQLException for any other type of errors
    */
