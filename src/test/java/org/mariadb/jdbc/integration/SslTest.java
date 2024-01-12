@@ -17,6 +17,8 @@ import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.Client;
+import org.mariadb.jdbc.client.impl.StandardClient;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
 
 @DisplayName("SSL tests")
@@ -141,6 +143,11 @@ public class SslTest extends Common {
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
+      Client client = con.getClient();
+      assertTrue(client instanceof StandardClient);
+      StandardClient standardClient = (StandardClient) client;
+      assertNotNull(standardClient.getServerCertificates());
+      assertTrue(standardClient.getServerCertificates().length >= 1);
     }
     assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
     assertThrows(

@@ -6,6 +6,7 @@ package org.mariadb.jdbc.client.impl;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.cert.Certificate;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -17,6 +18,7 @@ import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
@@ -63,6 +65,8 @@ public class StandardClient implements Client, AutoCloseable {
   private final Configuration conf;
   private final HostAddress hostAddress;
   private final boolean disablePipeline;
+
+  private Certificate[] serverCertificates = new Certificate[0];
 
   /** connection context */
   protected Context context;
@@ -168,6 +172,10 @@ public class StandardClient implements Client, AutoCloseable {
                 ? new ReadAheadBufferedStream(sslSocket.getInputStream())
                 : new BufferedInputStream(sslSocket.getInputStream(), 16384);
         assignStream(out, in, conf, handshake.getThreadId());
+        SSLSession sslSession = sslSocket.getSession();
+        if (sslSession != null) {
+          serverCertificates = sslSession.getPeerCertificates();
+        }
       }
 
       // **********************************************************************
@@ -1074,5 +1082,9 @@ public class StandardClient implements Client, AutoCloseable {
   public void reset() {
     context.resetStateFlag();
     context.resetPrepareCache();
+  }
+
+  public Certificate[] getServerCertificates() {
+    return serverCertificates;
   }
 }
