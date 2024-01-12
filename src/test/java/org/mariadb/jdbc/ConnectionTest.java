@@ -1092,4 +1092,14 @@ public class ConnectionTest extends BaseTest {
       }
     }
   }
+
+  @Test
+  public void compressionWhenPacketIsNotCompressedEnough() throws SQLException {
+    try (Connection connection = setConnection("&useCompression=true&log")) {
+      try (Statement s = connection.createStatement()) {
+        String sql = "-- :: userIDaebcda5cb52dc741f20fe495327ddbfc8411cc53663eec3a5ffdb1f30626d39cc606822\nselect version();";
+        s.execute(sql);
+      }
+    }
+  }
 }
