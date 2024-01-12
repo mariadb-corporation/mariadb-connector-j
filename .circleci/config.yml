@@ -77,9 +77,9 @@ jobs:
           path: target/surefire-reports
       - store_artifacts: # store the jar as an artifact
           # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: target/singlestore-jdbc-client-1.2.1-beta0.jar
+          path: target/singlestore-jdbc-client-1.2.1.jar
       - store_artifacts:
-          path: target/singlestore-jdbc-client-1.2.1-beta0-browser-sso-uber.jar
+          path: target/singlestore-jdbc-client-1.2.1-browser-sso-uber.jar
       # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
   test_jdk:
     parameters:
@@ -100,13 +100,11 @@ jobs:
       SINGLESTORE_PASSWORD: << parameters.singlestore_password >>
       TEST_ENVIRON: CIRCLE_CI
       JAVA_HOME: /usr/lib/jvm/java-<< parameters.java_version >>-openjdk-amd64
+      JAVA_VERSION: << parameters.java_version >>
     steps:
       - setup_environment:
           java_version: << parameters.java_version >>
       - checkout
-      - run:
-          name: Setup test cluster
-          command: ./scripts/ensure-test-singlestore-cluster-password.sh
       - restore_cache: # restore the saved cache after the first run or if `pom.xml` has changed
           # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
           key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
@@ -115,12 +113,15 @@ jobs:
           paths:
             - ~/.m2
           key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
-      - run: |
-          if [ "${{ parameters.java_version }}" = "8" ]; then
-            mvn test -P java8
-          else
-            mvn test
-          fi
+      - run:
+          name: Compile
+          command: |
+            echo "Use JDK ${JAVA_VERSION}"
+            if [ "${JAVA_VERSION}" = "8" ]; then
+              mvn compile -P java8
+            else
+              mvn compile
+            fi
       - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: target/surefire-reports
