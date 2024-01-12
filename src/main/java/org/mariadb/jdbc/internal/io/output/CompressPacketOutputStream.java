@@ -334,7 +334,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
           logger.trace(
               "send uncompress: {}{}",
               serverThreadLog,
-              Utils.hexdump(maxQuerySizeToLog - 11, 0, pos, header, subHeader, buf));
+              Utils.hexdump(maxQuerySizeToLog - 11, 0, pos + 4, header, subHeader, buf));
         }
       }
 
