@@ -127,10 +127,14 @@ public class Utils {
     String socketFactoryName = options.socketFactory;
     if (socketFactoryName != null) {
       try {
-        @SuppressWarnings("unchecked")
-        Class<? extends SocketFactory> socketFactoryClass =
-            (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
+        Class<SocketFactory> socketFactoryClass =
+                (Class<SocketFactory>)
+                        Class.forName(socketFactoryName, false, Utils.class.getClassLoader());
         if (socketFactoryClass != null) {
+          if (!SocketFactory.class.isAssignableFrom(socketFactoryClass)) {
+            throw new IOException(
+                    "Wrong Socket factory implementation '" + socketFactoryName + "'");
+          }
           Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
           socketFactory = constructor.newInstance();
           if (ConfigurableSocketFactory.class.isInstance(socketFactory)) {
