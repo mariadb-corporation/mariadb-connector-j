@@ -975,6 +975,8 @@ public class ConnectionTest extends Common {
     stmt.execute("DROP USER testSocket");
   }
 
+  static public int staticTestValue = 0;
+
   @Test
   public void socketFactoryTest() throws SQLException {
     try (Connection conn = createCon("socketFactory=" + SocketFactoryBasicTest.class.getName())) {
@@ -989,6 +991,12 @@ public class ConnectionTest extends Common {
         SQLNonTransientConnectionException.class,
         () -> createCon("socketFactory=wrongClass"),
         "Socket factory failed to initialized with option \"socketFactory\" set to \"wrongClass\"");
+    assertEquals(0, staticTestValue);
+    Common.assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () -> createCon("socketFactory=org.mariadb.jdbc.integration.util.WrongSocketFactoryTest"),
+        "Socket factory failed to initialized with option \"socketFactory\" set to \"org.mariadb.jdbc.integration.util.WrongSocketFactoryTest\"");
+    assertEquals(0, staticTestValue);
   }
 
   @Test

@@ -84,9 +84,13 @@ public final class ConnectionHelper {
     if (socketFactoryName != null) {
       if (hostAddress == null) throw new SQLException("hostname must be set to connect socket");
       try {
-        @SuppressWarnings("unchecked")
-        Class<? extends SocketFactory> socketFactoryClass =
-            (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
+        Class<SocketFactory> socketFactoryClass =
+            (Class<SocketFactory>)
+                Class.forName(socketFactoryName, false, ConnectionHelper.class.getClassLoader());
+        if (!SocketFactory.class.isAssignableFrom(socketFactoryClass)) {
+          throw new IOException(
+              "Wrong Socket factory implementation '" + conf.socketFactory() + "'");
+        }
         Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
         socketFactory = constructor.newInstance();
         if (socketFactory instanceof ConfigurableSocketFactory) {
