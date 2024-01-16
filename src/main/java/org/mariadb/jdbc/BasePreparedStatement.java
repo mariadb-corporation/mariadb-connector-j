@@ -890,7 +890,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setURL(int parameterIndex, URL x) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(StringCodec.INSTANCE, x == null ? null : x.toString()));
+    parameters.set(
+        parameterIndex - 1, new Parameter<>(StringCodec.INSTANCE, x == null ? null : x.toString()));
   }
 
   /**

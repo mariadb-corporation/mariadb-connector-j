@@ -10,15 +10,17 @@ public final class CharsetEncodingLength {
 
   // This array stored character length for every collation
   // query to generate:
-//  SELECT CONCAT('    maxCharlen.put(',id, ', ', maxlen, ');') FROM (
-//  SELECT  id, maxlen
-//  from information_schema.character_sets, information_schema.collations
-//  where character_sets.character_set_name = collations.character_set_name
-//          UNION
-//  select  id, maxlen
-//  from information_schema.character_sets, information_schema.COLLATION_CHARACTER_SET_APPLICABILITY
-//  where character_sets.character_set_name = COLLATION_CHARACTER_SET_APPLICABILITY.character_set_name
-//  order by id) sub
+  //  SELECT CONCAT('    maxCharlen.put(',id, ', ', maxlen, ');') FROM (
+  //  SELECT  id, maxlen
+  //  from information_schema.character_sets, information_schema.collations
+  //  where character_sets.character_set_name = collations.character_set_name
+  //          UNION
+  //  select  id, maxlen
+  //  from information_schema.character_sets,
+  // information_schema.COLLATION_CHARACTER_SET_APPLICABILITY
+  //  where character_sets.character_set_name =
+  // COLLATION_CHARACTER_SET_APPLICABILITY.character_set_name
+  //  order by id) sub
 
   public static final Map<Integer, Integer> maxCharlen;
 
