@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import org.junit.jupiter.api.*;
 
-public class UpdateResultSetTest extends Common {
+public class UpdateBatchResultSetTest extends Common {
 
   @AfterAll
   public static void drop() throws SQLException {

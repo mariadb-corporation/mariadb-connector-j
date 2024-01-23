@@ -26,7 +26,7 @@ public class Insert_batch extends Common {
 
     static public String randomString(int length) {
         StringBuilder result = new StringBuilder();
-        for (int i = length; i > 0; --i) result.append(chars.get(Math.round((int) Math.random() * (chars.size() - 1))));
+        for (int i = length; i > 0; --i) result.append(chars.get((int) Math.round(Math.random() * (chars.size() - 1))));
         return result.toString();
     }
 

@@ -5,16 +5,6 @@
 
 package com.singlestore.jdbc;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.Statement;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Level;
@@ -28,6 +18,15 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Statement;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 @Warmup(iterations = 10, time = 1)
@@ -45,10 +44,9 @@ public class Common {
     public static final String host = System.getProperty("TEST_HOST", "localhost");
     public static final int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
     public static final String username = System.getProperty("TEST_USERNAME", "root");
-    public static final String password = System.getProperty("TEST_PASSWORD", "LbRootPass1");
+    public static final String password = System.getProperty("TEST_PASSWORD", "root");
     public static final String database = System.getProperty("TEST_DATABASE", "test");
     public final static String other = System.getProperty("TEST_OTHER", "");
-    public static final long fileSize = 16777216 * 2; // 32 MB
 
     static {
       new SetupData();
@@ -65,8 +63,6 @@ public class Common {
 
     @Param({"singlestore", "mariadb", "mysql"})
     String driver;
-
-    protected static File loadDataFile;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
@@ -88,11 +84,11 @@ public class Common {
       try {
         // allowLoadLocalInfile is specified for mysql driver instead of allowLocalInfile,
         // S2 and mariadb will just ignore it
-        String jdbcBase = "jdbc:%s://%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC&allowLoadLocalInfile=true%s";
+        String jdbcBase = "jdbc:%s://%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC%s";
         String jdbcUrlText =
             String.format(
                 jdbcBase,
-                driver, host, port, database, username, password, false, false, other);
+                driver, host, port, database, username, password, false, true, other);
         String jdbcUrlBinary =
             String.format(
                 jdbcBase,
@@ -101,6 +97,9 @@ public class Common {
         connectionText =
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                 .connect(jdbcUrlText, new Properties());
+        connectionBinary =
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect(jdbcUrlBinary, new Properties());
         String jdbcUrlTextRewrite =
             String.format(
                 jdbcBase,
@@ -109,9 +108,6 @@ public class Common {
         connectionTextRewrite =
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                 .connect(jdbcUrlTextRewrite, new Properties());
-        connectionBinary =
-            ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                .connect(jdbcUrlBinary, new Properties());
 
         String jdbcUrlBinaryNoCache =
             String.format(
@@ -132,7 +128,6 @@ public class Common {
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                 .connect(jdbcUrlBinaryNoCacheNoPipeline, new Properties());
       } catch (SQLException e) {
-        e.printStackTrace();
         throw new RuntimeException(e);
       }
     }
@@ -144,7 +139,6 @@ public class Common {
       connectionTextRewrite.close();
       connectionBinaryNoCache.close();
       connectionBinaryNoPipeline.close();
-      loadDataFile.delete();
     }
 
     public static class SetupData {
@@ -170,8 +164,6 @@ public class Common {
                   throw e;
                 }
               }
-              st.execute(
-                  "CREATE TABLE IF NOT EXISTS `infile`(`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL)");
               st.execute("DROP TABLE IF EXISTS perfTestTextBatch");
               String createTable = "CREATE TABLE perfTestTextBatch (id MEDIUMINT NOT NULL AUTO_INCREMENT,t0 text, PRIMARY KEY (id)) COLLATE='utf8mb4_unicode_ci'";
               st.execute(createTable);
@@ -187,25 +179,31 @@ public class Common {
               sb2.append(")");
               st.executeUpdate(sb.toString());
               st.executeUpdate(sb2.toString());
+              st.execute("DROP TABLE IF EXISTS perfTestUpdateBatch");
+              st.execute(
+                      "CREATE TABLE perfTestUpdateBatch (\n" +
+                              "id bigint(11) NOT NULL AUTO_INCREMENT,\n" +
+                              "f1 bigint(11) NOT NULL,\n" +
+                              "f2 varchar(50) DEFAULT NULL,\n" +
+                              "f3 varchar(50) DEFAULT NULL,\n" +
+                              "f4 varchar(50) DEFAULT NULL,\n" +
+                              "f5 varchar(50) DEFAULT NULL,\n" +
+                              "f6 varchar(50) DEFAULT NULL,\n" +
+                              "f7 varchar(50) DEFAULT NULL,\n" +
+                              "f8 varchar(50) DEFAULT NULL,\n" +
+                              "f9 varchar(50) DEFAULT NULL, PRIMARY KEY (id));");
+              try (PreparedStatement prep = conn.prepareStatement("INSERT INTO perfTestUpdateBatch(f1) value (?)")) {
+                for (int i = 0; i < 1000; i++) {
+                  prep.setInt(1, 0);
+                  prep.addBatch();
+                }
+                prep.executeBatch();
+              }
             }
           }
-          loadDataFile = createTmpData(fileSize / 8);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
-      }
-
-      private static File createTmpData(long recordNumber) throws Exception {
-        File file = File.createTempFile("infile" + recordNumber, ".tmp");
-        // write it
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-          // Every row is 8 bytes to make counting easier
-          for (long i = 0; i < recordNumber; i++) {
-            writer.write("\"a\",\"b\"");
-            writer.write("\n");
-          }
-        }
-        return file;
       }
     }
   }

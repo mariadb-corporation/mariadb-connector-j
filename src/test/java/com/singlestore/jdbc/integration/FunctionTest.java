@@ -5,12 +5,16 @@
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.CallableParameterMetaData;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Statement;
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 import org.junit.jupiter.api.Test;
 
 public class FunctionTest extends Common {
@@ -23,19 +27,20 @@ public class FunctionTest extends Common {
         "CREATE FUNCTION basic_function (t1 INT, t2 INT unsigned) RETURNS INT AS BEGIN RETURN t1 * t2; END");
     try (CallableStatement callableStatement =
         sharedConn.prepareCall("{? = call basic_function(?,?)}")) {
-      callableStatement.registerOutParameter(1, JDBCType.INTEGER);
-      callableStatement.setInt(2, 2);
-      callableStatement.setInt(3, 3);
-      callableStatement.execute();
-      assertEquals(6, callableStatement.getInt(1));
+      callableStatement.setInt(1, 2);
+      callableStatement.setInt(2, 3);
+      ResultSet rs = callableStatement.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(6, rs.getInt(1));
     }
 
     try (CallableStatement callableStatement =
         sharedConn.prepareCall("{? = call basic_function(?,?)}")) {
-      callableStatement.setInt(2, 2);
-      callableStatement.setInt(3, 3);
-      callableStatement.execute();
-      assertEquals(6, callableStatement.getInt(1));
+      callableStatement.setInt("t1", 3);
+      callableStatement.setInt("t2", 3);
+      ResultSet rs = callableStatement.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(9, rs.getInt(1));
     }
   }
 
@@ -50,91 +55,42 @@ public class FunctionTest extends Common {
     stmt.execute("DROP FUNCTION IF EXISTS no_arg_function");
     stmt.execute("CREATE FUNCTION no_arg_function () RETURNS DOUBLE AS BEGIN RETURN RAND(); END");
     try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function()}")) {
-      callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
-      callableStatement.execute();
-      callableStatement.getDouble(1);
-      Common.assertThrowsContains(
-          SQLException.class,
-          () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
-          " wrong parameter index 2");
-    }
-
-    try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function()}")) {
-      callableStatement.execute();
-      callableStatement.getDouble(1);
-    }
-
-    try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function}")) {
-      callableStatement.execute();
-      callableStatement.getDouble(1);
+      ResultSet rs = callableStatement.executeQuery();
+      assertTrue(rs.next());
+      rs.getDouble(1);
     }
   }
 
   @Test
   public void parameterMeta() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP FUNCTION IF EXISTS parameter_meta");
-    stmt.execute("CREATE FUNCTION parameter_meta () RETURNS DOUBLE AS BEGIN RETURN RAND(); END");
+    stmt.execute("DROP FUNCTION IF EXISTS parameter_meta_func");
+    stmt.execute(
+        "CREATE FUNCTION parameter_meta_func (t1 VARCHAR(30), t2 INT, t3 TINYINT, t4 DOUBLE) RETURNS DOUBLE AS BEGIN RETURN RAND(); END");
     try (CallableStatement callableStatement =
-        sharedConn.prepareCall("{? = call parameter_meta()}")) {
-      Common.assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
-          "wrong parameter index");
-      callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
-
+        sharedConn.prepareCall("{? = call parameter_meta_func(?, ?, ?, ?)}")) {
       CallableParameterMetaData meta =
           (CallableParameterMetaData) callableStatement.getParameterMetaData();
+
       assertEquals(
-          com.singlestore.jdbc.ParameterMetaData.parameterModeOut, meta.getParameterMode(1));
-      assertNull(meta.getParameterName(1));
-      assertEquals(Types.DOUBLE, meta.getParameterType(1));
-    } finally {
-      stmt.execute("DROP FUNCTION IF EXISTS parameter_meta");
-    }
-  }
+          com.singlestore.jdbc.ParameterMetaData.parameterModeIn, meta.getParameterMode(1));
+      assertEquals("t1", meta.getParameterName(1));
+      assertEquals(Types.VARCHAR, meta.getParameterType(1));
 
-  @Test
-  public void functionError() throws SQLException {
-    functionError(sharedConn);
-    functionError(sharedConnBinary);
-  }
+      assertEquals(
+          com.singlestore.jdbc.ParameterMetaData.parameterModeIn, meta.getParameterMode(2));
+      assertEquals("t2", meta.getParameterName(2));
+      assertEquals(Types.INTEGER, meta.getParameterType(2));
 
-  private void functionError(Connection con) throws SQLException {
-    Statement stmt = con.createStatement();
-    stmt.execute("DROP FUNCTION IF EXISTS no_arg_function");
-    stmt.execute("CREATE FUNCTION no_arg_function () RETURNS DOUBLE AS BEGIN RETURN RAND(); END");
-    try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function()}")) {
-      Common.assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
-          "wrong parameter index");
-      callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
+      assertEquals(
+          com.singlestore.jdbc.ParameterMetaData.parameterModeIn, meta.getParameterMode(3));
+      assertEquals("t3", meta.getParameterName(3));
+      assertEquals(Types.TINYINT, meta.getParameterType(3));
 
-      Common.assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
-          "wrong parameter index");
-      callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
-      Common.assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
-          "wrong parameter index");
-
-      callableStatement.execute();
-      Common.assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
-          "wrong parameter index");
-      callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
-      Common.assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter("r", JDBCType.DOUBLE),
-          "parameter name r not found");
-      Common.assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
-          "wrong parameter index");
+      assertEquals(
+          com.singlestore.jdbc.ParameterMetaData.parameterModeIn, meta.getParameterMode(4));
+      assertEquals("t4", meta.getParameterName(4));
+      assertEquals(Types.DOUBLE, meta.getParameterType(4));
     }
   }
 }

@@ -5,8 +5,6 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.client.Completion;
-import com.singlestore.jdbc.client.result.Result;
 import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -54,24 +52,11 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
   }
 
   @Override
-  protected void handleParameterOutput() throws SQLException {
-    // output result-set is the last result-set
-    // or in case finishing with an OK_PACKET, just the one before
-    for (int i = 1; i <= Math.min(this.results.size(), 2); i++) {
-      Completion compl = this.results.get(this.results.size() - i);
-      if (compl instanceof Result && (((Result) compl).isOutputParameter())) {
-        outputResultFromRes(i);
-      }
-    }
-  }
-
-  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("ProcedureStatement{sql:'" + sql + "'");
     sb.append(", parameters:[");
     for (int i = 0; i < parameters.size(); i++) {
       com.singlestore.jdbc.client.util.Parameter param = parameters.get(i);
-      if (outputParameters.contains(i + 1)) sb.append("<OUT>");
       if (param == null) {
         sb.append("null");
       } else {

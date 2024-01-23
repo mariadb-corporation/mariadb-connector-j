@@ -5,8 +5,6 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.client.result.Result;
-import com.singlestore.jdbc.codec.Parameter;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.util.NativeSql;
 import com.singlestore.jdbc.util.ParameterList;
@@ -34,13 +32,13 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class BaseCallableStatement extends ServerPreparedStatement
     implements CallableStatement {
+  private static final String OUT_PARAMETERS_NOT_SUPPORTED_MSG =
+      "SingleStore doesn't support OUT parameters";
 
   /** Database name */
   protected final String databaseName;
@@ -50,12 +48,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
 
   /** parameter metadata */
   protected CallableParameterMetaData parameterMetaData = null;
-
-  /** Declared output parameters */
-  protected final Set<Integer> outputParameters = new HashSet<>();
-
-  /** output parameter result */
-  private Result outputResult = null;
 
   /**
    * Constructor
@@ -102,663 +94,152 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   public abstract boolean isFunction();
 
-  /**
-   * Output result without output parameters
-   *
-   * @param i index
-   * @throws SQLException if any exception
-   */
-  protected void outputResultFromRes(int i) throws SQLException {
-    this.outputResult = (Result) this.results.remove(this.results.size() - i);
-    this.outputResult.next();
-  }
-
-  /**
-   * Registers the OUT parameter in ordinal position <code>parameterIndex</code> to the JDBC type
-   * <code>sqlType</code>. All OUT parameters must be registered before a stored procedure is
-   * executed.
-   *
-   * <p>The JDBC type specified by <code>sqlType</code> for an OUT parameter determines the Java
-   * type that must be used in the <code>get</code> method to read the value of that parameter.
-   *
-   * <p>If the JDBC type expected to be returned to this output parameter is specific to this
-   * particular database, <code>sqlType</code> should be <code>java.sql.Types.OTHER</code>. The
-   * method {@link #getObject} retrieves the value.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param sqlType the JDBC type code defined by <code>java.sql.Types</code>. If the parameter is
-   *     of JDBC type <code>NUMERIC</code> or <code>DECIMAL</code>, the version of <code>
-   *     registerOutParameter</code> that accepts a scale value should be used.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>
-   *     BLOB</code>, <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>, <code>
-   *     NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code>, <code>
-   *     REF</code>, <code>ROWID</code>, <code>SQLXML</code> or <code>STRUCT</code> data type and
-   *     the JDBC driver does not support this data type
-   * @see Types
-   */
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
-    checkIndex(parameterIndex);
-    outputParameters.add(parameterIndex);
-    if (!parameters.containsKey(parameterIndex - 1)) {
-      parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
-    }
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   @Override
   public void clearParameters() throws SQLException {
     checkNotClosed();
     parameters = new ParameterList();
-    outputParameters.stream().forEach(index -> parameters.set(index - 1, Parameter.NULL_PARAMETER));
   }
 
-  private void checkIndex(int index) throws SQLException {
-    if (index <= 0
-        || (prepareResult != null
-            && index > (prepareResult.getParameters().length + (isFunction() ? 1 : 0)))
-        || (prepareResult == null
-            && parameterMetaData != null
-            && index > parameterMetaData.getParameterCount())) {
-      throw exceptionFactory().create(String.format("wrong parameter index %s", index));
-    }
-  }
-
-  /**
-   * Registers the parameter in ordinal position <code>parameterIndex</code> to be of JDBC type
-   * <code>sqlType</code>. All OUT parameters must be registered before a stored procedure is
-   * executed.
-   *
-   * <p>The JDBC type specified by <code>sqlType</code> for an OUT parameter determines the Java
-   * type that must be used in the <code>get</code> method to read the value of that parameter.
-   *
-   * <p>This version of <code>registerOutParameter</code> should be used when the parameter is of
-   * JDBC type <code>NUMERIC</code> or <code>DECIMAL</code>.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param sqlType the SQL type code defined by <code>java.sql.Types</code>.
-   * @param scale the desired number of digits to the right of the decimal point. It must be greater
-   *     than or equal to zero.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>
-   *     BLOB</code>, <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>, <code>
-   *     NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code>, <code>
-   *     REF</code>, <code>ROWID</code>, <code>SQLXML</code> or <code>STRUCT</code> data type and
-   *     the JDBC driver does not support this data type
-   * @see Types
-   */
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
-    registerOutParameter(parameterIndex, sqlType);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves whether the last OUT parameter read had the value of SQL <code>NULL</code>. Note that
-   * this method should be called only after calling a getter method; otherwise, there is no value
-   * to use in determining whether it is <code>null</code> or not.
-   *
-   * @return <code>true</code> if the last parameter read was SQL <code>NULL</code>; <code>false
-   *     </code> otherwise
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *     <code>CallableStatement</code>
-   */
   @Override
   public boolean wasNull() throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.wasNull();
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  private int idxToOutIdx(int idx) throws SQLException {
-    int outputIndex = 1;
-    if (idx < 1) throw exceptionFactory().create(String.format("wrong index %s", idx));
-    if (!outputParameters.contains(idx))
-      throw exceptionFactory().create(String.format("index %s not declared as output", idx));
-    for (int i = 1; i < idx; i++) {
-      if (outputParameters.contains(i)) outputIndex++;
-    }
-
-    return outputIndex;
-  }
-
-  /**
-   * Check if statement is closed, and throw exception if so.
-   *
-   * @throws SQLException if statement close
-   */
-  protected void checkOutputResult() throws SQLException {
-    if (outputResult == null) {
-      throw exceptionFactory().create("No output result");
-    }
-  }
-
-  /**
-   * Retrieves the value of the designated JDBC <code>CHAR</code>, <code>VARCHAR</code>, or <code>
-   * LONGVARCHAR</code> parameter as a <code>String</code> in the Java programming language.
-   *
-   * <p>For the fixed-length type JDBC <code>CHAR</code>, the <code>String</code> object returned
-   * has exactly the same value the SQL <code>CHAR</code> value had in the database, including any
-   * padding added by the database.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setString
-   */
   @Override
   public String getString(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getString(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>BIT</code> or <code>BOOLEAN</code> parameter
-   * as a <code>boolean</code> in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>false
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setBoolean
-   */
   @Override
   public boolean getBoolean(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getBoolean(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>TINYINT</code> parameter as a <code>byte
-   * </code> in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setByte
-   */
   @Override
   public byte getByte(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getByte(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>SMALLINT</code> parameter as a <code>short
-   * </code> in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setShort
-   */
   @Override
   public short getShort(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getShort(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>INTEGER</code> parameter as an <code>int
-   * </code> in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setInt
-   */
   @Override
   public int getInt(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getInt(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>BIGINT</code> parameter as a <code>long</code>
-   * in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setLong
-   */
   @Override
   public long getLong(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getLong(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>FLOAT</code> parameter as a <code>float</code>
-   * in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setFloat
-   */
   @Override
   public float getFloat(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getFloat(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>DOUBLE</code> parameter as a <code>double
-   * </code> in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setDouble
-   */
   @Override
   public double getDouble(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getDouble(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>NUMERIC</code> parameter as a <code>
-   * java.math.BigDecimal</code> object with <i>scale</i> digits to the right of the decimal point.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param scale the number of digits to the right of the decimal point
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setBigDecimal
-   * @deprecated use <code>getBigDecimal(int parameterIndex)</code> or <code>
-   *     getBigDecimal(String parameterName)</code>
-   */
   @Override
   @Deprecated
   public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getBigDecimal(idxToOutIdx(parameterIndex), scale);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>BINARY</code> or <code>VARBINARY</code>
-   * parameter as an array of <code>byte</code> values in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setBytes
-   */
   @Override
   public byte[] getBytes(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getBytes(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>DATE</code> parameter as a <code>java.sql.Date
-   * </code> object.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setDate
-   */
   @Override
   public Date getDate(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getDate(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>TIME</code> parameter as a <code>java.sql.Time
-   * </code> object.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setTime
-   */
   @Override
   public Time getTime(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getTime(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>TIMESTAMP</code> parameter as a <code>
-   * java.sql.Timestamp</code> object.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setTimestamp
-   */
   @Override
   public Timestamp getTimestamp(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getTimestamp(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated parameter as an <code>Object</code> in the Java
-   * programming language. If the value is an SQL <code>NULL</code>, the driver returns a Java
-   * <code>null</code>.
-   *
-   * <p>This method returns a Java object whose type corresponds to the JDBC type that was
-   * registered for this parameter using the method <code>registerOutParameter</code>. By
-   * registering the target JDBC type as <code>java.sql.Types.OTHER</code>, this method can be used
-   * to read database-specific abstract data types.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return A <code>java.lang.Object</code> holding the OUT parameter value
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see Types
-   * @see #setObject
-   */
   @Override
   public Object getObject(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getObject(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>NUMERIC</code> parameter as a <code>
-   * java.math.BigDecimal</code> object with as many digits to the right of the decimal point as the
-   * value contains.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value in full precision. If the value is SQL <code>NULL</code>, the
-   *     result is <code>null</code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setBigDecimal
-   * @since 1.2
-   */
   @Override
   public BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getBigDecimal(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Returns an object representing the value of OUT parameter <code>parameterIndex</code> and uses
-   * <code>map</code> for the custom mapping of the parameter value.
-   *
-   * <p>This method returns a Java object whose type corresponds to the JDBC type that was
-   * registered for this parameter using the method <code>registerOutParameter</code>. By
-   * registering the target JDBC type as <code>java.sql.Types.OTHER</code>, this method can be used
-   * to read database-specific abstract data types.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param map the mapping from SQL type names to Java classes
-   * @return a <code>java.lang.Object</code> holding the OUT parameter value
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setObject
-   * @since 1.2
-   */
   @Override
   public Object getObject(int parameterIndex, Map<String, Class<?>> map) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getObject(idxToOutIdx(parameterIndex), map);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>REF(&lt;structured-type&gt;)</code> parameter
-   * as a {@link Ref} object in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value as a <code>Ref</code> object in the Java programming language. If
-   *     the value was SQL <code>NULL</code>, the value <code>null</code> is returned.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.2
-   */
   @Override
   public Ref getRef(int parameterIndex) throws SQLException {
     throw exceptionFactory().notSupported("Method ResultSet.getRef not supported");
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>BLOB</code> parameter as a {@link Blob} object
-   * in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value as a <code>Blob</code> object in the Java programming language. If
-   *     the value was SQL <code>NULL</code>, the value <code>null</code> is returned.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.2
-   */
   @Override
   public Blob getBlob(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getBlob(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>CLOB</code> parameter as a <code>java.sql.Clob
-   * </code> object in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value as a <code>Clob</code> object in the Java programming language. If
-   *     the value was SQL <code>NULL</code>, the value <code>null</code> is returned.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.2
-   */
   @Override
   public Clob getClob(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getClob(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>ARRAY</code> parameter as an {@link Array}
-   * object in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value as an <code>Array</code> object in the Java programming language.
-   *     If the value was SQL <code>NULL</code>, the value <code>null</code> is returned.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.2
-   */
   @Override
   public Array getArray(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    throw exceptionFactory().notSupported("Method ResultSet.getArray not supported");
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>DATE</code> parameter as a <code>java.sql.Date
-   * </code> object, using the given <code>Calendar</code> object to construct the date. With a
-   * <code>Calendar</code> object, the driver can calculate the date taking into account a custom
-   * timezone and locale. If no <code>Calendar</code> object is specified, the driver uses the
-   * default timezone and locale.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param cal the <code>Calendar</code> object the driver will use to construct the date
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setDate
-   * @since 1.2
-   */
   @Override
   public Date getDate(int parameterIndex, Calendar cal) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getDate(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>TIME</code> parameter as a <code>java.sql.Time
-   * </code> object, using the given <code>Calendar</code> object to construct the time. With a
-   * <code>Calendar</code> object, the driver can calculate the time taking into account a custom
-   * timezone and locale. If no <code>Calendar</code> object is specified, the driver uses the
-   * default timezone and locale.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param cal the <code>Calendar</code> object the driver will use to construct the time
-   * @return the parameter value; if the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setTime
-   * @since 1.2
-   */
   @Override
   public Time getTime(int parameterIndex, Calendar cal) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getTime(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>TIMESTAMP</code> parameter as a <code>
-   * java.sql.Timestamp</code> object, using the given <code>Calendar</code> object to construct the
-   * <code>Timestamp</code> object. With a <code>Calendar</code> object, the driver can calculate
-   * the timestamp taking into account a custom timezone and locale. If no <code>Calendar</code>
-   * object is specified, the driver uses the default timezone and locale.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param cal the <code>Calendar</code> object the driver will use to construct the timestamp
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @see #setTimestamp
-   * @since 1.2
-   */
   @Override
   public Timestamp getTimestamp(int parameterIndex, Calendar cal) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getTimestamp(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Registers the designated output parameter. This version of the method <code>
-   * registerOutParameter</code> should be used for a user-defined or <code>REF</code> output
-   * parameter. Examples of user-defined types include: <code>STRUCT</code>, <code>DISTINCT</code>,
-   * <code>JAVA_OBJECT</code>, and named array types.
-   *
-   * <p>All OUT parameters must be registered before a stored procedure is executed.
-   *
-   * <p>For a user-defined parameter, the fully-qualified SQL type name of the parameter should also
-   * be given, while a <code>REF</code> parameter requires that the fully-qualified type name of the
-   * referenced type be given. A JDBC driver that does not need the type code and type name
-   * information may ignore it. To be portable, however, applications should always provide these
-   * values for user-defined and <code>REF</code> parameters.
-   *
-   * <p>Although it is intended for user-defined and <code>REF</code> parameters, this method may be
-   * used to register a parameter of any JDBC type. If the parameter does not have a user-defined or
-   * <code>REF</code> type, the <i>typeName</i> parameter is ignored.
-   *
-   * <p><B>Note:</B> When reading the value of an out parameter, you must use the getter method
-   * whose Java type corresponds to the parameter's registered SQL type.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2,...
-   * @param sqlType a value from {@link Types}
-   * @param typeName the fully-qualified name of an SQL structured type
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>
-   *     BLOB</code>, <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>, <code>
-   *     NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code>, <code>
-   *     REF</code>, <code>ROWID</code>, <code>SQLXML</code> or <code>STRUCT</code> data type and
-   *     the JDBC driver does not support this data type
-   * @see Types
-   * @since 1.2
-   */
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
       throws SQLException {
-    registerOutParameter(parameterIndex, sqlType);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Registers the OUT parameter named <code>parameterName</code> to the JDBC type <code>sqlType
-   * </code>. All OUT parameters must be registered before a stored procedure is executed.
-   *
-   * <p>The JDBC type specified by <code>sqlType</code> for an OUT parameter determines the Java
-   * type that must be used in the <code>get</code> method to read the value of that parameter.
-   *
-   * <p>If the JDBC type expected to be returned to this output parameter is specific to this
-   * particular database, <code>sqlType</code> should be <code>java.sql.Types.OTHER</code>. The
-   * method {@link #getObject} retrieves the value.
-   *
-   * @param parameterName the name of the parameter
-   * @param sqlType the JDBC type code defined by <code>java.sql.Types</code>. If the parameter is
-   *     of JDBC type <code>NUMERIC</code> or <code>DECIMAL</code>, the version of <code>
-   *     registerOutParameter</code> that accepts a scale value should be used.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>
-   *     BLOB</code>, <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>, <code>
-   *     NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code>, <code>
-   *     REF</code>, <code>ROWID</code>, <code>SQLXML</code> or <code>STRUCT</code> data type and
-   *     the JDBC driver does not support this data type or if the JDBC driver does not support this
-   *     method
-   * @see Types
-   * @since 1.4
-   */
   @Override
   public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
-    checkNotClosed();
-    registerOutParameter(nameToIndex(parameterName), sqlType);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   private int nameToIndex(String parameterName) throws SQLException {
@@ -775,96 +256,21 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     throw exceptionFactory().create(String.format("parameter name %s not found", parameterName));
   }
 
-  /**
-   * Registers the parameter named <code>parameterName</code> to be of JDBC type <code>sqlType
-   * </code>. All OUT parameters must be registered before a stored procedure is executed.
-   *
-   * <p>The JDBC type specified by <code>sqlType</code> for an OUT parameter determines the Java
-   * type that must be used in the <code>get</code> method to read the value of that parameter.
-   *
-   * <p>This version of <code>registerOutParameter</code> should be used when the parameter is of
-   * JDBC type <code>NUMERIC</code> or <code>DECIMAL</code>.
-   *
-   * @param parameterName the name of the parameter
-   * @param sqlType SQL type code defined by <code>java.sql.Types</code>.
-   * @param scale the desired number of digits to the right of the decimal point. It must be greater
-   *     than or equal to zero.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>
-   *     BLOB</code>, <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>, <code>
-   *     NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code>, <code>
-   *     REF</code>, <code>ROWID</code>, <code>SQLXML</code> or <code>STRUCT</code> data type and
-   *     the JDBC driver does not support this data type or if the JDBC driver does not support this
-   *     method
-   * @see Types
-   * @since 1.4
-   */
   @Override
   public void registerOutParameter(String parameterName, int sqlType, int scale)
       throws SQLException {
-    registerOutParameter(parameterName, sqlType);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Registers the designated output parameter. This version of the method <code>
-   * registerOutParameter</code> should be used for a user-named or REF output parameter. Examples
-   * of user-named types include: STRUCT, DISTINCT, JAVA_OBJECT, and named array types.
-   *
-   * <p>All OUT parameters must be registered before a stored procedure is executed.
-   *
-   * <p>For a user-named parameter the fully-qualified SQL type name of the parameter should also be
-   * given, while a REF parameter requires that the fully-qualified type name of the referenced type
-   * be given. A JDBC driver that does not need the type code and type name information may ignore
-   * it. To be portable, however, applications should always provide these values for user-named and
-   * REF parameters.
-   *
-   * <p>Although it is intended for user-named and REF parameters, this method may be used to
-   * register a parameter of any JDBC type. If the parameter does not have a user-named or REF type,
-   * the typeName parameter is ignored.
-   *
-   * <p><B>Note:</B> When reading the value of an out parameter, you must use the <code>getXXX
-   * </code> method whose Java type XXX corresponds to the parameter's registered SQL type.
-   *
-   * @param parameterName the name of the parameter
-   * @param sqlType a value from {@link Types}
-   * @param typeName the fully-qualified name of an SQL structured type
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>
-   *     BLOB</code>, <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>, <code>
-   *     NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code>, <code>
-   *     REF</code>, <code>ROWID</code>, <code>SQLXML</code> or <code>STRUCT</code> data type and
-   *     the JDBC driver does not support this data type or if the JDBC driver does not support this
-   *     method
-   * @see Types
-   * @since 1.4
-   */
   @Override
   public void registerOutParameter(String parameterName, int sqlType, String typeName)
       throws SQLException {
-    registerOutParameter(parameterName, sqlType);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>DATALINK</code> parameter as a <code>
-   * java.net.URL</code> object.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2,...
-   * @return a <code>java.net.URL</code> object that represents the JDBC <code>DATALINK</code> value
-   *     used as the designated parameter
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs,
-   *     this method is called on a closed <code>CallableStatement</code>, or if the URL being
-   *     returned is not a valid URL on the Java platform
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setURL
-   * @since 1.4
-   */
   @Override
   public URL getURL(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getURL(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -1387,288 +793,79 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     setNull(nameToIndex(parameterName), sqlType, typeName);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>CHAR</code>, <code>VARCHAR</code>, or <code>LONGVARCHAR
-   * </code> parameter as a <code>String</code> in the Java programming language.
-   *
-   * <p>For the fixed-length type JDBC <code>CHAR</code>, the <code>String</code> object returned
-   * has exactly the same value the SQL <code>CHAR</code> value had in the database, including any
-   * padding added by the database.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setString
-   * @since 1.4
-   */
   @Override
   public String getString(String parameterName) throws SQLException {
-    return outputResult.getString(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>BIT</code> or <code>BOOLEAN</code> parameter as a <code>
-   * boolean</code> in the Java programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>false
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setBoolean
-   * @since 1.4
-   */
   @Override
   public boolean getBoolean(String parameterName) throws SQLException {
-    return outputResult.getBoolean(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>TINYINT</code> parameter as a <code>byte</code> in the Java
-   * programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setByte
-   * @since 1.4
-   */
   @Override
   public byte getByte(String parameterName) throws SQLException {
-    return outputResult.getByte(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>SMALLINT</code> parameter as a <code>short</code> in the
-   * Java programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setShort
-   * @since 1.4
-   */
   @Override
   public short getShort(String parameterName) throws SQLException {
-    return outputResult.getShort(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>INTEGER</code> parameter as an <code>int</code> in the Java
-   * programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setInt
-   * @since 1.4
-   */
   @Override
   public int getInt(String parameterName) throws SQLException {
-    return outputResult.getInt(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>BIGINT</code> parameter as a <code>long</code> in the Java
-   * programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setLong
-   * @since 1.4
-   */
   @Override
   public long getLong(String parameterName) throws SQLException {
-    return outputResult.getLong(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>FLOAT</code> parameter as a <code>float</code> in the Java
-   * programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setFloat
-   * @since 1.4
-   */
   @Override
   public float getFloat(String parameterName) throws SQLException {
-    return outputResult.getFloat(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>DOUBLE</code> parameter as a <code>double</code> in the
-   * Java programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>0
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setDouble
-   * @since 1.4
-   */
   @Override
   public double getDouble(String parameterName) throws SQLException {
-    return outputResult.getDouble(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>BINARY</code> or <code>VARBINARY</code> parameter as an
-   * array of <code>byte</code> values in the Java programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setBytes
-   * @since 1.4
-   */
   @Override
   public byte[] getBytes(String parameterName) throws SQLException {
-    return outputResult.getBytes(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>DATE</code> parameter as a <code>java.sql.Date</code>
-   * object.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setDate
-   * @since 1.4
-   */
   @Override
   public Date getDate(String parameterName) throws SQLException {
-    return outputResult.getDate(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>TIME</code> parameter as a <code>java.sql.Time</code>
-   * object.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setTime
-   * @since 1.4
-   */
   @Override
   public Time getTime(String parameterName) throws SQLException {
-    return outputResult.getTime(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>TIMESTAMP</code> parameter as a <code>java.sql.Timestamp
-   * </code> object.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setTimestamp
-   * @since 1.4
-   */
   @Override
   public Timestamp getTimestamp(String parameterName) throws SQLException {
-    return outputResult.getTimestamp(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a parameter as an <code>Object</code> in the Java programming language.
-   * If the value is an SQL <code>NULL</code>, the driver returns a Java <code>null</code>.
-   *
-   * <p>This method returns a Java object whose type corresponds to the JDBC type that was
-   * registered for this parameter using the method <code>registerOutParameter</code>. By
-   * registering the target JDBC type as <code>java.sql.Types.OTHER</code>, this method can be used
-   * to read database-specific abstract data types.
-   *
-   * @param parameterName the name of the parameter
-   * @return A <code>java.lang.Object</code> holding the OUT parameter value.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see Types
-   * @see #setObject
-   * @since 1.4
-   */
   @Override
   public Object getObject(String parameterName) throws SQLException {
-    return outputResult.getObject(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>NUMERIC</code> parameter as a <code>java.math.BigDecimal
-   * </code> object with as many digits to the right of the decimal point as the value contains.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value in full precision. If the value is SQL <code>NULL</code>, the
-   *     result is <code>null</code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setBigDecimal
-   * @since 1.4
-   */
   @Override
   public BigDecimal getBigDecimal(String parameterName) throws SQLException {
-    return outputResult.getBigDecimal(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Returns an object representing the value of OUT parameter <code>parameterName</code> and uses
-   * <code>map</code> for the custom mapping of the parameter value.
-   *
-   * <p>This method returns a Java object whose type corresponds to the JDBC type that was
-   * registered for this parameter using the method <code>registerOutParameter</code>. By
-   * registering the target JDBC type as <code>java.sql.Types.OTHER</code>, this method can be used
-   * to read database-specific abstract data types.
-   *
-   * @param parameterName the name of the parameter
-   * @param map the mapping from SQL type names to Java classes
-   * @return a <code>java.lang.Object</code> holding the OUT parameter value
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setObject
-   * @since 1.4
-   */
   @Override
   public Object getObject(String parameterName, Map<String, Class<?>> map) throws SQLException {
-    return outputResult.getObject(idxToOutIdx(nameToIndex(parameterName)), map);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -1688,38 +885,14 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     throw exceptionFactory().notSupported("Method ResultSet.getRef not supported");
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>BLOB</code> parameter as a {@link Blob} object in the Java
-   * programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value as a <code>Blob</code> object in the Java programming language. If
-   *     the value was SQL <code>NULL</code>, the value <code>null</code> is returned.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.4
-   */
   @Override
   public Blob getBlob(String parameterName) throws SQLException {
-    return outputResult.getBlob(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>CLOB</code> parameter as a <code>java.sql.Clob</code>
-   * object in the Java programming language.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value as a <code>Clob</code> object in the Java programming language. If
-   *     the value was SQL <code>NULL</code>, the value <code>null</code> is returned.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.4
-   */
   @Override
   public Clob getClob(String parameterName) throws SQLException {
-    return outputResult.getClob(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -1739,89 +912,24 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     throw exceptionFactory().notSupported("Method ResultSet.getArray not supported");
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>DATE</code> parameter as a <code>java.sql.Date</code>
-   * object, using the given <code>Calendar</code> object to construct the date. With a <code>
-   * Calendar</code> object, the driver can calculate the date taking into account a custom timezone
-   * and locale. If no <code>Calendar</code> object is specified, the driver uses the default
-   * timezone and locale.
-   *
-   * @param parameterName the name of the parameter
-   * @param cal the <code>Calendar</code> object the driver will use to construct the date
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setDate
-   * @since 1.4
-   */
   @Override
   public Date getDate(String parameterName, Calendar cal) throws SQLException {
-    return outputResult.getDate(idxToOutIdx(nameToIndex(parameterName)), cal);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>TIME</code> parameter as a <code>java.sql.Time</code>
-   * object, using the given <code>Calendar</code> object to construct the time. With a <code>
-   * Calendar</code> object, the driver can calculate the time taking into account a custom timezone
-   * and locale. If no <code>Calendar</code> object is specified, the driver uses the default
-   * timezone and locale.
-   *
-   * @param parameterName the name of the parameter
-   * @param cal the <code>Calendar</code> object the driver will use to construct the time
-   * @return the parameter value; if the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setTime
-   * @since 1.4
-   */
   @Override
   public Time getTime(String parameterName, Calendar cal) throws SQLException {
-    return outputResult.getTime(idxToOutIdx(nameToIndex(parameterName)), cal);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>TIMESTAMP</code> parameter as a <code>java.sql.Timestamp
-   * </code> object, using the given <code>Calendar</code> object to construct the <code>Timestamp
-   * </code> object. With a <code>Calendar</code> object, the driver can calculate the timestamp
-   * taking into account a custom timezone and locale. If no <code>Calendar</code> object is
-   * specified, the driver uses the default timezone and locale.
-   *
-   * @param parameterName the name of the parameter
-   * @param cal the <code>Calendar</code> object the driver will use to construct the timestamp
-   * @return the parameter value. If the value is SQL <code>NULL</code>, the result is <code>null
-   *     </code>.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs or this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setTimestamp
-   * @since 1.4
-   */
   @Override
   public Timestamp getTimestamp(String parameterName, Calendar cal) throws SQLException {
-    return outputResult.getTimestamp(idxToOutIdx(nameToIndex(parameterName)), cal);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
-  /**
-   * Retrieves the value of a JDBC <code>DATALINK</code> parameter as a <code>java.net.URL</code>
-   * object.
-   *
-   * @param parameterName the name of the parameter
-   * @return the parameter value as a <code>java.net.URL</code> object in the Java programming
-   *     language. If the value was SQL <code>NULL</code>, the value <code>null</code> is returned.
-   * @throws SQLException if parameterName does not correspond to a named parameter; if a database
-   *     access error occurs, this method is called on a closed <code>CallableStatement</code>, or
-   *     if there is a problem with the URL
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setURL
-   * @since 1.4
-   */
   @Override
   public URL getURL(String parameterName) throws SQLException {
-    return outputResult.getURL(idxToOutIdx(nameToIndex(parameterName)));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -2009,25 +1117,9 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     setNClob(nameToIndex(parameterName), reader, length);
   }
 
-  /**
-   * Retrieves the value of the designated JDBC <code>NCLOB</code> parameter as a <code>
-   * java.sql.NClob</code> object in the Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @return the parameter value as a <code>NClob</code> object in the Java programming language. If
-   *     the value was SQL <code>NULL</code>, the value <code>null</code> is returned.
-   * @throws SQLException if the parameterIndex is not valid; if the driver does not support
-   *     national character sets; if the driver can detect that a data conversion error could occur;
-   *     if a database access error occurs or this method is called on a closed <code>
-   *     CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.6
-   */
   @Override
   public NClob getNClob(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getNClob(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -2103,28 +1195,9 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     return con.getExceptionFactory().of(this);
   }
 
-  /**
-   * Retrieves the value of the designated <code>NCHAR</code>, <code>NVARCHAR</code> or <code>
-   * LONGNVARCHAR</code> parameter as a <code>String</code> in the Java programming language.
-   *
-   * <p>For the fixed-length type JDBC <code>NCHAR</code>, the <code>String</code> object returned
-   * has exactly the same value the SQL <code>NCHAR</code> value had in the database, including any
-   * padding added by the database.
-   *
-   * @param parameterIndex index of the first parameter is 1, the second is 2, ...
-   * @return a <code>String</code> object that maps an <code>NCHAR</code>, <code>NVARCHAR</code> or
-   *     <code>LONGNVARCHAR</code> value
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @see #setNString
-   * @since 1.6
-   */
   @Override
   public String getNString(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getNString(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -2149,25 +1222,9 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     return getNString(nameToIndex(parameterName));
   }
 
-  /**
-   * Retrieves the value of the designated parameter as a <code>java.io.Reader</code> object in the
-   * Java programming language. It is intended for use when accessing <code>NCHAR</code>,<code>
-   * NVARCHAR</code> and <code>LONGNVARCHAR</code> parameters.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, ...
-   * @return a <code>java.io.Reader</code> object that contains the parameter value; if the value is
-   *     SQL <code>NULL</code>, the value returned is <code>null</code> in the Java programming
-   *     language.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.6
-   */
   @Override
   public Reader getNCharacterStream(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getNCharacterStream(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -2189,23 +1246,9 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     return getNCharacterStream(nameToIndex(parameterName));
   }
 
-  /**
-   * Retrieves the value of the designated parameter as a <code>java.io.Reader</code> object in the
-   * Java programming language.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, ...
-   * @return a <code>java.io.Reader</code> object that contains the parameter value; if the value is
-   *     SQL <code>NULL</code>, the value returned is <code>null</code> in the Java programming
-   *     language.
-   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
-   *     this method is called on a closed <code>CallableStatement</code>
-   * @since 1.6
-   */
   @Override
   public Reader getCharacterStream(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getCharacterStream(idxToOutIdx(parameterIndex));
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -2499,30 +1542,9 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     setNClob(nameToIndex(parameterName), reader);
   }
 
-  /**
-   * Returns an object representing the value of OUT parameter {@code parameterIndex} and will
-   * convert from the SQL type of the parameter to the requested Java data type, if the conversion
-   * is supported. If the conversion is not supported or null is specified for the type, a <code>
-   * SQLException</code> is thrown.
-   *
-   * <p>At a minimum, an implementation must support the conversions defined in Appendix B, Table
-   * B-3 and conversion of appropriate user defined SQL types to a Java type which implements {@code
-   * SQLData}, or {@code Struct}. Additional conversions may be supported and are vendor defined.
-   *
-   * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param type Class representing the Java data type to convert the designated parameter to.
-   * @return an instance of {@code type} holding the OUT parameter value
-   * @throws SQLException if conversion is not supported, type is null or another error occurs. The
-   *     getCause() method of the exception may provide a more detailed exception, for example, if a
-   *     conversion error occurs
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.7
-   */
   @Override
   public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getObject(idxToOutIdx(parameterIndex), type);
+    throw new SQLFeatureNotSupportedException(OUT_PARAMETERS_NOT_SUPPORTED_MSG);
   }
 
   /**
@@ -2825,11 +1847,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   @Override
   public CallableParameterMetaData getParameterMetaData() throws SQLException {
     String sql =
-        "SELECT NULL PARAMETER_NAME, 'OUT' PARAMETER_MODE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,"
-            + " NUMERIC_SCALE, CHARACTER_SET_NAME, DTD_IDENTIFIER from information_schema.routines "
-            + "WHERE SPECIFIC_NAME = ? and ROUTINE_SCHEMA = ? and DATA_TYPE != ''"
-            + " UNION"
-            + " SELECT PARAMETER_NAME, PARAMETER_MODE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,"
+        "SELECT PARAMETER_NAME, PARAMETER_MODE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,"
             + " NUMERIC_SCALE, CHARACTER_SET_NAME, DTD_IDENTIFIER from information_schema.parameters "
             + "WHERE SPECIFIC_NAME = ? and SPECIFIC_SCHEMA = ?";
     PreparedStatement prep =
@@ -2846,7 +1864,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     prep.setString(3, procedureName);
     prep.setString(4, databaseName);
     ResultSet rs = prep.executeQuery();
-    parameterMetaData = new CallableParameterMetaData(rs, isFunction());
+    parameterMetaData = new CallableParameterMetaData(rs);
     return parameterMetaData;
   }
 }

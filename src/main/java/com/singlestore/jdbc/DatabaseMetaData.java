@@ -896,6 +896,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @return <code>ResultSet</code> - each row is a column description
    * @throws SQLException if a database access error occurs
    */
+  @Override
   public ResultSet getBestRowIdentifier(
       String catalog, String schema, String table, int scope, final boolean nullable)
       throws SQLException {
@@ -904,30 +905,31 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
     }
 
-    String sql =
-        "SELECT "
-            + bestRowSession
-            + " SCOPE, COLUMN_NAME,"
-            + dataTypeClause("COLUMN_TYPE", "")
-            + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
-            + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
-            + " NUMERIC_SCALE DECIMAL_DIGITS,"
-            + bestRowNotPseudo
-            + " PSEUDO_COLUMN"
-            + " FROM INFORMATION_SCHEMA.COLUMNS"
-            + " WHERE (COLUMN_KEY  = 'PRI'"
-            + " OR (COLUMN_KEY = 'UNI' AND NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_KEY = "
-            + "'PRI' AND "
-            + catalogCond("TABLE_SCHEMA", catalog)
-            + " AND TABLE_NAME = "
-            + tableEscapeQuote(table)
-            + " ))) AND "
-            + catalogCond("TABLE_SCHEMA", catalog)
-            + " AND TABLE_NAME = "
-            + tableEscapeQuote(table)
-            + (nullable ? "" : " AND IS_NULLABLE = 'NO'");
+    StringBuilder sbInner =
+        new StringBuilder("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_KEY = 'PRI'");
+    sbInner.append(" AND ").append(catalogCond("TABLE_SCHEMA", catalog));
+    sbInner.append(" AND TABLE_NAME = ").append(escapeQuote(table));
 
-    return executeQuery(sql);
+    StringBuilder sb =
+        new StringBuilder(
+            "SELECT "
+                + bestRowSession
+                + " SCOPE, COLUMN_NAME,"
+                + dataTypeClause("COLUMN_TYPE", "")
+                + " DATA_TYPE, DATA_TYPE TYPE_NAME, IF(NUMERIC_PRECISION IS NULL,"
+                + " CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
+                + " NUMERIC_SCALE DECIMAL_DIGITS,"
+                + bestRowNotPseudo
+                + " PSEUDO_COLUMN"
+                + " FROM INFORMATION_SCHEMA.COLUMNS"
+                + " WHERE (COLUMN_KEY  = 'PRI'"
+                + " OR (COLUMN_KEY = 'UNI' AND NOT EXISTS ("
+                + sbInner
+                + " )))");
+    sb.append(" AND ").append(catalogCond("TABLE_SCHEMA", catalog));
+    sb.append(" AND TABLE_NAME = ").append(escapeQuote(table));
+    if (!nullable) sb.append(" AND IS_NULLABLE = 'NO'");
+    return executeQuery(sb.toString());
   }
 
   public boolean generatedKeyAlwaysReturned() {

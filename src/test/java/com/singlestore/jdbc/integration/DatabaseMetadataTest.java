@@ -145,9 +145,11 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS maxcharlength(maxcharlength char(1)) character set utf8");
     stmt.execute("CREATE TABLE IF NOT EXISTS conj72(t tinyint(1))");
+
     stmt.execute(
-        createRowstore()
-            + " table getBestRowIdentifier2(id_ref1 int , id_ref2 int not null, SHARD KEY (id_ref1, id_ref2), UNIQUE(id_ref1, id_ref2))");
+        "create table getBestRowIdentifier1 (id int not null primary key, val varchar(20))");
+    stmt.execute(
+        "create table getBestRowIdentifier2(id int not null auto_increment, SHARD KEY(id), UNIQUE KEY(id))");
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS get_index_info(\n"
             + "    no INT NOT NULL AUTO_INCREMENT,\n"
@@ -535,8 +537,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(1, rs.getInt(11)); // NULLABLE
     assertEquals("", rs.getString(12)); // REMARKS
     assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
-    // TODO PLAT-5873
-    // assertEquals(5 * 4, rs.getInt(16)); // CHAR_OCTET_LENGTH
+    assertEquals(5 * 4, rs.getInt(16)); // CHAR_OCTET_LENGTH
     assertEquals(4, rs.getInt(17)); // ORDINAL_POSITION
     assertEquals("YES", rs.getString(18)); // IS_NULLABLE
     assertEquals(null, rs.getString(19)); // SCOPE_CATALOG
@@ -916,8 +917,7 @@ public class DatabaseMetadataTest extends Common {
       }
     }
   }
-  // TODO: PLAT-5870
-  @Disabled
+
   @Test
   public void getBestRowIdentifier() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
@@ -931,7 +931,7 @@ public class DatabaseMetadataTest extends Common {
             + "COLUMN_SIZE int,BUFFER_LENGTH int,"
             + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");
 
-    ResultSet rs = meta.getBestRowIdentifier(null, null, "cross1", 0, true);
+    ResultSet rs = meta.getBestRowIdentifier(null, null, "getBestRowIdentifier1", 0, true);
     assertTrue(rs.next());
 
     assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
@@ -944,75 +944,19 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
     assertFalse(rs.next());
 
-    rs = meta.getBestRowIdentifier(null, null, "cross1", 0, false);
+    rs = meta.getBestRowIdentifier(null, null, "getBestRowIdentifier1", 0, false);
     assertTrue(rs.next());
-    assertFalse(rs.next());
-
-    assertTrue(rs.next());
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
-    assertEquals("id", rs.getString(2));
-    assertEquals(Types.INTEGER, rs.getInt(3));
-    assertEquals("int", rs.getString(4));
-    assertEquals(10, rs.getInt(5));
-    assertEquals(0, rs.getInt(6));
-    assertEquals(0, rs.getInt(7));
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
-    assertTrue(rs.next());
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
-    assertEquals("id2", rs.getString(2));
-    assertEquals(Types.INTEGER, rs.getInt(3));
-    assertEquals("int", rs.getString(4));
-    assertEquals(10, rs.getInt(5));
-    assertEquals(0, rs.getInt(6));
-    assertEquals(0, rs.getInt(7));
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
-    assertFalse(rs.next());
-
-    rs = meta.getBestRowIdentifier(null, null, "cross3", 0, true);
-    assertTrue(rs.next());
-
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
-    assertEquals("id", rs.getString(2));
-    assertEquals(Types.INTEGER, rs.getInt(3));
-    assertEquals("int", rs.getString(4));
-    assertEquals(10, rs.getInt(5));
-    assertEquals(0, rs.getInt(6));
-    assertEquals(0, rs.getInt(7));
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
     assertFalse(rs.next());
 
     // CHECK using PRI even if exist UNI
-
-    rs = meta.getBestRowIdentifier(null, null, "getBestRowIdentifier1", 0, true);
-    assertTrue(rs.next());
-
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
-    assertEquals("i", rs.getString(2));
-    assertEquals(Types.INTEGER, rs.getInt(3));
-    assertEquals("int", rs.getString(4));
-    assertEquals(10, rs.getInt(5));
-    assertEquals(0, rs.getInt(6));
-    assertEquals(0, rs.getInt(7));
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
-    assertFalse(rs.next());
-
     rs = meta.getBestRowIdentifier(null, null, "getBestRowIdentifier2", 0, true);
     assertTrue(rs.next());
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
-    assertEquals("id_ref0", rs.getString(2));
-    assertEquals(Types.INTEGER, rs.getInt(3));
-    assertEquals("int", rs.getString(4));
-    assertEquals(10, rs.getInt(5));
-    assertEquals(0, rs.getInt(6));
-    assertEquals(0, rs.getInt(7));
-    assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
-    assertTrue(rs.next());
 
     assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
-    assertEquals("id_ref2", rs.getString(2));
-    assertEquals(Types.INTEGER, rs.getInt(3));
-    assertEquals("int", rs.getString(4));
-    assertEquals(10, rs.getInt(5));
+    assertEquals("id", rs.getString(2));
+    assertEquals(Types.BIGINT, rs.getInt(3));
+    assertEquals("bigint", rs.getString(4));
+    assertEquals(19, rs.getInt(5));
     assertEquals(0, rs.getInt(6));
     assertEquals(0, rs.getInt(7));
     assertEquals(com.singlestore.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));

@@ -35,7 +35,7 @@ java -DTEST_PORT=3307 -Duser.country=US -Duser.language=en -jar target/benchmark
 
 |Connection string type|useServerPrepStmts|cachePrepStmts|rewriteBatchedStatements|prepStmtCacheSize|disablePipeline|
 ---|---|---|---|---|---
-|**text**|false|false|-|-|-|
+|**text**|false|true|-|-|-|
 |**binary**|true|true|-|-|-|
 |**rewrite**|false|false|true|-|-|
 |**binaryNoCache**|true|false|-|0|-|

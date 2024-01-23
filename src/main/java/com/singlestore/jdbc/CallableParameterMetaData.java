@@ -6,21 +6,26 @@
 package com.singlestore.jdbc;
 
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.BitSet;
 import java.util.Locale;
 
 public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   private final ResultSet rs;
   private final int parameterCount;
-  private final boolean isFunction;
 
-  public CallableParameterMetaData(ResultSet rs, boolean isFunction) throws SQLException {
+  public CallableParameterMetaData(ResultSet rs) throws SQLException {
     this.rs = rs;
     int count = 0;
     while (rs.next()) count++;
     this.parameterCount = count;
-    this.isFunction = isFunction;
   }
 
   /**
@@ -286,30 +291,21 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   }
 
   /**
-   * Retrieves the designated parameter's mode.
+   * Retrieves the designated parameter's mode. SingleStore doesn't support OUT/INOUT parameters.
    *
    * @param index the first parameter is 1, the second is 2, ...
-   * @return mode of the parameter; one of <code>ParameterMetaData.parameterModeIn</code>, <code>
-   *     ParameterMetaData.parameterModeOut</code>, or <code>ParameterMetaData.parameterModeInOut
-   *     </code> <code>ParameterMetaData.parameterModeUnknown</code>.
-   * @throws SQLException if a database access error occurs
+   * @return mode of the parameter; <code>ParameterMetaData.parameterModeUnknown</code> or <code>
+   *     ParameterMetaData.parameterModeIn</code>
    * @since 1.4
    */
   @Override
   public int getParameterMode(int index) throws SQLException {
     setIndex(index);
-    if (isFunction) return ParameterMetaData.parameterModeOut;
     String str = rs.getString("PARAMETER_MODE");
-    switch (str) {
-      case "IN":
-        return ParameterMetaData.parameterModeIn;
-      case "OUT":
-        return ParameterMetaData.parameterModeOut;
-      case "INOUT":
-        return ParameterMetaData.parameterModeInOut;
-      default:
-        return ParameterMetaData.parameterModeUnknown;
+    if (str.equals("IN")) {
+      return ParameterMetaData.parameterModeIn;
     }
+    return ParameterMetaData.parameterModeUnknown;
   }
 
   /**

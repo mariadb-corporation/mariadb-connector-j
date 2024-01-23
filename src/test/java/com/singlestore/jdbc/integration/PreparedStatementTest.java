@@ -5,13 +5,27 @@
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Statement;
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Types;
 import java.util.Random;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class PreparedStatementTest extends Common {
 
@@ -130,8 +144,6 @@ public class PreparedStatementTest extends Common {
       assertTrue(rs.next());
       assertEquals(5, rs.getInt(1));
       assertEquals(10, rs.getInt(2));
-      // TODO: PLAT-5818
-      // setMaxRows() has no effect for mysql, since not supporting SET STATEMENT SQL_SELECT_LIMIT
       assertFalse(rs.next());
     }
   }
@@ -764,8 +776,7 @@ public class PreparedStatementTest extends Common {
   }
 
   private void moreResults(Connection con) throws SQLException {
-    // TODO: PLAT-6236
-    Assumptions.assumeFalse(minVersion(7, 8, 0));
+    Assumptions.assumeTrue(minVersion(7, 8, 6));
     Statement stmt = con.createStatement();
     ensureRange(stmt);
     stmt.setFetchSize(3);
@@ -815,9 +826,7 @@ public class PreparedStatementTest extends Common {
     assertTrue(rs.isClosed());
   }
 
-  // TODO: PLAT-5877
   @Test
-  @Disabled
   public void moreRowLimitedResults() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       moreRowLimitedResults(con);
@@ -833,7 +842,7 @@ public class PreparedStatementTest extends Common {
     stmt.setFetchSize(3);
     stmt.setMaxRows(5);
     stmt.execute(
-        "CREATE PROCEDURE multi() AUTHORIZE AS CURRENT_USER AS BEGIN  ECHO SELECT * FROM prepare4 order by t1;  END");
+        "CREATE PROCEDURE multi() AUTHORIZE AS CURRENT_USER AS BEGIN  ECHO SELECT * FROM prepare4 order by t1; ECHO SELECT * FROM prepare4 order by t1; ECHO SELECT 2;  END");
     stmt.execute("CALL multi()");
     Assertions.assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();

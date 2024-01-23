@@ -219,7 +219,6 @@ public class PolygonCodecTest extends CommonCodecTest {
     assertEquals("", meta.getSchemaName(1));
   }
 
-  // TODO: PLAT-5913
   @Test
   public void sendParam() throws Exception {
     sendParam(sharedConn);

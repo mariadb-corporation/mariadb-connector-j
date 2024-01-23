@@ -5,8 +5,6 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.client.util.Parameters;
-import com.singlestore.jdbc.util.ParameterList;
 import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -47,7 +45,6 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
         resultSetType,
         resultSetConcurrency,
         0);
-    registerOutParameter(1, null);
   }
 
   @Override
@@ -56,39 +53,13 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
   }
 
   @Override
-  protected void handleParameterOutput() throws SQLException {
-    this.outputResultFromRes(1);
-  }
-
-  @Override
   public void registerOutParameter(int index, int sqlType) throws SQLException {
-    if (index != 1) {
-      throw con.getExceptionFactory()
-          .of(this)
-          .create(String.format("wrong parameter index %s", index));
-    }
     super.registerOutParameter(index, sqlType);
   }
 
   @Override
   protected void executeInternal() throws SQLException {
-    preValidParameters();
     super.executeInternal();
-  }
-
-  /**
-   * Ensures that returning value is not taken as a parameter.
-   *
-   * @throws SQLException if any exception
-   */
-  protected void preValidParameters() throws SQLException {
-    // remove first parameter, as it's an output param only
-    Parameters newParameters = new ParameterList(parameters.size() - 1);
-    for (int i = 0; i < parameters.size() - 1; i++) {
-      newParameters.set(i, parameters.get(i + 1));
-    }
-    parameters = newParameters;
-    super.validParameters();
   }
 
   @Override
@@ -97,7 +68,6 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
     sb.append(", parameters:[");
     for (int i = 0; i < parameters.size(); i++) {
       com.singlestore.jdbc.client.util.Parameter param = parameters.get(i);
-      if (outputParameters.contains(i + 1)) sb.append("<OUT>");
       if (param == null) {
         sb.append("null");
       } else {

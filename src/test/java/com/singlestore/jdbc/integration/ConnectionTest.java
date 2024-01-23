@@ -815,8 +815,6 @@ public class ConnectionTest extends Common {
     }
   }
 
-  // TODO: PLAT-5887
-  // we cannot really run this test since we run S2 in container
   @Test
   public void localSocket() throws Exception {
     Assumptions.assumeTrue(
