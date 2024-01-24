@@ -96,6 +96,7 @@ import org.mariadb.jdbc.internal.util.constant.StateChange;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.dao.SqlSocketTimeoutException;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.internal.util.exceptions.MariaDbSqlException;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
@@ -2068,6 +2069,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 "HY000",
                 initialException);
           }
+          if (initialException instanceof SocketTimeoutException) {
+            return new SqlSocketTimeoutException(
+                initialException.getMessage() + traces, "HY000", initialException);
+          }
 
           return new SQLTransientConnectionException(
               initialException.getMessage() + traces, "HY000", initialException);
@@ -2088,6 +2093,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
     }
     connected = false;
+    if (initialException instanceof SocketTimeoutException) {
+      return new SqlSocketTimeoutException(
+              initialException.getMessage() + getTraces(), "08000", initialException);
+    }
+
     return new SQLNonTransientConnectionException(
         initialException.getMessage() + getTraces(), "08000", initialException);
   }

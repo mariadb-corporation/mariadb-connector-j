@@ -102,6 +102,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
+import org.mariadb.jdbc.internal.util.dao.SqlSocketTimeoutException;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.tls.TlsSocketPlugin;
@@ -872,9 +873,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private void postConnectionQueries() throws SQLException {
     try {
       Integer timeout = options.connectTimeout > 0 ? options.connectTimeout : options.socketTimeout;
-      if (options.usePipelineAuth && (timeout == null || timeout == 0 || timeout > 500)) {
+      if (options.usePipelineAuth && (timeout == null || timeout == 0 || timeout > 30000)) {
         // set a timeout to avoid hang in case server doesn't support pipelining
-        socket.setSoTimeout(500);
+        socket.setSoTimeout(30000);
       }
 
       boolean mustLoadAdditionalInfo = true;
@@ -922,6 +923,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
       this.socketTimeout = options.socketTimeout == null ? 0 : options.socketTimeout;
       socket.setSoTimeout(this.socketTimeout);
 
+    } catch (SqlSocketTimeoutException timeoutException) {
+      String msg = "Socket timeout during post connection queries: " + timeoutException.getMessage();
+      if (options.usePipelineAuth) {
+        msg +=
+                "\nServer might not support pipelining, try disabling with option `usePipelineAuth` and `useBatchMultiSend`";
+      }
+      throw exceptionFactory.create(msg, "08000", timeoutException);
     } catch (SocketTimeoutException timeoutException) {
       destroySocket();
       String msg = "Socket error during post connection queries: " + timeoutException.getMessage();
@@ -1042,6 +1050,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       readRequestSessionVariables(serverData);
     } catch (SQLException sqlException) {
       if (resultingException != null) {
+        if (resultingException instanceof SqlSocketTimeoutException) throw resultingException;
         if (resultingException.getSQLState() != null
             && !resultingException.getSQLState().startsWith("08")
             && sqlException.getSQLState() != null
