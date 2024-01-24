@@ -1600,24 +1600,27 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     buf.skipLengthEncodedBytes(); // info
     while (buf.remaining() > 0) {
       Buffer stateInfo = buf.getLengthEncodedBuffer();
-      if (stateInfo.remaining() > 0) {
+      while (stateInfo.remaining() > 0) {
         switch (stateInfo.readByte()) {
           case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-            Buffer sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
-            String variable = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-            String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-            logger.debug("System variable change :  {} = {}", variable, value);
+            Buffer sessionVariableBuf;
+            do {
+              sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
+              String variable = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+              String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+              logger.debug("System variable change :  {} = {}", variable, value);
 
-            // only variable uses
-            switch (variable) {
-              case "auto_increment_increment":
-                autoIncrementIncrement = Integer.parseInt(value);
-                results.setAutoIncrement(autoIncrementIncrement);
-                break;
+              // only variable uses
+              switch (variable) {
+                case "auto_increment_increment":
+                  autoIncrementIncrement = Integer.parseInt(value);
+                  results.setAutoIncrement(autoIncrementIncrement);
+                  break;
 
-              default:
-                // variable not used by driver
-            }
+                default:
+                  // variable not used by driver
+              }
+            } while (sessionVariableBuf.remaining() > 0);
             break;
 
           case StateChange.SESSION_TRACK_SCHEMA:
