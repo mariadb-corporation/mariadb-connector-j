@@ -6,6 +6,7 @@ package org.mariadb.jdbc.client.impl;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -441,7 +442,8 @@ public class StandardClient implements Client, AutoCloseable {
                 && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
             || context.getVersion().versionGreaterOrEqual(5, 7, 0))) {
       sessionCommands.add(
-          "session_track_system_variables = CONCAT(@@global.session_track_system_variables,',auto_increment_increment')");
+          "session_track_system_variables ="
+              + " CONCAT(@@global.session_track_system_variables,',auto_increment_increment')");
     }
 
     // add configured session variable if configured
@@ -933,7 +935,12 @@ public class StandardClient implements Client, AutoCloseable {
       destroySocket();
       throw exceptionFactory
           .withSql(message.description())
-          .create("Socket error", "08000", ioException);
+          .create(
+              ioException instanceof SocketTimeoutException
+                  ? "Socket timout error"
+                  : "Socket error",
+              "08000",
+              ioException);
     }
   }
 
