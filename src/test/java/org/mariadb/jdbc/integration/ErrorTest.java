@@ -6,7 +6,6 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
-
 import org.junit.jupiter.api.*;
 
 public class ErrorTest extends Common {
@@ -144,6 +143,7 @@ public class ErrorTest extends Common {
       }
     }
   }
+
   @Test
   public void connectionErrorFormat() throws SQLException {
     try {

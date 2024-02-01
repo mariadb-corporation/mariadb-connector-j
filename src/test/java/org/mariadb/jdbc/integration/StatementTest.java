@@ -326,7 +326,8 @@ public class StatementTest extends Common {
       stmt.execute("TRUNCATE TABLE executeGenerated");
       try (PreparedStatement prep =
           conn.prepareStatement(
-              "INSERT INTO executeGenerated(t2) values (?), (?) ON DUPLICATE KEY UPDATE t2=CONCAT(t2,'a')",
+              "INSERT INTO executeGenerated(t2) values (?), (?) ON DUPLICATE KEY UPDATE"
+                  + " t2=CONCAT(t2,'a')",
               Statement.RETURN_GENERATED_KEYS)) {
         prep.setInt(1, 106);
         prep.setInt(2, 107);
@@ -370,7 +371,8 @@ public class StatementTest extends Common {
       stmt.execute("TRUNCATE TABLE executeGenerated");
       try (PreparedStatement prep =
           conn.prepareStatement(
-              "INSERT INTO executeGenerated(t2) values (?), (?) ON DUPLICATE KEY UPDATE t2=CONCAT(t2,'a')",
+              "INSERT INTO executeGenerated(t2) values (?), (?) ON DUPLICATE KEY UPDATE"
+                  + " t2=CONCAT(t2,'a')",
               Statement.RETURN_GENERATED_KEYS)) {
         prep.setInt(1, 106);
         prep.setInt(2, 107);

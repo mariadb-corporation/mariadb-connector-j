@@ -310,10 +310,7 @@ public class PreparedStatementParametersTest extends Common {
         ps -> ps.setURL(1, new URL("https://www.someUrl.com")),
         rs -> assertEquals("https://www.someUrl.com", rs.getString(1)),
         con);
-    checkSendString(
-            ps -> ps.setURL(1, (URL) null),
-            rs -> assertNull(rs.getString(1)),
-            con);
+    checkSendString(ps -> ps.setURL(1, (URL) null), rs -> assertNull(rs.getString(1)), con);
     // TODO SET OBJECT
   }
 

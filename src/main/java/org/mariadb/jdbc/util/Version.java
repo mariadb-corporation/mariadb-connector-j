@@ -85,7 +85,7 @@ public class Version {
    * @return true if version is greater than parameters
    */
   public boolean versionFixedMajorMinorGreaterOrEqual(int major, int minor, int patch) {
-      return this.majorVersion == major && this.minorVersion == minor && this.patchVersion >= patch;
+    return this.majorVersion == major && this.minorVersion == minor && this.patchVersion >= patch;
   }
 
   /**

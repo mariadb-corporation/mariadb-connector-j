@@ -185,7 +185,8 @@ public class BatchTest extends Common {
     try (Statement stmt = sharedConn.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS testLargeBatchParameterClearAfterError");
       stmt.execute(
-          "CREATE TABLE testLargeBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+          "CREATE TABLE testLargeBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value"
+              + " SMALLINT)");
       stmt.addBatch("INSERT INTO testLargeBatchParameterClearAfterError VALUES(1, 1)");
       stmt.addBatch("INSERT INTO testLargeBatchParameterClearAfterError VALUES(1, 1)");
 

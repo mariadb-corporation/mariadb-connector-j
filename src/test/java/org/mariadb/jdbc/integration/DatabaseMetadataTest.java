@@ -182,9 +182,10 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists primarykeytest1");
     stmt.execute("CREATE TABLE primarykeytest1 ( id1 integer, constraint pk primary key(id1))");
     stmt.execute(
-        "CREATE TABLE primarykeytest2 (`id2'a` integer, id2b integer, constraint pk primary key(`id2'a`,"
-            + " id2b), constraint fk1 foreign key(`id2'a`) references primarykeytest1(id1), "
-            + " constraint fk2 foreign key(id2b) references primarykeytest1(id1))");
+        "CREATE TABLE primarykeytest2 (`id2'a` integer, id2b integer, constraint pk primary"
+            + " key(`id2'a`, id2b), constraint fk1 foreign key(`id2'a`) references"
+            + " primarykeytest1(id1),  constraint fk2 foreign key(id2b) references"
+            + " primarykeytest1(id1))");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getPrimaryKeys(sharedConn.getCatalog(), null, "primarykeytest2");
