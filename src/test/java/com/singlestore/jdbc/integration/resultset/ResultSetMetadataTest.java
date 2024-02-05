@@ -366,6 +366,10 @@ public class ResultSetMetadataTest extends Common {
     assertEquals("", rsMeta.getTableName(1));
     assertEquals("TABLE", rs.getString(1));
     assertTrue(rs.next());
+    assertEquals("TEMPORARY TABLE", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("GLOBAL TEMPORARY TABLE", rs.getString(1));
+    assertTrue(rs.next());
     assertEquals("SYSTEM VIEW", rs.getString(1));
     assertTrue(rs.next());
     assertEquals("VIEW", rs.getString(1));

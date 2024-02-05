@@ -5,12 +5,28 @@
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.Statement;
-import java.sql.*;
-import org.junit.jupiter.api.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Types;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class DatabaseMetadataTest extends Common {
 
@@ -1073,20 +1089,14 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getImportedKeysBasic() throws SQLException {
-    try {
-      sharedConn.getMetaData().getImportedKeys(null, null, "");
-      fail("Should have thrown an SQLFeatureNotSupportedException exception");
-    } catch (SQLFeatureNotSupportedException ignored) {
-    }
+    ResultSet rs = sharedConn.getMetaData().getImportedKeys(null, null, "");
+    assertFalse(rs.next());
   }
 
   @Test
   public void getExportedKeysBasic() throws SQLException {
-    try {
-      sharedConn.getMetaData().getImportedKeys(null, null, "");
-      fail("Should have thrown an SQLFeatureNotSupportedException exception");
-    } catch (SQLFeatureNotSupportedException ignored) {
-    }
+    ResultSet rs = sharedConn.getMetaData().getImportedKeys(null, null, "");
+    assertFalse(rs.next());
   }
 
   @Test
@@ -1442,6 +1452,8 @@ public class DatabaseMetadataTest extends Common {
 
     DatabaseMetaData dmd = sharedConn.getMetaData();
     ResultSet rs = dmd.getProcedureColumns(null, null, "getProcTimePrecision2", null);
+    // return type
+    assertTrue(rs.next());
     // date
     assertTrue(rs.next());
     assertEquals(10, rs.getInt(precisionField));
@@ -1482,6 +1494,8 @@ public class DatabaseMetadataTest extends Common {
 
     DatabaseMetaData dmd = sharedConn.getMetaData();
     ResultSet rs = dmd.getProcedureColumns(null, null, "getProcTimePrecision", null);
+    // return type
+    assertTrue(rs.next());
     // date
     assertTrue(rs.next());
     assertEquals(10, rs.getInt(precisionField));
@@ -1525,7 +1539,7 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void various() throws SQLException {
     com.singlestore.jdbc.DatabaseMetaData meta = sharedConn.getMetaData();
-    assertEquals(64, meta.getMaxProcedureNameLength());
+    assertEquals(minVersion(8, 5, 0) ? 256 : 64, meta.getMaxProcedureNameLength());
   }
 
   @Test
@@ -1764,7 +1778,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(meta.supportsOpenStatementsAcrossRollback());
     assertEquals(Integer.MAX_VALUE, meta.getMaxBinaryLiteralLength());
     assertEquals(Integer.MAX_VALUE, meta.getMaxCharLiteralLength());
-    assertEquals(64, meta.getMaxColumnNameLength());
+    assertEquals(minVersion(8, 5, 0) ? 256 : 64, meta.getMaxColumnNameLength());
     assertEquals(64, meta.getMaxColumnsInGroupBy());
     assertEquals(16, meta.getMaxColumnsInIndex());
     assertEquals(64, meta.getMaxColumnsInOrderBy());
@@ -1774,13 +1788,13 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(0, meta.getMaxCursorNameLength());
     assertEquals(256, meta.getMaxIndexLength());
     assertEquals(0, meta.getMaxSchemaNameLength());
-    assertEquals(64, meta.getMaxProcedureNameLength());
+    assertEquals(minVersion(8, 5, 0) ? 256 : 64, meta.getMaxProcedureNameLength());
     assertEquals(0, meta.getMaxCatalogNameLength());
     assertEquals(0, meta.getMaxRowSize());
     assertFalse(meta.doesMaxRowSizeIncludeBlobs());
     assertEquals(0, meta.getMaxStatementLength());
     assertEquals(0, meta.getMaxStatements());
-    assertEquals(64, meta.getMaxTableNameLength());
+    assertEquals(minVersion(8, 5, 0) ? 256 : 64, meta.getMaxTableNameLength());
     assertEquals(256, meta.getMaxTablesInSelect());
     assertEquals(0, meta.getMaxUserNameLength());
     assertEquals(Connection.TRANSACTION_READ_COMMITTED, meta.getDefaultTransactionIsolation());

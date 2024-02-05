@@ -178,36 +178,63 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return rs;
   }
 
-  private String returnTypeClause() {
+  private String functionReturnTypeClause() {
     return " CASE PARAMETER_MODE "
         + "  WHEN 'IN' THEN "
         + functionColumnIn
-        + "  WHEN 'OUT' THEN "
-        + functionColumnOut
-        + "  WHEN 'INOUT' THEN "
-        + functionColumnInOut
         + "  ELSE "
         + functionReturn
         + " END";
   }
 
+  private String procedureReturnTypeClause() {
+    return " CASE PARAMETER_MODE "
+        + "  WHEN 'IN' THEN "
+        + procedureColumnIn
+        + "  ELSE "
+        + procedureReturnsResult
+        + " END";
+  }
+
   private String parameterClause(
-      String catColumn, String columnName, String columnType, String ordinal) {
+      boolean isProcedure, String catColumn, String columnName, String columnType, String ordinal) {
+    String type = isProcedure ? "PROCEDURE" : "FUNCTION";
     return "SELECT "
         + catColumn
-        + " `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
+        + " `"
+        + type
+        + "_CAT`, NULL `"
+        + type
+        + "_SCHEM`, SPECIFIC_NAME "
+        + type
+        + "_NAME,"
         + columnName
         + " COLUMN_NAME, "
         + columnType
         + " COLUMN_TYPE,"
         + dataTypeClause("DTD_IDENTIFIER", "")
         + " DATA_TYPE,"
-        + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,"
+        + "DATA_TYPE TYPE_NAME,"
+        + " CASE DATA_TYPE"
+        + DateTimeSizeClause("DTD_IDENTIFIER")
+        + "  ELSE "
+        + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+        + Integer.MAX_VALUE
+        + "), NUMERIC_PRECISION) "
+        + " END `PRECISION`,"
+        + " CASE DATA_TYPE"
+        + DateTimeSizeClause("DTD_IDENTIFIER")
+        + "  ELSE "
+        + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+        + Integer.MAX_VALUE
+        + "), NUMERIC_PRECISION) "
+        + " END `LENGTH`,"
         + "CASE DATA_TYPE "
         + DateTimeScaleClause("DTD_IDENTIFIER")
         + " ELSE NUMERIC_SCALE END `SCALE`,10 RADIX,"
         + procedureNullableUnknown
         + " NULLABLE,NULL REMARKS,"
+        + (isProcedure ? "NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB," : "")
         + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,"
         + ordinal
         + " ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME ";
@@ -231,76 +258,44 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         .replace("\"", "\\\"");
   }
 
-  /**
-   * Retrieves a description of the primary key columns that are referenced by the given table's
-   * foreign key columns (the primary keys imported by a table). They are ordered by PKTABLE_CAT,
-   * PKTABLE_SCHEM, PKTABLE_NAME, and KEY_SEQ.
-   *
-   * <p>Each primary key column description has the following columns:
-   *
-   * <OL>
-   *   <LI><B>PKTABLE_CAT</B> String {@code =>} primary key table catalog being imported (may be
-   *       <code>null</code>)
-   *   <LI><B>PKTABLE_SCHEM</B> String {@code =>} primary key table schema being imported (may be
-   *       <code>null</code>)
-   *   <LI><B>PKTABLE_NAME</B> String {@code =>} primary key table name being imported
-   *   <LI><B>PKCOLUMN_NAME</B> String {@code =>} primary key column name being imported
-   *   <LI><B>FKTABLE_CAT</B> String {@code =>} foreign key table catalog (may be <code>null</code>)
-   *   <LI><B>FKTABLE_SCHEM</B> String {@code =>} foreign key table schema (may be <code>null</code>
-   *       )
-   *   <LI><B>FKTABLE_NAME</B> String {@code =>} foreign key table name
-   *   <LI><B>FKCOLUMN_NAME</B> String {@code =>} foreign key column name
-   *   <LI><B>KEY_SEQ</B> short {@code =>} sequence number within a foreign key( a value of 1
-   *       represents the first column of the foreign key, a value of 2 would represent the second
-   *       column within the foreign key).
-   *   <LI><B>UPDATE_RULE</B> short {@code =>} What happens to a foreign key when the primary key is
-   *       updated:
-   *       <UL>
-   *         <LI>importedNoAction - do not allow update of primary key if it has been imported
-   *         <LI>importedKeyCascade - change imported key to agree with primary key update
-   *         <LI>importedKeySetNull - change imported key to <code>NULL</code> if its primary key
-   *             has been updated
-   *         <LI>importedKeySetDefault - change imported key to default values if its primary key
-   *             has been updated
-   *         <LI>importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x compatibility)
-   *       </UL>
-   *   <LI><B>DELETE_RULE</B> short {@code =>} What happens to the foreign key when primary is
-   *       deleted.
-   *       <UL>
-   *         <LI>importedKeyNoAction - do not allow delete of primary key if it has been imported
-   *         <LI>importedKeyCascade - delete rows that import a deleted key
-   *         <LI>importedKeySetNull - change imported key to NULL if its primary key has been
-   *             deleted
-   *         <LI>importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x compatibility)
-   *         <LI>importedKeySetDefault - change imported key to default if its primary key has been
-   *             deleted
-   *       </UL>
-   *   <LI><B>FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>)
-   *   <LI><B>PK_NAME</B> String {@code =>} primary key name (may be <code>null</code>)
-   *   <LI><B>DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key constraints be
-   *       deferred until commit
-   *       <UL>
-   *         <LI>importedKeyInitiallyDeferred - see SQL92 for definition
-   *         <LI>importedKeyInitiallyImmediate - see SQL92 for definition
-   *         <LI>importedKeyNotDeferrable - see SQL92 for definition
-   *       </UL>
-   * </OL>
-   *
-   * @param catalog a catalog name; must match the catalog name as it is stored in the database; ""
-   *     retrieves those without a catalog; <code>null</code> means that the catalog name should not
-   *     be used to narrow the search
-   * @param schema a schema name; must match the schema name as it is stored in the database; ""
-   *     retrieves those without a schema; <code>null</code> means that the schema name should not
-   *     be used to narrow the search
-   * @param table a table name; must match the table name as it is stored in the database
-   * @return <code>ResultSet</code> - each row is a primary key column description
-   * @throws SQLException if a database access error occurs
-   * @see #getExportedKeys
-   */
-  public ResultSet getImportedKeys(String catalog, String schema, String table)
-      throws SQLException {
-    throw new SQLFeatureNotSupportedException(
-        "SingleStore does not support foreign keys and referential integrity");
+  public ResultSet getImportedKeys(String catalog, String schema, String table) {
+    return CompleteResult.createResultSet(
+        new String[] {
+          "PKTABLE_CAT",
+          "PKTABLE_SCHEM",
+          "PKTABLE_NAME",
+          "PKCOLUMN_NAME",
+          "FKTABLE_CAT",
+          "FKTABLE_SCHEM",
+          "FKTABLE_NAME",
+          "FKCOLUMN_NAME",
+          "KEY_SEQ",
+          "UPDATE_RULE",
+          "DELETE_RULE",
+          "FK_NAME",
+          "PK_NAME",
+          "DEFERRABILITY"
+        },
+        new DataType[] {
+          DataType.VARCHAR,
+          DataType.VARCHAR,
+          DataType.VARCHAR,
+          DataType.VARCHAR,
+          DataType.VARCHAR,
+          DataType.VARCHAR,
+          DataType.VARCHAR,
+          DataType.VARCHAR,
+          DataType.BIGINT,
+          DataType.BIGINT,
+          DataType.BIGINT,
+          DataType.VARCHAR,
+          DataType.VARCHAR,
+          DataType.BIGINT
+        },
+        new String[][] {},
+        connection.getContext(),
+        0,
+        ResultSet.TYPE_FORWARD_ONLY);
   }
 
   private String dataTypeClause(String fullTypeColumnName, String tableAlias) {
@@ -1885,59 +1880,29 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getProcedureColumns(
       String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern)
       throws SQLException {
-    String fullTypeColumnName = "DTD_IDENTIFIER";
-
-    /*
-     *  Get info from information_schema.parameters
-     */
     String sql =
-        "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
-            + " PARAMETER_NAME COLUMN_NAME, "
-            + " CASE PARAMETER_MODE "
-            + "  WHEN 'IN' THEN "
-            + procedureColumnIn
-            + "  WHEN 'OUT' THEN "
-            + procedureColumnOut
-            + "  WHEN 'INOUT' THEN "
-            + procedureColumnInOut
-            + "  ELSE IF(PARAMETER_MODE IS NULL,"
-            + procedureColumnReturn
-            + ","
-            + procedureColumnUnknown
-            + ")"
-            + " END COLUMN_TYPE,"
-            + dataTypeClause("DTD_IDENTIFIER", "")
-            + " DATA_TYPE,"
-            + "DATA_TYPE TYPE_NAME,"
-            + " CASE DATA_TYPE"
-            + DateTimeSizeClause(fullTypeColumnName)
-            + "  ELSE "
-            + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-            + Integer.MAX_VALUE
-            + "), NUMERIC_PRECISION) "
-            + " END `PRECISION`,"
-            + " CASE DATA_TYPE"
-            + DateTimeSizeClause(fullTypeColumnName)
-            + "  ELSE "
-            + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-            + Integer.MAX_VALUE
-            + "), NUMERIC_PRECISION) "
-            + " END `LENGTH`,"
-            + "CASE DATA_TYPE "
-            + DateTimeScaleClause(fullTypeColumnName)
-            + " ELSE NUMERIC_SCALE END `SCALE`,"
-            + "10 RADIX,"
-            + procedureNullableUnknown
-            + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-            + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+        parameterClause(true, "ROUTINE_SCHEMA", "NULL", String.valueOf(procedureReturnsResult), "0")
+            + " FROM INFORMATION_SCHEMA.ROUTINES "
+            + " WHERE "
+            + catalogCond("ROUTINE_SCHEMA", catalog)
+            + patternCond("SPECIFIC_NAME", procedureNamePattern)
+            + patternCond("ROUTINE_NAME", columnNamePattern)
+            + " AND ROUTINE_TYPE='PROCEDURE'"
+            + " ORDER BY PROCEDURE_CAT, SPECIFIC_NAME"
+            + " UNION "
+            + parameterClause(
+                true,
+                "SPECIFIC_SCHEMA",
+                "PARAMETER_NAME",
+                procedureReturnTypeClause(),
+                "ORDINAL_POSITION")
             + " FROM INFORMATION_SCHEMA.PARAMETERS "
             + " WHERE "
             + catalogCond("SPECIFIC_SCHEMA", catalog)
             + patternCond("SPECIFIC_NAME", procedureNamePattern)
             + patternCond("PARAMETER_NAME", columnNamePattern)
-            + "  AND ROUTINE_TYPE='PROCEDURE'  "
-            + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
-
+            + " AND ROUTINE_TYPE='PROCEDURE'"
+            + " ORDER BY PROCEDURE_CAT, SPECIFIC_NAME, ORDINAL_POSITION";
     return executeQuery(sql);
   }
 
@@ -2031,7 +1996,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       throws SQLException {
 
     String sql =
-        parameterClause("ROUTINE_SCHEMA", "NULL", String.valueOf(functionReturn), "0")
+        parameterClause(false, "ROUTINE_SCHEMA", "NULL", String.valueOf(functionReturn), "0")
             + " FROM INFORMATION_SCHEMA.ROUTINES "
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)
@@ -2041,7 +2006,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME"
             + " UNION "
             + parameterClause(
-                "SPECIFIC_SCHEMA", "PARAMETER_NAME", returnTypeClause(), "ORDINAL_POSITION")
+                false,
+                "SPECIFIC_SCHEMA",
+                "PARAMETER_NAME",
+                functionReturnTypeClause(),
+                "ORDINAL_POSITION")
             + " FROM INFORMATION_SCHEMA.PARAMETERS "
             + " WHERE "
             + catalogCond("SPECIFIC_SCHEMA", catalog)
@@ -2066,7 +2035,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   public ResultSet getTableTypes() throws SQLException {
     return executeQuery(
-        "SELECT 'TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
+        "SELECT 'TABLE' TABLE_TYPE "
+            + "UNION SELECT 'TEMPORARY TABLE' TABLE_TYPE "
+            + "UNION SELECT 'GLOBAL TEMPORARY TABLE' TABLE_TYPE "
+            + "UNION SELECT 'SYSTEM VIEW' TABLE_TYPE "
+            + "UNION SELECT 'VIEW' TABLE_TYPE");
   }
 
   /**
