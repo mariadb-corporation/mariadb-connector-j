@@ -911,43 +911,13 @@ public class Statement implements java.sql.Statement {
 
     List<String[]> insertIds = new ArrayList<>();
 
-    if (con.getContext().getConf().returnMultiValuesGeneratedIds()
-        && !checkIfInsertDuplicateCommand(getLastSql())) {
-      if (currResult instanceof OkPacket) {
-        OkPacket ok = ((OkPacket) currResult);
-        if (ok.getLastInsertId() != 0) {
-          insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
-          if (ok.getAffectedRows() > 1) {
-            for (int i = 1; i < ok.getAffectedRows(); i++) {
-              insertIds.add(new String[] {String.valueOf(ok.getLastInsertId() + i)});
-            }
-          }
-        }
-      }
-      if (results != null) {
-        for (Completion result : results) {
-          if (result instanceof OkPacket) {
-            OkPacket ok = ((OkPacket) result);
-            if (ok.getLastInsertId() != 0) {
-              insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
-              if (ok.getAffectedRows() > 1) {
-                for (int i = 1; i < ok.getAffectedRows(); i++) {
-                  insertIds.add(new String[] {String.valueOf(ok.getLastInsertId() + i)});
-                }
-              }
-            }
-          }
-        }
-      }
-    } else {
-      if (currResult instanceof OkPacket && ((OkPacket) currResult).getLastInsertId() != 0) {
-        insertIds.add(new String[] {String.valueOf(((OkPacket) currResult).getLastInsertId())});
-      }
-      if (results != null) {
-        for (Completion result : results) {
-          if (result instanceof OkPacket && ((OkPacket) result).getLastInsertId() != 0) {
-            insertIds.add(new String[] {String.valueOf(((OkPacket) result).getLastInsertId())});
-          }
+    if (currResult instanceof OkPacket && ((OkPacket) currResult).getLastInsertId() != 0) {
+      insertIds.add(new String[] {String.valueOf(((OkPacket) currResult).getLastInsertId())});
+    }
+    if (results != null) {
+      for (Completion result : results) {
+        if (result instanceof OkPacket && ((OkPacket) result).getLastInsertId() != 0) {
+          insertIds.add(new String[] {String.valueOf(((OkPacket) result).getLastInsertId())});
         }
       }
     }

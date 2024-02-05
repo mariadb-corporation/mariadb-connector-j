@@ -73,7 +73,6 @@ public class Configuration {
   // various
   private Boolean autocommit = null;
   private boolean createDatabaseIfNotExist = false;
-  private boolean returnMultiValuesGeneratedIds = false;
   private String initSql = null;
   private TransactionIsolation transactionIsolation = TransactionIsolation.READ_COMMITTED;
   private int defaultFetchSize = 0;
@@ -174,7 +173,6 @@ public class Configuration {
       Properties nonMappedOptions,
       Boolean autocommit,
       boolean createDatabaseIfNotExist,
-      boolean returnMultiValuesGeneratedIds,
       String initSql,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
@@ -250,7 +248,6 @@ public class Configuration {
     this.nonMappedOptions = nonMappedOptions;
     this.autocommit = autocommit;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
-    this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     this.initSql = initSql;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
@@ -360,7 +357,6 @@ public class Configuration {
       String connectionAttributes,
       Boolean autocommit,
       Boolean createDatabaseIfNotExist,
-      Boolean returnMultiValuesGeneratedIds,
       String initSql,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -461,8 +457,6 @@ public class Configuration {
     this.connectionAttributes = connectionAttributes;
     if (autocommit != null) this.autocommit = autocommit;
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
-    if (returnMultiValuesGeneratedIds != null)
-      this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     if (initSql != null) this.initSql = initSql;
     if (includeThreadDumpInDeadlockExceptions != null)
       this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
@@ -883,7 +877,6 @@ public class Configuration {
         this.nonMappedOptions,
         this.autocommit,
         this.createDatabaseIfNotExist,
-        this.returnMultiValuesGeneratedIds,
         this.initSql,
         this.transactionIsolation,
         this.defaultFetchSize,
@@ -1374,15 +1367,6 @@ public class Configuration {
   }
 
   /**
-   * Returns multi-values generated ids.
-   *
-   * @return must returns multi-values generated ids.
-   */
-  public boolean returnMultiValuesGeneratedIds() {
-    return returnMultiValuesGeneratedIds;
-  }
-
-  /**
    * Execute initial command when connection is established
    *
    * @return initial SQL command
@@ -1696,7 +1680,6 @@ public class Configuration {
     // various
     private Boolean autocommit;
     private Boolean createDatabaseIfNotExist;
-    private Boolean returnMultiValuesGeneratedIds;
     private String initSql;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
@@ -2181,17 +2164,6 @@ public class Configuration {
     }
 
     /**
-     * indicate if connector must return multi-generated ids. (For connector 2.x compatibility)
-     *
-     * @param returnMultiValuesGeneratedIds must return multi-values generated ids
-     * @return this {@link Builder}
-     */
-    public Builder returnMultiValuesGeneratedIds(Boolean returnMultiValuesGeneratedIds) {
-      this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
-      return this;
-    }
-
-    /**
      * permit to execute an SQL command on connection creation
      *
      * @param initSql initial SQL command
@@ -2415,7 +2387,6 @@ public class Configuration {
               this.connectionAttributes,
               this.autocommit,
               this.createDatabaseIfNotExist,
-              this.returnMultiValuesGeneratedIds,
               this.initSql,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,
