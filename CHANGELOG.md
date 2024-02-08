@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.7.12](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.12) (Feb 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.11...2.7.12)
+
+* CONJ-1145 Wrong sequence number of sub header with compressing procotol active		
+* CONJ-1151 Wrong debug trace when using compression protocol		
+* CONJ-1152 Improve message when reaching socket timeout during connection initial commands		
+* CONJ-1153 session tracking only read first SYSTEM_VARIABLES session tracking change
+
 ## [2.7.11](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.11) (Nov 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.10...2.7.11)
 
