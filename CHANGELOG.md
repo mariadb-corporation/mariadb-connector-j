@@ -1,4 +1,14 @@
 # Change Log
+## [3.3.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.3) (Feb 2024)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.2...3.3.3)
+
+##### Bugs Fixed
+
+* CONJ-1050 regression in 3.x.y: nonparameterized batch "INSERT INTO products( name ) VALUES ( 'aaaa' )" fails
+* CONJ-1150 Error using PrepareStatement.setURL with null url
+* CONJ-1152 Improve message when reaching socket timeout during connection initial commands
+
 
 ## [3.3.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.2) (Dec 2023)
 
