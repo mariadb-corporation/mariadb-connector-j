@@ -1631,6 +1631,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
           default:
             stateInfo.skipLengthEncodedBytes();
+            break;
         }
       }
     }
@@ -2098,7 +2099,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     connected = false;
     if (initialException instanceof SocketTimeoutException) {
       return new SqlSocketTimeoutException(
-              initialException.getMessage() + getTraces(), "08000", initialException);
+          initialException.getMessage() + getTraces(), "08000", initialException);
     }
 
     return new SQLNonTransientConnectionException(

@@ -251,7 +251,8 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             pos = 0;
             return;
           } else {
-            // reset sequence to previous value, since not sent because compression wasn't high enough
+            // reset sequence to previous value, since not sent because compression wasn't high
+            // enough
             this.seqNo--;
           }
         }

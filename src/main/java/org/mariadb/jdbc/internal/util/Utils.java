@@ -128,12 +128,12 @@ public class Utils {
     if (socketFactoryName != null) {
       try {
         Class<SocketFactory> socketFactoryClass =
-                (Class<SocketFactory>)
-                        Class.forName(socketFactoryName, false, Utils.class.getClassLoader());
+            (Class<SocketFactory>)
+                Class.forName(socketFactoryName, false, Utils.class.getClassLoader());
         if (socketFactoryClass != null) {
           if (!SocketFactory.class.isAssignableFrom(socketFactoryClass)) {
             throw new IOException(
-                    "Wrong Socket factory implementation '" + socketFactoryName + "'");
+                "Wrong Socket factory implementation '" + socketFactoryName + "'");
           }
           Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
           socketFactory = constructor.newInstance();

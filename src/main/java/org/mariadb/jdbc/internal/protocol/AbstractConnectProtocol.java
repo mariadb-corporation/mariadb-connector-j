@@ -924,10 +924,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
       socket.setSoTimeout(this.socketTimeout);
 
     } catch (SqlSocketTimeoutException timeoutException) {
-      String msg = "Socket timeout during post connection queries: " + timeoutException.getMessage();
+      String msg =
+          "Socket timeout during post connection queries: " + timeoutException.getMessage();
       if (options.usePipelineAuth) {
         msg +=
-                "\nServer might not support pipelining, try disabling with option `usePipelineAuth` and `useBatchMultiSend`";
+            "\nServer might not support pipelining, try disabling with option `usePipelineAuth` and `useBatchMultiSend`";
       }
       throw exceptionFactory.create(msg, "08000", timeoutException);
     } catch (SocketTimeoutException timeoutException) {
