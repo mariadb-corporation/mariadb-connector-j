@@ -116,4 +116,43 @@ public class LoggersTest {
 
     reader.close();
   }
+
+  @Test
+  void noLoggerFactory() {
+    System.setProperty(Loggers.NO_LOGGER_PROPERTY, "true");
+    Loggers.init();
+    try {
+      Logger logger = Loggers.getLogger(LoggersTest.class);
+      assertFalse(logger.isErrorEnabled());
+      assertFalse(logger.isWarnEnabled());
+      assertFalse(logger.isInfoEnabled());
+      assertFalse(logger.isDebugEnabled());
+      assertFalse(logger.isTraceEnabled());
+      assertEquals("", logger.getName());
+
+      logger.error("Test err1");
+      logger.error("Test err2", new SQLException("test exception"));
+      logger.error("Test err3 {}", "param");
+
+      logger.warn("Test warn 1");
+      logger.warn("Test warn 2", new SQLException("test exception"));
+      logger.warn("Test warn 3 {}", "param");
+
+      logger.info("Test info 1");
+      logger.info("Test info 2", new SQLException("test exception"));
+      logger.info("Test info 3 {}", "param");
+
+      logger.debug("Test debug 1");
+      logger.debug("Test debug 2", new SQLException("test exception"));
+      logger.debug("Test debug 3 {}", "param");
+
+      logger.trace("Test trace 1");
+      logger.trace("Test trace 2", new SQLException("test exception"));
+      logger.trace("Test trace 3 {}", "param");
+
+    } finally {
+      System.clearProperty(Loggers.NO_LOGGER_PROPERTY);
+      Loggers.init();
+    }
+  }
 }

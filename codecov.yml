@@ -9,5 +9,5 @@ coverage:
   status:
     project:
       default:
-        target: auto
+        target: 85%    # the required coverage value
         threshold: 1%
