@@ -72,6 +72,7 @@ public class OkPacket implements Completion {
 
             default:
               buf.skip(buf.readIntLengthEncodedNotNull());
+              break;
           }
         }
       }
