@@ -14,7 +14,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jmh.version>1.37</jmh.version>
-        <junit.version>5.7.0</junit.version>
+        <junit.version>5.5.2</junit.version>
         <junit-pioneer.version>1.9.1</junit-pioneer.version>
         <assertj.version>3.24.2</assertj.version>
         <osgi.version>6.0.0</osgi.version>
@@ -212,6 +212,75 @@
                 </executions>
             </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.10.1</version>
+                    <configuration>
+                        <showWarnings>true</showWarnings>
+                        <source>1.8</source>
+                        <target>1.8</target>
+                        <compilerArgs>
+                            <arg>-Xlint:all,-options,-path,-processing</arg>
+                        </compilerArgs>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>compile-java-8</id>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>compile-java-9</id>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                            <configuration>
+                                <release>9</release>
+                                <source>9</source>
+                                <target>9</target>
+                                <compilerArgs>
+                                    <arg>--add-exports</arg>
+                                    <arg>jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                                    <arg>--add-exports</arg>
+                                    <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                                    <arg>--add-exports</arg>
+                                    <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                                    <arg>--add-exports</arg>
+                                    <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                                    <arg>--add-exports</arg>
+                                    <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                                </compilerArgs>
+                                <compileSourceRoots>
+                                    <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+                                </compileSourceRoots>
+                                <multiReleaseOutput>true</multiReleaseOutput>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>compile-java-11</id>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                            <configuration>
+                                <release>11</release>
+                                <source>11</source>
+                                <target>11</target>
+                                <compileSourceRoots>
+                                    <compileSourceRoot>${project.basedir}/src/main/java11</compileSourceRoot>
+                                </compileSourceRoots>
+                                <multiReleaseOutput>true</multiReleaseOutput>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
     <dependencies>
@@ -414,67 +483,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.10.1</version>
-                        <configuration>
-                            <showWarnings>true</showWarnings>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options,-path,-processing</arg>
-                            </compilerArgs>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>compile-java-8</id>
-                                <goals>
-                                    <goal>compile</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>compile-java-9</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>compile</goal>
-                                </goals>
-                                <configuration>
-                                    <release>9</release>
-                                    <source>9</source>
-                                    <target>9</target>
-                                    <compilerArgs>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
-                                    </compilerArgs>
-                                    <compileSourceRoots>
-                                        <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
-                                    </compileSourceRoots>
-                                    <multiReleaseOutput>true</multiReleaseOutput>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>compile-java-11</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>compile</goal>
-                                </goals>
-                                <configuration>
-                                    <release>11</release>
-                                    <source>11</source>
-                                    <target>11</target>
-                                    <compileSourceRoots>
-                                        <compileSourceRoot>${project.basedir}/src/main/java11</compileSourceRoot>
-                                    </compileSourceRoots>
-                                    <multiReleaseOutput>true</multiReleaseOutput>
-                                </configuration>
-                            </execution>
-                        </executions>
                     </plugin>
                     <plugin>
                         <groupId>org.jacoco</groupId>
@@ -499,6 +507,110 @@
                                 <goals>
                                     <goal>report</goal>
                                 </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <dependencies>
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>${logback.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>test-jdk</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-toolchains-plugin</artifactId>
+                        <version>3.0.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>toolchain</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <toolchains>
+                                <jdk>
+                                    <version>11</version>
+                                </jdk>
+                            </toolchains>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>3.2.3</version>
+                        <executions>
+                            <execution>
+                                <id>jdk-8</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <jdkToolchain>
+                                        <version>8</version>
+                                        <vendor>openJdk</vendor>
+                                    </jdkToolchain>
+                                    <excludes>
+                                        <exclude>**/SslTest.java</exclude>
+                                    </excludes>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>jdk-11</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <jdkToolchain>
+                                        <version>11</version>
+                                        <vendor>openJdk</vendor>
+                                    </jdkToolchain>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>jdk-17</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <jdkToolchain>
+                                        <version>17</version>
+                                        <vendor>openJdk</vendor>
+                                    </jdkToolchain>
+                                    <excludes>
+                                        <exclude>**/CredentialPluginTest.java</exclude> <!-- todo PLAT-6994 -->
+                                        <exclude>**/StatementTest.java</exclude> <!-- todo PLAT-6993 -->
+                                    </excludes>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>jdk-21</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <jdkToolchain>
+                                        <version>21</version>
+                                        <vendor>openJdk</vendor>
+                                    </jdkToolchain>
+                                    <excludes>
+                                        <exclude>**/CredentialPluginTest.java</exclude>
+                                        <exclude>**/StatementTest.java</exclude>
+                                    </excludes>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

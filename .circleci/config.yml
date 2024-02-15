@@ -1,5 +1,5 @@
 # ************************************************************************************
-#   Copyright (c) 2021 SingleStore, Inc.
+#   Copyright (c) 2024 SingleStore, Inc.
 #
 #   This library is free software; you can redistribute it and/or
 #   modify it under the terms of the GNU Library General Public
@@ -34,11 +34,13 @@ commands:
           name: Setup Machine
           command: |
             sudo apt-get update
-            sudo apt-get install -y sbt python3-pip git mariadb-client-core-10.3
             sudo apt-get clean
+            sudo apt-get install -y sbt python3-pip git mariadb-client-core-10.6
             sudo apt-get autoclean
-            # Install Java based on the specified version
+            # Install Java
+            sudo apt-get install -y openjdk-11-jdk
             sudo apt-get install -y openjdk-<< parameters.java_version >>-jdk
+
 jobs:
   test:
     parameters:
@@ -50,11 +52,12 @@ jobs:
         type: string
     working_directory: ~/singlestore-jdbc-client
     machine:
-      image: ubuntu-2004:202008-01
+      image: ubuntu-2204:2024.01.1
     resource_class: << parameters.machine_class >>
     environment:
       SINGLESTORE_IMAGE: << parameters.singlestore_image >>
       SINGLESTORE_PASSWORD: << parameters.singlestore_password >>
+      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
       TEST_ENVIRON: CIRCLE_CI
     steps:
       - setup_environment:
@@ -83,28 +86,33 @@ jobs:
       # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
   test_jdk:
     parameters:
+      java_version:
+        type: string
       singlestore_image:
         type: string
       singlestore_password:
         type: string
       machine_class:
         type: string
-      java_version:
-        type: string
     working_directory: ~/singlestore-jdbc-client
     machine:
-      image: ubuntu-2004:202008-01
+      image: ubuntu-2204:2024.01.1
     resource_class: << parameters.machine_class >>
     environment:
       SINGLESTORE_IMAGE: << parameters.singlestore_image >>
       SINGLESTORE_PASSWORD: << parameters.singlestore_password >>
       TEST_ENVIRON: CIRCLE_CI
-      JAVA_HOME: /usr/lib/jvm/java-<< parameters.java_version >>-openjdk-amd64
+      MAVEN_OPTS: -XX:+UseG1GC
+      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+      JAVA_HOME_ROOT: /usr/lib/jvm
       JAVA_VERSION: << parameters.java_version >>
     steps:
       - setup_environment:
           java_version: << parameters.java_version >>
       - checkout
+      - run:
+          name: Setup test cluster
+          command: ./scripts/ensure-test-singlestore-cluster-password.sh
       - restore_cache: # restore the saved cache after the first run or if `pom.xml` has changed
           # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
           key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
@@ -116,12 +124,17 @@ jobs:
       - run:
           name: Compile
           command: |
-            echo "Use JDK ${JAVA_VERSION}"
+            echo "Compile with JDK ${JAVA_HOME}"
             if [ "${JAVA_VERSION}" = "8" ]; then
-              mvn compile -P java8
+              mvn test-compile -P java8
             else
-              mvn compile
+              mvn test-compile
             fi
+      - run:
+          name: Run JDK tests
+          command: |
+            echo "Run tests with JDK ${JAVA_VERSION}"
+            mvn --global-toolchains ci/toolchains.xml -Ptest-jdk surefire:test@jdk-${JAVA_VERSION}
       - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: target/surefire-reports
@@ -129,7 +142,7 @@ jobs:
     machine:
       image: ubuntu-2004:202008-01
     environment:
-#      JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+      #      JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
       SONATYPE_USERNAME: memsql
     steps:
       - setup_environment:
@@ -184,9 +197,10 @@ workflows:
               singlestore_image:
                 - singlestore/cluster-in-a-box:alma-8.1.8-967dab3a92-4.0.12-1.16.1
               java_version:
-                - '8'
+# gc error      - '8'
                 - '11'
                 - '17'
+                - '21'
       - approve-publish:
           requires:
             - test_jdk

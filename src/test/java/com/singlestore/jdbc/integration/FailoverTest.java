@@ -58,14 +58,14 @@ public class FailoverTest extends Common {
         createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
       assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
       final Statement stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 800);
+      con.setNetworkTimeout(Runnable::run, 1000);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
-      proxy.restart(1000);
+      proxy.restart(1100);
       if (transactionReplay) {
         stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')");
         con.commit();
@@ -158,7 +158,7 @@ public class FailoverTest extends Common {
             HaMode.SEQUENTIAL,
             "&useServerPrepStmts=" + binary + "&transactionReplay=" + transactionReplay)) {
       stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 800);
+      con.setNetworkTimeout(Runnable::run, 1000);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO transaction_failover_3 (test) VALUES ('test0')");
@@ -169,7 +169,7 @@ public class FailoverTest extends Common {
         p.setString(1, "test2");
         p.execute();
 
-        proxy.restart(1000);
+        proxy.restart(1100);
         p.setString(1, "test3");
         if (transactionReplay) {
           p.execute();

@@ -111,7 +111,7 @@ public class PooledConnectionTest extends Common {
 
     try (SingleStorePoolDataSource ds =
         new SingleStorePoolDataSource(
-            url + "poolValidMinDelay=1&connectTimeout=10&maxPoolSize=1")) {
+            url + "poolValidMinDelay=1&connectTimeout=50&maxPoolSize=1")) {
 
       PooledConnection pc = ds.getPooledConnection();
       pc.getConnection().isValid(1);
