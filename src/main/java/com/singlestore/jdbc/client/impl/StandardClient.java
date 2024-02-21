@@ -82,51 +82,7 @@ public class StandardClient implements Client, AutoCloseable {
   private int socketTimeout;
   protected boolean timeOut;
   private BigInteger aggregatorId;
-
-  private TimerTask getTimerTask() {
-    return new TimerTask() {
-      @Override
-      public void run() {
-        Thread cancelThread =
-            new Thread() {
-              @Override
-              public void run() {
-                boolean lockStatus = lock.tryLock();
-
-                if (!closed) {
-                  closed = true;
-                  timeOut = true;
-                  if (!lockStatus) {
-                    // lock not available : query is running
-                    // force end by executing an KILL connection
-                    try (StandardClient cli =
-                        new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
-                      cli.execute(new QueryPacket("KILL " + context.getThreadId()), false);
-                    } catch (Exception e) {
-                      // eat
-                    }
-                  } else {
-                    try {
-                      QuitPacket.INSTANCE.encode(writer, context);
-                    } catch (IOException e) {
-                      // eat
-                    }
-                  }
-                  if (streamStmt != null) {
-                    streamStmt.abort();
-                  }
-                  closeSocket();
-                }
-
-                if (lockStatus) {
-                  lock.unlock();
-                }
-              }
-            };
-        cancelThread.start();
-      }
-    };
-  }
+  private transient Timer cancelTimer;
 
   /**
    * Constructor
@@ -596,6 +552,54 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  private CancelQueryTask startQueryTimer(com.singlestore.jdbc.Statement stmt) throws SQLException {
+    if (stmt != null && stmt.getQueryTimeout() > 0) {
+      Loggers.getLogger(StandardClient.class)
+          .debug(
+              "start cancel query task {} with timeout {}",
+              context.getThreadId(),
+              stmt.getQueryTimeout());
+      CancelQueryTask cancelQueryTask = new CancelQueryTask();
+      this.getCancelTimer().schedule(cancelQueryTask, stmt.getQueryTimeout() * 1000);
+      return cancelQueryTask;
+    }
+    return null;
+  }
+
+  private void stopQueryTimer(
+      CancelQueryTask cancelQueryTask, boolean rethrowCancelReason, boolean checkCancelTimeout)
+      throws SQLException {
+    if (cancelQueryTask != null) {
+      Loggers.getLogger(StandardClient.class)
+          .debug("stop cancel query task {}", context.getThreadId());
+      cancelQueryTask.cancel();
+      if (rethrowCancelReason && cancelQueryTask.getCaughtWhileCancelling() != null) {
+        Throwable t = cancelQueryTask.getCaughtWhileCancelling();
+        throw exceptionFactory.create(t.getMessage());
+      }
+      this.cancelTimer.purge();
+      if (checkCancelTimeout) {
+        checkCancelTimeout();
+      }
+    }
+  }
+
+  private synchronized Timer getCancelTimer() {
+    if (this.cancelTimer == null) {
+      this.cancelTimer = new Timer("SingleStore Statement Cancellation Timer", Boolean.TRUE);
+    }
+    return this.cancelTimer;
+  }
+
+  private void checkCancelTimeout() throws SQLException {
+    if (timeOut) {
+      SQLException cause =
+          exceptionFactory.create("Connection is closed due to query timed out", "08000", 1220);
+      timeOut = false;
+      throw cause;
+    }
+  }
+
   @Override
   public List<Completion> execute(
       ClientMessage message,
@@ -607,30 +611,25 @@ public class StandardClient implements Client, AutoCloseable {
       boolean closeOnCompletion,
       boolean canRedo)
       throws SQLException {
-    if (stmt != null && stmt.getQueryTimeout() > 0) {
-      Timer cancelTimer = new Timer();
-      try {
-        cancelTimer.schedule(getTimerTask(), stmt.getQueryTimeout() * 1000);
-        return executeInternal(
-            message,
-            stmt,
-            fetchSize,
-            maxRows,
-            resultSetConcurrency,
-            resultSetType,
-            closeOnCompletion);
-      } finally {
-        cancelTimer.cancel();
+    CancelQueryTask timeoutTask = null;
+    try {
+      timeoutTask = startQueryTimer(stmt);
+      List<Completion> completions =
+          executeInternal(
+              message,
+              stmt,
+              fetchSize,
+              maxRows,
+              resultSetConcurrency,
+              resultSetType,
+              closeOnCompletion);
+      if (timeoutTask != null) {
+        stopQueryTimer(timeoutTask, true, true);
+        timeoutTask = null;
       }
-    } else {
-      return executeInternal(
-          message,
-          stmt,
-          fetchSize,
-          maxRows,
-          resultSetConcurrency,
-          resultSetType,
-          closeOnCompletion);
+      return completions;
+    } finally {
+      stopQueryTimer(timeoutTask, false, false);
     }
   }
 
@@ -848,8 +847,8 @@ public class StandardClient implements Client, AutoCloseable {
    * @param resultSetType type
    * @param maxRows max rows
    * @param closeOnCompletion must resultset close statement on completion
-   * @throws SQLException if any exception
    * @return completion result
+   * @throws SQLException if any exception
    */
   public Completion readPacket(
       com.singlestore.jdbc.Statement stmt,
@@ -1043,5 +1042,58 @@ public class StandardClient implements Client, AutoCloseable {
   public void reset() {
     context.resetStateFlag();
     context.resetPrepareCache();
+  }
+
+  private class CancelQueryTask extends TimerTask {
+
+    Throwable caughtWhileCancelling = null;
+
+    @Override
+    public void run() {
+      Thread cancelThread =
+          new Thread(
+              () -> {
+                try {
+                  boolean lockStatus = lock.tryLock();
+                  Loggers.getLogger(CancelQueryTask.class)
+                      .debug("execute kill query {}", context.getThreadId());
+                  if (!closed) {
+                    closed = true;
+                    timeOut = true;
+                    if (!lockStatus) {
+                      // lock not available : query is running
+                      // force end by executing an KILL connection
+                      try (StandardClient cli =
+                          new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
+                        String killQuery =
+                            String.format("KILL QUERY %d %d", context.getThreadId(), aggregatorId);
+                        cli.execute(new QueryPacket(killQuery), false);
+                      }
+                    } else {
+                      QuitPacket.INSTANCE.encode(writer, context);
+                    }
+                    if (streamStmt != null) {
+                      streamStmt.abort();
+                    }
+                    closeSocket();
+                  }
+
+                  if (lockStatus) {
+                    lock.unlock();
+                  }
+                } catch (Throwable t) {
+                  CancelQueryTask.this.setCaughtWhileCancelling(t);
+                }
+              });
+      cancelThread.start();
+    }
+
+    Throwable getCaughtWhileCancelling() {
+      return this.caughtWhileCancelling;
+    }
+
+    void setCaughtWhileCancelling(Throwable caughtWhileCancelling) {
+      this.caughtWhileCancelling = caughtWhileCancelling;
+    }
   }
 }

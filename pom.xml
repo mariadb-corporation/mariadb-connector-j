@@ -587,9 +587,6 @@
                                         <version>17</version>
                                         <vendor>openJdk</vendor>
                                     </jdkToolchain>
-                                    <excludes>
-                                        <exclude>**/StatementTest.java</exclude>
-                                    </excludes>
                                 </configuration>
                             </execution>
                             <execution>
@@ -602,9 +599,6 @@
                                         <version>21</version>
                                         <vendor>openJdk</vendor>
                                     </jdkToolchain>
-                                    <excludes>
-                                        <exclude>**/StatementTest.java</exclude>
-                                    </excludes>
                                 </configuration>
                             </execution>
                         </executions>
