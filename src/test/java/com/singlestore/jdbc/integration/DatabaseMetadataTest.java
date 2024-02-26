@@ -67,96 +67,54 @@ public class DatabaseMetadataTest extends Common {
   public static void initClass() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute(
-        "CREATE TABLE IF NOT EXISTS getTimePrecision("
-            + "d date, "
-            + "t1 datetime(0),"
-            + "t2 datetime(6),"
-            + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
-            + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
-            + "t5 time(0),"
-            + "t6 time(6))");
+    stmt.execute("CREATE TABLE IF NOT EXISTS getTimePrecision(" + "d date, " + "t1 datetime(0),"
+        + "t2 datetime(6)," + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+        + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00'," + "t5 time(0)," + "t6 time(6))");
     stmt.execute("CREATE TABLE json_test(t1 JSON)");
     stmt.execute("CREATE FUNCTION testMetaCatalog(x int) RETURNS int AS \nBEGIN\n return 1; end\n");
-    stmt.execute(
-        "CREATE"
-            + " TABLE IF NOT EXISTS pk_test(val varchar(20), id int not null, primary key(id))");
-    stmt.execute(
-        "CREATE"
-            + " TABLE IF NOT EXISTS pk_test_multi(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
-            + "id2))");
-    stmt.execute(
-        createRowstore()
-            + " TABLE IF NOT EXISTS pk_test_rowstore(val varchar(20), id int not null,primary key(id))");
-    stmt.execute(
-        createRowstore()
-            + " TABLE IF NOT EXISTS pk_test_rowstore_multi(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
-            + "id2))");
+    stmt.execute("CREATE"
+        + " TABLE IF NOT EXISTS pk_test(val varchar(20), id int not null, primary key(id))");
+    stmt.execute("CREATE"
+        + " TABLE IF NOT EXISTS pk_test_multi(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
+        + "id2))");
+    stmt.execute(createRowstore()
+        + " TABLE IF NOT EXISTS pk_test_rowstore(val varchar(20), id int not null,primary key(id))");
+    stmt.execute(createRowstore()
+        + " TABLE IF NOT EXISTS pk_test_rowstore_multi(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
+        + "id2))");
     stmt.execute(
         "CREATE FUNCTION UDTF(x int) returns table as return select * from pk_test where id = x");
     stmt.execute(
         "CREATE FUNCTION UDAFinit () RETURNS bigint AS declare s bigint ; BEGIN RETURN s; END");
-    stmt.execute(
-        "CREATE FUNCTION UDAFiter(s bigint , v bigint ) "
-            + "RETURNS bigint AS "
-            + "BEGIN "
-            + "IF (v is not null and s is null) or ( v > s ) THEN "
-            + "return v; "
-            + "END IF; "
-            + "RETURN s; "
-            + "END");
-    stmt.execute(
-        "CREATE FUNCTION UDAFmerge(s1 bigint , s2 bigint ) "
-            + "RETURNS bigint AS "
-            + "BEGIN "
-            + "IF s2 > s1 THEN "
-            + "RETURN s2; "
-            + "END IF; "
-            + "RETURN s1; "
-            + "END");
+    stmt.execute("CREATE FUNCTION UDAFiter(s bigint , v bigint ) " + "RETURNS bigint AS " + "BEGIN "
+        + "IF (v is not null and s is null) or ( v > s ) THEN " + "return v; " + "END IF; "
+        + "RETURN s; " + "END");
+    stmt.execute("CREATE FUNCTION UDAFmerge(s1 bigint , s2 bigint ) " + "RETURNS bigint AS "
+        + "BEGIN " + "IF s2 > s1 THEN " + "RETURN s2; " + "END IF; " + "RETURN s1; " + "END");
     stmt.execute("CREATE FUNCTION UDAFterminate(s bigint) RETURNS bigint AS BEGIN RETURN s; END");
-    stmt.execute(
-        "CREATE AGGREGATE UDAF(bigint) RETURNS bigint "
-            + "WITH STATE bigint "
-            + "INITIALIZE WITH UDAFinit "
-            + "ITERATE WITH UDAFiter "
-            + "MERGE WITH UDAFmerge "
-            + "TERMINATE WITH UDAFterminate;");
+    stmt.execute("CREATE AGGREGATE UDAF(bigint) RETURNS bigint " + "WITH STATE bigint "
+        + "INITIALIZE WITH UDAFinit " + "ITERATE WITH UDAFiter " + "MERGE WITH UDAFmerge "
+        + "TERMINATE WITH UDAFterminate;");
     stmt.execute("CREATE TABLE IF NOT EXISTS datetime_test(dt datetime)");
-    stmt.execute(
-        "CREATE TABLE IF NOT EXISTS `manycols`("
-            + "  `tiny` tinyint(4) DEFAULT NULL,"
-            + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,"
-            + "  `small` smallint(6) DEFAULT NULL,"
-            + "  `small_uns` smallint(5) unsigned DEFAULT NULL,"
-            + "  `medium` mediumint(9) DEFAULT NULL,"
-            + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,"
-            + "  `int_col` int(11) DEFAULT NULL,"
-            + "  `int_col_uns` int(10) unsigned DEFAULT NULL,"
-            + "  `big` bigint(20) DEFAULT NULL,"
-            + "  `big_uns` bigint(20) unsigned DEFAULT NULL,"
-            + "  `decimal_col` decimal(10,5) DEFAULT NULL,"
-            + "  `fcol` float DEFAULT NULL,"
-            + "  `fcol_uns` float unsigned DEFAULT NULL,"
-            + "  `dcol` double DEFAULT NULL,"
-            + "  `dcol_uns` double unsigned DEFAULT NULL,"
-            + "  `date_col` date DEFAULT NULL,"
-            + "  `time_col` time DEFAULT NULL,"
-            + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-            + "  `year_col` year(4) DEFAULT NULL,"
-            + "  `bit_col` bit(5) DEFAULT NULL,"
-            + "  `char_col` char(5) DEFAULT NULL,"
-            + "  `varchar_col` varchar(10) DEFAULT NULL,"
-            + "  `binary_col` binary(10) DEFAULT NULL,"
-            + "  `varbinary_col` varbinary(10) DEFAULT NULL,"
-            + "  `tinyblob_col` tinyblob,"
-            + "  `blob_col` blob,"
-            + "  `mediumblob_col` mediumblob,"
-            + "  `longblob_col` longblob,"
-            + "  `tinytext_col` tinytext,"
-            + "  `text_col` text,"
-            + "  `mediumtext_col` mediumtext,"
-            + "  `longtext_col` longtext)");
+    stmt.execute("CREATE TABLE IF NOT EXISTS `manycols`(" + "  `tiny` tinyint(4) DEFAULT NULL,"
+        + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL," + "  `small` smallint(6) DEFAULT NULL,"
+        + "  `small_uns` smallint(5) unsigned DEFAULT NULL,"
+        + "  `medium` mediumint(9) DEFAULT NULL,"
+        + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL," + "  `int_col` int(11) DEFAULT NULL,"
+        + "  `int_col_uns` int(10) unsigned DEFAULT NULL," + "  `big` bigint(20) DEFAULT NULL,"
+        + "  `big_uns` bigint(20) unsigned DEFAULT NULL,"
+        + "  `decimal_col` decimal(10,5) DEFAULT NULL," + "  `fcol` float DEFAULT NULL,"
+        + "  `fcol_uns` float unsigned DEFAULT NULL," + "  `dcol` double DEFAULT NULL,"
+        + "  `dcol_uns` double unsigned DEFAULT NULL," + "  `date_col` date DEFAULT NULL,"
+        + "  `time_col` time DEFAULT NULL,"
+        + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+        + "  `year_col` year(4) DEFAULT NULL," + "  `bit_col` bit(5) DEFAULT NULL,"
+        + "  `char_col` char(5) DEFAULT NULL," + "  `varchar_col` varchar(10) DEFAULT NULL,"
+        + "  `binary_col` binary(10) DEFAULT NULL,"
+        + "  `varbinary_col` varbinary(10) DEFAULT NULL," + "  `tinyblob_col` tinyblob,"
+        + "  `blob_col` blob," + "  `mediumblob_col` mediumblob," + "  `longblob_col` longblob,"
+        + "  `tinytext_col` tinytext," + "  `text_col` text," + "  `mediumtext_col` mediumtext,"
+        + "  `longtext_col` longtext)");
     stmt.execute("CREATE TABLE IF NOT EXISTS ytab(y year)");
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS maxcharlength(maxcharlength char(1)) character set utf8");
@@ -166,38 +124,22 @@ public class DatabaseMetadataTest extends Common {
         "create table getBestRowIdentifier1 (id int not null primary key, val varchar(20))");
     stmt.execute(
         "create table getBestRowIdentifier2(id int not null auto_increment, SHARD KEY(id), UNIQUE KEY(id))");
-    stmt.execute(
-        "CREATE TABLE IF NOT EXISTS get_index_info(\n"
-            + "    no INT NOT NULL AUTO_INCREMENT,\n"
-            + "    product_category INT NOT NULL,\n"
-            + "    product_id INT NOT NULL,\n"
-            + "    customer_id INT NOT NULL,\n"
-            + "    PRIMARY KEY(no),\n"
-            + "    INDEX ind_prod (product_category, product_id),\n"
-            + "    INDEX ind_cust (customer_id))");
-    stmt.execute(
-        "CREATE PROCEDURE getProcTimePrecision2( I date, "
-            + "t1 DATETIME,"
-            + "t3 timestamp,"
-            + "t5 time) AS BEGIN ECHO SELECT I; END");
-    stmt.execute(
-        "CREATE PROCEDURE getProcTimePrecision"
-            + "(I date, "
-            + "t1 DATETIME(0),"
-            + "t2 DATETIME(6),"
-            + "t3 timestamp(0),"
-            + "t4 timestamp(6),"
-            + "t5 time ,"
-            + "t6 time(6)) AS BEGIN ECHO SELECT I; END");
+    stmt.execute("CREATE TABLE IF NOT EXISTS get_index_info(\n"
+        + "    no INT NOT NULL AUTO_INCREMENT,\n" + "    product_category INT NOT NULL,\n"
+        + "    product_id INT NOT NULL,\n" + "    customer_id INT NOT NULL,\n"
+        + "    PRIMARY KEY(no),\n" + "    INDEX ind_prod (product_category, product_id),\n"
+        + "    INDEX ind_cust (customer_id))");
+    stmt.execute("CREATE PROCEDURE getProcTimePrecision2( I date, " + "t1 DATETIME,"
+        + "t3 timestamp," + "t5 time) AS BEGIN ECHO SELECT I; END");
+    stmt.execute("CREATE PROCEDURE getProcTimePrecision" + "(I date, " + "t1 DATETIME(0),"
+        + "t2 DATETIME(6)," + "t3 timestamp(0)," + "t4 timestamp(6)," + "t5 time ,"
+        + "t6 time(6)) AS BEGIN ECHO SELECT I; END");
     stmt.execute(
         "CREATE PROCEDURE testMetaCatalogProc(x int) RETURNS int AS \nBEGIN\n return 1; end\n");
-    stmt.execute(
-        "create table text_types_text (varchar100           varchar(100),\n"
-            + "  varchar255           varchar(255),\n"
-            + "  text                 text,\n"
-            + "  `tinytext`           tinytext,\n"
-            + "  `mediumtext`         mediumtext,\n"
-            + "  `longtext`           longtext)");
+    stmt.execute("create table text_types_text (varchar100           varchar(100),\n"
+        + "  varchar255           varchar(255),\n" + "  text                 text,\n"
+        + "  `tinytext`           tinytext,\n" + "  `mediumtext`         mediumtext,\n"
+        + "  `longtext`           longtext)");
   }
 
   private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -267,10 +209,8 @@ public class DatabaseMetadataTest extends Common {
     DatabaseMetaData meta = sharedConn.getMetaData();
 
     stmt.execute("DROP FUNCTION IF EXISTS hello");
-    stmt.execute(
-        "CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) AS BEGIN "
-            + "RETURN CONCAT('Hello, ',s,'!'); "
-            + "END");
+    stmt.execute("CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) AS BEGIN "
+        + "RETURN CONCAT('Hello, ',s,'!'); " + "END");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs = meta.getFunctionColumns(null, null, "hello", null);
 
@@ -303,12 +243,10 @@ public class DatabaseMetadataTest extends Common {
     DatabaseMetaData meta = sharedConn.getMetaData();
 
     stmt.execute("DROP FUNCTION IF EXISTS funcTypeTest");
-    stmt.execute(
-        "CREATE FUNCTION funcTypeTest (a1 VARCHAR(9) , "
-            + "a2 VARBINARY(10), a3 LONGTEXT, a4 MEDIUMTEXT, a5 TEXT, a6 TINYTEXT, a7 VARCHAR(11) CHARACTER SET binary, "
-            + "b1 TINYBLOB, b2 BLOB, b3 MEDIUMBLOB, b4 LONGBLOB) RETURNS CHAR(50) AS BEGIN "
-            + "RETURN CONCAT('Hello, ',a1,'!'); "
-            + "END");
+    stmt.execute("CREATE FUNCTION funcTypeTest (a1 VARCHAR(9) , "
+        + "a2 VARBINARY(10), a3 LONGTEXT, a4 MEDIUMTEXT, a5 TEXT, a6 TINYTEXT, a7 VARCHAR(11) CHARACTER SET binary, "
+        + "b1 TINYBLOB, b2 BLOB, b3 MEDIUMBLOB, b4 LONGBLOB) RETURNS CHAR(50) AS BEGIN "
+        + "RETURN CONCAT('Hello, ',a1,'!'); " + "END");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs = meta.getFunctionColumns(null, null, "funcTypeTest", null);
     /* First row is for return value */
@@ -386,9 +324,8 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void testGetTables2() throws SQLException {
     DatabaseMetaData dbmd = sharedConn.getMetaData();
-    ResultSet rs =
-        dbmd.getTables(
-            "information_schema", null, "TABLE_PRIVILEGES", new String[] {"SYSTEM VIEW"});
+    ResultSet rs = dbmd.getTables("information_schema", null, "TABLE_PRIVILEGES",
+        new String[] {"SYSTEM VIEW"});
     assertEquals(true, rs.next());
     assertEquals(false, rs.next());
     rs = dbmd.getTables("information_schema", null, "TABLE_PRIVILEGES", new String[] {"VIEW"});
@@ -423,9 +360,8 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void testGetTable4() throws SQLException {
     DatabaseMetaData dbmd = sharedConn.getMetaData();
-    ResultSet rs =
-        dbmd.getTables(
-            "information_schema", null, "TABLE_PRIVILEGES", new String[] {"SYSTEM VIEW"});
+    ResultSet rs = dbmd.getTables("information_schema", null, "TABLE_PRIVILEGES",
+        new String[] {"SYSTEM VIEW"});
     assertEquals(true, rs.next());
     String tableType = rs.getString("TABLE_TYPE");
     assertEquals("VIEW", tableType);
@@ -442,9 +378,8 @@ public class DatabaseMetadataTest extends Common {
 
     stmt.execute("CREATE TABLE test_table (id INT NOT NULL PRIMARY KEY, " + "val VARCHAR(20))");
 
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION test_table_func(n int) RETURNS TABLE AS "
-            + "RETURN SELECT val FROM test_table WHERE id=n;");
+    stmt.execute("CREATE OR REPLACE FUNCTION test_table_func(n int) RETURNS TABLE AS "
+        + "RETURN SELECT val FROM test_table WHERE id=n;");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet tableSet = dbmd.getTables(null, null, "test_table", null);
@@ -457,10 +392,9 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void testGetColumns() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute(
-        "CREATE TABLE IF NOT EXISTS `table'getcolumns`("
-            + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c AS (CHAR_LENGTH(b)) PERSISTED INT, "
-            + "d AS left(b,5) PERSISTED VARCHAR(5) CHARACTER SET 'utf8mb4', e AS a * 2 PERSISTED INT(14) UNSIGNED)");
+    stmt.execute("CREATE TABLE IF NOT EXISTS `table'getcolumns`("
+        + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c AS (CHAR_LENGTH(b)) PERSISTED INT, "
+        + "d AS left(b,5) PERSISTED VARCHAR(5) CHARACTER SET 'utf8mb4', e AS a * 2 PERSISTED INT(14) UNSIGNED)");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "table'getcolumns", null);
@@ -526,7 +460,8 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(1, rs.getInt(11)); // NULLABLE
     assertEquals("", rs.getString(12)); // REMARKS
 
-    // since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc
+    // since 10.2.7, value that are expected as String are enclosed with single
+    // quotes as javadoc
     // require
     assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); // COLUMN_DEF
 
@@ -598,9 +533,8 @@ public class DatabaseMetadataTest extends Common {
 
     stmt.execute("CREATE TABLE test_table (id INT NOT NULL PRIMARY KEY, " + "val VARCHAR(20))");
 
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION test_table_func(n int) RETURNS TABLE AS "
-            + "RETURN SELECT val FROM test_table WHERE id=n;");
+    stmt.execute("CREATE OR REPLACE FUNCTION test_table_func(n int) RETURNS TABLE AS "
+        + "RETURN SELECT val FROM test_table WHERE id=n;");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "test_table", null);
@@ -767,63 +701,34 @@ public class DatabaseMetadataTest extends Common {
       switch (type) {
         case "String":
           assertTrue(
-              columnType == Types.VARCHAR
-                  || columnType == Types.CHAR
-                  || columnType == Types.NULL
+              columnType == Types.VARCHAR || columnType == Types.CHAR || columnType == Types.NULL
                   || columnType == Types.LONGVARCHAR,
-              "invalid type "
-                  + columnType
-                  + " for "
-                  + rsmd.getColumnLabel(col)
+              "invalid type " + columnType + " for " + rsmd.getColumnLabel(col)
                   + ",expected String");
           break;
         case "decimal":
-          assertTrue(
-              columnType == Types.DECIMAL,
-              "invalid type  "
-                  + columnType
-                  + "( "
-                  + rsmd.getColumnTypeName(col)
-                  + " ) for "
-                  + rsmd.getColumnLabel(col)
-                  + ",expected decimal");
+          assertTrue(columnType == Types.DECIMAL,
+              "invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                  + rsmd.getColumnLabel(col) + ",expected decimal");
           break;
         case "int":
         case "short":
           assertTrue(
-              columnType == Types.BIGINT
-                  || columnType == Types.INTEGER
-                  || columnType == Types.SMALLINT
-                  || columnType == Types.TINYINT,
-              "invalid type  "
-                  + columnType
-                  + "( "
-                  + rsmd.getColumnTypeName(col)
-                  + " ) for "
-                  + rsmd.getColumnLabel(col)
-                  + ", expected numeric");
+              columnType == Types.BIGINT || columnType == Types.INTEGER
+                  || columnType == Types.SMALLINT || columnType == Types.TINYINT,
+              "invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                  + rsmd.getColumnLabel(col) + ", expected numeric");
 
           break;
         case "boolean":
-          assertTrue(
-              columnType == Types.BOOLEAN || columnType == Types.BIT,
-              "invalid type  "
-                  + columnType
-                  + "( "
-                  + rsmd.getColumnTypeName(col)
-                  + " ) for "
-                  + rsmd.getColumnLabel(col)
-                  + ",expected boolean");
+          assertTrue(columnType == Types.BOOLEAN || columnType == Types.BIT,
+              "invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                  + rsmd.getColumnLabel(col) + ",expected boolean");
 
           break;
         case "null":
-          assertTrue(
-              columnType == Types.NULL,
-              "invalid type  "
-                  + columnType
-                  + " for "
-                  + rsmd.getColumnLabel(col)
-                  + ",expected null");
+          assertTrue(columnType == Types.NULL, "invalid type  " + columnType + " for "
+              + rsmd.getColumnLabel(col) + ",expected null");
           break;
         default:
           fail("invalid type '" + type + "'");
@@ -844,8 +749,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getAttributesBasic() throws Exception {
-    testResultSetColumns(
-        sharedConn.getMetaData().getAttributes(null, null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getAttributes(null, null, null, null),
         "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,"
             + "ATTR_NAME String,DATA_TYPE int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int,"
             + "NUM_PREC_RADIX int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,"
@@ -937,15 +841,12 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void getBestRowIdentifier() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
-    Common.assertThrowsContains(
-        SQLException.class,
+    Common.assertThrowsContains(SQLException.class,
         () -> meta.getBestRowIdentifier(null, null, null, 0, true),
         "'table' parameter cannot be null in getBestRowIdentifier()");
-    testResultSetColumns(
-        meta.getBestRowIdentifier(null, null, "", 0, true),
+    testResultSetColumns(meta.getBestRowIdentifier(null, null, "", 0, true),
         "SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String,"
-            + "COLUMN_SIZE int,BUFFER_LENGTH int,"
-            + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");
+            + "COLUMN_SIZE int,BUFFER_LENGTH int," + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");
 
     ResultSet rs = meta.getBestRowIdentifier(null, null, "getBestRowIdentifier1", 0, true);
     assertTrue(rs.next());
@@ -981,8 +882,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getClientInfoPropertiesBasic() throws Exception {
-    testResultSetColumns(
-        sharedConn.getMetaData().getClientInfoProperties(),
+    testResultSetColumns(sharedConn.getMetaData().getClientInfoProperties(),
         "NAME String, MAX_LEN int, DEFAULT_VALUE String, DESCRIPTION String");
     ResultSet rs = sharedConn.getMetaData().getClientInfoProperties();
     assertTrue(rs.next());
@@ -1004,8 +904,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("ClientHostname", rs.getString(1));
     assertEquals(0x00ffffff, rs.getInt(2));
     assertEquals("", rs.getString(3));
-    assertEquals(
-        "The hostname of the computer the application using the connection is running on",
+    assertEquals("The hostname of the computer the application using the connection is running on",
         rs.getString(4));
 
     assertFalse(rs.next());
@@ -1018,8 +917,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnsBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getColumns(null, null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getColumns(null, null, null, null),
         "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
             + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
             + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
@@ -1032,8 +930,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getProcedureColumnsBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getProcedureColumns(null, null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getProcedureColumns(null, null, null, null),
         "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,"
             + "COLUMN_TYPE short,DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,"
             + "RADIX short,NULLABLE short,REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
@@ -1043,8 +940,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getFunctionColumnsBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getFunctionColumns(null, null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getFunctionColumns(null, null, null, null),
         "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME String,COLUMN_TYPE short,"
             + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,"
             + "NULLABLE short,REMARKS String,CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,"
@@ -1053,37 +949,31 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnPrivilegesBasic() throws SQLException {
-    Common.assertThrowsContains(
-        SQLException.class,
+    Common.assertThrowsContains(SQLException.class,
         () -> sharedConn.getMetaData().getColumnPrivileges(null, null, null, null),
         "'table' parameter must not be null");
-    testResultSetColumns(
-        sharedConn.getMetaData().getColumnPrivileges(null, null, "", null),
+    testResultSetColumns(sharedConn.getMetaData().getColumnPrivileges(null, null, "", null),
         "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
             + "GRANTOR String,GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
   }
 
   @Test
   public void getTablePrivilegesBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getTablePrivileges(null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getTablePrivileges(null, null, null),
         "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,GRANTOR String,"
             + "GRANTEE String,PRIVILEGE String,IS_GRANTABLE String");
   }
 
   @Test
   public void getVersionColumnsBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getVersionColumns(null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getVersionColumns(null, null, null),
         "SCOPE short, COLUMN_NAME String,DATA_TYPE int,TYPE_NAME String,"
-            + "COLUMN_SIZE int,BUFFER_LENGTH int,DECIMAL_DIGITS short,"
-            + "PSEUDO_COLUMN short");
+            + "COLUMN_SIZE int,BUFFER_LENGTH int,DECIMAL_DIGITS short," + "PSEUDO_COLUMN short");
   }
 
   @Test
   public void getPrimaryKeysBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getPrimaryKeys(null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getPrimaryKeys(null, null, null),
         "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ short,PK_NAME String");
   }
 
@@ -1111,24 +1001,21 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getUdtsBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getUDTs(null, null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getUDTs(null, null, null, null),
         "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,CLASS_NAME String,DATA_TYPE int,"
             + "REMARKS String,BASE_TYPE short");
   }
 
   @Test
   public void getSuperTypesBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getSuperTypes(null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getSuperTypes(null, null, null),
         "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,SUPERTYPE_CAT String,"
             + "SUPERTYPE_SCHEM String,SUPERTYPE_NAME String");
   }
 
   @Test
   public void getFunctionsBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getFunctions(null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getFunctions(null, null, null),
         "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE short, "
             + "SPECIFIC_NAME String");
   }
@@ -1185,8 +1072,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getSuperTablesBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getSuperTables(null, null, null),
+    testResultSetColumns(sharedConn.getMetaData().getSuperTables(null, null, null),
         "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String, SUPERTABLE_NAME String");
   }
 
@@ -1215,8 +1101,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void testGetTypeInfoBasic() throws SQLException {
-    testResultSetColumns(
-        sharedConn.getMetaData().getTypeInfo(),
+    testResultSetColumns(sharedConn.getMetaData().getTypeInfo(),
         "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String,"
             + "LITERAL_SUFFIX String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean,"
             + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, "
@@ -1235,8 +1120,7 @@ public class DatabaseMetadataTest extends Common {
       int type = rs.getInt("data_type");
       String typeName = rs.getString("type_name");
       for (char c : typeName.toCharArray()) {
-        assertTrue(
-            c == ' ' || Character.isUpperCase(c) || !Character.isAlphabetic(c),
+        assertTrue(c == ' ' || Character.isUpperCase(c) || !Character.isAlphabetic(c),
             "bad typename " + typeName);
       }
       checkType(columnName, type, "tiny", Types.BIT);
@@ -1349,15 +1233,9 @@ public class DatabaseMetadataTest extends Common {
   public void getPrecision() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE IF NOT EXISTS getPrecision("
-            + "num1 NUMERIC(9,4), "
-            + "num2 NUMERIC (9,0),"
-            + "num3 NUMERIC (9,4) UNSIGNED,"
-            + "num4 NUMERIC (9,0) UNSIGNED,"
-            + "num5 FLOAT(9,4),"
-            + "num6 FLOAT(9,4) UNSIGNED,"
-            + "num7 DOUBLE(9,4),"
-            + "num8 DOUBLE(9,4) UNSIGNED)");
+        "CREATE TABLE IF NOT EXISTS getPrecision(" + "num1 NUMERIC(9,4), " + "num2 NUMERIC (9,0),"
+            + "num3 NUMERIC (9,4) UNSIGNED," + "num4 NUMERIC (9,0) UNSIGNED," + "num5 FLOAT(9,4),"
+            + "num6 FLOAT(9,4) UNSIGNED," + "num7 DOUBLE(9,4)," + "num8 DOUBLE(9,4) UNSIGNED)");
     ResultSet rs = stmt.executeQuery("SELECT * FROM getPrecision");
     ResultSetMetaData rsmd = rs.getMetaData();
     assertEquals(9, rsmd.getPrecision(1));
@@ -1547,8 +1425,7 @@ public class DatabaseMetadataTest extends Common {
     Statement stmt = sharedConn.createStatement();
     DatabaseMetaData meta = sharedConn.getMetaData();
 
-    Common.assertThrowsContains(
-        SQLException.class,
+    Common.assertThrowsContains(SQLException.class,
         () -> meta.getIndexInfo(null, null, null, true, true),
         "'table' parameter must not be null");
 
@@ -1668,9 +1545,7 @@ public class DatabaseMetadataTest extends Common {
     assertFalse(meta.autoCommitFailureClosesAllResultSets());
 
     meta.unwrap(java.sql.DatabaseMetaData.class);
-    Common.assertThrowsContains(
-        SQLException.class,
-        () -> meta.unwrap(String.class),
+    Common.assertThrowsContains(SQLException.class, () -> meta.unwrap(String.class),
         "The receiver is not a wrapper for java.lang.String");
 
     assertEquals(4294967295L, meta.getMaxLogicalLobSize());

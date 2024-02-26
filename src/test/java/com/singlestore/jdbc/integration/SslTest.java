@@ -73,8 +73,8 @@ public class SslTest extends Common {
 
   private static void createSslUser(String user, String requirement) throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute(
-        "GRANT SELECT ON *.* TO '" + user + "'@'%' IDENTIFIED BY '!Passw0rd3Works' " + requirement);
+    stmt.execute("CREATE USER '" + user + "'@'%' IDENTIFIED BY '!Passw0rd3Works' " + requirement);
+    stmt.execute("GRANT SELECT ON *.* TO '" + user + "'@'%'");
   }
 
   private String getSslVersion(Connection con) throws SQLException {
@@ -136,7 +136,7 @@ public class SslTest extends Common {
     String serverCertPath = retrieveCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
 
-    // certificate path, like  /path/certificate.crt
+    // certificate path, like /path/certificate.crt
     try (Connection con =
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort)) {
       assertNotNull(getSslVersion(con));
@@ -166,7 +166,7 @@ public class SslTest extends Common {
     }
 
     String urlPath = Paths.get(serverCertPath).toUri().toURL().toString();
-    // file certificate path, like  file:/path/certificate.crt
+    // file certificate path, like file:/path/certificate.crt
     try (Connection con =
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + urlPath, sslPort)) {
       assertNotNull(getSslVersion(con));
@@ -178,7 +178,7 @@ public class SslTest extends Common {
         "DNS host \"localhost\" doesn't correspond to certificate CN \"test-memsql-server\"");
 
     String certificateString = getServerCertificate(serverCertPath);
-    // file certificate, like  -----BEGIN CERTIFICATE-----...
+    // file certificate, like -----BEGIN CERTIFICATE-----...
     try (Connection con =
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + certificateString, sslPort)) {
       assertNotNull(getSslVersion(con));

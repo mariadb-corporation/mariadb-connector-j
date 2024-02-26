@@ -34,10 +34,8 @@ public class PoolDataSourceTest extends Common {
     drop();
     Statement stmt = sharedConn.createStatement();
 
-    stmt.execute(
-        "GRANT SELECT ON "
-            + sharedConn.getCatalog()
-            + ".* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute("CREATE USER 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
 
     stmt.execute(
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test varchar(20))");
@@ -361,8 +359,10 @@ public class PoolDataSourceTest extends Common {
         // This may or may not be a bug, but seems weird to me:
         // we don't actually set parameters provided through config like autocommit
         // when creating new connection. However, we do set them to config values
-        // when resetting the connection. So in the case when value provided through the config
-        // does not equal default (&autocommit=false while S2 has autocommit=true), we get different
+        // when resetting the connection. So in the case when value provided through the
+        // config
+        // does not equal default (&autocommit=false while S2 has autocommit=true), we
+        // get different
         // values
         // before and after connection reset. Same thing for transactionIsolation
         assertFalse(connection.getAutoCommit());

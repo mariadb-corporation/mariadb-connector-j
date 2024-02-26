@@ -176,9 +176,10 @@ workflows:
               singlestore_password:
                 - password
               singlestore_image:
-                - singlestore/cluster-in-a-box:alma-7.8.5-144b69022c-4.0.6-1.13.7
-                - singlestore/cluster-in-a-box:alma-8.0.14-150dead86e-4.0.11-1.15.2
-                - singlestore/cluster-in-a-box:alma-8.1.8-967dab3a92-4.0.12-1.16.1
+                - singlestore/cluster-in-a-box:alma-7.8.19-4263b2d130-4.0.10-1.14.4
+                - singlestore/cluster-in-a-box:alma-8.0.19-f48780d261-4.0.11-1.16.0
+                - singlestore/cluster-in-a-box:alma-8.1.32-e3d3cde6da-4.0.16-1.17.6
+                - singlestore/cluster-in-a-box:alma-8.5.7-bf633c1a54-4.0.17-1.17.8
 
   publish:
     jobs:
@@ -195,7 +196,7 @@ workflows:
               singlestore_password:
                 - password
               singlestore_image:
-                - singlestore/cluster-in-a-box:alma-8.1.8-967dab3a92-4.0.12-1.16.1
+                - singlestore/cluster-in-a-box:alma-8.5.7-bf633c1a54-4.0.17-1.17.8
               java_version:
 # gc error      - '8'
                 - '11'

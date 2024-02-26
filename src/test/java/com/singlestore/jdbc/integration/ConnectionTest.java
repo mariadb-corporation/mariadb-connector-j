@@ -642,23 +642,23 @@ public class ConnectionTest extends Common {
       int autoInc = autoIncInit;
       int autoIncOffset = autoIncOffsetInit;
       // in case of galera
-      //      if (isGalera()) {
-      //        ResultSet rs =
-      //            sharedConn.createStatement().executeQuery("show variables like
+      // if (isGalera()) {
+      // ResultSet rs =
+      // sharedConn.createStatement().executeQuery("show variables like
       // '%auto_increment%'");
-      //        while (rs.next()) {
-      //          if ("auto_increment_increment".equals(rs.getString(1))) {
-      //            autoInc = rs.getInt(2);
-      //          }
-      //          if ("auto_increment_offset".equals(rs.getString(1))) {
-      //            autoIncOffset = rs.getInt(2);
-      //          }
-      //        }
-      //        if (autoInc == 1) {
-      //          // galera with one node only, then offset is not used
-      //          autoIncOffset = 0;
-      //        }
-      //      }
+      // while (rs.next()) {
+      // if ("auto_increment_increment".equals(rs.getString(1))) {
+      // autoInc = rs.getInt(2);
+      // }
+      // if ("auto_increment_offset".equals(rs.getString(1))) {
+      // autoIncOffset = rs.getInt(2);
+      // }
+      // }
+      // if (autoInc == 1) {
+      // // galera with one node only, then offset is not used
+      // autoIncOffset = 0;
+      // }
+      // }
       return new int[] {autoInc, autoIncOffset};
     }
   }
@@ -678,9 +678,8 @@ public class ConnectionTest extends Common {
     Statement stmt = sharedConn.createStatement();
 
     stmt.execute("DROP USER IF EXISTS 'test_pam'");
-    stmt.execute(
-        "GRANT SELECT ON *.* TO 'test_pam' IDENTIFIED WITH "
-            + "authentication_pam as 's2_pam_test'");
+    stmt.execute("CREATE USER 'test_pam' IDENTIFIED WITH " + "authentication_pam as 's2_pam_test'");
+    stmt.execute("GRANT SELECT ON *.* TO 'test_pam'");
 
     try (Connection connection =
         createCon("user=test_pam&password=test_pass&restrictedAuth=mysql_clear_password")) {
@@ -790,7 +789,8 @@ public class ConnectionTest extends Common {
         String namedPipeName = rs.getString(2);
         System.out.println("namedPipeName:" + namedPipeName);
 
-        // skip test if no namedPipeName was obtained because then we do not use a socket connection
+        // skip test if no namedPipeName was obtained because then we do not use a
+        // socket connection
         Assumptions.assumeTrue(namedPipeName != null);
         try (Connection connection = createCon("pipe=" + namedPipeName)) {
           java.sql.Statement stmt = connection.createStatement();

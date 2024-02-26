@@ -171,7 +171,8 @@ public class PooledConnectionTest extends Common {
       assertTrue(
           contents.contains(
               "removed from pool SingleStore-pool due to having throw a Connection exception (total:0, active:0, pending:0)"));
-      // if connection is failed connection pool sends add new connection request asynchronously
+      // if connection is failed connection pool sends add new connection request
+      // asynchronously
       // sometimes it can have 2 connections created instead of 1
       assertTrue(
           contents.contains("closing pool SingleStore-pool (total:1, active:0, pending:0)")
@@ -260,7 +261,7 @@ public class PooledConnectionTest extends Common {
         /* exception is expected here, server sends query aborted */
       }
 
-      /* Try to read  after server side closed the connection */
+      /* Try to read after server side closed the connection */
       assertThrows(SQLException.class, () -> connection.createStatement().execute("SELECT 1"));
     } finally {
       if (pc != null) {
@@ -291,10 +292,8 @@ public class PooledConnectionTest extends Common {
     Statement stmt = sharedConn.createStatement();
 
     stmt.execute("DROP USER IF EXISTS 'dsUser'");
-    stmt.execute(
-        "GRANT SELECT ON "
-            + sharedConn.getCatalog()
-            + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+    stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+    stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
     stmt.execute("FLUSH PRIVILEGES");
 
     ConnectionPoolDataSource ds = new SingleStoreDataSource(mDefUrl);
