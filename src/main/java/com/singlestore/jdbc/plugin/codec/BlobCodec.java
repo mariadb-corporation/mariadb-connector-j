@@ -210,11 +210,8 @@ public class BlobCodec implements Codec<Blob> {
     return bb.toByteArray();
   }
 
+  @Override
   public int getBinaryEncodeType() {
     return DataType.BLOB.get();
-  }
-
-  public boolean canEncodeLongData() {
-    return false;
   }
 }

@@ -67,6 +67,7 @@ public class Parameter<T> implements com.singlestore.jdbc.client.util.Parameter 
     return codec.encodeData(this.value, length);
   }
 
+  @Override
   public boolean canEncodeLongData() {
     return codec.canEncodeLongData();
   }

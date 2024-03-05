@@ -356,6 +356,15 @@ public class Common {
     }
   }
 
+  public static int getJavaVersion() {
+    String version = System.getProperty("java.version");
+    int majorVersion =
+        (version.indexOf(".") >= 0)
+            ? Integer.parseInt(version.substring(0, version.indexOf(".")))
+            : Integer.parseInt(version);
+    return majorVersion;
+  }
+
   @Test
   public void getVersion() throws Exception {
     try (Connection con = createCon("useMysqlVersion=true")) {

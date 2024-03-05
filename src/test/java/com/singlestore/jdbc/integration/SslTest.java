@@ -13,13 +13,18 @@ import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.integration.tools.TcpProxy;
 import java.io.*;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
+import javax.net.ssl.SSLContext;
 import org.junit.jupiter.api.*;
 
 @DisplayName("SSL tests")
 public class SslTest extends Common {
   private static Integer sslPort;
   private static String baseOptions = "&user=serverAuthUser&password=!Passw0rd3Works";
+  private static final String baseMutualOptions = "&user=mutualAuthUser&password=!Passw0rd3Works";
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -106,11 +111,29 @@ public class SslTest extends Common {
 
   @Test
   public void enabledSslProtocolSuites() throws SQLException {
+    try {
+      List<String> protocols =
+          Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
+      Assumptions.assumeTrue(protocols.contains("TLSv1.3") && protocols.contains("TLSv1.2"));
+    } catch (NoSuchAlgorithmException e) {
+      // eat
+    }
     try (Connection con =
         createCon(
             baseOptions + "&sslMode=trust&enabledSslProtocolSuites=TLSv1.2,TLSv1.3", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
+    Common.assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () ->
+            createCon(baseMutualOptions + "&sslMode=trust&enabledSslProtocolSuites=SSLv3", sslPort),
+        "No appropriate protocol");
+    Common.assertThrowsContains(
+        SQLException.class,
+        () ->
+            createCon(
+                baseMutualOptions + "&sslMode=trust&enabledSslProtocolSuites=unknown", sslPort),
+        "Unsupported SSL protocol 'unknown'");
   }
 
   @Test

@@ -67,6 +67,7 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void bigLoadDataInfileTest() throws SQLException, IOException {
+    Assumptions.assumeTrue(runLongTest());
     ResultSet rs1 = sharedConn.createStatement().executeQuery("select @@max_allowed_packet");
     assertTrue(rs1.next());
     long maxAllowedPacket = rs1.getLong(1);
@@ -310,11 +311,13 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void testSmallBigLocalInfileInputStream() throws Exception {
+    Assumptions.assumeTrue(runLongTest());
     checkBigLocalInfile(256);
   }
 
   @Test
   public void test2xBigLocalInfileInputStream() throws Exception {
+    Assumptions.assumeTrue(runLongTest());
     checkBigLocalInfile(16777216 * 2);
   }
 
@@ -472,6 +475,14 @@ public class LocalInfileTest extends Common {
         assertFalse(rs.next());
       }
     }
+  }
+
+  public static boolean runLongTest() {
+    String runLongTest = System.getenv("RUN_LONG_TEST");
+    if (runLongTest != null) {
+      return Boolean.parseBoolean(runLongTest);
+    }
+    return false;
   }
 
   /** Custom memory conserving generator of a LOAD DATA INFILE that generates a stream. */

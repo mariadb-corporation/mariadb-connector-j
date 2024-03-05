@@ -563,9 +563,6 @@
                                         <version>8</version>
                                         <vendor>openJdk</vendor>
                                     </jdkToolchain>
-                                    <excludes>
-                                        <exclude>**/SslTest.java</exclude>
-                                    </excludes>
                                 </configuration>
                             </execution>
                             <execution>
@@ -591,8 +588,7 @@
                                         <vendor>openJdk</vendor>
                                     </jdkToolchain>
                                     <excludes>
-                                        <exclude>**/CredentialPluginTest.java</exclude> <!-- todo PLAT-6994 -->
-                                        <exclude>**/StatementTest.java</exclude> <!-- todo PLAT-6993 -->
+                                        <exclude>**/StatementTest.java</exclude>
                                     </excludes>
                                 </configuration>
                             </execution>
@@ -607,7 +603,6 @@
                                         <vendor>openJdk</vendor>
                                     </jdkToolchain>
                                     <excludes>
-                                        <exclude>**/CredentialPluginTest.java</exclude>
                                         <exclude>**/StatementTest.java</exclude>
                                     </excludes>
                                 </configuration>
@@ -616,14 +611,6 @@
                     </plugin>
                 </plugins>
             </build>
-            <dependencies>
-                <dependency>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
-                    <version>${logback.version}</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
             <id>bench</id>

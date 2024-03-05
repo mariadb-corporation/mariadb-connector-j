@@ -272,31 +272,6 @@ public class MultiPrimaryClient implements Client {
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_NETWORK_TIMEOUT) > 0) {
       currentClient.setSocketTimeout(oldCli.getSocketTimeout());
     }
-
-    if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
-        && !Objects.equals(
-            currentClient.getContext().getTransactionIsolationLevel(),
-            oldCtx.getTransactionIsolationLevel())) {
-      String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
-      switch (oldCtx.getTransactionIsolationLevel()) {
-        case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
-          query += " READ UNCOMMITTED";
-          break;
-        case java.sql.Connection.TRANSACTION_READ_COMMITTED:
-          query += " READ COMMITTED";
-          break;
-        case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
-          query += " REPEATABLE READ";
-          break;
-        case java.sql.Connection.TRANSACTION_SERIALIZABLE:
-          query += " SERIALIZABLE";
-          break;
-      }
-      currentClient
-          .getContext()
-          .setTransactionIsolationLevel(oldCtx.getTransactionIsolationLevel());
-      currentClient.execute(new QueryPacket(query), true);
-    }
   }
 
   @Override

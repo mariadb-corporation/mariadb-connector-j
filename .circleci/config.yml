@@ -38,8 +38,10 @@ commands:
             sudo apt-get install -y sbt python3-pip git mariadb-client-core-10.6
             sudo apt-get autoclean
             # Install Java
+            sudo apt-get install -y openjdk-8-jdk
             sudo apt-get install -y openjdk-11-jdk
-            sudo apt-get install -y openjdk-<< parameters.java_version >>-jdk
+            sudo apt-get install -y openjdk-17-jdk
+            sudo apt-get install -y openjdk-21-jdk
 
 jobs:
   test:
@@ -58,6 +60,7 @@ jobs:
       SINGLESTORE_IMAGE: << parameters.singlestore_image >>
       SINGLESTORE_PASSWORD: << parameters.singlestore_password >>
       JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+      RUN_LONG_TEST: true
       TEST_ENVIRON: CIRCLE_CI
     steps:
       - setup_environment:
@@ -102,7 +105,7 @@ jobs:
       SINGLESTORE_IMAGE: << parameters.singlestore_image >>
       SINGLESTORE_PASSWORD: << parameters.singlestore_password >>
       TEST_ENVIRON: CIRCLE_CI
-      MAVEN_OPTS: -XX:+UseG1GC
+      RUN_LONG_TEST: false
       JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
       JAVA_HOME_ROOT: /usr/lib/jvm
       JAVA_VERSION: << parameters.java_version >>
@@ -126,9 +129,9 @@ jobs:
           command: |
             echo "Compile with JDK ${JAVA_HOME}"
             if [ "${JAVA_VERSION}" = "8" ]; then
-              mvn test-compile -P java8
+              mvn clean test-compile -Pjava8
             else
-              mvn test-compile
+              mvn clean test-compile
             fi
       - run:
           name: Run JDK tests
@@ -197,7 +200,7 @@ workflows:
               singlestore_image:
                 - singlestore/cluster-in-a-box:alma-8.5.7-bf633c1a54-4.0.17-1.17.8
               java_version:
-# gc error      - '8'
+                - '8'
                 - '11'
                 - '17'
                 - '21'

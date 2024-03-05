@@ -169,10 +169,7 @@ public class ClobCodec implements Codec<Clob> {
     return bb.toByteArray();
   }
 
-  public boolean canEncodeLongData() {
-    return false;
-  }
-
+  @Override
   public int getBinaryEncodeType() {
     return DataType.VARCHAR.get();
   }

@@ -167,11 +167,8 @@ public class ReaderCodec implements Codec<Reader> {
     return bb.toByteArray();
   }
 
+  @Override
   public int getBinaryEncodeType() {
     return DataType.VARCHAR.get();
-  }
-
-  public boolean canEncodeLongData() {
-    return false;
   }
 }

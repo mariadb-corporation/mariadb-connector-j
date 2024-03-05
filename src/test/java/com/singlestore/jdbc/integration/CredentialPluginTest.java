@@ -28,6 +28,7 @@ public class CredentialPluginTest extends Common {
    */
   @BeforeAll
   public static void beforeTest() throws SQLException {
+    Assumptions.assumeTrue(getJavaVersion() < 17);
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE USER 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
