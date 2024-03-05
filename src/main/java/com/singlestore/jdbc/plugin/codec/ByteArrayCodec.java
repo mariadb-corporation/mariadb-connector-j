@@ -15,6 +15,7 @@ import com.singlestore.jdbc.plugin.Codec;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 
@@ -47,6 +48,11 @@ public class ByteArrayCodec implements Codec<byte[]> {
 
   public boolean canEncode(Object value) {
     return value instanceof byte[];
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return canEncode(value) ? ((byte[]) value).length * 2 : -1;
   }
 
   @Override

@@ -18,6 +18,7 @@ import com.singlestore.jdbc.message.client.RewriteQueryMultiPacket;
 import com.singlestore.jdbc.message.server.OkPacket;
 import com.singlestore.jdbc.util.ClientParser;
 import com.singlestore.jdbc.util.ParameterList;
+import com.singlestore.jdbc.util.RewriteClientParser;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
@@ -134,38 +135,14 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   }
 
   private ClientMessage[] getClientMessageForRewriteBatchedStatement() {
-    ParameterList parameterList = new ParameterList();
-    final int originalParamCount = parser.getParamCount();
-    StringBuilder builder = new StringBuilder(parser.getSql());
-    int index = 0;
-    // Iterate over the batch, re-create the Client Parser with modified parts, grouped all
-    // Parameters values.
-    for (int batchCount = 0; batchCount < batchParameters.size(); batchCount++) {
-      if (batchCount != 0) {
-        builder.append(",(");
-      }
-      for (int paramCount = 0; paramCount < parser.getParamCount(); paramCount++) {
-        // When re-writing a query INSERT INTO tbl VALUES (?, ?) with several rows of parameters, we
-        // need to modify
-        // the end of each row (except of the last) - ")" into "),(" (it can be a also a literal
-        // followed by ")"),
-        // so that the query becomes INSERT INTO tbl VALUES (?, ?),(?, ?)...
-        if (batchCount != 0) {
-          builder.append("?");
-          if (paramCount != parser.getParamCount() - 1) {
-            builder.append(",");
-          } else {
-            builder.append(")");
-          }
-        }
-        parameterList.set(index++, batchParameters.get(batchCount).get(paramCount));
-      }
-    }
-    ClientParser parserWithRewriteBatchedStatement =
-        ClientParser.parameterParts(builder.toString(), isNoBackslashEscapesApplied());
+    RewriteClientParser rewriteClientParser =
+        RewriteClientParser.rewritableParts(parser.getSql(), isNoBackslashEscapesApplied());
     return new ClientMessage[] {
       new RewriteQueryMultiPacket(
-          originalParamCount, parserWithRewriteBatchedStatement, parameterList)
+          con.getContext().getConf(),
+          rewriteClientParser.getParamCount(),
+          rewriteClientParser,
+          batchParameters)
     };
   }
 

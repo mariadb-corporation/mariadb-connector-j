@@ -4,15 +4,19 @@
 
 package com.singlestore.jdbc.message.client;
 
+import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
+
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.socket.Writer;
 import com.singlestore.jdbc.client.util.Parameter;
 import com.singlestore.jdbc.client.util.Parameters;
-import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
-import com.singlestore.jdbc.util.ClientParser;
+import com.singlestore.jdbc.util.RewriteClientParser;
+import com.singlestore.jdbc.util.log.Loggers;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Query with parameters packet used for insert batch with rewrite option {@link
@@ -20,9 +24,9 @@ import java.sql.SQLException;
  */
 public class RewriteQueryMultiPacket implements RedoableClientMessage {
 
-  private static final int PARAMETER_LENGTH = 1024;
-  private final ClientParser parser;
-  private Parameters parameters;
+  private final Configuration config;
+  private final RewriteClientParser parser;
+  private List<Parameters> batchParameters;
   private final int paramCount;
 
   /**
@@ -30,66 +34,150 @@ public class RewriteQueryMultiPacket implements RedoableClientMessage {
    *
    * @param paramCount original query param count
    * @param parser command parser result
-   * @param parameters parameters
+   * @param batchParameters batch parameters
    */
-  public RewriteQueryMultiPacket(int paramCount, ClientParser parser, Parameters parameters) {
+  public RewriteQueryMultiPacket(
+      Configuration config,
+      int paramCount,
+      RewriteClientParser parser,
+      List<Parameters> batchParameters) {
+    this.config = config;
     this.paramCount = paramCount;
     this.parser = parser;
-    this.parameters = parameters;
+    this.batchParameters = batchParameters;
   }
 
   @Override
-  public void ensureReplayable(Context context) throws IOException, SQLException {
-    int parameterCount = parameters.size();
-    for (int i = 0; i < parameterCount; i++) {
-      Parameter p = parameters.get(i);
-      if (!p.isNull() && p.canEncodeLongData()) {
-        this.parameters.set(
-            i, new com.singlestore.jdbc.codec.Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
-      }
-    }
-  }
+  public void ensureReplayable(Context context) {}
 
   public void saveParameters() {
-    this.parameters = this.parameters.clone();
+    List<Parameters> clonedBatches = new ArrayList<>();
+    for (Parameters parameters : batchParameters) {
+      clonedBatches.add(parameters.clone());
+    }
+    this.batchParameters = clonedBatches;
   }
 
   @Override
   public int encode(Writer encoder, Context context) throws IOException, SQLException {
     int packetsSize = 0;
+    int currentIndex = 0;
+    int totalParameterList = batchParameters.size();
+    do {
+      currentIndex = sendRewriteCmd(encoder, context, currentIndex);
+      packetsSize++; // number of flushes
+      if (Thread.currentThread().isInterrupted()) {
+        throw new SQLException("Interrupted during batch", INTERRUPTED_EXCEPTION.getSqlState(), -1);
+      }
+
+    } while (currentIndex < totalParameterList);
+    return packetsSize;
+  }
+
+  /**
+   * Client side PreparedStatement.executeBatch values rewritten (concatenate value params according
+   * to max_allowed_packet)
+   *
+   * @param currentIndex currentIndex
+   * @return current index
+   * @throws IOException if connection fail
+   */
+  private int sendRewriteCmd(Writer encoder, Context context, int currentIndex)
+      throws IOException, SQLException {
+    int batchIndex = currentIndex;
+
     encoder.initPacket();
     encoder.writeByte(0x03);
-    if (parser.getParamPositions().size() == 0) {
-      encoder.writeBytes(parser.getQuery());
-    } else {
-      int pos = 0;
-      int lastParamPos = parser.getParamPositions().get(parser.getParamPositions().size() - 1) + 1;
-      int paramPosIdx = 0;
-      int paramPos;
-      for (int i = 0; i < parser.getParamPositions().size(); i++) {
-        if (encoder.throwMaxAllowedLength(encoder.pos() + paramCount * PARAMETER_LENGTH)
-            && paramPosIdx != 0
-            && paramPosIdx % paramCount == 0) {
-          encoder.writeBytes(
-              parser.getQuery(), lastParamPos, parser.getQuery().length - lastParamPos);
-          encoder.flush();
-          packetsSize++;
-          encoder.initPacket();
-          encoder.writeByte(0x03);
-          pos = 0;
-          paramPosIdx = 0;
+    Parameters parameters = batchParameters.get(batchIndex++);
+    List<byte[]> queryParts = parser.getQueryParts();
+
+    byte[] firstPart = queryParts.get(0);
+    byte[] secondPart = queryParts.get(1);
+
+    encoder.writeBytes(firstPart, 0, firstPart.length);
+    encoder.writeBytes(secondPart, 0, secondPart.length);
+
+    int packetLength = parser.getQueryPartsLength() + getApproximateParametersLength(parameters);
+
+    for (int i = 0; i < paramCount; i++) {
+      parameters.get(i).encodeText(encoder, context);
+      encoder.writeBytes(queryParts.get(i + 2));
+    }
+
+    if (parser.isQueryMultiValuesRewritable()) {
+      Loggers.getLogger(RewriteQueryMultiPacket.class)
+          .debug("execute multi values rewrite batch query");
+      while (batchIndex < batchParameters.size()) {
+        parameters = batchParameters.get(batchIndex);
+
+        // check packet length so to separate in multiple packet
+        packetLength += getApproximateParametersLength(parameters);
+        if (!encoder.throwMaxAllowedLength(packetLength)) {
+          encoder.writeByte((byte) ',');
+          encoder.writeBytes(secondPart, 0, secondPart.length);
+
+          for (int i = 0; i < paramCount; i++) {
+            parameters.get(i).encodeText(encoder, context);
+            byte[] addPart = queryParts.get(i + 2);
+            encoder.writeBytes(addPart, 0, addPart.length);
+          }
+          batchIndex++;
+        } else {
+          Loggers.getLogger(RewriteQueryMultiPacket.class)
+              .debug(
+                  "split multi values rewrite batch query on {} batch with size {}",
+                  batchIndex,
+                  packetLength);
+          break;
         }
-        paramPos = parser.getParamPositions().get(paramPosIdx);
-        encoder.writeBytes(parser.getQuery(), pos, paramPos - pos);
-        pos = paramPos + 1;
-        parameters.get(i).encodeText(encoder, context);
-        paramPosIdx++;
       }
-      encoder.writeBytes(parser.getQuery(), lastParamPos, parser.getQuery().length - lastParamPos);
+      encoder.writeBytes(queryParts.get(paramCount + 2));
+    } else {
+      encoder.writeBytes(queryParts.get(paramCount + 2));
+      while (batchIndex < batchParameters.size()) {
+        if (!config.allowMultiQueries()) {
+          break;
+        }
+        parameters = batchParameters.get(batchIndex);
+        // check packet length so to separate in multiple packet
+        packetLength +=
+            getApproximateParametersLength(parameters) + parser.getQueryPartsLength() + 1;
+        if (!encoder.throwMaxAllowedLength(packetLength)) {
+          encoder.writeByte((byte) ';');
+          encoder.writeBytes(firstPart, 0, firstPart.length);
+          encoder.writeBytes(secondPart, 0, secondPart.length);
+          for (int i = 0; i < paramCount; i++) {
+            parameters.get(i).encodeText(encoder, context);
+            encoder.writeBytes(queryParts.get(i + 2));
+          }
+          encoder.writeBytes(queryParts.get(paramCount + 2));
+          batchIndex++;
+        } else {
+          Loggers.getLogger(RewriteQueryMultiPacket.class)
+              .debug(
+                  "split  multi queries command on {} batch with size {}",
+                  batchIndex,
+                  packetLength);
+          break;
+        }
+      }
     }
     encoder.flush();
-    packetsSize++;
-    return packetsSize;
+    return batchIndex;
+  }
+
+  private int getApproximateParametersLength(Parameters parameters)
+      throws IOException, SQLException {
+    int parameterLength = 0;
+    for (int i = 0; i < paramCount; i++) {
+      Parameter parameter = parameters.get(i);
+      int paramSize = parameter.getApproximateTextProtocolLength();
+      if (paramSize == -1) {
+        return 1024; // default approximate
+      }
+      parameterLength += paramSize;
+    }
+    return parameterLength;
   }
 
   public int batchUpdateLength() {

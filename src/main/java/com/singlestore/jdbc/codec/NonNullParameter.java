@@ -32,4 +32,9 @@ public class NonNullParameter<T> extends Parameter<T> {
   public boolean isNull() {
     return false;
   }
+
+  @Override
+  public int getApproximateTextProtocolLength() throws SQLException {
+    return 0;
+  }
 }

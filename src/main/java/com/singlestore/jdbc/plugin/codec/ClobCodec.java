@@ -52,6 +52,11 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return canEncode(value) ? (int) ((Clob) value).length() : -1;
+  }
+
+  @Override
   public Clob decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getClob(buf, length, column);

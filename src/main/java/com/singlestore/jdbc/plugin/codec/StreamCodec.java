@@ -18,6 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 
@@ -90,6 +91,11 @@ public class StreamCodec implements Codec<InputStream> {
 
   public boolean canEncode(Object value) {
     return value instanceof InputStream;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return -1;
   }
 
   @Override

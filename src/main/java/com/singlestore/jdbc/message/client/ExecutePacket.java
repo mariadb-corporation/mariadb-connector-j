@@ -13,7 +13,6 @@ import com.singlestore.jdbc.client.util.Parameters;
 import com.singlestore.jdbc.export.Prepare;
 import com.singlestore.jdbc.message.ClientMessage;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
-import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -53,16 +52,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
   }
 
   @Override
-  public void ensureReplayable(Context context) throws IOException, SQLException {
-    int parameterCount = parameters.size();
-    for (int i = 0; i < parameterCount; i++) {
-      Parameter p = parameters.get(i);
-      if (!p.isNull() && p.canEncodeLongData()) {
-        this.parameters.set(
-            i, new com.singlestore.jdbc.codec.Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
-      }
-    }
-  }
+  public void ensureReplayable(Context context) throws IOException, SQLException {}
 
   /**
    * COM_STMT_EXECUTE packet

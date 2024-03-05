@@ -48,6 +48,14 @@ public interface Codec<T> {
   boolean canEncode(Object value);
 
   /**
+   * Approximate length in bytes.
+   *
+   * @param value to calculate
+   * @return value length in bytes
+   */
+  int getApproximateTextProtocolLength(Object value) throws SQLException;
+
+  /**
    * Decode from a mysql packet text encoded a value to codec java type
    *
    * @param buffer mysql packet buffer

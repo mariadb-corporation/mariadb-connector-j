@@ -14,6 +14,7 @@ import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -48,6 +49,11 @@ public class TimestampCodec implements Codec<Timestamp> {
 
   public boolean canEncode(Object value) {
     return value instanceof Timestamp;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return 27;
   }
 
   @Override

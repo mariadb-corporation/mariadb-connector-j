@@ -76,6 +76,11 @@ public class Parameter<T> implements com.singlestore.jdbc.client.util.Parameter 
     return codec.getBinaryEncodeType();
   }
 
+  @Override
+  public int getApproximateTextProtocolLength() throws SQLException {
+    return (codec == null || value == null) ? 0 : codec.getApproximateTextProtocolLength(value);
+  }
+
   public boolean isNull() {
     return value == null;
   }

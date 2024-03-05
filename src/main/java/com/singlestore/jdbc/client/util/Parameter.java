@@ -65,6 +65,13 @@ public interface Parameter {
   int getBinaryEncodeType();
 
   /**
+   * Approximate length in bytes.
+   *
+   * @return value length in bytes
+   */
+  int getApproximateTextProtocolLength() throws IOException, SQLException;
+
+  /**
    * is parameter null
    *
    * @return is null

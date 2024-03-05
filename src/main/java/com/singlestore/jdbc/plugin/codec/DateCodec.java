@@ -15,6 +15,7 @@ import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.EnumSet;
@@ -48,6 +49,11 @@ public class DateCodec implements Codec<Date> {
 
   public boolean canEncode(Object value) {
     return value instanceof Date || java.util.Date.class.equals(value.getClass());
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return 16;
   }
 
   @Override

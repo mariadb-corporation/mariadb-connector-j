@@ -14,6 +14,7 @@ import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
@@ -68,6 +69,11 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
   public boolean canEncode(Object value) {
     return value instanceof LocalDate;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return 10;
   }
 
   @Override

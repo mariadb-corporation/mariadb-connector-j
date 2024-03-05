@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2023 MariaDB Corporation Ab
-// Copyright (c) 2021-2023 SingleStore, Inc.
+// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2021-2024 SingleStore, Inc.
 
 package com.singlestore.jdbc.util;
 
@@ -15,43 +15,23 @@ public final class ClientParser implements PrepareResult {
   private final byte[] query;
   private final List<Integer> paramPositions;
   private final int paramCount;
-  private final boolean isInsert;
-  private final boolean isInsertDuplicate;
+  private final boolean isRewriteBatchedApplicable;
 
   private ClientParser(
-      String sql,
-      byte[] query,
-      List<Integer> paramPositions,
-      boolean isInsert,
-      boolean isInsertDuplicate) {
+      String sql, byte[] query, List<Integer> paramPositions, boolean isRewriteBatchedApplicable) {
     this.sql = sql;
     this.query = query;
     this.paramPositions = paramPositions;
     this.paramCount = paramPositions.size();
-    this.isInsert = isInsert;
-    this.isInsertDuplicate = isInsertDuplicate;
+    this.isRewriteBatchedApplicable = isRewriteBatchedApplicable;
   }
 
-  // isRewriteBatchedApplicable returns true if the parameter sql
-  // represents INSERT operation without 'ON DUPLICATE KEY UPDATE' clause
-  //
   public boolean isRewriteBatchedApplicable() {
-    return isInsert && !isInsertDuplicate;
+    return isRewriteBatchedApplicable;
   }
 
-  public boolean isInsert() {
-    return isInsert;
-  }
-
-  public boolean isInsertDuplicate() {
-    return isInsertDuplicate;
-  }
   /**
-   * Separate query in a String list and set flag isQueryMultipleRewritable. The resulting string
-   * list is separed by ? that are not in comments. isQueryMultipleRewritable flag is set if query
-   * can be rewrite in one query (all case but if using "-- comment"). example for query : "INSERT
-   * INTO tableName(id, name) VALUES (?, ?)" result list will be : {"INSERT INTO tableName(id, name)
-   * VALUES (", ", ", ")"}
+   * Parse prepared statement query.
    *
    * @param queryString query
    * @param noBackslashEscapes escape mode
@@ -64,7 +44,7 @@ public final class ClientParser implements PrepareResult {
     byte lastChar = 0x00;
     boolean singleQuotes = false;
     boolean isInsert = false;
-    boolean isInsertDupplicate = false;
+    boolean isReplace = false;
 
     byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
@@ -133,7 +113,7 @@ public final class ClientParser implements PrepareResult {
           break;
         case (byte) 'I':
         case (byte) 'i':
-          if (state == LexState.Normal && !isInsert) {
+          if (state == LexState.Normal && !isInsert && !isReplace) {
             if (i + 6 < queryLength
                 && (query[i + 1] == (byte) 'n' || query[i + 1] == (byte) 'N')
                 && (query[i + 2] == (byte) 's' || query[i + 2] == (byte) 'S')
@@ -151,30 +131,27 @@ public final class ClientParser implements PrepareResult {
             }
           }
           break;
-        case (byte) 'D':
-        case (byte) 'd':
-          if (isInsert && state == ClientParser.LexState.Normal) {
-            if (i + 9 < queryLength
-                && (query[i + 1] == (byte) 'u' || query[i + 1] == (byte) 'U')
+        case (byte) 'R':
+        case (byte) 'r':
+          if (state == LexState.Normal && !isInsert && !isReplace) {
+            if (i + 7 < queryLength
+                && (query[i + 1] == (byte) 'e' || query[i + 1] == (byte) 'E')
                 && (query[i + 2] == (byte) 'p' || query[i + 2] == (byte) 'P')
                 && (query[i + 3] == (byte) 'l' || query[i + 3] == (byte) 'L')
-                && (query[i + 4] == (byte) 'i' || query[i + 4] == (byte) 'I')
+                && (query[i + 4] == (byte) 'a' || query[i + 4] == (byte) 'A')
                 && (query[i + 5] == (byte) 'c' || query[i + 5] == (byte) 'C')
-                && (query[i + 6] == (byte) 'a' || query[i + 6] == (byte) 'A')
-                && (query[i + 7] == (byte) 't' || query[i + 7] == (byte) 'T')
-                && (query[i + 8] == (byte) 'e' || query[i + 8] == (byte) 'E')) {
+                && (query[i + 6] == (byte) 'e' || query[i + 6] == (byte) 'E')) {
               if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) {
                 break;
               }
-              if (query[i + 9] > ' ' && "();><=-+,".indexOf(query[i + 9]) == -1) {
+              if (query[i + 7] > ' ' && "();><=-+,".indexOf(query[i + 6]) == -1) {
                 break;
               }
-              i += 9;
-              isInsertDupplicate = true;
+              i += 6;
+              isReplace = true;
             }
           }
           break;
-
         case (byte) '\\':
           if (noBackslashEscapes) {
             break;
@@ -198,7 +175,7 @@ public final class ClientParser implements PrepareResult {
       }
       lastChar = car;
     }
-    return new ClientParser(queryString, query, paramPositions, isInsert, isInsertDupplicate);
+    return new ClientParser(queryString, query, paramPositions, isInsert || isReplace);
   }
 
   public String getSql() {

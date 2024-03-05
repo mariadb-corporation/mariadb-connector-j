@@ -65,6 +65,11 @@ public class BitSetCodec implements Codec<BitSet> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value) {
+    return canEncode(value) ? ((BitSet) value).length() : -1;
+  }
+
+  @Override
   public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException {
     byte[] bytes = ((BitSet) value).toByteArray();

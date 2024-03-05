@@ -56,6 +56,11 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value) {
+    return canEncode(value) ? ((BigDecimal) value).toPlainString().getBytes().length : -1;
+  }
+
+  @Override
   @SuppressWarnings("fallthrough")
   public BigDecimal decodeText(
       ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)

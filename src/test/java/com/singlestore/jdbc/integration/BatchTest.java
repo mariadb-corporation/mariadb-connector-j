@@ -15,7 +15,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Statement;
-import com.singlestore.jdbc.util.ClientParser;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.sql.BatchUpdateException;
 import java.sql.PreparedStatement;
@@ -482,17 +481,12 @@ public class BatchTest extends Common {
     try (Connection con =
         createCon(
             "&useServerPrepStmts=false&rewriteBatchedStatements=true&allowMultiQueries=true")) {
-      boolean noBackslashEscapes =
-          (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
       Statement stmt = con.createStatement();
       stmt.execute("DROP TABLE IF EXISTS BatchTest");
       stmt.execute(
           "CREATE TABLE BatchTest (t1 int not null primary key auto_increment, t2 LONGTEXT)");
 
       String sql = "insert INTO BatchTest(t1, t2) VALUES (?,?)";
-      ClientParser parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsert());
-
       try (PreparedStatement prep =
           con.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
         prep.setInt(1, 1);
@@ -546,8 +540,6 @@ public class BatchTest extends Common {
           "CREATE TABLE BatchTest (t1 int not null primary key auto_increment, t2 LONGTEXT)");
 
       String sql = "INSERT INTO BatchTest(t1, t2) VALUES(1,'testcase-1')";
-      ClientParser parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsert());
 
       stmt.execute(sql);
 
@@ -559,9 +551,6 @@ public class BatchTest extends Common {
       // Testcase-2 - Having 'INSERT' in the query string with lowercase where 'INSERT' keyword is
       // used for 'INSERT' action
       sql = "insert INTO BatchTest(t1, t2) VALUES (?,?)";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsert());
-
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 2);
         prep.setString(2, "testcase-2");
@@ -577,9 +566,6 @@ public class BatchTest extends Common {
       // Testcase-3 - Having 'INSERT' in the query string where 'INSERT' keyword is used for
       // 'INSERT' action and query string is having comment into that
       sql = "Insert INTO BatchTest(t1, t2) /*Comment Section*/ VALUES (?,?)";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsert());
-
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 3);
         prep.setString(2, "testcase-3");
@@ -595,9 +581,6 @@ public class BatchTest extends Common {
       // Testcase-4 - Having 'INSERT' in the query string where 'INSERT' keyword is used for
       // 'INSERT' action and query string is having comment into that
       sql = "/*Comment Section */ inSERT INTO BatchTest(t1, t2) VALUES (?,?)";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsert());
-
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 4);
         prep.setString(2, "testcase-4");
@@ -613,9 +596,6 @@ public class BatchTest extends Common {
       // Testcase-5 - Having 'INSERT' in the query string where 'INSERT' keyword is used for
       // 'INSERT' action and query string is having comment into that
       sql = "inSERT INTO BatchTest(t1, t2) VALUES (?,?) /*Comment Section */ ";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsert());
-
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 5);
         prep.setString(2, "testcase-5");
@@ -630,8 +610,6 @@ public class BatchTest extends Common {
 
       // Testcase-6 - Not Having 'INSERT' keyword in the query string
       sql = "Select * from BatchTest where t1=5";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsert());
       rs = stmt.executeQuery(sql);
       assertTrue(rs.next());
       assertEquals(5, rs.getInt(1));
@@ -645,8 +623,6 @@ public class BatchTest extends Common {
           "CREATE TABLE `insert` (`insert` int not null primary key auto_increment, insertTest LONGTEXT, INSERTTEST1 LONGTEXT)");
 
       sql = "insert INTO `insert`(`insert`, insertTest, INSERTTEST1) VALUES (?,?, ?)";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsert());
 
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 7);
@@ -657,8 +633,6 @@ public class BatchTest extends Common {
       }
 
       sql = "Select * from `insert`";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsert());
       rs = stmt.executeQuery(sql);
       assertTrue(rs.next());
       assertEquals(7, rs.getInt(1));
@@ -667,9 +641,6 @@ public class BatchTest extends Common {
 
       // Testcase-8 - Update Query having 'insert' as a value in the 'where' clause
       sql = "update `insert` set insertTest=? where INSERTTEST1=?";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsert());
-
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setString(1, "testcase-8");
         prep.setString(2, "INSERT");
@@ -679,8 +650,6 @@ public class BatchTest extends Common {
       }
 
       sql = "Select * from `insert`";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsert());
       rs = stmt.executeQuery(sql);
       assertTrue(rs.next());
       assertEquals(7, rs.getInt(1));
@@ -691,9 +660,6 @@ public class BatchTest extends Common {
 
       // Testcase-9 - update query without 'insert' keyword
       sql = "update BatchTest set t2=? where t1=1";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsert());
-
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setString(1, "testcase-9");
         prep.setInt(2, 1);
@@ -703,8 +669,6 @@ public class BatchTest extends Common {
       }
 
       sql = "Select * from BatchTest where t1=1";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsert());
       rs = stmt.executeQuery(sql);
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
@@ -712,13 +676,9 @@ public class BatchTest extends Common {
 
       // Testcase-10 -  Delete query without 'insert' keyword
       sql = "delete from BatchTest where t1=1";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsert());
       stmt.execute(sql);
 
       sql = "Select * from BatchTest where t1=1";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsert());
       rs = stmt.executeQuery(sql);
       assertFalse(rs.next());
     }
@@ -737,8 +697,6 @@ public class BatchTest extends Common {
           "CREATE ROWSTORE TABLE BatchTest (t1 int not null primary key auto_increment, t2 LONGTEXT)");
 
       String sql = "INSERT INTO BatchTest(t1, t2) VALUES (?,?) ON DUPLICATE KEY UPDATE t1=t1+1";
-      ClientParser parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsertDuplicate());
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 1);
         prep.setString(2, "testcase-1");
@@ -761,8 +719,6 @@ public class BatchTest extends Common {
 
       sql =
           "INSERT INTO `ON DUPLICATE KEY UPDATE` (`t1`, `t2`) VALUES (?, ?) ON DUPLICATE       KEY UPDATE `t1`=t1+1";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsertDuplicate());
 
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 2);
@@ -780,8 +736,6 @@ public class BatchTest extends Common {
       // string. Plus having a comment in between the 'ON DUPLICATE KEY UPDATE' clause
       sql =
           "INSERT INTO `ON DUPLICATE KEY UPDATE` (`t1`, `t2`) VALUES (?, ?) ON DUPLICATE  /*Comment Section*/ KEY UPDATE t1=t1+1";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsertDuplicate());
 
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 3);
@@ -797,8 +751,6 @@ public class BatchTest extends Common {
 
       // Testcase-4-  Having 'ON DUPLICATE KEY UPDATE' as a table name in the query string
       sql = "INSERT INTO `ON DUPLICATE KEY UPDATE` (`t1`, `t2`) VALUES (?, ?)";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsertDuplicate());
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 4);
         prep.setString(2, "testcase-4");
@@ -820,9 +772,6 @@ public class BatchTest extends Common {
 
       sql =
           "INSERT INTO `ON DUPLICATE KEY UPDATE` (`ON DUPLICATE KEY UPDATE`, `t2`) VALUES (?, ?) ON DUPLICATE  /*Comment Section*/ KEY UPDATE t2='dummy'";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertTrue(parser.isInsertDuplicate());
-
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 5);
         prep.setString(2, "testcase-5");
@@ -841,8 +790,6 @@ public class BatchTest extends Common {
       // Name in the query string. Plus having a comment in between the 'ON DUPLICATE KEY UPDATE'
       // clause
       sql = "INSERT INTO `ON DUPLICATE KEY UPDATE` (`ON DUPLICATE KEY UPDATE`, `t2`) VALUES (?, ?)";
-      parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-      assertFalse(parser.isInsertDuplicate());
       try (PreparedStatement prep = con.prepareStatement(sql)) {
         prep.setInt(1, 6);
         prep.setString(2, "testcase-6");

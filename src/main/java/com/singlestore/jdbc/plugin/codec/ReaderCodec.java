@@ -19,6 +19,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 
@@ -81,6 +82,11 @@ public class ReaderCodec implements Codec<Reader> {
 
   public boolean canEncode(Object value) {
     return value instanceof Reader;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return -1;
   }
 
   @Override

@@ -7,8 +7,10 @@ package com.singlestore.jdbc.unit.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.util.ClientParser;
+import com.singlestore.jdbc.util.RewriteClientParser;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +18,7 @@ import org.junit.jupiter.api.Test;
 public class ClientParserTest {
 
   private void parse(
-      String sql, String[] expected, String[] expectedNoBackSlash, boolean isInsertDuplicate) {
+      String sql, String[] expected, String[] expectedNoBackSlash, boolean isRewriteApplicable) {
     ClientParser parser = ClientParser.parameterParts(sql, false);
     assertEquals(expected.length, parser.getParamCount() + 1, displayErr(parser, expected));
 
@@ -42,7 +44,7 @@ public class ClientParserTest {
     assertEquals(
         expectedNoBackSlash[expectedNoBackSlash.length - 1],
         new String(parser.getQuery(), pos, paramPos - pos));
-    assertEquals(isInsertDuplicate, parser.isInsertDuplicate());
+    assertEquals(isRewriteApplicable, parser.isRewriteBatchedApplicable());
   }
 
   private String displayErr(ClientParser parser, String[] exp) {
@@ -67,7 +69,7 @@ public class ClientParserTest {
   }
 
   @Test
-  public void ClientParser() {
+  public void testClientParser() {
     parse(
         "SELECT '\\\\test' /*test* #/ ;`*/",
         new String[] {"SELECT '\\\\test' /*test* #/ ;`*/"},
@@ -82,7 +84,7 @@ public class ClientParserTest {
         "INSERT INTO TABLE(id,val) VALUES (1,2)",
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2)"},
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2)"},
-        false);
+        true);
     parse(
         "INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE KEY UPDATE",
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE KEY UPDATE"},
@@ -92,24 +94,128 @@ public class ClientParserTest {
         "INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE",
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE"},
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE"},
-        false);
+        true);
     parse(
         "INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE",
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE"},
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE"},
-        false);
+        true);
+    parse(
+        "REPLACE INTO TABLE(id,val) VALUES (1,2)",
+        new String[] {"REPLACE INTO TABLE(id,val) VALUES (1,2)"},
+        new String[] {"REPLACE INTO TABLE(id,val) VALUES (1,2)"},
+        true);
+  }
+
+  private void rewriteParse(
+      String sql, String[] expectedParts, int expectedParamCount, int expectedQueryPartsLength) {
+    RewriteClientParser parser = RewriteClientParser.rewritableParts(sql, true);
+    assertEquals(expectedParts.length, parser.getQueryParts().size());
+    assertEquals(expectedParamCount, parser.getParamCount());
+    assertEquals(expectedQueryPartsLength, parser.getQueryPartsLength());
+    for (int i = 0; i < expectedParts.length; i++) {
+      assertEquals(expectedParts[i], new String(parser.getQueryParts().get(i)));
+    }
   }
 
   @Test
-  public void ClientParserInsertFlag() {
-    assertFalse(ClientParser.parameterParts("WRONG INSERT_COMMAND", true).isInsert());
-    assertFalse(ClientParser.parameterParts("INSERT_COMMAND WRONG ", true).isInsert());
-    assertFalse(ClientParser.parameterParts("WRONGINSERT COMMAND", true).isInsert());
-    assertFalse(ClientParser.parameterParts("WRONG INSERT", true).isInsert());
-    assertFalse(ClientParser.parameterParts("WRONG small insert", true).isInsert());
-    assertFalse(ClientParser.parameterParts("INSERT DUPLICATE", true).isInsertDuplicate());
-    assertFalse(ClientParser.parameterParts("INSERT duplicate", true).isInsertDuplicate());
-    assertFalse(ClientParser.parameterParts("INSERT _duplicate key", true).isInsertDuplicate());
-    assertFalse(ClientParser.parameterParts("INSERT duplicate_ key", true).isInsertDuplicate());
+  public void testClientParserFlag() {
+    assertFalse(
+        ClientParser.parameterParts("SELECT * FROM TEST", true).isRewriteBatchedApplicable());
+    assertFalse(
+        ClientParser.parameterParts("UPDATE TEST SET t0 = 1 WHERE t2 == 1", true)
+            .isRewriteBatchedApplicable());
+    assertFalse(ClientParser.parameterParts("DROP TABLE TEST", true).isRewriteBatchedApplicable());
+    assertFalse(
+        ClientParser.parameterParts("DELETE FROM TEST WHERE t2 == 1", true)
+            .isRewriteBatchedApplicable());
+    assertFalse(
+        ClientParser.parameterParts("TRUNCATE TABLE TEST", true).isRewriteBatchedApplicable());
+    assertTrue(
+        ClientParser.parameterParts("INSERT INTO TEST(t0, t1) VALUES (?, ?)", true)
+            .isRewriteBatchedApplicable());
+    assertTrue(
+        ClientParser.parameterParts(
+                "INSERT INTO TEST(t0, t1) VALUES (?, ?) ON DUPLICATE KEY UPDATE t1 = IF(t1 IS NULL, NOW(6), t1)",
+                true)
+            .isRewriteBatchedApplicable());
+    assertTrue(
+        ClientParser.parameterParts(
+                "INSERT INTO TEST(t0, t1) VALUES (LAST_INSERTED_ID(), NOW(6))", true)
+            .isRewriteBatchedApplicable());
+    assertTrue(
+        ClientParser.parameterParts("REPLACE INTO TEST(t0, t1) VALUES (?, ?)", true)
+            .isRewriteBatchedApplicable());
+    assertTrue(
+        ClientParser.parameterParts(
+                "REPLACE INTO TEST(t0, t1) VALUES (LAST_INSERTED_ID(), ?)", true)
+            .isRewriteBatchedApplicable());
+  }
+
+  @Test
+  public void testRewriteClientParser() {
+    rewriteParse("SELECT * FROM TEST", new String[] {"SELECT * FROM TEST", "", ""}, 0, 19);
+    rewriteParse(
+        "INSERT INTO TEST(t0, t1) VALUES (?, ?) ON DUPLICATE KEY UPDATE t1 = IF(t1 IS NULL, NOW(6), t1)",
+        new String[] {
+          "INSERT INTO TEST(t0, t1) VALUES",
+          " (",
+          ", ",
+          ")",
+          " ON DUPLICATE KEY UPDATE t1 = IF(t1 IS NULL, NOW(6), t1)"
+        },
+        2,
+        93);
+    rewriteParse(
+        "REPLACE INTO TEST(t0, t1, t2, t3, t4, t5) VALUES (?, ?, 'test', ?, 'test2', ?)",
+        new String[] {
+          "REPLACE INTO TEST(t0, t1, t2, t3, t4, t5) VALUES",
+          " (",
+          ", ",
+          ", 'test', ",
+          ", 'test2', ",
+          ")",
+          ""
+        },
+        4,
+        75);
+  }
+
+  @Test
+  public void testRewriteClientParserFlag() {
+    assertFalse(
+        RewriteClientParser.rewritableParts("SELECT * FROM TEST", true)
+            .isQueryMultiValuesRewritable());
+    assertFalse(
+        RewriteClientParser.rewritableParts("UPDATE TEST SET t0 = 1 WHERE t2 == 1", true)
+            .isQueryMultiValuesRewritable());
+    assertFalse(
+        RewriteClientParser.rewritableParts("DROP TABLE TEST", true)
+            .isQueryMultiValuesRewritable());
+    assertFalse(
+        RewriteClientParser.rewritableParts("DELETE FROM TEST WHERE t2 == 1", true)
+            .isQueryMultiValuesRewritable());
+    assertFalse(
+        RewriteClientParser.rewritableParts("TRUNCATE TABLE TEST", true)
+            .isQueryMultiValuesRewritable());
+    assertTrue(
+        RewriteClientParser.rewritableParts("INSERT INTO TEST(t0, t1) VALUES (?, ?)", true)
+            .isQueryMultiValuesRewritable());
+    assertTrue(
+        RewriteClientParser.rewritableParts(
+                "INSERT INTO TEST(t0, t1) VALUES (?, ?) ON DUPLICATE KEY UPDATE t1 = IF(t1 IS NULL, NOW(6), t1)",
+                true)
+            .isQueryMultiValuesRewritable());
+    assertFalse(
+        RewriteClientParser.rewritableParts(
+                "INSERT INTO TEST(t0, t1) VALUES (LAST_INSERT_ID(), NOW(6))", true)
+            .isQueryMultiValuesRewritable());
+    assertTrue(
+        RewriteClientParser.rewritableParts("REPLACE INTO TEST(t0, t1) VALUES (?, ?)", true)
+            .isQueryMultiValuesRewritable());
+    assertFalse(
+        RewriteClientParser.rewritableParts(
+                "REPLACE INTO TEST(t0, t1) VALUES (LAST_INSERT_ID(), ?)", true)
+            .isQueryMultiValuesRewritable());
   }
 }

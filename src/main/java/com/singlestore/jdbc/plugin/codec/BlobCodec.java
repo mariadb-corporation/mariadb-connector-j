@@ -51,6 +51,11 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return canEncode(value) ? (int) ((Blob) value).length() : -1;
+  }
+
+  @Override
   @SuppressWarnings("fallthrough")
   public Blob decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {

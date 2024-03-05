@@ -16,6 +16,7 @@ import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 
@@ -62,6 +63,11 @@ public class StringCodec implements Codec<String> {
 
   public boolean canEncode(Object value) {
     return value instanceof String;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return canEncode(value) ? String.valueOf(value).length() * 3 : -1;
   }
 
   public String decodeText(

@@ -14,6 +14,7 @@ import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 import java.util.UUID;
@@ -37,6 +38,11 @@ public class UuidCodec implements Codec<UUID> {
 
   public boolean canEncode(Object value) {
     return value instanceof UUID;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return 40;
   }
 
   public UUID decodeText(

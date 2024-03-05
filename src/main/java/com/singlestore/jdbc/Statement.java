@@ -15,7 +15,6 @@ import com.singlestore.jdbc.client.result.Result;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.client.QueryPacket;
 import com.singlestore.jdbc.message.server.OkPacket;
-import com.singlestore.jdbc.util.ClientParser;
 import com.singlestore.jdbc.util.NativeSql;
 import com.singlestore.jdbc.util.constants.ColumnFlags;
 import com.singlestore.jdbc.util.constants.ServerStatus;
@@ -935,20 +934,6 @@ public class Statement implements java.sql.Statement {
         con.getContext(),
         ColumnFlags.AUTO_INCREMENT | ColumnFlags.UNSIGNED,
         resultSetType);
-  }
-
-  protected boolean checkIfInsertDuplicateCommand(String sql) {
-    if (isInsertDuplicate == null) {
-      if (sql == null) {
-        isInsertDuplicate = false;
-      } else {
-        ClientParser parser =
-            ClientParser.parameterParts(
-                sql, (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0);
-        isInsertDuplicate = parser.isInsertDuplicate();
-      }
-    }
-    return isInsertDuplicate;
   }
 
   /**

@@ -56,6 +56,11 @@ public class BigIntegerCodec implements Codec<BigInteger> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value) {
+    return canEncode(value) ? ((BigInteger) value).toByteArray().length : -1;
+  }
+
+  @Override
   @SuppressWarnings("fallthrough")
   public BigInteger decodeText(
       ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)

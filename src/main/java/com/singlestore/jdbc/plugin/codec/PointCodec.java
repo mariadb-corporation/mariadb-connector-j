@@ -15,6 +15,7 @@ import com.singlestore.jdbc.plugin.Codec;
 import com.singlestore.jdbc.type.Point;
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.util.Calendar;
 
 public class PointCodec implements Codec<Point> {
@@ -31,6 +32,11 @@ public class PointCodec implements Codec<Point> {
 
   public boolean canEncode(Object value) {
     return value instanceof Point;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return canEncode(value) ? String.valueOf(value).getBytes().length : -1;
   }
 
   @Override

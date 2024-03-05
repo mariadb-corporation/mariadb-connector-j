@@ -14,6 +14,7 @@ import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 
@@ -52,6 +53,11 @@ public class DoubleCodec implements Codec<Double> {
 
   public boolean canEncode(Object value) {
     return value instanceof Double;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return canEncode(value) ? String.valueOf(value).getBytes().length : -1;
   }
 
   @Override

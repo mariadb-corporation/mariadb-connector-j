@@ -14,6 +14,7 @@ import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
@@ -49,6 +50,11 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
 
   public boolean canEncode(Object value) {
     return value instanceof ZonedDateTime;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return 27;
   }
 
   @Override

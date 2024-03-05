@@ -14,6 +14,7 @@ import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 
@@ -53,6 +54,11 @@ public class BooleanCodec implements Codec<Boolean> {
 
   public boolean canEncode(Object value) {
     return value instanceof Boolean;
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Object value) throws SQLException {
+    return 1;
   }
 
   public Boolean decodeText(

@@ -7,10 +7,8 @@ package com.singlestore.jdbc.message.client;
 
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.socket.Writer;
-import com.singlestore.jdbc.client.util.Parameter;
 import com.singlestore.jdbc.client.util.Parameters;
 import com.singlestore.jdbc.message.ClientMessage;
-import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
 import com.singlestore.jdbc.util.ClientParser;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,16 +41,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   }
 
   @Override
-  public void ensureReplayable(Context context) throws IOException, SQLException {
-    int parameterCount = parameters.size();
-    for (int i = 0; i < parameterCount; i++) {
-      Parameter p = parameters.get(i);
-      if (!p.isNull() && p.canEncodeLongData()) {
-        this.parameters.set(
-            i, new com.singlestore.jdbc.codec.Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
-      }
-    }
-  }
+  public void ensureReplayable(Context context) throws IOException, SQLException {}
 
   public void saveParameters() {
     this.parameters = this.parameters.clone();
