@@ -103,12 +103,10 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   @Override
   public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, MutableInt length)
       throws SQLDataException {
-    if (!isBinary()) {
-      buf.skip(length.get());
-      throw new SQLDataException(
-          String.format("Data type %s (not binary) cannot be decoded as Blob", dataType));
+    if (isBinary()) {
+      return buf.readBlob(length.get());
     }
-    return buf.readBlob(length.get());
+    return buf.readString(length.get());
   }
 
   @Override

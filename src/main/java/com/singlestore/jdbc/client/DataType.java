@@ -71,10 +71,10 @@ public enum DataType {
   private final ColumnConstructor unsignedColumnConstructor;
 
   DataType(
-      int mariadbType,
+      int singlestoreType,
       ColumnConstructor columnConstructor,
       ColumnConstructor unsignedColumnConstructor) {
-    this.singlestoreType = mariadbType;
+    this.singlestoreType = singlestoreType;
     this.columnConstructor = columnConstructor;
     this.unsignedColumnConstructor = unsignedColumnConstructor;
   }

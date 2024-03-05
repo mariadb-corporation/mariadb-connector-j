@@ -143,7 +143,7 @@ jobs:
           path: target/surefire-reports
   publish:
     machine:
-      image: ubuntu-2004:202008-01
+      image: ubuntu-2204:2024.01.1
     environment:
       #      JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
       SONATYPE_USERNAME: memsql
