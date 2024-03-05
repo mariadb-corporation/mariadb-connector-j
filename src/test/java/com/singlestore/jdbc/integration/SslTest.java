@@ -73,8 +73,8 @@ public class SslTest extends Common {
 
   private static void createSslUser(String user, String requirement) throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute(
-        "GRANT SELECT ON *.* TO '" + user + "'@'%' IDENTIFIED BY '!Passw0rd3Works' " + requirement);
+    stmt.execute("CREATE USER '" + user + "'@'%' IDENTIFIED BY '!Passw0rd3Works' " + requirement);
+    stmt.execute("GRANT SELECT ON *.* TO '" + user + "'@'%'");
   }
 
   private String getSslVersion(Connection con) throws SQLException {

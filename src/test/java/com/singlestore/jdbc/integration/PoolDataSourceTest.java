@@ -34,10 +34,8 @@ public class PoolDataSourceTest extends Common {
     drop();
     Statement stmt = sharedConn.createStatement();
 
-    stmt.execute(
-        "GRANT SELECT ON "
-            + sharedConn.getCatalog()
-            + ".* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute("CREATE USER 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
 
     stmt.execute(
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test varchar(20))");

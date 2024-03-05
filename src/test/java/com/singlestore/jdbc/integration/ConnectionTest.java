@@ -677,10 +677,8 @@ public class ConnectionTest extends Common {
 
     Statement stmt = sharedConn.createStatement();
 
-    stmt.execute("DROP USER IF EXISTS 'test_pam'");
-    stmt.execute(
-        "GRANT SELECT ON *.* TO 'test_pam' IDENTIFIED WITH "
-            + "authentication_pam as 's2_pam_test'");
+    stmt.execute("CREATE USER 'test_pam' IDENTIFIED WITH authentication_pam as 's2_pam_test'");
+    stmt.execute("GRANT SELECT ON *.* TO 'test_pam'");
 
     try (Connection connection =
         createCon("user=test_pam&password=test_pass&restrictedAuth=mysql_clear_password")) {

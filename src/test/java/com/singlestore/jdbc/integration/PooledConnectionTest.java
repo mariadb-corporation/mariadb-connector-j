@@ -291,10 +291,8 @@ public class PooledConnectionTest extends Common {
     Statement stmt = sharedConn.createStatement();
 
     stmt.execute("DROP USER IF EXISTS 'dsUser'");
-    stmt.execute(
-        "GRANT SELECT ON "
-            + sharedConn.getCatalog()
-            + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+    stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+    stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
     stmt.execute("FLUSH PRIVILEGES");
 
     ConnectionPoolDataSource ds = new SingleStoreDataSource(mDefUrl);
