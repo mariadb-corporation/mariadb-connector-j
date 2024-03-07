@@ -751,12 +751,12 @@ public class ConnectionTest extends Common {
             hostname, testPort, database, pamUser, pamPwd, defaultOther);
     try {
       try (Connection connection =
-          DriverManager.getConnection(connStr + "&restrictedAuth=dialog")) {
+          DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
         // must have succeeded
         connection.getCatalog();
       }
     } catch (SQLException e) {
-      System.err.println("fail with connectionString : " + connStr + "&restrictedAuth=dialog");
+      System.err.println("fail with connectionString : " + connStr + "&restrictedAuth=dialog,mysql_clear_password");
       throw e;
     }
 
