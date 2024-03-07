@@ -40,7 +40,7 @@ public interface ClientMessage {
   static boolean validateLocalFileName(
       String sql, Parameters parameters, String fileName, Context context) {
     String reg =
-        "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+        "^((\\s[--]|#).*(\\r\\n|\\r|\\n)|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
             + Pattern.quote(fileName.replace("\\", "\\\\"))
             + "'";
 
@@ -52,7 +52,7 @@ public interface ClientMessage {
     if (parameters != null) {
       pattern =
           Pattern.compile(
-              "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+              "^((\\s[--]|#).*(\\r\\n|\\r|\\n)|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
               Pattern.CASE_INSENSITIVE);
       if (pattern.matcher(sql).find() && parameters.size() > 0) {
         String paramString = parameters.get(0).bestEffortStringValue(context);
@@ -174,7 +174,7 @@ public interface ClientMessage {
       case (byte) 0xfb:
         buf.skip(1); // skip header
         SQLException exception = null;
-        reader.getSequence().set((byte) 1);
+        reader.getSequence().set(writer.getSequence());
         InputStream is = getLocalInfileInputStream();
         if (is == null) {
           String fileName = buf.readStringNullEnd();

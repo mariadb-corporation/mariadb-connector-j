@@ -883,4 +883,8 @@ public class PacketWriter implements Writer {
   public void close() throws IOException {
     out.close();
   }
+
+  public byte getSequence() {
+    return sequence.get();
+  }
 }

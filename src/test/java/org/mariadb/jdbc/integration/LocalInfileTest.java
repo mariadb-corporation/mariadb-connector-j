@@ -312,6 +312,55 @@ public class LocalInfileTest extends Common {
   }
 
   @Test
+  public void loadDataBasicMultiRows() throws Exception {
+
+    Assumptions.assumeTrue(checkLocal());
+    File temp = File.createTempFile("dummyloadDataBasic2", ".txt");
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+      bw.write("1\thello2\n2\tworld\n");
+    }
+
+    try (Connection con = createCon("allowLocalInfile&allowMultiQueries")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      stmt.execute(
+          "SELECT 1;LOAD DATA LOCAL INFILE '"
+              + temp.getCanonicalPath().replace("\\", "/")
+              + "' INTO TABLE LocalInfileInputStreamTest2 (id, test); SELECT 2");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertEquals("hello2", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertEquals("world", rs.getString(2));
+      while (rs.next()) {
+        System.out.println(rs.getString(2));
+      }
+      assertFalse(rs.next());
+
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      stmt.addBatch(
+          "SELECT 1;LOAD DATA LOCAL INFILE '"
+              + temp.getCanonicalPath().replace("\\", "/")
+              + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
+      stmt.addBatch("SET UNIQUE_CHECKS=1");
+      stmt.executeBatch();
+
+      rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertEquals("hello2", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertEquals("world", rs.getString(2));
+      assertFalse(rs.next());
+    } finally {
+      temp.delete();
+    }
+  }
+
+  @Test
   public void loadDataBasicWindows() throws Exception {
     Assumptions.assumeTrue(checkLocal());
     Assumptions.assumeTrue(

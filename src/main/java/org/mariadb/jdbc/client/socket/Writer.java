@@ -5,6 +5,7 @@ package org.mariadb.jdbc.client.socket;
 
 import java.io.IOException;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.client.util.MutableByte;
 
 /** Packet Writer interface */
 public interface Writer {
@@ -245,4 +246,11 @@ public interface Writer {
    * @throws IOException if any error occurs
    */
   void close() throws IOException;
+
+  /**
+   * Get current sequence object
+   *
+   * @return current sequence
+   */
+  byte getSequence();
 }
