@@ -28,12 +28,13 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 /** Public Connection class */
 public class Connection implements java.sql.Connection {
 
+  // Redundant character escape '\\}' in RegExp is expected for Android. see CONJ-1161
   private static final Pattern CALLABLE_STATEMENT_PATTERN =
       Pattern.compile(
           "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*"
-              + "call(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*((((`[^`]+`)|([^`}]+))\\.)?"
-              + "((`[^`]+`)|([^`}(]+)))\\s*(\\(.*\\))?(\\s*/\\*([^*]|\\*[^/])*\\*/)*"
-              + "\\s*(#.*)?)\\s*(}\\s*)?$",
+              + "call(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
+              + "((`[^`]+`)|([^`\\}(]+)))\\s*(\\(.*\\))?(\\s*/\\*([^*]|\\*[^/])*\\*/)*"
+              + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
   private final ReentrantLock lock;
