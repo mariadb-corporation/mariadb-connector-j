@@ -5,7 +5,6 @@ package org.mariadb.jdbc.client.socket;
 
 import java.io.IOException;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.util.MutableByte;
 
 /** Packet Writer interface */
 public interface Writer {

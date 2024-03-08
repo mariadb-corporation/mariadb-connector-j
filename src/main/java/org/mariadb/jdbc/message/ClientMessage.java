@@ -40,7 +40,11 @@ public interface ClientMessage {
   static boolean validateLocalFileName(
       String sql, Parameters parameters, String fileName, Context context) {
     String reg =
-        "^((\\s[--]|#).*(\\r\\n|\\r|\\n)|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+        "^((\\s[--]|#).*(\\r"
+            + "\\n"
+            + "|\\r"
+            + "|\\n"
+            + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
             + Pattern.quote(fileName.replace("\\", "\\\\"))
             + "'";
 
@@ -52,7 +56,11 @@ public interface ClientMessage {
     if (parameters != null) {
       pattern =
           Pattern.compile(
-              "^((\\s[--]|#).*(\\r\\n|\\r|\\n)|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+              "^((\\s[--]|#).*(\\r"
+                  + "\\n"
+                  + "|\\r"
+                  + "|\\n"
+                  + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
               Pattern.CASE_INSENSITIVE);
       if (pattern.matcher(sql).find() && parameters.size() > 0) {
         String paramString = parameters.get(0).bestEffortStringValue(context);
