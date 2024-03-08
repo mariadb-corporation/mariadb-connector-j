@@ -437,6 +437,10 @@ public class StandardClient implements Client, AutoCloseable {
           "autocommit=" + ((conf.autocommit() == null || conf.autocommit()) ? "1" : "0"));
     }
 
+    if (conf.jdbcCompliantTruncation()) {
+      sessionCommands.add("sql_mode=CONCAT(@@sql_mode,',STRICT_TRANS_TABLES')");
+    }
+
     if (conf.returnMultiValuesGeneratedIds()
         && ((context.getVersion().isMariaDBServer()
                 && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))

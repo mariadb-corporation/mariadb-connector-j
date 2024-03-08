@@ -114,4 +114,45 @@ public class ConfigurationTest extends Common {
       assertEquals("MySQL", conn.getMetaData().getDatabaseProductName());
     }
   }
+
+  @Test
+  public void jdbcCompliantTruncation() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT @@sql_mode");
+    String sqlMode = "";
+    if (rs.next()) sqlMode = rs.getString(1);
+    stmt.execute("DROP TABLE IF EXISTS jdbcCompliantTruncation");
+    stmt.execute("CREATE TABLE jdbcCompliantTruncation(val varchar(15) NOT NULL)");
+    try {
+      stmt.execute("INSERT INTO jdbcCompliantTruncation(val) VALUES ('12345678901234567890')");
+      fail("expect sql_mode to have strict mode by default");
+    } catch (SQLException e) {
+      assertEquals(1406, e.getErrorCode()); // Data too long for column 'val' at row 1
+    }
+    try {
+      stmt.execute("SET @@global.sql_mode = ''");
+      try (org.mariadb.jdbc.Connection conn = createCon("&jdbcCompliantTruncation=false")) {
+        Statement stmt2 = conn.createStatement();
+        stmt2.execute("INSERT INTO jdbcCompliantTruncation(val) VALUES ('12345678901234567890')");
+        SQLWarning warn = stmt2.getWarnings();
+        assertNotNull(warn);
+        ResultSet rs2 = stmt2.executeQuery("SELECT * FROM jdbcCompliantTruncation");
+        rs2.next();
+        assertEquals("123456789012345", rs2.getString(1));
+      }
+
+      try (org.mariadb.jdbc.Connection conn = createCon("&jdbcCompliantTruncation=true")) {
+        try {
+          Statement stmt2 = conn.createStatement();
+          stmt2.execute("INSERT INTO jdbcCompliantTruncation(val) VALUES ('12345678901234567890')");
+          fail("expect sql_mode to have strict mode by default");
+        } catch (SQLException e) {
+          assertEquals(1406, e.getErrorCode()); // Data too long for column 'val' at row 1
+        }
+      }
+
+    } finally {
+      stmt.execute("SET @@global.sql_mode = '" + sqlMode + "'");
+    }
+  }
 }

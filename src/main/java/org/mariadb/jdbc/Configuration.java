@@ -69,6 +69,7 @@ public class Configuration {
   private boolean createDatabaseIfNotExist = false;
   private boolean useLocalSessionState = false;
   private boolean returnMultiValuesGeneratedIds = false;
+  private boolean jdbcCompliantTruncation = false;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -171,6 +172,7 @@ public class Configuration {
       boolean createDatabaseIfNotExist,
       boolean useLocalSessionState,
       boolean returnMultiValuesGeneratedIds,
+      boolean jdbcCompliantTruncation,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -248,6 +250,7 @@ public class Configuration {
     this.useCatalogTerm = useCatalogTerm;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
+    this.jdbcCompliantTruncation = jdbcCompliantTruncation;
     this.useLocalSessionState = useLocalSessionState;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
@@ -363,6 +366,7 @@ public class Configuration {
       Boolean createDatabaseIfNotExist,
       Boolean useLocalSessionState,
       Boolean returnMultiValuesGeneratedIds,
+      Boolean jdbcCompliantTruncation,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -462,6 +466,7 @@ public class Configuration {
     if (useLocalSessionState != null) this.useLocalSessionState = useLocalSessionState;
     if (returnMultiValuesGeneratedIds != null)
       this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
+    if (jdbcCompliantTruncation != null) this.jdbcCompliantTruncation = jdbcCompliantTruncation;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -1047,6 +1052,7 @@ public class Configuration {
         this.createDatabaseIfNotExist,
         this.useLocalSessionState,
         this.returnMultiValuesGeneratedIds,
+        this.jdbcCompliantTruncation,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
@@ -1598,6 +1604,15 @@ public class Configuration {
   }
 
   /**
+   * Force sql_mode to strict mode for JDBC compliance
+   *
+   * @return must force jdbc compliance
+   */
+  public boolean jdbcCompliantTruncation() {
+    return jdbcCompliantTruncation;
+  }
+
+  /**
    * On deadlock exception, must driver execute additional commands to show innodb status in error
    * description.
    *
@@ -1907,6 +1922,7 @@ public class Configuration {
     private Boolean createDatabaseIfNotExist;
     private Boolean useLocalSessionState;
     private Boolean returnMultiValuesGeneratedIds;
+    private Boolean jdbcCompliantTruncation;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -2649,6 +2665,17 @@ public class Configuration {
     }
 
     /**
+     * indicate if connector must force sql_mode strict mode for jdbc compliance
+     *
+     * @param jdbcCompliantTruncation must force sql_mode strict mode for jdbc compliance
+     * @return this {@link Builder}
+     */
+    public Builder jdbcCompliantTruncation(Boolean jdbcCompliantTruncation) {
+      this.jdbcCompliantTruncation = jdbcCompliantTruncation;
+      return this;
+    }
+
+    /**
      * On dead-lock exception must add innodb status in exception error message. If enabled, an
      * additional command will be done to retrieve innodb status when dead-lock occurs.
      *
@@ -2965,6 +2992,7 @@ public class Configuration {
               this.createDatabaseIfNotExist,
               this.useLocalSessionState,
               this.returnMultiValuesGeneratedIds,
+              this.jdbcCompliantTruncation,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

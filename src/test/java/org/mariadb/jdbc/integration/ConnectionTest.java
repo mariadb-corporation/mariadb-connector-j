@@ -756,7 +756,10 @@ public class ConnectionTest extends Common {
         connection.getCatalog();
       }
     } catch (SQLException e) {
-      System.err.println("fail with connectionString : " + connStr + "&restrictedAuth=dialog,mysql_clear_password");
+      System.err.println(
+          "fail with connectionString : "
+              + connStr
+              + "&restrictedAuth=dialog,mysql_clear_password");
       throw e;
     }
 
