@@ -62,6 +62,15 @@ For a Getting started guide, API docs, recipes, etc. see the
 * [Changelog](/CHANGELOG.md)
 * [Failover and high-availability](https://mariadb.com/kb/en/failover-and-high-availability-with-mariadb-connector-j/)
 
+## Contributors
+
+A big thanks to all contributors
+
+<a href="https://github.com/mariadb-corporation/mariadb-connector-j/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=mariadb-corporation/mariadb-connector-j&max=180&columns=18" />
+</a>
+
+
 [codecov-image]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j/branch/master/graph/badge.svg
 
 [codecov-url]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j
