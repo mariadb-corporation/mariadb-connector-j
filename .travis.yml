@@ -33,7 +33,10 @@ jobs:
     - stage: Benchmarks
       env: srv=mariadb v=10.6 local=1 BENCH=1
       name: "Benchmarks"
-
+    - stage: Language
+      env: srv=mariadb v=10.6 packet=40
+      jdk: openjdk21
+      name: "CS 10.6 - openjdk 21"
 script:
   - echo $PROFILE
   - mvn clean -Dmaven.test.skip -P $PROFILE
