@@ -153,7 +153,10 @@ public class SslTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(
-        isMariaDBServer() && minVersion(11, 4, 1) && !"mariadb-es".equals(System.getenv("srv")));
+        isMariaDBServer()
+            && minVersion(11, 4, 1)
+            && !"mariadb-es".equals(System.getenv("srv"))
+            && !"mariadb-es-test".equals(System.getenv("srv")));
     try (Connection con = createCon(baseOptions + "&sslMode=verify-ca", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
@@ -170,7 +173,10 @@ public class SslTest extends Common {
   @Test
   void ensureSslUnixSocket() throws SQLException {
     Assumptions.assumeTrue(
-        isMariaDBServer() && minVersion(11, 4, 1) && !"mariadb-es".equals(System.getenv("srv")));
+        isMariaDBServer()
+            && minVersion(11, 4, 1)
+            && !"mariadb-es".equals(System.getenv("srv"))
+            && !"mariadb-es-test".equals(System.getenv("srv")));
     Assumptions.assumeTrue(
         System.getenv("local") != null
             && "1".equals(System.getenv("local"))
@@ -194,7 +200,10 @@ public class SslTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(
-        isMariaDBServer() && minVersion(11, 4, 1) && !"mariadb-es".equals(System.getenv("srv")));
+        isMariaDBServer()
+            && minVersion(11, 4, 1)
+            && !"mariadb-es".equals(System.getenv("srv"))
+            && !"mariadb-es-test".equals(System.getenv("srv")));
 
     Statement stmt = sharedConn.createStatement();
     try {
@@ -446,7 +455,10 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
-    if (isMariaDBServer() && minVersion(11, 4, 1) && !"mariadb-es".equals(System.getenv("srv"))) {
+    if (isMariaDBServer()
+        && minVersion(11, 4, 1)
+        && !"mariadb-es".equals(System.getenv("srv"))
+        && !"mariadb-es-test".equals(System.getenv("srv"))) {
       try (Connection conn = createBasicCon(baseOptions + "&sslMode=VERIFY_CA", sslPort)) {
         conn.isValid(1);
       }
