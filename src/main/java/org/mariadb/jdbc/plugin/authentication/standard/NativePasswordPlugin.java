@@ -14,6 +14,7 @@ import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.Credential;
 
 /** Native password implementation */
 public class NativePasswordPlugin implements AuthenticationPlugin {
@@ -108,5 +109,29 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
     }
 
     return in.readReusablePacket();
+  }
+
+  public boolean isMitMProof() {
+    return true;
+  }
+
+  /**
+   * Return Hash
+   *
+   * @param credential Credential
+   * @return hash
+   */
+  public byte[] hash(Credential credential) {
+    try {
+      final MessageDigest messageDigestSHA1 = MessageDigest.getInstance("SHA-1");
+      byte[] bytePwd = credential.getPassword().getBytes(StandardCharsets.UTF_8);
+      final byte[] stage1 = messageDigestSHA1.digest(bytePwd);
+      messageDigestSHA1.reset();
+      final byte[] stage2 = messageDigestSHA1.digest(stage1);
+      messageDigestSHA1.reset();
+      return stage2;
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("Could not use SHA-1, failing", e);
+    }
   }
 }

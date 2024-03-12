@@ -6,10 +6,7 @@ package org.mariadb.jdbc.plugin;
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.SQLException;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
@@ -23,16 +20,10 @@ public interface TlsSocketPlugin {
    */
   String type();
 
-  /**
-   * Get socket factory.
-   *
-   * @param conf connection string option. Non-standard option are stored in `nonMappedOptions` if
-   *     any specific option is needed.
-   * @param exceptionFactory exception handler
-   * @return custom SSL socket factory
-   * @throws SQLException if socket factory configuration failed.
-   */
-  SSLSocketFactory getSocketFactory(Configuration conf, ExceptionFactory exceptionFactory)
+  TrustManager[] getTrustManager(Configuration conf, ExceptionFactory exceptionFactory)
+      throws SQLException;
+
+  KeyManager[] getKeyManager(Configuration conf, ExceptionFactory exceptionFactory)
       throws SQLException;
 
   /**
