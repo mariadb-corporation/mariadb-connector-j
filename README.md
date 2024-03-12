@@ -67,7 +67,7 @@ For a Getting started guide, API docs, recipes, etc. see the
 A big thanks to all contributors
 
 <a href="https://github.com/mariadb-corporation/mariadb-connector-j/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=mariadb-corporation/mariadb-connector-j&max=180&columns=18" />
+	<img src="https://contrib.rocks/image?repo=mariadb-corporation/mariadb-connector-j&max=180&columns=18" />
 </a>
 
 
