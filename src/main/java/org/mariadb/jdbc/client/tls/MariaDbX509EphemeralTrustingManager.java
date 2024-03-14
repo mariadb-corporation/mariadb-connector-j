@@ -31,10 +31,10 @@ public class MariaDbX509EphemeralTrustingManager implements X509TrustManager {
   }
 
   @Override
-  public void checkServerTrusted(X509Certificate[] x509Certificates, String string)
+  public void checkServerTrusted(X509Certificate[] x509Certificates, String authType)
       throws CertificateException {
     try {
-      internal.checkServerTrusted(x509Certificates, string);
+      internal.checkServerTrusted(x509Certificates, authType);
     } catch (CertificateException e) {
       if (x509Certificates == null || x509Certificates.length < 1) throw e;
       try {

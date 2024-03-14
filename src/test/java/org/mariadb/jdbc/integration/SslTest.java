@@ -163,7 +163,9 @@ public class SslTest extends Common {
     try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=verify-full"));
+    try (Connection con = createCon(baseOptions + "&sslMode=verify-full", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
     assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
     assertThrows(
         SQLInvalidAuthorizationSpecException.class,
