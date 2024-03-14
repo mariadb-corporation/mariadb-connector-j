@@ -427,8 +427,8 @@ public class StandardClient implements Client, AutoCloseable {
       // perform hostname verification
       // (rfc2818 indicate that if "client has external information as to the expected identity of
       // the server, the hostname check MAY be omitted")
-      if (conf.sslMode() == SslMode.VERIFY_FULL && hostAddress != null) {
-
+      // validation is only done for not "self-signed" certificates
+      if (certFingerprint == null && conf.sslMode() == SslMode.VERIFY_FULL && hostAddress != null) {
         SSLSession session = sslSocket.getSession();
         try {
           socketPlugin.verify(hostAddress.host, session, context.getThreadId());
