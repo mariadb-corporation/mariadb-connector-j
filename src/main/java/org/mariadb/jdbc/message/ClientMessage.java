@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Statement;
@@ -138,6 +139,7 @@ public interface ClientMessage {
    * @param lock thread safe locks
    * @param traceEnable is logging trace enable
    * @param message client message
+   * @param redirectFct redirect consumer
    * @return results
    * @throws IOException if any socket error occurs
    * @throws SQLException for other kind of errors
@@ -155,7 +157,8 @@ public interface ClientMessage {
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,
       boolean traceEnable,
-      ClientMessage message)
+      ClientMessage message,
+      Consumer<String> redirectFct)
       throws IOException, SQLException {
 
     ReadableByteBuf buf = reader.readReusablePacket(traceEnable);
@@ -166,7 +169,13 @@ public interface ClientMessage {
         // * OK response
         // *********************************************************************************************************
       case (byte) 0x00:
-        return new OkPacket(buf, context);
+        OkPacket ok = new OkPacket(buf, context);
+        if (context.getRedirectUrl() != null
+            && (context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0
+            && (context.getServerStatus() & ServerStatus.MORE_RESULTS_EXISTS) == 0) {
+          redirectFct.accept(context.getRedirectUrl());
+        }
+        return ok;
 
         // *********************************************************************************************************
         // * ERROR response
@@ -240,7 +249,8 @@ public interface ClientMessage {
                 exceptionFactory,
                 lock,
                 traceEnable,
-                message);
+                message,
+                redirectFct);
         if (exception != null) {
           throw exception;
         }

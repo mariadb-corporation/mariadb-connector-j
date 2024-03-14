@@ -70,6 +70,7 @@ public class Configuration {
   private boolean useLocalSessionState = false;
   private boolean returnMultiValuesGeneratedIds = false;
   private boolean jdbcCompliantTruncation = false;
+  private boolean permitRedirect = true;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -173,6 +174,7 @@ public class Configuration {
       boolean useLocalSessionState,
       boolean returnMultiValuesGeneratedIds,
       boolean jdbcCompliantTruncation,
+      boolean permitRedirect,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -251,6 +253,7 @@ public class Configuration {
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     this.jdbcCompliantTruncation = jdbcCompliantTruncation;
+    this.permitRedirect = permitRedirect;
     this.useLocalSessionState = useLocalSessionState;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
@@ -367,6 +370,7 @@ public class Configuration {
       Boolean useLocalSessionState,
       Boolean returnMultiValuesGeneratedIds,
       Boolean jdbcCompliantTruncation,
+      Boolean permitRedirect,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -467,6 +471,7 @@ public class Configuration {
     if (returnMultiValuesGeneratedIds != null)
       this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     if (jdbcCompliantTruncation != null) this.jdbcCompliantTruncation = jdbcCompliantTruncation;
+    if (permitRedirect != null) this.permitRedirect = permitRedirect;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -539,6 +544,94 @@ public class Configuration {
     } catch (IllegalArgumentException | IllegalAccessException ie) {
       // eat
     }
+  }
+
+  public Builder toBuilder() {
+    Builder builder =
+        new Builder()
+            .user(this.user)
+            .password(this.password)
+            .database(this.database)
+            .addresses(this.addresses == null ? null : this.addresses.toArray(new HostAddress[0]))
+            .haMode(this.haMode)
+            .timezone(this.timezone)
+            .autocommit(this.autocommit)
+            .useMysqlMetadata(this.useMysqlMetadata)
+            .useCatalogTerm(this.useCatalogTerm == CatalogTerm.UseCatalog ? "CATALOG" : "SCHEMA")
+            .createDatabaseIfNotExist(this.createDatabaseIfNotExist)
+            .useLocalSessionState(this.useLocalSessionState)
+            .returnMultiValuesGeneratedIds(this.returnMultiValuesGeneratedIds)
+            .jdbcCompliantTruncation(this.jdbcCompliantTruncation)
+            .permitRedirect(this.permitRedirect)
+            .transactionIsolation(
+                transactionIsolation == null ? null : this.transactionIsolation.getValue())
+            .defaultFetchSize(this.defaultFetchSize)
+            .maxQuerySizeToLog(this.maxQuerySizeToLog)
+            .maxAllowedPacket(this.maxAllowedPacket)
+            .geometryDefaultType(this.geometryDefaultType)
+            .geometryDefaultType(this.geometryDefaultType)
+            .restrictedAuth(this.restrictedAuth)
+            .initSql(this.initSql)
+            .socketFactory(this.socketFactory)
+            .connectTimeout(this.connectTimeout)
+            .pipe(this.pipe)
+            .localSocket(this.localSocket)
+            .uuidAsString(this.uuidAsString)
+            .tcpKeepAlive(this.tcpKeepAlive)
+            .tcpKeepIdle(this.tcpKeepIdle)
+            .tcpKeepCount(this.tcpKeepCount)
+            .tcpKeepInterval(this.tcpKeepInterval)
+            .tcpAbortiveClose(this.tcpAbortiveClose)
+            .localSocketAddress(this.localSocketAddress)
+            .socketTimeout(this.socketTimeout)
+            .useReadAheadInput(this.useReadAheadInput)
+            .tlsSocketType(this.tlsSocketType)
+            .sslMode(this.sslMode.name())
+            .serverSslCert(this.serverSslCert)
+            .keyStore(this.keyStore)
+            .keyStoreType(this.keyStoreType)
+            .keyStorePassword(this.keyStorePassword)
+            .keyPassword(this.keyPassword)
+            .trustStoreType(this.trustStoreType)
+            .enabledSslCipherSuites(this.enabledSslCipherSuites)
+            .enabledSslProtocolSuites(this.enabledSslProtocolSuites)
+            .allowMultiQueries(this.allowMultiQueries)
+            .allowLocalInfile(this.allowLocalInfile)
+            .useCompression(this.useCompression)
+            .useAffectedRows(this.useAffectedRows)
+            .useBulkStmts(this.useBulkStmts)
+            .useBulkStmtsForInserts(this.useBulkStmtsForInserts)
+            .disablePipeline(this.disablePipeline)
+            .cachePrepStmts(this.cachePrepStmts)
+            .prepStmtCacheSize(this.prepStmtCacheSize)
+            .useServerPrepStmts(this.useServerPrepStmts)
+            .credentialType(this.credentialType == null ? null : this.credentialType.type())
+            .sessionVariables(this.sessionVariables)
+            .connectionAttributes(this.connectionAttributes)
+            .servicePrincipalName(this.servicePrincipalName)
+            .blankTableNameMeta(this.blankTableNameMeta)
+            .tinyInt1isBit(this.tinyInt1isBit)
+            .transformedBitIsBoolean(this.transformedBitIsBoolean)
+            .yearIsDateType(this.yearIsDateType)
+            .dumpQueriesOnException(this.dumpQueriesOnException)
+            .includeInnodbStatusInDeadlockExceptions(this.includeInnodbStatusInDeadlockExceptions)
+            .includeThreadDumpInDeadlockExceptions(this.includeThreadDumpInDeadlockExceptions)
+            .retriesAllDown(this.retriesAllDown)
+            .galeraAllowedState(this.galeraAllowedState)
+            .transactionReplay(this.transactionReplay)
+            .transactionReplaySize(this.transactionReplaySize)
+            .pool(this.pool)
+            .poolName(this.poolName)
+            .maxPoolSize(this.maxPoolSize)
+            .minPoolSize(this.minPoolSize)
+            .maxIdleTime(this.maxIdleTime)
+            .registerJmxPool(this.registerJmxPool)
+            .poolValidMinDelay(this.poolValidMinDelay)
+            .useResetConnection(this.useResetConnection)
+            .serverRsaPublicKeyFile(this.serverRsaPublicKeyFile)
+            .allowPublicKeyRetrieval(this.allowPublicKeyRetrieval);
+    builder._nonMappedOptions = this.nonMappedOptions;
+    return builder;
   }
 
   /**
@@ -996,6 +1089,13 @@ public class Configuration {
               sb.append(key).append('=');
               sb.append(properties.get(key));
             }
+          } else if (field.getType().equals(CatalogTerm.class)) {
+            Object defaultValue = field.get(defaultConf);
+            if (!obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append("=SCHEMA");
+            }
           } else if (field.getType().equals(CredentialPlugin.class)) {
             Object defaultValue = field.get(defaultConf);
             if (!obj.equals(defaultValue)) {
@@ -1038,86 +1138,15 @@ public class Configuration {
    * @return new cloned configuration object
    */
   public Configuration clone(String username, String password) {
-    return new Configuration(
-        username != null && username.isEmpty() ? null : username,
-        password != null && password.isEmpty() ? null : password,
-        this.database,
-        this.addresses,
-        this.haMode,
-        this.nonMappedOptions,
-        this.timezone,
-        this.autocommit,
-        this.useMysqlMetadata,
-        this.useCatalogTerm,
-        this.createDatabaseIfNotExist,
-        this.useLocalSessionState,
-        this.returnMultiValuesGeneratedIds,
-        this.jdbcCompliantTruncation,
-        this.transactionIsolation,
-        this.defaultFetchSize,
-        this.maxQuerySizeToLog,
-        this.maxAllowedPacket,
-        this.geometryDefaultType,
-        this.restrictedAuth,
-        this.initSql,
-        this.socketFactory,
-        this.connectTimeout,
-        this.pipe,
-        this.localSocket,
-        this.tcpKeepAlive,
-        this.uuidAsString,
-        this.tcpKeepIdle,
-        this.tcpKeepCount,
-        this.tcpKeepInterval,
-        this.tcpAbortiveClose,
-        this.localSocketAddress,
-        this.socketTimeout,
-        this.useReadAheadInput,
-        this.tlsSocketType,
-        this.sslMode,
-        this.serverSslCert,
-        this.keyStore,
-        this.keyStorePassword,
-        this.keyPassword,
-        this.keyStoreType,
-        this.trustStoreType,
-        this.enabledSslCipherSuites,
-        this.enabledSslProtocolSuites,
-        this.allowMultiQueries,
-        this.allowLocalInfile,
-        this.useCompression,
-        this.useAffectedRows,
-        this.useBulkStmts,
-        this.useBulkStmtsForInserts,
-        this.disablePipeline,
-        this.cachePrepStmts,
-        this.prepStmtCacheSize,
-        this.useServerPrepStmts,
-        this.credentialType,
-        this.sessionVariables,
-        this.connectionAttributes,
-        this.servicePrincipalName,
-        this.blankTableNameMeta,
-        this.tinyInt1isBit,
-        this.transformedBitIsBoolean,
-        this.yearIsDateType,
-        this.dumpQueriesOnException,
-        this.includeInnodbStatusInDeadlockExceptions,
-        this.includeThreadDumpInDeadlockExceptions,
-        this.retriesAllDown,
-        this.galeraAllowedState,
-        this.transactionReplay,
-        this.transactionReplaySize,
-        this.pool,
-        this.poolName,
-        this.maxPoolSize,
-        this.minPoolSize,
-        this.maxIdleTime,
-        this.registerJmxPool,
-        this.poolValidMinDelay,
-        this.useResetConnection,
-        this.serverRsaPublicKeyFile,
-        this.allowPublicKeyRetrieval);
+    try {
+      return this.toBuilder()
+          .user(username != null && username.isEmpty() ? null : username)
+          .password(password != null && password.isEmpty() ? null : password)
+          .build();
+    } catch (SQLException e) {
+      // not possible
+    }
+    return null;
   }
 
   /**
@@ -1613,6 +1642,15 @@ public class Configuration {
   }
 
   /**
+   * must client redirect when required
+   *
+   * @return must client redirect when required
+   */
+  public boolean permitRedirect() {
+    return permitRedirect;
+  }
+
+  /**
    * On deadlock exception, must driver execute additional commands to show innodb status in error
    * description.
    *
@@ -1923,6 +1961,7 @@ public class Configuration {
     private Boolean useLocalSessionState;
     private Boolean returnMultiValuesGeneratedIds;
     private Boolean jdbcCompliantTruncation;
+    private Boolean permitRedirect;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -2676,6 +2715,17 @@ public class Configuration {
     }
 
     /**
+     * indicate if connector must redirect connection when receiving server redirect information
+     *
+     * @param permitRedirect must redirect when required
+     * @return this {@link Builder}
+     */
+    public Builder permitRedirect(Boolean permitRedirect) {
+      this.permitRedirect = permitRedirect;
+      return this;
+    }
+
+    /**
      * On dead-lock exception must add innodb status in exception error message. If enabled, an
      * additional command will be done to retrieve innodb status when dead-lock occurs.
      *
@@ -2993,6 +3043,7 @@ public class Configuration {
               this.useLocalSessionState,
               this.returnMultiValuesGeneratedIds,
               this.jdbcCompliantTruncation,
+              this.permitRedirect,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

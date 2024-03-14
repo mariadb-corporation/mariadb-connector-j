@@ -51,6 +51,8 @@ public class BaseContext implements Context {
   /** Connection state use flag */
   private int stateFlag = 0;
 
+  private String redirectUrl = null;
+
   /**
    * Constructor of connection context
    *
@@ -207,5 +209,14 @@ public class BaseContext implements Context {
 
   public void setCharset(String charset) {
     this.charset = charset;
+  }
+
+  public String getRedirectUrl() {
+    return redirectUrl;
+  }
+
+  @Override
+  public void setRedirectUrl(String redirectUrl) {
+    this.redirectUrl = redirectUrl;
   }
 }

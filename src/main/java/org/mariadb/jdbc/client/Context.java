@@ -38,6 +38,15 @@ public interface Context {
   void setAutoIncrement(long autoIncrement);
 
   /**
+   * Set server redirection url
+   *
+   * @param redirectUrl redirect url
+   */
+  void setRedirectUrl(String redirectUrl);
+
+  String getRedirectUrl();
+
+  /**
    * Get connection initial seed
    *
    * @return initial seed

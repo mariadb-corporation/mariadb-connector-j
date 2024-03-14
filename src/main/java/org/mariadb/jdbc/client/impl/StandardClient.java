@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
@@ -24,6 +25,9 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
@@ -71,13 +75,18 @@ public class StandardClient implements Client, AutoCloseable {
   /** connection exception factory */
   protected final ExceptionFactory exceptionFactory;
 
-  private final Socket socket;
+  private static final Pattern REDIRECT_PATTERN =
+      Pattern.compile(
+          "(mariadb|mysql):\\/\\/(([^/@:]+)?(:([^/]+))?@)?(([^/:]+)(:([0-9]+))?)(\\/([^?]+)(\\?(.*))?)?$",
+          Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+  private Socket socket;
   private final MutableByte sequence = new MutableByte();
   private final MutableByte compressionSequence = new MutableByte();
   private final ReentrantLock lock;
-  private final Configuration conf;
+  private Configuration conf;
   private AuthenticationPlugin authPlugin;
-  private final HostAddress hostAddress;
+  private HostAddress hostAddress;
   private final boolean disablePipeline;
 
   /** connection context */
@@ -92,6 +101,8 @@ public class StandardClient implements Client, AutoCloseable {
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
+
+  private final Consumer<String> redirectConsumer = this::redirect;
 
   /**
    * Constructor
@@ -319,6 +330,10 @@ public class StandardClient implements Client, AutoCloseable {
                       "08000");
             }
           }
+
+          if (context.getRedirectUrl() != null && conf.permitRedirect())
+            redirect(context.getRedirectUrl());
+
           break authentication_loop;
 
         default:
@@ -357,6 +372,76 @@ public class StandardClient implements Client, AutoCloseable {
 
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException("SHA-256 MessageDigest expected to be not available", e);
+    }
+  }
+
+  public void redirect(String redirectUrl) {
+    if (this.conf.permitRedirect() && redirectUrl != null) {
+      // redirect only if not in a transaction
+      if ((this.context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0) {
+        this.context.setRedirectUrl(null);
+        Matcher matcher = REDIRECT_PATTERN.matcher(redirectUrl);
+        if (!matcher.matches()) {
+          logger.error(
+              "error parsing redirection string '"
+                  + redirectUrl
+                  + "'. format must be"
+                  + " 'mariadb/mysql://[<user>[:<password>]@]<host>[:<port>]/[<db>[?<opt1>=<value1>[&<opt2>=<value2>]]]'");
+          return;
+        }
+        try {
+          String redirectHost =
+              matcher.group(7) != null
+                  ? URLDecoder.decode(matcher.group(7), "utf8")
+                  : matcher.group(6);
+          int redirectPort = matcher.group(9) != null ? Integer.parseInt(matcher.group(9)) : 3306;
+
+          if (this.getHostAddress() != null
+              && redirectHost.equals(this.getHostAddress().host)
+              && redirectPort == this.getHostAddress().port) {
+            // redirection to the same host, skip loop redirection
+            return;
+          }
+
+          // actually only options accepted are user and password
+          // there might be additional possible options in the future
+          String redirectUser = matcher.group(3);
+          String redirectPwd = matcher.group(5);
+          Configuration.Builder redirectConfBuilder =
+              this.context.getConf().toBuilder()
+                  .addresses(HostAddress.from(redirectHost, redirectPort, true));
+          if (redirectUser != null) redirectConfBuilder.user(redirectUser);
+          if (redirectPwd != null) redirectConfBuilder.password(redirectPwd);
+          try {
+            Configuration redirectConf = redirectConfBuilder.build();
+            HostAddress redirectHostAddress = redirectConf.addresses().get(0);
+
+            StandardClient redirectClient =
+                new StandardClient(redirectConf, redirectHostAddress, lock, false);
+
+            // properly close current connection
+            this.close();
+            logger.info("redirecting connection " + hostAddress + " to " + redirectUrl);
+            // affect redirection to current client
+            this.closed = false;
+            this.socket = redirectClient.socket;
+            this.conf = redirectConf;
+            this.hostAddress = redirectHostAddress;
+            this.context = redirectClient.context;
+            this.writer = redirectClient.writer;
+            this.reader = redirectClient.reader;
+
+          } catch (SQLException e) {
+            logger.error("fail to redirect to '" + redirectUrl + "'");
+          }
+        } catch (UnsupportedEncodingException ee) {
+          // eat, still supporting java 8
+        }
+      } else {
+        this.context.setRedirectUrl(redirectUrl);
+      }
+    } else {
+      this.context.setRedirectUrl(null);
     }
   }
 
@@ -1147,7 +1232,8 @@ public class StandardClient implements Client, AutoCloseable {
               exceptionFactory,
               lock,
               traceEnable,
-              message);
+              message,
+              redirectConsumer);
       if (completion instanceof StreamingResult && !((StreamingResult) completion).loaded()) {
         streamStmt = stmt;
         streamMsg = message;

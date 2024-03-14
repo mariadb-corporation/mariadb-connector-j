@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
@@ -137,7 +138,8 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,
       boolean traceEnable,
-      ClientMessage message)
+      ClientMessage message,
+      Consumer<String> redirectFct)
       throws IOException, SQLException {
     if (this.prepareResult == null) {
       ReadableByteBuf buf = reader.readReusablePacket(traceEnable);
@@ -195,7 +197,8 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
           exceptionFactory,
           lock,
           traceEnable,
-          message);
+          message,
+          redirectFct);
     }
   }
 

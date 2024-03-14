@@ -61,6 +61,9 @@ public class OkPacket implements Completion {
                     case "auto_increment_increment":
                       context.setAutoIncrement(Long.parseLong(valueSv));
                       break;
+                    case "redirect_url":
+                      context.setRedirectUrl(valueSv);
+                      break;
                   }
                 } while (tmpBufsv.readableBytes() > 0);
                 break;
