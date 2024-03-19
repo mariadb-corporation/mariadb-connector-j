@@ -728,7 +728,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     StringBuilder sb =
         new StringBuilder(
-            "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, IF(TABLE_TYPE='BASE"
+            "SELECT "
+                + (conf.useCatalogTerm() == CatalogTerm.UseCatalog ?
+                    "TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM,":
+                    "TABLE_CATALOG TABLE_CAT, TABLE_SCHEMA TABLE_SCHEM,")
+                + " TABLE_NAME, IF(TABLE_TYPE='BASE"
                 + " TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', IF(TABLE_TYPE='TEMPORARY',"
                 + " 'LOCAL TEMPORARY', TABLE_TYPE)) as TABLE_TYPE, TABLE_COMMENT REMARKS, NULL"
                 + " TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
@@ -766,7 +770,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       if (mustAddType) sb.append(sqlType);
     }
 
-    sb.append(" ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME");
+    sb.append(" ORDER BY TABLE_TYPE,TABLE_CAT,TABLE_SCHEMA,TABLE_NAME");
 
     return executeQuery(sb.toString());
   }

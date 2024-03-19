@@ -1925,7 +1925,6 @@ public class DatabaseMetadataTest extends Common {
       stmt.execute("DROP DATABASE dbTmpFct1");
       stmt.execute("DROP DATABASE dbTmpFct2");
     }
-
   }
 
   @Test
@@ -2829,4 +2828,42 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
   }
+
+
+  @Test
+  public void getTableOrder() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct1");
+    stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct2");
+    DatabaseMetaData dmd = sharedConn.getMetaData();
+    try {
+      stmt.execute("CREATE TABLE dbTmpFct2.dbta2 (a int, b int)");
+      stmt.execute("CREATE TABLE dbTmpFct2.dbta1 (a int, b int)");
+      stmt.execute("CREATE TABLE dbTmpFct1.dbtb1 (a int, b int)");
+      ResultSet rs = dmd.getTables(null, null, "dbt%", null);
+      assertTrue(rs.next());
+      assertEquals("dbtb1", rs.getString(3));
+      assertTrue(rs.next());
+      assertEquals("dbta1", rs.getString(3));
+      assertTrue(rs.next());
+      assertEquals("dbta2", rs.getString(3));
+      assertFalse(rs.next());
+      try (Connection conn = createCon("useCatalogTerm=SCHEMA")) {
+        DatabaseMetaData dmd2 = conn.getMetaData();
+        rs = dmd2.getTables(null, "dbTmpFct%", "dbt%", null);
+        assertTrue(rs.next());
+        assertEquals("dbtb1", rs.getString(3));
+        assertTrue(rs.next());
+        assertEquals("dbta1", rs.getString(3));
+        assertTrue(rs.next());
+        assertEquals("dbta2", rs.getString(3));
+        assertFalse(rs.next());
+      }
+    } finally{
+      stmt.execute("DROP DATABASE dbTmpFct1");
+      stmt.execute("DROP DATABASE dbTmpFct2");
+    }
+
+  }
+
 }
