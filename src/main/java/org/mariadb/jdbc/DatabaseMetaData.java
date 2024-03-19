@@ -3922,18 +3922,18 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "The name of the application currently utilizing the connection"
           },
           new String[] {
-            "ClientUser",
-            "16777215",
-            "",
-            "The name of the user that the application using the connection is performing work for."
-                + " This may not be the same as the user name that was used in establishing the"
-                + " connection."
-          },
-          new String[] {
             "ClientHostname",
             "16777215",
             "",
             "The hostname of the computer the application using the connection is running on"
+          },
+          new String[] {
+            "ClientUser",
+            "16777215",
+            "",
+            "The name of the user that the application using the connection is performing work for."
+                    + " This may not be the same as the user name that was used in establishing the"
+                    + " connection."
           }
         };
 

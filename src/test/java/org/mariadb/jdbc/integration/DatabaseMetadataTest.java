@@ -1586,22 +1586,22 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("The name of the application currently utilizing the connection", rs.getString(4));
 
     assertTrue(rs.next());
-    assertEquals("ClientUser", rs.getString(1));
-    assertEquals(0x00ffffff, rs.getInt(2));
-    assertEquals("", rs.getString(3));
-    assertEquals(
-        "The name of the user that the application using the connection is performing work for."
-            + " This may not be the same as the user name that was used in establishing the"
-            + " connection.",
-        rs.getString(4));
-
-    assertTrue(rs.next());
     assertEquals("ClientHostname", rs.getString(1));
     assertEquals(0x00ffffff, rs.getInt(2));
     assertEquals("", rs.getString(3));
     assertEquals(
         "The hostname of the computer the application using the connection is running on",
         rs.getString(4));
+
+    assertTrue(rs.next());
+    assertEquals("ClientUser", rs.getString(1));
+    assertEquals(0x00ffffff, rs.getInt(2));
+    assertEquals("", rs.getString(3));
+    assertEquals(
+            "The name of the user that the application using the connection is performing work for."
+                    + " This may not be the same as the user name that was used in establishing the"
+                    + " connection.",
+            rs.getString(4));
 
     assertFalse(rs.next());
   }
