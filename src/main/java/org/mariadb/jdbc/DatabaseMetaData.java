@@ -4001,7 +4001,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             true, sb, "ROUTINE_SCHEMA", database, conf.useCatalogTerm() == CatalogTerm.UseSchema);
     firstCondition = patternCond(firstCondition, sb, "ROUTINE_NAME", functionNamePattern);
     sb.append(firstCondition ? " WHERE " : " AND ").append(" ROUTINE_TYPE='FUNCTION'");
-
+    sb.append(" ORDER BY FUNCTION_CAT,FUNCTION_SCHEM,FUNCTION_NAME,SPECIFIC_NAME");
     return executeQuery(sb.toString());
   }
 

@@ -1904,6 +1904,31 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
+  public void getFunctionsOrder() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct1");
+    stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct2");
+    try {
+      stmt.execute("CREATE FUNCTION dbTmpFct2.dbTmpFcta2 (a int, b int) RETURNS int DETERMINISTIC RETURN a + b");
+      stmt.execute("CREATE FUNCTION dbTmpFct2.dbTmpFcta1 (a int, b int) RETURNS int DETERMINISTIC RETURN a + b");
+      stmt.execute("CREATE FUNCTION dbTmpFct1.dbTmpFctb1 (a int, b int) RETURNS int DETERMINISTIC RETURN a + b");
+      DatabaseMetaData dmd = sharedConn.getMetaData();
+      ResultSet rs = dmd.getFunctions(null, null, "%dbTmpFct%");
+      assertTrue(rs.next());
+      assertEquals("dbTmpFctb1", rs.getString(3));
+      assertTrue(rs.next());
+      assertEquals("dbTmpFcta1", rs.getString(3));
+      assertTrue(rs.next());
+      assertEquals("dbTmpFcta2", rs.getString(3));
+      assertFalse(rs.next());
+    } finally{
+      stmt.execute("DROP DATABASE dbTmpFct1");
+      stmt.execute("DROP DATABASE dbTmpFct2");
+    }
+
+  }
+
+  @Test
   public void getSuperTablesBasic() throws SQLException {
     testResultSetColumns(
         sharedConn.getMetaData().getSuperTables(null, null, null),
