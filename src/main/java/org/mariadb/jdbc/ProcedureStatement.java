@@ -5,9 +5,9 @@ package org.mariadb.jdbc;
 
 import java.sql.CallableStatement;
 import java.sql.SQLException;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.result.Result;
+import org.mariadb.jdbc.client.util.ClosableLock;
 
 /** Procedure callable statement */
 public class ProcedureStatement extends BaseCallableStatement implements CallableStatement {
@@ -32,7 +32,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
       String sql,
       String databaseName,
       String procedureName,
-      ReentrantLock lock,
+      ClosableLock lock,
       boolean canUseServerTimeout,
       boolean canUseServerMaxRows,
       boolean canCachePrepStmts,

@@ -5,11 +5,11 @@ package org.mariadb.jdbc.client.result;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.util.ClosableLock;
 
 /**
  * Streaming result-set implementation. Implementation rely on reading as many rows than fetch size
@@ -39,7 +39,7 @@ import org.mariadb.jdbc.client.socket.Reader;
  */
 public class StreamingResult extends Result {
   private static final int MAX_FETCH_SIZE = 16384;
-  private final ReentrantLock lock;
+  private final ClosableLock lock;
   private int dataFetchTime;
   private int requestedFetchSize;
 
@@ -68,7 +68,7 @@ public class StreamingResult extends Result {
       Reader reader,
       Context context,
       int fetchSize,
-      ReentrantLock lock,
+      ClosableLock lock,
       int resultSetType,
       boolean closeOnCompletion,
       boolean traceEnable)
@@ -114,9 +114,9 @@ public class StreamingResult extends Result {
     addStreamingValue();
   }
 
+  @SuppressWarnings("try")
   private void addStreamingValue() throws SQLException {
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       // read only fetchSize values
       int fetchSizeTmp =
           (maxRows <= 0)
@@ -134,8 +134,6 @@ public class StreamingResult extends Result {
         skipRemaining();
     } catch (IOException ioe) {
       throw exceptionFactory.create("Error while streaming resultSet data", "08000", ioe);
-    } finally {
-      lock.unlock();
     }
   }
 
@@ -155,6 +153,7 @@ public class StreamingResult extends Result {
   }
 
   @Override
+  @SuppressWarnings("try")
   public boolean next() throws SQLException {
     checkClose();
     if (rowPointer < dataSize - 1) {
@@ -163,13 +162,10 @@ public class StreamingResult extends Result {
       return true;
     } else {
       if (!loaded) {
-        lock.lock();
-        try {
+        try (ClosableLock ignore = lock.closeableLock()) {
           if (!loaded) {
             nextStreamingValue();
           }
-        } finally {
-          lock.unlock();
         }
 
         if (resultSetType == TYPE_FORWARD_ONLY) {

@@ -6,7 +6,6 @@ package org.mariadb.jdbc.message.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -16,6 +15,7 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.ExceptionFactory;
@@ -136,7 +136,7 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
       Writer writer,
       Context context,
       ExceptionFactory exceptionFactory,
-      ReentrantLock lock,
+      ClosableLock lock,
       boolean traceEnable,
       ClientMessage message,
       Consumer<String> redirectFct)

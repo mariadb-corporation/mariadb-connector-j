@@ -7,12 +7,12 @@ import static org.mariadb.jdbc.util.constants.Capabilities.*;
 
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.ClientMessage;
@@ -52,7 +52,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public ServerPreparedStatement(
       String sql,
       Connection con,
-      ReentrantLock lock,
+      ClosableLock lock,
       boolean canUseServerTimeout,
       boolean canUseServerMaxRows,
       boolean canCachePrepStmts,
@@ -84,14 +84,14 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    *
    * @throws SQLException if any error occurs
    */
+  @SuppressWarnings("try")
   protected void executeInternal() throws SQLException {
     checkNotClosed();
     validParameters();
-    lock.lock();
-    String cmd = escapeTimeout(sql);
-    if (prepareResult == null)
-      if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      String cmd = escapeTimeout(sql);
+      if (prepareResult == null)
+        if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
       if (prepareResult == null && con.getContext().permitPipeline()) {
         executePipeline(cmd);
       } else {
@@ -103,7 +103,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       throw e;
     } finally {
       localInfileInputStream = null;
-      lock.unlock();
     }
   }
 
@@ -608,11 +607,11 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   }
 
   @Override
+  @SuppressWarnings("try")
   public int[] executeBatch() throws SQLException {
     checkNotClosed();
     if (batchParameters == null || batchParameters.isEmpty()) return new int[0];
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       int[] updates = new int[batchParameters.size()];
@@ -654,16 +653,15 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     } finally {
       localInfileInputStream = null;
       batchParameters.clear();
-      lock.unlock();
     }
   }
 
   @Override
+  @SuppressWarnings("try")
   public long[] executeLargeBatch() throws SQLException {
     checkNotClosed();
     if (batchParameters == null || batchParameters.isEmpty()) return new long[0];
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       long[] updates = new long[batchParameters.size()];
@@ -705,7 +703,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       throw e;
     } finally {
       batchParameters.clear();
-      lock.unlock();
     }
   }
 

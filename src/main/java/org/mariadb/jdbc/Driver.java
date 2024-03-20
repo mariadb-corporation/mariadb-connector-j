@@ -13,12 +13,12 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.impl.MultiPrimaryClient;
 import org.mariadb.jdbc.client.impl.MultiPrimaryReplicaClient;
 import org.mariadb.jdbc.client.impl.ReplayClient;
 import org.mariadb.jdbc.client.impl.StandardClient;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.pool.Pools;
 import org.mariadb.jdbc.util.VersionFactory;
 
@@ -41,7 +41,7 @@ public final class Driver implements java.sql.Driver {
    * @throws SQLException if connect fails
    */
   public static Connection connect(Configuration configuration) throws SQLException {
-    ReentrantLock lock = new ReentrantLock();
+    ClosableLock lock = new ClosableLock();
     Client client;
     switch (configuration.haMode()) {
       case LOADBALANCE:
@@ -55,7 +55,7 @@ public final class Driver implements java.sql.Driver {
         break;
 
       default:
-        ClientInstance<Configuration, HostAddress, ReentrantLock, Boolean, Client> clientInstance =
+        ClientInstance<Configuration, HostAddress, ClosableLock, Boolean, Client> clientInstance =
             (configuration.transactionReplay()) ? ReplayClient::new : StandardClient::new;
 
         if (configuration.addresses().isEmpty()) {

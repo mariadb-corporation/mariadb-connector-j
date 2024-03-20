@@ -24,7 +24,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,6 +44,7 @@ import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.*;
 import org.mariadb.jdbc.client.tls.MariaDbX509EphemeralTrustingManager;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.MaxAllowedPacketException;
@@ -83,7 +83,7 @@ public class StandardClient implements Client, AutoCloseable {
   private Socket socket;
   private final MutableByte sequence = new MutableByte();
   private final MutableByte compressionSequence = new MutableByte();
-  private final ReentrantLock lock;
+  private final ClosableLock lock;
   private Configuration conf;
   private AuthenticationPlugin authPlugin;
   private HostAddress hostAddress;
@@ -115,7 +115,7 @@ public class StandardClient implements Client, AutoCloseable {
    */
   @SuppressWarnings({"this-escape"})
   public StandardClient(
-      Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
+      Configuration conf, HostAddress hostAddress, ClosableLock lock, boolean skipPostCommands)
       throws SQLException {
 
     this.conf = conf;
@@ -1313,8 +1313,7 @@ public class StandardClient implements Client, AutoCloseable {
       if (!lockStatus) {
         // lock not available : query is running
         // force end by executing an KILL connection
-        try (StandardClient cli =
-            new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
+        try (StandardClient cli = new StandardClient(conf, hostAddress, new ClosableLock(), true)) {
           cli.execute(new QueryPacket("KILL " + context.getThreadId()), false);
         } catch (SQLException e) {
           // eat

@@ -7,13 +7,13 @@ import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
@@ -47,7 +47,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
    * @throws SQLException if any error occurs
    */
   @SuppressWarnings({"this-escape"})
-  public MultiPrimaryReplicaClient(Configuration conf, ReentrantLock lock) throws SQLException {
+  public MultiPrimaryReplicaClient(Configuration conf, ClosableLock lock) throws SQLException {
     super(conf, lock);
     primaryClient = currentClient;
     waitTimeout =

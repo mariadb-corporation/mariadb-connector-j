@@ -1221,51 +1221,6 @@ public class StatementTest extends Common {
   }
 
   @Test
-  public void tt() throws SQLException {
-
-    try (var stmt = sharedConn.createStatement()) {
-      stmt.executeUpdate(
-          "CREATE TABLE IF NOT EXISTS testtable(username VARCHAR(100) NOT NULL PRIMARY KEY,timeMs"
-              + " BIGINT NULL DEFAULT NULL)");
-    }
-
-    var sql =
-        "INSERT INTO testtable(username, timeMs) VALUES(?, ?) ON DUPLICATE KEY UPDATE timeMs ="
-            + " IF(timeMs IS NULL, ?, IF(? IS NULL, timeMs, ?))";
-
-    try (var stmt = sharedConnBinary.prepareStatement(sql)) {
-      Long timeMs1 = 2140L;
-      setObjects(stmt, "user1", timeMs1, timeMs1, timeMs1, timeMs1);
-      stmt.addBatch();
-
-      Long timeMs2 = 1000L;
-      setObjects(stmt, "user2", timeMs2, timeMs2, timeMs2, timeMs2);
-      stmt.addBatch();
-
-      stmt.executeBatch();
-    }
-
-    try (var stmt = sharedConnBinary.prepareStatement(sql)) {
-      Long timeMs1 = 2030L;
-      setObjects(stmt, "user1", timeMs1, timeMs1, timeMs1, timeMs1);
-      stmt.addBatch();
-
-      Long timeMs2 = null;
-      setObjects(stmt, "user2", timeMs2, timeMs2, timeMs2, timeMs2);
-      stmt.addBatch();
-
-      stmt.executeBatch();
-    }
-  }
-
-  public static void setObjects(PreparedStatement stmt, Object... args) throws SQLException {
-    var offset = 0;
-    for (Object arg : args) {
-      stmt.setObject(++offset, arg);
-    }
-  }
-
-  @Test
   public void generatedKey() throws SQLException {
     java.sql.Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS tt");

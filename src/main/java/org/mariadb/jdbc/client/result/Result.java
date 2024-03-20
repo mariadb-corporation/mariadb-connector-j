@@ -14,13 +14,13 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.result.rowdecoder.BinaryRowDecoder;
 import org.mariadb.jdbc.client.result.rowdecoder.RowDecoder;
 import org.mariadb.jdbc.client.result.rowdecoder.TextRowDecoder;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.server.ErrorPacket;
@@ -368,13 +368,11 @@ public abstract class Result implements ResultSet, Completion {
    * @param lock thread locker object
    * @throws SQLException if any error occurs
    */
-  public void closeFromStmtClose(ReentrantLock lock) throws SQLException {
-    lock.lock();
-    try {
+  @SuppressWarnings("try")
+  public void closeFromStmtClose(ClosableLock lock) throws SQLException {
+    try (ClosableLock ignore = lock.closeableLock()) {
       this.fetchRemaining();
       this.closed = true;
-    } finally {
-      lock.unlock();
     }
   }
 

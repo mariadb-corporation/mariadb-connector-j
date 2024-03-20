@@ -5,7 +5,6 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -15,6 +14,7 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
@@ -55,7 +55,7 @@ public final class PreparePacket implements ClientMessage {
       Writer writer,
       Context context,
       ExceptionFactory exceptionFactory,
-      ReentrantLock lock,
+      ClosableLock lock,
       boolean traceEnable,
       ClientMessage message,
       Consumer<String> redirectFct)

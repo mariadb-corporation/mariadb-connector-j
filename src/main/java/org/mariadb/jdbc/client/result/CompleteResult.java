@@ -9,12 +9,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.util.ClosableLock;
 
 /** Result-set that will retrieve all rows immediately before returning the result-set. */
 public class CompleteResult extends Result {
@@ -230,7 +230,7 @@ public class CompleteResult extends Result {
   public void fetchRemaining() {}
 
   @Override
-  public void closeFromStmtClose(ReentrantLock lock) {
+  public void closeFromStmtClose(ClosableLock lock) {
     this.closed = true;
   }
 

@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.BasePreparedStatement;
@@ -21,6 +20,7 @@ import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.server.ErrorPacket;
@@ -155,7 +155,7 @@ public interface ClientMessage {
       Writer writer,
       Context context,
       ExceptionFactory exceptionFactory,
-      ReentrantLock lock,
+      ClosableLock lock,
       boolean traceEnable,
       ClientMessage message,
       Consumer<String> redirectFct)
