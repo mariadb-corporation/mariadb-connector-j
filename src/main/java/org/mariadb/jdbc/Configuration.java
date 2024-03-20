@@ -69,7 +69,7 @@ public class Configuration {
   private boolean createDatabaseIfNotExist = false;
   private boolean useLocalSessionState = false;
   private boolean returnMultiValuesGeneratedIds = false;
-  private boolean jdbcCompliantTruncation = false;
+  private boolean jdbcCompliantTruncation = true;
   private boolean permitRedirect = true;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
