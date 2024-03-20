@@ -1909,9 +1909,15 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct1");
     stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct2");
     try {
-      stmt.execute("CREATE FUNCTION dbTmpFct2.dbTmpFcta2 (a int, b int) RETURNS int RETURN a + b");
-      stmt.execute("CREATE FUNCTION dbTmpFct2.dbTmpFcta1 (a int, b int) RETURNS int RETURN a + b");
-      stmt.execute("CREATE FUNCTION dbTmpFct1.dbTmpFctb1 (a int, b int) RETURNS int RETURN a + b");
+      stmt.execute(
+          "CREATE FUNCTION dbTmpFct2.dbTmpFcta2 (a int, b int) DETERMINISTIC RETURNS int RETURN a +"
+              + " b");
+      stmt.execute(
+          "CREATE FUNCTION dbTmpFct2.dbTmpFcta1 (a int, b int) DETERMINISTIC RETURNS int RETURN a +"
+              + " b");
+      stmt.execute(
+          "CREATE FUNCTION dbTmpFct1.dbTmpFctb1 (a int, b int) DETERMINISTIC RETURNS int RETURN a +"
+              + " b");
       DatabaseMetaData dmd = sharedConn.getMetaData();
       ResultSet rs = dmd.getFunctions(null, null, "%dbTmpFct%");
       assertTrue(rs.next());
