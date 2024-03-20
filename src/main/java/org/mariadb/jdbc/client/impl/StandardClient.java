@@ -625,12 +625,6 @@ public class StandardClient implements Client, AutoCloseable {
     String sessionVariableQuery = createSessionVariableQuery(serverTz, context);
     if (sessionVariableQuery != null) commands.add(sessionVariableQuery);
 
-    if (hostAddress != null
-        && !hostAddress.primary
-        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      commands.add("SET SESSION TRANSACTION READ ONLY");
-    }
-
     if (conf.database() != null
         && conf.createDatabaseIfNotExist()
         && (hostAddress == null || hostAddress.primary)) {
@@ -638,8 +632,6 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));
     }
-    if (context.getCharset() == null || !"utf8mb4".equals(context.getCharset()))
-      commands.add("SET NAMES utf8mb4");
 
     if (conf.initSql() != null) {
       commands.add(conf.initSql());
@@ -796,16 +788,24 @@ public class StandardClient implements Client, AutoCloseable {
     }
 
     if (conf.transactionIsolation() != null) {
-      int major = context.getVersion().getMajorVersion();
-      if (!context.getVersion().isMariaDBServer()
-          && ((major >= 8 && context.getVersion().versionGreaterOrEqual(8, 0, 3))
-              || (major < 8 && context.getVersion().versionGreaterOrEqual(5, 7, 20)))) {
-        sessionCommands.add(
-            "@@session.transaction_isolation='" + conf.transactionIsolation().getValue() + "'");
-      } else {
-        sessionCommands.add(
-            "@@session.tx_isolation='" + conf.transactionIsolation().getValue() + "'");
-      }
+      sessionCommands.add(
+          String.format(
+              "@@session.%s='%s'",
+              context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation",
+              conf.transactionIsolation().getValue()));
+    }
+
+    if (hostAddress != null
+        && !hostAddress.primary
+        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+      sessionCommands.add(
+          String.format(
+              "@@session.%s=1",
+              context.canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only"));
+    }
+
+    if (context.getCharset() == null || !"utf8mb4".equals(context.getCharset())) {
+      sessionCommands.add("NAMES utf8mb4");
     }
     if (!sessionCommands.isEmpty()) {
       return "set " + sessionCommands.stream().collect(Collectors.joining(","));

@@ -161,6 +161,13 @@ public interface Context {
   Configuration getConf();
 
   /**
+   * Can rely on transaction_isolation or keep using deprecated tx_isolation variable
+   *
+   * @return true if you can use transaction_isolation
+   */
+  boolean canUseTransactionIsolation();
+
+  /**
    * Get connection transaction isolation level
    *
    * @return connection transaction isolation level

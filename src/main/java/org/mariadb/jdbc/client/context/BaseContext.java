@@ -25,6 +25,7 @@ public class BaseContext implements Context {
   private final Function<ReadableByteBuf, ColumnDecoder> columnDecoderFunction;
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
+  private final boolean canUseTransactionIsolation;
 
   /** LRU prepare cache object */
   private final PrepareCache prepareCache;
@@ -88,6 +89,13 @@ public class BaseContext implements Context {
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;
     this.prepareCache = prepareCache;
+    this.canUseTransactionIsolation =
+        (version.isMariaDBServer()
+                && version.getMajorVersion() < 23
+                && version.versionGreaterOrEqual(11, 1, 1))
+            || (!version.isMariaDBServer()
+                && ((version.getMajorVersion() >= 8 && version.versionGreaterOrEqual(8, 0, 3))
+                    || (version.getMajorVersion() < 8 && version.versionGreaterOrEqual(5, 7, 20))));
   }
 
   public long getThreadId() {
@@ -213,6 +221,10 @@ public class BaseContext implements Context {
 
   public String getRedirectUrl() {
     return redirectUrl;
+  }
+
+  public boolean canUseTransactionIsolation() {
+    return canUseTransactionIsolation;
   }
 
   @Override

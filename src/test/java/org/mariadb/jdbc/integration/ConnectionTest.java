@@ -547,6 +547,44 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void confDefaultIsolationLevel() throws SQLException {
+    int[] levels =
+        new int[] {
+          java.sql.Connection.TRANSACTION_READ_UNCOMMITTED,
+          java.sql.Connection.TRANSACTION_READ_COMMITTED,
+          java.sql.Connection.TRANSACTION_SERIALIZABLE,
+          java.sql.Connection.TRANSACTION_REPEATABLE_READ
+        };
+    String[] levelStr =
+        new String[] {"READ-UNCOMMITTED", "READ-COMMITTED", "SERIALIZABLE", "REPEATABLE-READ"};
+    for (int i = 0; i < levels.length; i++) {
+      try (Connection connection = createCon("transactionIsolation=" + levelStr[i])) {
+        assertEquals(levels[i], connection.getTransactionIsolation());
+      }
+    }
+  }
+
+  @Test
+  public void readOnlyConnection() throws SQLException {
+    String url =
+        password == null || password.isEmpty()
+            ? String.format(
+                "jdbc:mariadb://address=(host=%s)(port=%s)(type=replica)/%s?user=%s%s",
+                hostname, port, database, user, defaultOther)
+            : String.format(
+                "jdbc:mariadb://address=(host=%s)(port=%s)(type=replica)/%s?user=%s&password=%s%s",
+                hostname, port, database, user, password, defaultOther);
+
+    try (Connection connection = DriverManager.getConnection(url)) {
+      Statement stmt = connection.createStatement();
+
+      ResultSet rs = stmt.executeQuery("SELECT @@tx_read_only");
+      assertTrue(rs.next());
+      assertTrue(rs.getBoolean(1));
+    }
+  }
+
+  @Test
   public void savepointTest() throws SQLException {
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();

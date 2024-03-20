@@ -362,17 +362,10 @@ public class Connection implements java.sql.Connection {
     if (conf.useLocalSessionState() && client.getContext().getTransactionIsolationLevel() != null) {
       return client.getContext().getTransactionIsolationLevel();
     }
-
-    String sql = "SELECT @@session.tx_isolation";
-
-    if (!client.getContext().getVersion().isMariaDBServer()) {
-      if ((client.getContext().getVersion().getMajorVersion() >= 8
-              && client.getContext().getVersion().versionGreaterOrEqual(8, 0, 3))
-          || (client.getContext().getVersion().getMajorVersion() < 8
-              && client.getContext().getVersion().versionGreaterOrEqual(5, 7, 20))) {
-        sql = "SELECT @@session.transaction_isolation";
-      }
-    }
+    String sql =
+        client.getContext().canUseTransactionIsolation()
+            ? "SELECT @@session.transaction_isolation"
+            : "SELECT @@session.tx_isolation";
 
     try (Statement stmt = createStatement()) {
       ResultSet rs = stmt.executeQuery(sql);
