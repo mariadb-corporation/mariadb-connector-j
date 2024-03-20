@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.lang.management.ManagementFactory;
 import java.sql.*;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -658,7 +659,10 @@ public class PoolDataSourceTest extends Common {
         // ensure more time for windows
         assertTrue(
             (System.currentTimeMillis() - start) >= 500
-                && (System.currentTimeMillis() - start) < 850,
+                && (System.currentTimeMillis() - start)
+                    < (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")
+                        ? 1050
+                        : 800),
             "timeout does not correspond to option. Elapsed time:"
                 + (System.currentTimeMillis() - start));
         assertTrue(

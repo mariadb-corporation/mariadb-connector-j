@@ -1598,10 +1598,10 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(0x00ffffff, rs.getInt(2));
     assertEquals("", rs.getString(3));
     assertEquals(
-            "The name of the user that the application using the connection is performing work for."
-                    + " This may not be the same as the user name that was used in establishing the"
-                    + " connection.",
-            rs.getString(4));
+        "The name of the user that the application using the connection is performing work for."
+            + " This may not be the same as the user name that was used in establishing the"
+            + " connection.",
+        rs.getString(4));
 
     assertFalse(rs.next());
   }
@@ -1909,9 +1909,9 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct1");
     stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct2");
     try {
-      stmt.execute("CREATE FUNCTION dbTmpFct2.dbTmpFcta2 (a int, b int) RETURNS int DETERMINISTIC RETURN a + b");
-      stmt.execute("CREATE FUNCTION dbTmpFct2.dbTmpFcta1 (a int, b int) RETURNS int DETERMINISTIC RETURN a + b");
-      stmt.execute("CREATE FUNCTION dbTmpFct1.dbTmpFctb1 (a int, b int) RETURNS int DETERMINISTIC RETURN a + b");
+      stmt.execute("CREATE FUNCTION dbTmpFct2.dbTmpFcta2 (a int, b int) RETURNS int RETURN a + b");
+      stmt.execute("CREATE FUNCTION dbTmpFct2.dbTmpFcta1 (a int, b int) RETURNS int RETURN a + b");
+      stmt.execute("CREATE FUNCTION dbTmpFct1.dbTmpFctb1 (a int, b int) RETURNS int RETURN a + b");
       DatabaseMetaData dmd = sharedConn.getMetaData();
       ResultSet rs = dmd.getFunctions(null, null, "%dbTmpFct%");
       assertTrue(rs.next());
@@ -1921,7 +1921,7 @@ public class DatabaseMetadataTest extends Common {
       assertTrue(rs.next());
       assertEquals("dbTmpFcta2", rs.getString(3));
       assertFalse(rs.next());
-    } finally{
+    } finally {
       stmt.execute("DROP DATABASE dbTmpFct1");
       stmt.execute("DROP DATABASE dbTmpFct2");
     }
@@ -2829,7 +2829,6 @@ public class DatabaseMetadataTest extends Common {
     assertFalse(rs.next());
   }
 
-
   @Test
   public void getTableOrder() throws SQLException {
     Statement stmt = sharedConn.createStatement();
@@ -2859,11 +2858,9 @@ public class DatabaseMetadataTest extends Common {
         assertEquals("dbta2", rs.getString(3));
         assertFalse(rs.next());
       }
-    } finally{
+    } finally {
       stmt.execute("DROP DATABASE dbTmpFct1");
       stmt.execute("DROP DATABASE dbTmpFct2");
     }
-
   }
-
 }

@@ -729,9 +729,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     StringBuilder sb =
         new StringBuilder(
             "SELECT "
-                + (conf.useCatalogTerm() == CatalogTerm.UseCatalog ?
-                    "TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM,":
-                    "TABLE_CATALOG TABLE_CAT, TABLE_SCHEMA TABLE_SCHEM,")
+                + (conf.useCatalogTerm() == CatalogTerm.UseCatalog
+                    ? "TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM,"
+                    : "TABLE_CATALOG TABLE_CAT, TABLE_SCHEMA TABLE_SCHEM,")
                 + " TABLE_NAME, IF(TABLE_TYPE='BASE"
                 + " TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', IF(TABLE_TYPE='TEMPORARY',"
                 + " 'LOCAL TEMPORARY', TABLE_TYPE)) as TABLE_TYPE, TABLE_COMMENT REMARKS, NULL"
@@ -3936,8 +3936,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "16777215",
             "",
             "The name of the user that the application using the connection is performing work for."
-                    + " This may not be the same as the user name that was used in establishing the"
-                    + " connection."
+                + " This may not be the same as the user name that was used in establishing the"
+                + " connection."
           }
         };
 
