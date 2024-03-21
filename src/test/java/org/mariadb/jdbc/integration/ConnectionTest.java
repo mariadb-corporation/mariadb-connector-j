@@ -577,8 +577,21 @@ public class ConnectionTest extends Common {
 
     try (Connection connection = DriverManager.getConnection(url)) {
       Statement stmt = connection.createStatement();
-
-      ResultSet rs = stmt.executeQuery("SELECT @@tx_read_only");
+      boolean canUseTransactionReadOnly =
+          (isMariaDBServer()
+                  && sharedConn.getContext().getVersion().getMajorVersion() < 23
+                  && sharedConn.getContext().getVersion().versionGreaterOrEqual(11, 1, 1))
+              || (!sharedConn.getContext().getVersion().isMariaDBServer()
+                  && ((sharedConn.getContext().getVersion().getMajorVersion() >= 8
+                          && sharedConn.getContext().getVersion().versionGreaterOrEqual(8, 0, 3))
+                      || (sharedConn.getContext().getVersion().getMajorVersion() < 8
+                          && sharedConn
+                              .getContext()
+                              .getVersion()
+                              .versionGreaterOrEqual(5, 7, 20))));
+      ResultSet rs =
+          stmt.executeQuery(
+              "SELECT @@" + (canUseTransactionReadOnly ? "transaction_read_only" : "tx_read_only"));
       assertTrue(rs.next());
       assertTrue(rs.getBoolean(1));
     }
