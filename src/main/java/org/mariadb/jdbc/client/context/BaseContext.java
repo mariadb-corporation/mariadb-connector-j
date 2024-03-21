@@ -174,7 +174,7 @@ public class BaseContext implements Context {
     return transactionIsolationLevel;
   }
 
-  public void setTransactionIsolationLevel(int transactionIsolationLevel) {
+  public void setTransactionIsolationLevel(Integer transactionIsolationLevel) {
     this.transactionIsolationLevel = transactionIsolationLevel;
   }
 

@@ -179,7 +179,7 @@ public interface Context {
    *
    * @param transactionIsolationLevel new connection transaction isolation level
    */
-  void setTransactionIsolationLevel(int transactionIsolationLevel);
+  void setTransactionIsolationLevel(Integer transactionIsolationLevel);
 
   /**
    * get LRU prepare cache object

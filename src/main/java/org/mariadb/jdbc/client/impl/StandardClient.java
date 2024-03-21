@@ -736,13 +736,18 @@ public class StandardClient implements Client, AutoCloseable {
       sessionCommands.add("sql_mode=CONCAT(@@sql_mode,',STRICT_TRANS_TABLES')");
     }
 
-    if (conf.returnMultiValuesGeneratedIds()
+    if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
         && ((context.getVersion().isMariaDBServer()
                 && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
             || context.getVersion().versionGreaterOrEqual(5, 7, 0))) {
+      String concatValues =
+          "," + (context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
+      if (conf.returnMultiValuesGeneratedIds()) concatValues += ",auto_increment_increment";
       sessionCommands.add(
           "session_track_system_variables ="
-              + " CONCAT(@@global.session_track_system_variables,',auto_increment_increment')");
+              + " CONCAT(@@global.session_track_system_variables,'"
+              + concatValues
+              + "')");
     }
 
     // add configured session variable if configured

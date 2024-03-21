@@ -530,6 +530,8 @@ public class ConnectionTest extends Common {
     for (int level : levels) {
       connection.setTransactionIsolation(level);
       assertEquals(level, connection.getTransactionIsolation());
+      connection.setTransactionIsolation(level);
+      assertEquals(level, connection.getTransactionIsolation());
     }
     connection.close();
     assertThrows(

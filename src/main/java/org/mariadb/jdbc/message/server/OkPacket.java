@@ -64,6 +64,30 @@ public class OkPacket implements Completion {
                     case "redirect_url":
                       context.setRedirectUrl(valueSv);
                       break;
+                    case "tx_isolation":
+                    case "transaction_isolation":
+                      switch (valueSv) {
+                        case "REPEATABLE-READ":
+                          context.setTransactionIsolationLevel(
+                              java.sql.Connection.TRANSACTION_REPEATABLE_READ);
+                          break;
+                        case "READ-UNCOMMITTED":
+                          context.setTransactionIsolationLevel(
+                              java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
+                          break;
+                        case "READ-COMMITTED":
+                          context.setTransactionIsolationLevel(
+                              java.sql.Connection.TRANSACTION_READ_COMMITTED);
+                          break;
+                        case "SERIALIZABLE":
+                          context.setTransactionIsolationLevel(
+                              java.sql.Connection.TRANSACTION_SERIALIZABLE);
+                          break;
+                        default:
+                          context.setTransactionIsolationLevel(null);
+                          break;
+                      }
+                      break;
                   }
                 } while (tmpBufsv.readableBytes() > 0);
                 break;

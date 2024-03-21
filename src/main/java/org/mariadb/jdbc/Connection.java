@@ -349,9 +349,16 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public int getTransactionIsolation() throws SQLException {
-    if (conf.useLocalSessionState() && client.getContext().getTransactionIsolationLevel() != null) {
+    boolean useContextState =
+        conf.useLocalSessionState()
+            || (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
+                && ((client.getContext().getVersion().isMariaDBServer()
+                        && (client.getContext().getVersion().versionGreaterOrEqual(10, 2, 2)))
+                    || client.getContext().getVersion().versionGreaterOrEqual(5, 7, 0)));
+    if (useContextState && client.getContext().getTransactionIsolationLevel() != null) {
       return client.getContext().getTransactionIsolationLevel();
     }
+
     String sql =
         client.getContext().canUseTransactionIsolation()
             ? "SELECT @@session.transaction_isolation"
@@ -387,7 +394,14 @@ public class Connection implements java.sql.Connection {
   @Override
   @SuppressWarnings("try")
   public void setTransactionIsolation(int level) throws SQLException {
-    if (conf.useLocalSessionState()
+    boolean useContextState =
+        conf.useLocalSessionState()
+            || (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
+                && ((client.getContext().getVersion().isMariaDBServer()
+                        && (client.getContext().getVersion().versionGreaterOrEqual(10, 2, 2)))
+                    || client.getContext().getVersion().versionGreaterOrEqual(5, 7, 0)));
+
+    if (useContextState
         && client.getContext().getTransactionIsolationLevel() != null
         && level == client.getContext().getTransactionIsolationLevel()) {
       return;
@@ -413,7 +427,7 @@ public class Connection implements java.sql.Connection {
     try (ClosableLock ignore = lock.closeableLock()) {
       checkNotClosed();
       getContext().addStateFlag(ConnectionState.STATE_TRANSACTION_ISOLATION);
-      client.getContext().setTransactionIsolationLevel(level);
+      if (conf.useLocalSessionState()) client.getContext().setTransactionIsolationLevel(level);
       client.execute(new QueryPacket(query), true);
     }
   }
