@@ -141,7 +141,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               "08000",
               generalSecurityEx);
         }
-      } else {
+      } else if (conf.fallbackToSystemTrustStore()) {
         // relying on default truststore
         try {
           TrustManagerFactory tmf =
@@ -185,7 +185,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
                 conf.keyStoreType(),
                 exceptionFactory)
           };
-    } else {
+    } else if (conf.fallbackToSystemKeyStore()) {
       String keyStore = System.getProperty("javax.net.ssl.keyStore");
       String keyStorePassword =
           System.getProperty("javax.net.ssl.keyStorePassword", conf.keyStorePassword());

@@ -106,7 +106,8 @@ public class Configuration {
   private String trustStoreType = null;
   private String enabledSslCipherSuites = null;
   private String enabledSslProtocolSuites = null;
-
+  private boolean fallbackToSystemKeyStore = true;
+  private boolean fallbackToSystemTrustStore = true;
   // protocol
   private boolean allowMultiQueries = false;
   private boolean allowLocalInfile = true;
@@ -205,6 +206,8 @@ public class Configuration {
       String trustStoreType,
       String enabledSslCipherSuites,
       String enabledSslProtocolSuites,
+      boolean fallbackToSystemKeyStore,
+      boolean fallbackToSystemTrustStore,
       boolean allowMultiQueries,
       boolean allowLocalInfile,
       boolean useCompression,
@@ -285,6 +288,8 @@ public class Configuration {
     this.trustStoreType = trustStoreType;
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
+    this.fallbackToSystemKeyStore = fallbackToSystemKeyStore;
+    this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
     this.allowMultiQueries = allowMultiQueries;
     this.allowLocalInfile = allowLocalInfile;
     this.useCompression = useCompression;
@@ -330,6 +335,8 @@ public class Configuration {
       String user,
       String password,
       String enabledSslProtocolSuites,
+      Boolean fallbackToSystemKeyStore,
+      Boolean fallbackToSystemTrustStore,
       String socketFactory,
       Integer connectTimeout,
       String pipe,
@@ -413,6 +420,9 @@ public class Configuration {
     this.user = user;
     this.password = password;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
+    if (fallbackToSystemKeyStore != null) this.fallbackToSystemKeyStore = fallbackToSystemKeyStore;
+    if (fallbackToSystemTrustStore != null)
+      this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
     this.socketFactory = socketFactory;
     if (connectTimeout != null) this.connectTimeout = connectTimeout;
     this.pipe = pipe;
@@ -595,6 +605,8 @@ public class Configuration {
             .trustStoreType(this.trustStoreType)
             .enabledSslCipherSuites(this.enabledSslCipherSuites)
             .enabledSslProtocolSuites(this.enabledSslProtocolSuites)
+            .fallbackToSystemKeyStore(this.fallbackToSystemKeyStore)
+            .fallbackToSystemTrustStore(this.fallbackToSystemTrustStore)
             .allowMultiQueries(this.allowMultiQueries)
             .allowLocalInfile(this.allowLocalInfile)
             .useCompression(this.useCompression)
@@ -1274,6 +1286,25 @@ public class Configuration {
    */
   public String enabledSslProtocolSuites() {
     return enabledSslProtocolSuites;
+  }
+
+  /**
+   * Indicate if keyStore option is not set to use keystore system property like
+   * "javax.net.ssl.keyStore"
+   *
+   * @return true if can use keystore system property
+   */
+  public boolean fallbackToSystemKeyStore() {
+    return fallbackToSystemKeyStore;
+  }
+
+  /**
+   * Indicate if system default truststore implementation can be used
+   *
+   * @return true if system default truststore implementation can be used
+   */
+  public boolean fallbackToSystemTrustStore() {
+    return fallbackToSystemTrustStore;
   }
 
   /**
@@ -1996,7 +2027,8 @@ public class Configuration {
     private String trustStoreType;
     private String enabledSslCipherSuites;
     private String enabledSslProtocolSuites;
-
+    private Boolean fallbackToSystemKeyStore;
+    private Boolean fallbackToSystemTrustStore;
     // protocol
     private Boolean allowMultiQueries;
     private Boolean allowLocalInfile;
@@ -2144,6 +2176,28 @@ public class Configuration {
      */
     public Builder enabledSslProtocolSuites(String enabledSslProtocolSuites) {
       this.enabledSslProtocolSuites = nullOrEmpty(enabledSslProtocolSuites);
+      return this;
+    }
+
+    /**
+     * Indicate if keystore system properties can be used.
+     *
+     * @param fallbackToSystemKeyStore set if keystore system properties can be used.
+     * @return this {@link Builder}
+     */
+    public Builder fallbackToSystemKeyStore(Boolean fallbackToSystemKeyStore) {
+      this.fallbackToSystemKeyStore = fallbackToSystemKeyStore;
+      return this;
+    }
+
+    /**
+     * Indicate if system default truststore can be used.
+     *
+     * @param fallbackToSystemTrustStore indicate if system default truststore can be used..
+     * @return this {@link Builder}
+     */
+    public Builder fallbackToSystemTrustStore(Boolean fallbackToSystemTrustStore) {
+      this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
       return this;
     }
 
@@ -3003,6 +3057,8 @@ public class Configuration {
               this.user,
               this.password,
               this.enabledSslProtocolSuites,
+              this.fallbackToSystemKeyStore,
+              this.fallbackToSystemTrustStore,
               this.socketFactory,
               this.connectTimeout,
               this.pipe,

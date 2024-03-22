@@ -350,6 +350,34 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
+    String prevValue = System.getProperty("javax.net.ssl.keyStore");
+    String prevPwdValue = System.getProperty("javax.net.ssl.keyStorePassword");
+    System.setProperty(
+        "javax.net.ssl.keyStore",
+        "file://" + (isWin ? "/" : "") + System.getenv("TEST_DB_CLIENT_PKCS"));
+    System.setProperty("javax.net.ssl.keyStorePassword", "kspass");
+    try {
+      try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
+        assertNotNull(getSslVersion(con));
+      }
+      assertThrows(
+          SQLInvalidAuthorizationSpecException.class,
+          () ->
+              createCon(
+                  baseMutualOptions + "&sslMode=trust&fallbackToSystemKeyStore=false", sslPort));
+    } finally {
+      if (prevValue == null) {
+        System.clearProperty("javax.net.ssl.keyStore");
+      } else {
+        System.setProperty("javax.net.ssl.keyStore", prevValue);
+      }
+      if (prevPwdValue == null) {
+        System.clearProperty("javax.net.ssl.keyStorePassword");
+      } else {
+        System.setProperty("javax.net.ssl.keyStorePassword", prevPwdValue);
+      }
+    }
+
     // wrong keystore type
     assertThrows(
         SQLInvalidAuthorizationSpecException.class,
@@ -405,6 +433,11 @@ public class SslTest extends Common {
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     String serverCertPath = retrieveCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
+
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> createCon(baseOptions + "&sslMode=VERIFY_CA&fallbackToSystemTrustStore=false"),
+        "No X509TrustManager found");
 
     // certificate path, like  /path/certificate.crt
     try (Connection con =
