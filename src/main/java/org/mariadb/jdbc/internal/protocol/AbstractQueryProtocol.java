@@ -1116,7 +1116,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       int parameterCount = serverPrepareResult.getParameters().length;
 
       // send binary data in a separate stream
-      for (int i = 0; i < parameterCount; i++) {
+      for (int i = 0; i < parameterCount && i < parameters.length; i++) {
         if (parameters[i].canBeLongData()) {
           writer.startPacket(0);
           writer.write(COM_STMT_SEND_LONG_DATA);

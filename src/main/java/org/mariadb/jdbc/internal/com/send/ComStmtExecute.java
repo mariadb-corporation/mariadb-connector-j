@@ -97,7 +97,7 @@ public class ComStmtExecute {
 
       byte[] nullBitsBuffer = new byte[nullCount];
       for (int i = 0; i < parameterCount; i++) {
-        if (parameters[i].isNullData()) {
+        if (i >= parameters.length || parameters[i].isNullData()) {
           nullBitsBuffer[i / 8] |= (1 << (i % 8));
         }
       }
@@ -106,7 +106,7 @@ public class ComStmtExecute {
       // check if parameters type (using setXXX) have change since previous request, and resend new
       // header type if so
       boolean mustSendHeaderType = false;
-      if (parameterTypeHeader[0] == null) {
+      if (parameterTypeHeader[0] == null || parameterCount > parameters.length) {
         mustSendHeaderType = true;
       } else {
         for (int i = 0; i < parameterCount; i++) {
@@ -119,9 +119,10 @@ public class ComStmtExecute {
 
       if (mustSendHeaderType) {
         pos.write((byte) 0x01);
-        // Store types of parameters in first in first package that is sent to the server.
+        // Store types of parameters in first package that is sent to the server.
         for (int i = 0; i < parameterCount; i++) {
-          parameterTypeHeader[i] = parameters[i].getColumnType();
+          parameterTypeHeader[i] =
+              (i < parameters.length) ? parameters[i].getColumnType() : ColumnType.VARSTRING;
           pos.writeShort(parameterTypeHeader[i].getType());
         }
       } else {
@@ -129,7 +130,7 @@ public class ComStmtExecute {
       }
     }
 
-    for (int i = 0; i < parameterCount; i++) {
+    for (int i = 0; i < parameterCount && i < parameters.length; i++) {
       ParameterHolder holder = parameters[i];
       if (!holder.isNullData() && !holder.canBeLongData()) {
         holder.writeBinary(pos);
