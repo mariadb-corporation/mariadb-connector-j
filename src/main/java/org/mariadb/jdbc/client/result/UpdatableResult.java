@@ -453,9 +453,10 @@ public class UpdatableResult extends CompleteResult {
                 .setParameter(paramPos++, Parameter.NULL_PARAMETER);
           }
         }
-        ResultSet insertRs = insertPreparedStatement.executeQuery();
+        insertPreparedStatement.execute();
         if (context.getVersion().isMariaDBServer()
             && context.getVersion().versionGreaterOrEqual(10, 5, 1)) {
+          ResultSet insertRs = insertPreparedStatement.getResultSet();
           if (insertRs.next()) {
             byte[] rowByte = ((Result) insertRs).getCurrentRowData();
             addRowData(rowByte);
