@@ -68,6 +68,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
         outputResultFromRes(i);
       }
     }
+    currResult = results.remove(0);
   }
 
   @Override

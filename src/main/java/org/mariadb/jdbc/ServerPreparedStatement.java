@@ -387,11 +387,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public boolean execute() throws SQLException {
     executeInternal();
     handleParameterOutput();
-    if (results.size() > 0) {
-      currResult = results.remove(0);
-      return currResult instanceof Result;
-    }
-    return false;
+    return currResult instanceof Result;
   }
 
   @Override
@@ -438,11 +434,17 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public ResultSet executeQuery() throws SQLException {
     executeInternal();
     handleParameterOutput();
-    if (results.size() > 0) {
-      currResult = results.remove(0);
-      if (currResult instanceof Result) return (Result) currResult;
+    if (!(currResult instanceof Result)) {
+      if (Boolean.parseBoolean(
+          con.getContext().getConf().nonMappedOptions().getProperty("permitNoResults", "false"))) {
+        // for compatibility with pre 3.4.0 version
+        return new CompleteResult(
+            new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
+      }
+      throw exceptionFactory()
+          .create("the given SQL statement have not produced a ResultSet object", "HY000");
     }
-    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
+    return (Result) currResult;
   }
 
   /**
@@ -485,7 +487,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public long executeLargeUpdate() throws SQLException {
     executeInternal();
     handleParameterOutput();
-    currResult = results.remove(0);
     if (currResult instanceof Result) {
       throw exceptionFactory()
           .create("the given SQL statement produces an unexpected ResultSet object", "HY000");
@@ -498,7 +499,9 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    *
    * @throws SQLException if any error occurs
    */
-  protected void handleParameterOutput() throws SQLException {}
+  protected void handleParameterOutput() throws SQLException {
+    currResult = results.remove(0);
+  }
 
   /**
    * Adds a set of parameters to this <code>PreparedStatement</code> object's batch of commands.
