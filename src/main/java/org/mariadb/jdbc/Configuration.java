@@ -459,8 +459,16 @@ public class Configuration {
     if (useAffectedRows != null) this.useAffectedRows = useAffectedRows;
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
-    if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
-    if (useBulkStmtsForInserts != null) this.useBulkStmtsForInserts = useBulkStmtsForInserts;
+
+    if (useBulkStmts != null) {
+      this.useBulkStmts = useBulkStmts;
+    }
+    if (useBulkStmtsForInserts != null) {
+      this.useBulkStmtsForInserts = useBulkStmtsForInserts;
+    } else if (useBulkStmts != null) {
+      this.useBulkStmtsForInserts = useBulkStmts;
+    }
+
     if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
