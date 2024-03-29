@@ -76,7 +76,17 @@ public class ClientPreparedStatement extends BasePreparedStatement {
    */
   protected String preSqlCmd() {
     if (queryTimeout != 0 && canUseServerTimeout) {
+      if (canUseServerMaxRows && maxRows > 0) {
+        return "SET STATEMENT max_statement_time="
+                + queryTimeout
+                + ", SQL_SELECT_LIMIT="
+                + maxRows
+                + " FOR ";
+      }
       return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR ";
+    }
+    if (canUseServerMaxRows && maxRows > 0) {
+      return "SET STATEMENT SQL_SELECT_LIMIT=" + maxRows + " FOR ";
     }
     return null;
   }
@@ -419,19 +429,13 @@ public class ClientPreparedStatement extends BasePreparedStatement {
    * PreparedStatement</code> object rather than waiting to execute it and then invoking the <code>
    * ResultSet.getMetaData</code> method on the <code>ResultSet</code> object that is returned.
    *
-   * <p><B>NOTE:</B> Using this method may be expensive for some drivers due to the lack of
-   * underlying DBMS support.
-   *
    * @return the description of a <code>ResultSet</code> object's columns or <code>null</code> if
    *     the driver cannot return a <code>ResultSetMetaData</code> object
    * @throws SQLException if a database access error occurs or this method is called on a closed
    *     <code>PreparedStatement</code>
-   * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-   * @since 1.2
    */
   @Override
   public ResultSetMetaData getMetaData() throws SQLException {
-
     // send COM_STMT_PREPARE
     if (prepareResult == null)
       con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
