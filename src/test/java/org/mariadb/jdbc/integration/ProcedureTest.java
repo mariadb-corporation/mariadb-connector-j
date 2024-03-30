@@ -51,7 +51,9 @@ public class ProcedureTest extends Common {
       cstmt.executeUpdate();
       assertEquals(86, cstmt.getLong(1));
       Common.assertThrowsContains(
-              SQLException.class, () -> cstmt.executeQuery(), "the given SQL statement have not produced a ResultSet object");
+          SQLException.class,
+          () -> cstmt.executeQuery(),
+          "the given SQL statement have not produced a ResultSet object");
     }
     try (Connection con = createCon("&permitNoResults=true")) {
       try (CallableStatement cstmt = con.prepareCall("{ CALL multiply_by_2(?) }")) {

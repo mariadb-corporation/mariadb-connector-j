@@ -732,13 +732,7 @@ public class StatementTest extends Common {
 
   @Test
   @Timeout(20)
-  public void queryTimeout() {
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
+  public void queryTimeout() throws SQLException {
     Statement stmt = sharedConn.createStatement();
 
     Common.assertThrowsContains(
@@ -753,7 +747,19 @@ public class StatementTest extends Common {
               "select * from information_schema.columns as c1,  information_schema.tables,"
                   + " information_schema.tables as t2");
         },
-        "Query execution was interrupted (max_statement_time exceeded)");
+        "Query execution was interrupted");
+    stmt.setQueryTimeout(1);
+    stmt.execute("SELECT 1");
+    Common.assertThrowsContains(
+        SQLTimeoutException.class,
+        () -> {
+          stmt.setQueryTimeout(1);
+          assertEquals(1, stmt.getQueryTimeout());
+          stmt.execute(
+              "select * from information_schema.columns as c1,  information_schema.tables,"
+                  + " information_schema.tables as t2");
+        },
+        "Query execution was interrupted");
   }
 
   @Test

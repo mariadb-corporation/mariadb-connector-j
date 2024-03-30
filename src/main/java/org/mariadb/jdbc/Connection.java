@@ -24,6 +24,9 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.ConnectionState;
 import org.mariadb.jdbc.util.constants.ServerStatus;
+import org.mariadb.jdbc.util.timeout.NoOpQueryTimeoutHandler;
+import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
+import org.mariadb.jdbc.util.timeout.QueryTimeoutHandlerImpl;
 
 /** Public Connection class */
 public class Connection implements java.sql.Connection {
@@ -51,6 +54,7 @@ public class Connection implements java.sql.Connection {
   private int lowercaseTableNames = -1;
   private boolean readOnly;
   private MariaDbPoolConnection poolConnection;
+  private QueryTimeoutHandler queryTimeoutHandler;
 
   /**
    * Connection construction.
@@ -71,6 +75,10 @@ public class Connection implements java.sql.Connection {
     this.canUseServerTimeout =
         context.getVersion().isMariaDBServer()
             && context.getVersion().versionGreaterOrEqual(10, 1, 2);
+    this.queryTimeoutHandler =
+        this.canUseServerTimeout
+            ? NoOpQueryTimeoutHandler.INSTANCE
+            : new QueryTimeoutHandlerImpl(this, lock);
     this.canUseServerMaxRows =
         context.getVersion().isMariaDBServer()
             && context.getVersion().versionGreaterOrEqual(10, 3, 0);
@@ -886,6 +894,10 @@ public class Connection implements java.sql.Connection {
    */
   protected ExceptionFactory getExceptionFactory() {
     return exceptionFactory;
+  }
+
+  public QueryTimeoutHandler handleTimeout(int queryTimeout) {
+    return queryTimeoutHandler.create(queryTimeout);
   }
 
   /**

@@ -20,6 +20,7 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ClientParser;
 import org.mariadb.jdbc.util.ParameterList;
 import org.mariadb.jdbc.util.constants.ServerStatus;
+import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
 
 /**
  * Client side prepare statement. Question mark will be replaced by escaped parameters, client side
@@ -78,10 +79,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (queryTimeout != 0 && canUseServerTimeout) {
       if (canUseServerMaxRows && maxRows > 0) {
         return "SET STATEMENT max_statement_time="
-                + queryTimeout
-                + ", SQL_SELECT_LIMIT="
-                + maxRows
-                + " FOR ";
+            + queryTimeout
+            + ", SQL_SELECT_LIMIT="
+            + maxRows
+            + " FOR ";
       }
       return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR ";
     }
@@ -95,7 +96,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   private void executeInternal() throws SQLException {
     checkNotClosed();
     validParameters();
-    try (ClosableLock ignore = lock.closeableLock()) {
+    try (ClosableLock ignore = lock.closeableLock();
+        QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
       QueryWithParametersPacket query =
           new QueryWithParametersPacket(preSqlCmd(), parser, parameters, localInfileInputStream);
       results =
@@ -473,7 +475,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   public int[] executeBatch() throws SQLException {
     checkNotClosed();
     if (batchParameters == null || batchParameters.isEmpty()) return new int[0];
-    try (ClosableLock ignore = lock.closeableLock()) {
+    try (ClosableLock ignore = lock.closeableLock();
+        QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       int[] updates = new int[batchParameters.size()];
@@ -522,7 +525,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   public long[] executeLargeBatch() throws SQLException {
     checkNotClosed();
     if (batchParameters == null || batchParameters.isEmpty()) return new long[0];
-    try (ClosableLock ignore = lock.closeableLock()) {
+    try (ClosableLock ignore = lock.closeableLock();
+        QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
       boolean wasBulkInsert = executeInternalPreparedBatch();
       long[] updates = new long[results.size()];
 

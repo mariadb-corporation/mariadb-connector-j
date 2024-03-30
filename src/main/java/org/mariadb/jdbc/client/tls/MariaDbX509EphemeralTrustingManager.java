@@ -19,7 +19,12 @@ public class MariaDbX509EphemeralTrustingManager implements X509TrustManager {
   X509TrustManager internal;
   byte[] fingerprint = null;
 
-  /** Constructor */
+  /**
+   * Constructor, this is only a wrapper around standard X509TrustManager, that will save
+   * fingerprint on trusting certificate validation
+   *
+   * @param javaTrustManager real trust manager
+   */
   public MariaDbX509EphemeralTrustingManager(X509TrustManager javaTrustManager) {
     internal = javaTrustManager;
   }

@@ -23,6 +23,7 @@ import org.mariadb.jdbc.message.client.PreparePacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ParameterList;
+import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
 
 /**
  * Server prepare statement. command will generate COM_STMT_PREPARE + COM_STMT_EXECUTE (+
@@ -88,7 +89,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   protected void executeInternal() throws SQLException {
     checkNotClosed();
     validParameters();
-    try (ClosableLock ignore = lock.closeableLock()) {
+    try (ClosableLock ignore = lock.closeableLock();
+        QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
       String cmd = escapeTimeout(sql);
       if (prepareResult == null)
         if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
@@ -614,7 +616,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public int[] executeBatch() throws SQLException {
     checkNotClosed();
     if (batchParameters == null || batchParameters.isEmpty()) return new int[0];
-    try (ClosableLock ignore = lock.closeableLock()) {
+    try (ClosableLock ignore = lock.closeableLock();
+        QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       int[] updates = new int[batchParameters.size()];
@@ -664,7 +667,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public long[] executeLargeBatch() throws SQLException {
     checkNotClosed();
     if (batchParameters == null || batchParameters.isEmpty()) return new long[0];
-    try (ClosableLock ignore = lock.closeableLock()) {
+    try (ClosableLock ignore = lock.closeableLock();
+        QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       long[] updates = new long[batchParameters.size()];
