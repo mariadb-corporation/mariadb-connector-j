@@ -65,6 +65,7 @@ public class Configuration {
   private String timezone = null;
   private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
+  private boolean nullDatabaseMeansCurrent = false;
   private CatalogTerm useCatalogTerm = CatalogTerm.UseCatalog;
   private boolean createDatabaseIfNotExist = false;
   private boolean useLocalSessionState = false;
@@ -170,6 +171,7 @@ public class Configuration {
       String timezone,
       Boolean autocommit,
       boolean useMysqlMetadata,
+      boolean nullDatabaseMeansCurrent,
       CatalogTerm useCatalogTerm,
       boolean createDatabaseIfNotExist,
       boolean useLocalSessionState,
@@ -252,6 +254,7 @@ public class Configuration {
     this.timezone = timezone;
     this.autocommit = autocommit;
     this.useMysqlMetadata = useMysqlMetadata;
+    this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
     this.useCatalogTerm = useCatalogTerm;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
@@ -372,6 +375,7 @@ public class Configuration {
       Boolean disablePipeline,
       Boolean autocommit,
       Boolean useMysqlMetadata,
+      Boolean nullDatabaseMeansCurrent,
       String useCatalogTerm,
       Boolean createDatabaseIfNotExist,
       Boolean useLocalSessionState,
@@ -472,6 +476,7 @@ public class Configuration {
     if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
+    if (nullDatabaseMeansCurrent != null) this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
     if (useCatalogTerm != null) {
       if (!"CATALOG".equalsIgnoreCase(useCatalogTerm)
           && !"SCHEMA".equalsIgnoreCase(useCatalogTerm)) {
@@ -575,6 +580,7 @@ public class Configuration {
             .timezone(this.timezone)
             .autocommit(this.autocommit)
             .useMysqlMetadata(this.useMysqlMetadata)
+            .nullDatabaseMeansCurrent(this.nullDatabaseMeansCurrent)
             .useCatalogTerm(this.useCatalogTerm == CatalogTerm.UseCatalog ? "CATALOG" : "SCHEMA")
             .createDatabaseIfNotExist(this.createDatabaseIfNotExist)
             .useLocalSessionState(this.useLocalSessionState)
@@ -1634,6 +1640,16 @@ public class Configuration {
   }
 
   /**
+   * When enable, in DatabaseMetadata, will handle null database/schema (depending on
+   * UseCatalog=catalog/schema) as current
+   *
+   * @return must null value be considered as current catalog/schema
+   */
+  public boolean nullDatabaseMeansCurrent() {
+    return nullDatabaseMeansCurrent;
+  }
+
+  /**
    * Indicating using Catalog or Schema
    *
    * @return Indicating using Catalog or Schema
@@ -1995,6 +2011,7 @@ public class Configuration {
     private String timezone;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
+    private Boolean nullDatabaseMeansCurrent;
     private String useCatalogTerm;
     private Boolean createDatabaseIfNotExist;
     private Boolean useLocalSessionState;
@@ -2710,6 +2727,18 @@ public class Configuration {
     }
 
     /**
+     * Permit indicating in DatabaseMetadata if null value must be considered current schema/catalog
+     *
+     * @param nullDatabaseMeansCurrent indicating in DatabaseMetadata if null value must be
+     *     considered current schema/catalog
+     * @return this {@link Builder}
+     */
+    public Builder nullDatabaseMeansCurrent(Boolean nullDatabaseMeansCurrent) {
+      this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
+      return this;
+    }
+
+    /**
      * "schema" and "database" are server synonymous. Connector historically get/set database using
      * Connection.setCatalog()/getCatalog(), setSchema()/getSchema() being no-op This parameter
      * indicate to change that behavior to use Schema in place of Catalog. Behavior will change
@@ -3102,6 +3131,7 @@ public class Configuration {
               this.disablePipeline,
               this.autocommit,
               this.useMysqlMetadata,
+              this.nullDatabaseMeansCurrent,
               this.useCatalogTerm,
               this.createDatabaseIfNotExist,
               this.useLocalSessionState,

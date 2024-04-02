@@ -597,10 +597,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       String database,
       boolean usePattern) {
     // null database => searching without any database restriction
-    if (database == null || ("%".equals(database) && usePattern)) return firstCondition;
+    if ((database == null && !conf.nullDatabaseMeansCurrent())
+        || ("%".equals(database) && usePattern)) return firstCondition;
 
     // empty database => search restricting to current database
-    if (database.isEmpty()) {
+    if ((database == null && conf.nullDatabaseMeansCurrent()) || database.isEmpty()) {
       sb.append(firstCondition ? " WHERE " : " AND ").append(columnName).append(" = database()");
       return false;
     }

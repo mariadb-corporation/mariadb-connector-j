@@ -140,6 +140,44 @@ public class DatabaseMetadataTest extends Common {
   public void primaryKeysTest() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
     ResultSet rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "dbpk_test");
+    primaryKeysTest(rs);
+
+    rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+    primaryKeysTest(rs);
+
+    try (Connection con = createCon("&nullDatabaseMeansCurrent=false")) {
+      meta = con.getMetaData();
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      primaryKeysTest(rs);
+
+      con.setCatalog("information_schema");
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      primaryKeysTest(rs);
+    }
+
+    try (Connection con = createCon("&nullDatabaseMeansCurrent=true")) {
+      meta = con.getMetaData();
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      primaryKeysTest(rs);
+
+      con.setCatalog("information_schema");
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      assertFalse(rs.next());
+    }
+
+    try (Connection con = createCon("&nullCatalogMeansCurrent=true")) {
+      meta = con.getMetaData();
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      primaryKeysTest(rs);
+
+      con.setCatalog("information_schema");
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      assertFalse(rs.next());
+    }
+
+  }
+
+  private void primaryKeysTest(ResultSet rs) throws SQLException {
     Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
     Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
 
