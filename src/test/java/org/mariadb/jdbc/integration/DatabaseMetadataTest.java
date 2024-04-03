@@ -174,7 +174,6 @@ public class DatabaseMetadataTest extends Common {
       rs = meta.getPrimaryKeys(null, null, "dbpk_test");
       assertFalse(rs.next());
     }
-
   }
 
   private void primaryKeysTest(ResultSet rs) throws SQLException {
