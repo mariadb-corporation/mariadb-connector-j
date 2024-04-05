@@ -235,7 +235,6 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(2, 10);
       assertEquals(1, preparedStatement.executeUpdate());
 
-      // verification that query without resultset return an empty resultset
       preparedStatement.clearParameters();
       Common.assertThrowsContains(
           SQLException.class,
@@ -243,8 +242,7 @@ public class PreparedStatementTest extends Common {
           "Parameter at position 1 is not set");
       preparedStatement.setInt(2, 11);
       preparedStatement.setInt(1, 6);
-      ResultSet rs0 = preparedStatement.executeQuery();
-      assertFalse(rs0.next());
+      preparedStatement.executeUpdate();
 
       // verification
       ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1");
@@ -1363,7 +1361,7 @@ public class PreparedStatementTest extends Common {
       try (PreparedStatement prep =
           con.prepareStatement("/*client prepare*/SET @name := ?; SELECT @name ")) {
         prep.setString(1, "test");
-        prep.executeQuery();
+        prep.execute();
         assertTrue(prep.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
         ResultSet rs = prep.getResultSet();
         assertTrue(rs.next());

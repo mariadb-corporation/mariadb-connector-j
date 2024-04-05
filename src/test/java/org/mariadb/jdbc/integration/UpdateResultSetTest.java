@@ -143,8 +143,8 @@ public class UpdateResultSetTest extends Common {
   public void testMultipleTable() throws Exception {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    stmt.executeQuery("INSERT INTO testMultipleTable1(t1) values ('1')");
-    stmt.executeQuery("INSERT INTO testMultipleTable2(t1) values ('2')");
+    stmt.executeUpdate("INSERT INTO testMultipleTable1(t1) values ('1')");
+    stmt.executeUpdate("INSERT INTO testMultipleTable2(t1) values ('2')");
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
@@ -166,7 +166,7 @@ public class UpdateResultSetTest extends Common {
   public void testOneNoTable() throws Exception {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    stmt.executeQuery("INSERT INTO testOneNoTable(t1) values ('1')");
+    stmt.executeUpdate("INSERT INTO testOneNoTable(t1) values ('1')");
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
@@ -234,8 +234,8 @@ public class UpdateResultSetTest extends Common {
             + " VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
 
-    stmt.executeQuery("INSERT INTO testMultipleDatabase(t1) values ('1')");
-    stmt.executeQuery("INSERT INTO testConnectorJ.testMultipleDatabase(t2) values ('2')");
+    stmt.executeUpdate("INSERT INTO testMultipleDatabase(t1) values ('1')");
+    stmt.executeUpdate("INSERT INTO testConnectorJ.testMultipleDatabase(t2) values ('2')");
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
@@ -263,7 +263,7 @@ public class UpdateResultSetTest extends Common {
             + "`t2` VARCHAR(50) NULL default 'default-value',"
             + "PRIMARY KEY (`id`))");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    stmt.executeQuery("INSERT INTO UpdateWithoutPrimary(t1,t2) values ('1-1','1-2')");
+    stmt.executeUpdate("INSERT INTO UpdateWithoutPrimary(t1,t2) values ('1-1','1-2')");
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(

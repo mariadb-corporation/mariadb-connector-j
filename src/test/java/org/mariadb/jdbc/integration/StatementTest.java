@@ -72,6 +72,42 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void ensureJdbcErrorWhenNoResultset() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DO 1");
+    assertThrowsContains(
+        SQLException.class,
+        () -> stmt.executeQuery("DO 1"),
+        "Statement.executeQuery() command does NOT return a result-set as expected. Either use"
+            + " Statement.execute(), Statement.executeUpdate(), or correct command");
+    stmt.execute("DO 1");
+    try (PreparedStatement ps =
+        sharedConn.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
+      ps.setInt(1, 1);
+      ps.execute();
+      assertThrowsContains(
+          SQLException.class,
+          () -> ps.executeQuery(),
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected. Either"
+              + " use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or correct"
+              + " command");
+      ps.execute();
+    }
+    try (PreparedStatement ps =
+        sharedConnBinary.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
+      ps.setInt(1, 1);
+      ps.execute();
+      assertThrowsContains(
+          SQLException.class,
+          () -> ps.executeQuery(),
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected. Either"
+              + " use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or correct"
+              + " command");
+      ps.execute();
+    }
+  }
+
+  @Test
   public void getUpdateCountValueOnFail() throws SQLException {
     try (Statement st = sharedConn.createStatement()) {
       st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
@@ -471,13 +507,13 @@ public class StatementTest extends Common {
   }
 
   @Test
-  public void executeQuery() throws SQLException {
+  public void executeUpdateNoResults() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT 1");
     assertTrue(rs.next());
     if (!isXpand()) {
-      rs = stmt.executeQuery("DO 1");
-      assertFalse(rs.next());
+      stmt.executeUpdate("DO 1");
+      assertNull(stmt.getResultSet());
     }
   }
 

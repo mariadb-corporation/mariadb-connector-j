@@ -111,7 +111,7 @@ public class CompleteResult extends Result {
    * @param context connection context
    * @param resultSetType result set type
    */
-  public CompleteResult(
+  private CompleteResult(
       ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
     super(metadataList, data, context, resultSetType);
   }

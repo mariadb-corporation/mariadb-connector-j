@@ -10,7 +10,6 @@ import java.sql.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.result.CompleteResult;
@@ -166,8 +165,12 @@ public class Statement implements java.sql.Statement {
   public ResultSet executeQuery(String sql) throws SQLException {
     executeInternal(sql, Statement.NO_GENERATED_KEYS);
     currResult = results.remove(0);
-    if (currResult instanceof Result) return (Result) currResult;
-    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
+    if (currResult instanceof Result) {
+      return (Result) currResult;
+    }
+    throw new SQLException(
+        "Statement.executeQuery() command does NOT return a result-set as expected. Either use"
+            + " Statement.execute(), Statement.executeUpdate(), or correct command");
   }
 
   /**
@@ -947,11 +950,6 @@ public class Statement implements java.sql.Statement {
           }
         }
       }
-    }
-
-    if (insertIds.isEmpty()) {
-      return new CompleteResult(
-          new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
     }
 
     String[][] ids = insertIds.toArray(new String[0][]);

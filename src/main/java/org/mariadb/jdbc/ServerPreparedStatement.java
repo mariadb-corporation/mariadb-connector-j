@@ -8,9 +8,7 @@ import static org.mariadb.jdbc.util.constants.Capabilities.*;
 import java.sql.*;
 import java.util.*;
 import java.util.regex.Pattern;
-import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
-import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.Parameters;
@@ -436,17 +434,13 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public ResultSet executeQuery() throws SQLException {
     executeInternal();
     handleParameterOutput();
-    if (!(currResult instanceof Result)) {
-      if (Boolean.parseBoolean(
-          con.getContext().getConf().nonMappedOptions().getProperty("permitNoResults", "false"))) {
-        // for compatibility with pre 3.4.0 version
-        return new CompleteResult(
-            new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
-      }
-      throw exceptionFactory()
-          .create("the given SQL statement have not produced a ResultSet object", "HY000");
+    if ((currResult instanceof Result)) {
+      return (Result) currResult;
     }
-    return (Result) currResult;
+    throw new SQLException(
+        "PrepareStatement.executeQuery() command does NOT return a result-set as expected. Either"
+            + " use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or correct"
+            + " command");
   }
 
   /**
