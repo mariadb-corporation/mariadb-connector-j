@@ -871,6 +871,22 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
+  public void testGetSystemTables() throws SQLException {
+    DatabaseMetaData dbmd = sharedConn.getMetaData();
+    checkSystemRes(dbmd.getTables("mysql", null, null, null));
+    checkSystemRes(dbmd.getTables("sys", null, null, null));
+    checkSystemRes(dbmd.getTables("performance_schema", null, null, null));
+  }
+
+  private void checkSystemRes(ResultSet rs) throws SQLException {
+    while (rs.next()) {
+      String tableType = rs.getString("TABLE_TYPE");
+      if (!tableType.matches("(SYSTEM VIEW|SYSTEM TABLE)"))
+        throw new SQLException("Must have System type, but was " + tableType);
+    }
+  }
+
+  @Test
   public void testGetTables2() throws SQLException {
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     Assumptions.assumeTrue(!isXpand());

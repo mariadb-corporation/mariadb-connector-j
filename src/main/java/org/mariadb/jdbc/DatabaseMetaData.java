@@ -733,11 +733,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + (conf.useCatalogTerm() == CatalogTerm.UseCatalog
                     ? "TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM,"
                     : "TABLE_CATALOG TABLE_CAT, TABLE_SCHEMA TABLE_SCHEM,")
-                + " TABLE_NAME, IF(TABLE_TYPE='BASE"
-                + " TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', IF(TABLE_TYPE='TEMPORARY',"
-                + " 'LOCAL TEMPORARY', TABLE_TYPE)) as TABLE_TYPE, TABLE_COMMENT REMARKS, NULL"
-                + " TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
-                + " NULL REF_GENERATION FROM INFORMATION_SCHEMA.TABLES");
+                + " TABLE_NAME,   IF(TABLE_SCHEMA IN ('mysql', 'performance_schema', 'sys'),"
+                + " IF(TABLE_TYPE='BASE TABLE', 'SYSTEM TABLE', IF(TABLE_TYPE='VIEW', 'SYSTEM"
+                + " VIEW', TABLE_TYPE)), IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM"
+                + " VERSIONED', 'TABLE', IF(TABLE_TYPE='TEMPORARY', 'LOCAL TEMPORARY',"
+                + " TABLE_TYPE))) as TABLE_TYPE,  TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL"
+                + " TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME,  NULL"
+                + " REF_GENERATION FROM INFORMATION_SCHEMA.TABLES");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schemaPattern;
     boolean firstCondition =
         databaseCond(
