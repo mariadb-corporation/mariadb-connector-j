@@ -41,7 +41,11 @@ public class ReaderCodec implements Codec<Reader> {
   @Override
   @SuppressWarnings("fallthrough")
   public Reader decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     switch (column.getType()) {
       case BLOB:
@@ -70,9 +74,13 @@ public class ReaderCodec implements Codec<Reader> {
 
   @Override
   public Reader decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return decodeText(buf, length, column, cal);
+    return decodeText(buf, length, column, cal, context);
   }
 
   public boolean canEncode(Object value) {
@@ -109,7 +117,8 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object val, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      Writer encoder, Context context, Object val, Calendar cal, Long maxLength)
       throws IOException {
     // prefer use of encodeLongData, because length is unknown
     byte[] clobBytes = new byte[4096];

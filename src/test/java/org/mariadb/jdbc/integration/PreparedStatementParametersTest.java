@@ -12,6 +12,8 @@ import java.math.RoundingMode;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
@@ -150,14 +152,14 @@ public class PreparedStatementParametersTest extends Common {
         rs -> assertEquals(Date.valueOf("2010-05-25"), rs.getDate(1)),
         con);
     boolean minus = TimeZone.getDefault().getOffset(System.currentTimeMillis()) > 0;
+
+    ZonedDateTime zdt =
+        LocalDateTime.parse((minus ? "2010-01-11" : "2010-01-12") + "T00:00:00.0")
+            .atZone(TimeZone.getTimeZone("UTC").toZoneId());
+
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
-        rs ->
-            assertEquals(minus ? 1263164400000L : 1263254400000L, rs.getDate(1, utcCal).getTime()),
-        con);
-    checkSendTimestamp(
-        ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
-        rs -> assertEquals(minus ? "2010-01-11" : "2010-01-12", rs.getDate(1, utcCal).toString()),
+        rs -> assertEquals(zdt.toEpochSecond() * 1000, rs.getDate(1, utcCal).getTime()),
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-05-25")),

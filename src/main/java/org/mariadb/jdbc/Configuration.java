@@ -63,6 +63,9 @@ public class Configuration {
 
   // various
   private String timezone = null;
+  private String connectionTimeZone = null;
+  private boolean forceConnectionTimeZoneToSession = true;
+  private boolean preserveInstants;
   private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
   private boolean nullDatabaseMeansCurrent = false;
@@ -169,6 +172,9 @@ public class Configuration {
       HaMode haMode,
       Properties nonMappedOptions,
       String timezone,
+      String connectionTimeZone,
+      boolean forceConnectionTimeZoneToSession,
+      boolean preserveInstants,
       Boolean autocommit,
       boolean useMysqlMetadata,
       boolean nullDatabaseMeansCurrent,
@@ -252,6 +258,9 @@ public class Configuration {
     this.haMode = haMode;
     this.nonMappedOptions = nonMappedOptions;
     this.timezone = timezone;
+    this.connectionTimeZone = connectionTimeZone;
+    this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
+    this.preserveInstants = preserveInstants;
     this.autocommit = autocommit;
     this.useMysqlMetadata = useMysqlMetadata;
     this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
@@ -365,6 +374,9 @@ public class Configuration {
       Boolean transformedBitIsBoolean,
       Boolean yearIsDateType,
       String timezone,
+      String connectionTimeZone,
+      Boolean forceConnectionTimeZoneToSession,
+      Boolean preserveInstants,
       Boolean dumpQueriesOnException,
       Integer prepStmtCacheSize,
       Boolean useAffectedRows,
@@ -458,6 +470,10 @@ public class Configuration {
     if (transformedBitIsBoolean != null) this.transformedBitIsBoolean = transformedBitIsBoolean;
     if (yearIsDateType != null) this.yearIsDateType = yearIsDateType;
     this.timezone = timezone;
+    if (connectionTimeZone != null) this.connectionTimeZone = connectionTimeZone;
+    if (forceConnectionTimeZoneToSession != null)
+      this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
+    if (preserveInstants != null) this.preserveInstants = preserveInstants;
     if (dumpQueriesOnException != null) this.dumpQueriesOnException = dumpQueriesOnException;
     if (prepStmtCacheSize != null) this.prepStmtCacheSize = prepStmtCacheSize;
     if (useAffectedRows != null) this.useAffectedRows = useAffectedRows;
@@ -549,6 +565,22 @@ public class Configuration {
     }
 
     // *************************************************************
+    // timezone verification
+    // *************************************************************
+    if (this.timezone != null) {
+      if (this.connectionTimeZone == null) {
+        if ("disable".equalsIgnoreCase(this.timezone)) {
+          this.forceConnectionTimeZoneToSession = false;
+        } else {
+          this.forceConnectionTimeZoneToSession = true;
+          if (!"auto".equalsIgnoreCase(this.timezone)) {
+            this.connectionTimeZone = this.timezone;
+          }
+        }
+      }
+    }
+
+    // *************************************************************
     // option value verification
     // *************************************************************
 
@@ -578,6 +610,9 @@ public class Configuration {
             .addresses(this.addresses == null ? null : this.addresses.toArray(new HostAddress[0]))
             .haMode(this.haMode)
             .timezone(this.timezone)
+            .connectionTimeZone(this.connectionTimeZone)
+            .forceConnectionTimeZoneToSession(this.forceConnectionTimeZoneToSession)
+            .preserveInstants(this.preserveInstants)
             .autocommit(this.autocommit)
             .useMysqlMetadata(this.useMysqlMetadata)
             .nullDatabaseMeansCurrent(this.nullDatabaseMeansCurrent)
@@ -1078,10 +1113,13 @@ public class Configuration {
           }
 
           if (field.getType().equals(String.class)) {
-            sb.append(first ? '?' : '&');
-            first = false;
-            sb.append(field.getName()).append('=');
-            sb.append((String) obj);
+            String defaultValue = (String) field.get(defaultConf);
+            if (!obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append('=');
+              sb.append((String) obj);
+            }
           } else if (field.getType().equals(boolean.class)) {
             boolean defaultValue = field.getBoolean(defaultConf);
             if (!obj.equals(defaultValue)) {
@@ -1549,6 +1587,28 @@ public class Configuration {
   }
 
   /**
+   * Set connectionTimeZone
+   *
+   * @return connectionTimeZone
+   */
+  public String connectionTimeZone() {
+    return connectionTimeZone;
+  }
+
+  /**
+   * forceConnectionTimeZoneToSession must connection timezone be forced
+   *
+   * @return forceConnectionTimeZoneToSession
+   */
+  public boolean forceConnectionTimeZoneToSession() {
+    return forceConnectionTimeZoneToSession;
+  }
+
+  public boolean preserveInstants() {
+    return preserveInstants;
+  }
+
+  /**
    * Must query by logged on exception.
    *
    * @return dump queries on exception
@@ -2009,6 +2069,9 @@ public class Configuration {
 
     // various
     private String timezone;
+    private String connectionTimeZone;
+    private Boolean forceConnectionTimeZoneToSession;
+    private Boolean preserveInstants;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
     private Boolean nullDatabaseMeansCurrent;
@@ -2614,6 +2677,40 @@ public class Configuration {
     }
 
     /**
+     * indicate what timestamp timezone to use in exchanges with server possible value are
+     * LOCAL|SERVER|user-defined time zone
+     *
+     * @param connectionTimeZone default timezone
+     * @return this {@link Builder}
+     */
+    public Builder connectionTimeZone(String connectionTimeZone) {
+      this.connectionTimeZone = nullOrEmpty(connectionTimeZone);
+      return this;
+    }
+
+    /**
+     * Indicate if connectionTimeZone must be forced to session
+     *
+     * @param forceConnectionTimeZoneToSession must connector force connection timezone
+     * @return this {@link Builder}
+     */
+    public Builder forceConnectionTimeZoneToSession(Boolean forceConnectionTimeZoneToSession) {
+      this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
+      return this;
+    }
+
+    /**
+     * Indicate if connection must preserve instants
+     *
+     * @param preserveInstants must connector preserve instants
+     * @return this {@link Builder}
+     */
+    public Builder preserveInstants(Boolean preserveInstants) {
+      this.preserveInstants = preserveInstants;
+      return this;
+    }
+
+    /**
      * Must queries be dump on exception stracktrace.
      *
      * @param dumpQueriesOnException must queries be dump on exception
@@ -3121,6 +3218,9 @@ public class Configuration {
               this.transformedBitIsBoolean,
               this.yearIsDateType,
               this.timezone,
+              this.connectionTimeZone,
+              this.forceConnectionTimeZoneToSession,
+              this.preserveInstants,
               this.dumpQueriesOnException,
               this.prepStmtCacheSize,
               this.useAffectedRows,

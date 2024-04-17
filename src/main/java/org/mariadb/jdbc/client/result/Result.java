@@ -446,7 +446,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeString(metadataList, fieldIndex, rowBuf, fieldLength);
+    return rowDecoder.decodeString(metadataList, fieldIndex, rowBuf, fieldLength, context);
   }
 
   @Override
@@ -526,7 +526,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        BigIntegerCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        BigIntegerCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   /**
@@ -577,7 +577,7 @@ public abstract class Result implements ResultSet, Completion {
     }
     BigDecimal d =
         rowDecoder.decode(
-            BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+            BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
     if (d == null) return null;
     return d.setScale(scale, RoundingMode.HALF_DOWN);
   }
@@ -592,7 +592,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        ByteArrayCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        ByteArrayCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -604,7 +604,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, null);
+    return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, null, context);
   }
 
   @Override
@@ -616,7 +616,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, null);
+    return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, null, context);
   }
 
   @Override
@@ -628,7 +628,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, null);
+    return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, null, context);
   }
 
   @Override
@@ -641,7 +641,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -655,7 +655,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -668,7 +668,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -787,8 +787,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.defaultDecode(
-        context.getConf(), metadataList, fieldIndex, rowBuf, fieldLength);
+    return rowDecoder.defaultDecode(metadataList, fieldIndex, rowBuf, fieldLength, context);
   }
 
   @Override
@@ -806,7 +805,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        ReaderCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        ReaderCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -824,7 +823,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -1208,7 +1207,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        BlobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        BlobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -1221,7 +1220,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        ClobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        ClobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -1267,7 +1266,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, cal);
+    return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
   }
 
   @Override
@@ -1284,7 +1283,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, cal);
+    return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
   }
 
   @Override
@@ -1301,7 +1300,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, cal);
+    return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
   }
 
   @Override
@@ -1321,7 +1320,7 @@ public abstract class Result implements ResultSet, Completion {
 
     String s =
         rowDecoder.decode(
-            StringCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+            StringCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
     if (s == null) return null;
     try {
       return new URI(s).toURL();
@@ -1435,7 +1434,8 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return (NClob)
-        rowDecoder.decode(ClobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        rowDecoder.decode(
+            ClobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -1483,7 +1483,7 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        ReaderCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+        ReaderCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -1652,17 +1652,17 @@ public abstract class Result implements ResultSet, Completion {
       }
       return null;
     }
-    Configuration conf = context.getConf();
     ColumnDecoder column = metadataList[columnIndex - 1];
     // type generic, return "natural" java type
     if (Object.class.equals(type) || type == null) {
-      return (T) rowDecoder.defaultDecode(conf, metadataList, fieldIndex, rowBuf, fieldLength);
+      return (T) rowDecoder.defaultDecode(metadataList, fieldIndex, rowBuf, fieldLength, context);
     }
 
+    Configuration conf = context.getConf();
     for (Codec<?> codec : conf.codecs()) {
       if (codec.canDecode(column, type)) {
         return rowDecoder.decode(
-            (Codec<T>) codec, calendar, rowBuf, fieldLength, metadataList, fieldIndex);
+            (Codec<T>) codec, calendar, rowBuf, fieldLength, metadataList, fieldIndex, context);
       }
     }
     rowBuf.skip(fieldLength.get());

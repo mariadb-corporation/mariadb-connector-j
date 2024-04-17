@@ -56,7 +56,11 @@ public class BigIntegerCodec implements Codec<BigInteger> {
   @Override
   @SuppressWarnings("fallthrough")
   public BigInteger decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
 
     switch (column.getType()) {
@@ -115,7 +119,11 @@ public class BigIntegerCodec implements Codec<BigInteger> {
   @Override
   @SuppressWarnings("fallthrough")
   public BigInteger decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
 
     switch (column.getType()) {
@@ -203,13 +211,23 @@ public class BigIntegerCodec implements Codec<BigInteger> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long length)
+  public void encodeText(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long length)
       throws IOException {
     encoder.writeAscii(value.toString());
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     String asciiFormat = value.toString();
     encoder.writeLength(asciiFormat.length());

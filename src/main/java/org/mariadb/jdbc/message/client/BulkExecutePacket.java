@@ -117,7 +117,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
             writer.writeByte(0x01); // value is null
           } else {
             writer.writeByte(0x00); // value follow
-            param.encodeBinary(writer);
+            param.encodeBinary(writer, context);
           }
         }
 

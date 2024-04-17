@@ -51,17 +51,25 @@ public class TimestampCodec implements Codec<Timestamp> {
   @Override
   @SuppressWarnings("fallthrough")
   public Timestamp decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeTimestampText(buf, length, cal);
+    return column.decodeTimestampText(buf, length, cal, context);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
   public Timestamp decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeTimestampBinary(buf, length, cal);
+    return column.decodeTimestampBinary(buf, length, cal, context);
   }
 
   @Override
@@ -69,7 +77,7 @@ public class TimestampCodec implements Codec<Timestamp> {
       Writer encoder, Context context, Object val, Calendar providedCal, Long maxLen)
       throws IOException {
     Timestamp ts = (Timestamp) val;
-    Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
+    Calendar cal = providedCal == null ? context.getDefaultCalendar() : providedCal;
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     sdf.setTimeZone(cal.getTimeZone());
     String dateString = sdf.format(ts);
@@ -90,11 +98,12 @@ public class TimestampCodec implements Codec<Timestamp> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
+  public void encodeBinary(
+      Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Timestamp ts = (Timestamp) value;
     if (providedCal == null) {
-      Calendar cal = Calendar.getInstance();
+      Calendar cal = context.getDefaultCalendar();
       cal.clear();
       cal.setTimeInMillis(ts.getTime());
       if (ts.getNanos() == 0) {

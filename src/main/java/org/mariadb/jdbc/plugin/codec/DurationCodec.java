@@ -49,7 +49,11 @@ public class DurationCodec implements Codec<Duration> {
   @Override
   @SuppressWarnings("fallthrough")
   public Duration decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
 
     int[] parts;
@@ -104,7 +108,11 @@ public class DurationCodec implements Codec<Duration> {
   @Override
   @SuppressWarnings("fallthrough")
   public Duration decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
 
     long days = 0;
@@ -208,7 +216,8 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object val, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      Writer encoder, Context context, Object val, Calendar cal, Long maxLength)
       throws IOException {
     int nano = ((Duration) val).getNano();
     if (nano > 0) {

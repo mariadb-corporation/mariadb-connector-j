@@ -56,7 +56,8 @@ public class BooleanCodec implements Codec<Boolean> {
       final ReadableByteBuf buffer,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     return column.decodeBooleanText(buffer, length);
   }
@@ -65,20 +66,30 @@ public class BooleanCodec implements Codec<Boolean> {
       final ReadableByteBuf buffer,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     return column.decodeBooleanBinary(buffer, length);
   }
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object value, Calendar cal, Long maxLength)
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeAscii(((Boolean) value) ? "1" : "0");
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeByte(((Boolean) value) ? 1 : 0);
   }

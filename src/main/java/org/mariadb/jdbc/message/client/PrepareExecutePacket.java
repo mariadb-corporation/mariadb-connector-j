@@ -115,7 +115,7 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
       for (int i = 0; i < parameterCount; i++) {
         Parameter p = parameters.get(i);
         if (!p.isNull() && !p.canEncodeLongData()) {
-          p.encodeBinary(writer);
+          p.encodeBinary(writer, context);
         }
       }
     }

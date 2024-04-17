@@ -184,11 +184,14 @@ public class EnumCodecTest extends CommonCodecTest {
     testObject(rs, Date.class, Date.valueOf("2011-01-01"));
     Timestamp tt = Timestamp.valueOf("2010-12-31 23:59:59");
     testObject(rs, Timestamp.class, new Timestamp(tt.getTime() + 152), 2);
+    ZonedDateTime zdt = LocalDateTime.parse("2011-01-01T00:00").atZone(ZoneId.systemDefault());
+    testObject(rs, ZonedDateTime.class, zdt);
     testObject(
         rs,
-        ZonedDateTime.class,
-        LocalDateTime.parse("2011-01-01T00:00").atZone(ZoneId.systemDefault()));
-    testErrObject(rs, OffsetDateTime.class);
+        OffsetDateTime.class,
+        OffsetDateTime.of(LocalDateTime.parse("2010-12-31T23:59:59.152"), zdt.getOffset()),
+        2);
+
     testErrObject(rs, OffsetTime.class);
     testObject(rs, java.util.Date.class, Date.valueOf("2010-12-31"), 2);
   }

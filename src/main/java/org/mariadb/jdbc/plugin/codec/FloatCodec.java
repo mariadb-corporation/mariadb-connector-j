@@ -53,22 +53,24 @@ public class FloatCodec implements Codec<Float> {
 
   @Override
   public Float decodeText(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeFloatText(buffer, length);
+    return column.decodeFloatText(buf, length);
   }
 
   @Override
   public Float decodeBinary(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeFloatBinary(buffer, length);
+    return column.decodeFloatBinary(buf, length);
   }
 
   @Override
@@ -78,7 +80,12 @@ public class FloatCodec implements Codec<Float> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeFloat((Float) value);
   }

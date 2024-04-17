@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
+import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.function.Function;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
@@ -228,4 +230,15 @@ public interface Context {
    * @param charset server charset
    */
   void setCharset(String charset);
+
+  TimeZone getConnectionTimeZone();
+
+  void setConnectionTimeZone(TimeZone connectionTimeZone);
+
+  /**
+   * Get calendar depending on configuration
+   *
+   * @return calendar
+   */
+  Calendar getDefaultCalendar();
 }

@@ -6,12 +6,14 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
+import java.time.ZonedDateTime;
 import org.junit.jupiter.api.*;
 
 public class ErrorTest extends Common {
 
   @BeforeAll
   public static void begin() throws SQLException {
+    System.out.println(ZonedDateTime.now());
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE deadlock(a int primary key)");

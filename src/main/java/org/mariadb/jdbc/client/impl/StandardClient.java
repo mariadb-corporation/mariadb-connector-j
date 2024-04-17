@@ -568,43 +568,57 @@ public class StandardClient implements Client, AutoCloseable {
    *
    * @throws SQLException if any socket error.
    */
-  private String handleTimezone() throws SQLException {
-    if (!"disable".equalsIgnoreCase(conf.timezone())) {
-      String timeZone = null;
-      try {
-        Result res =
-            (Result)
-                execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone"), true).get(0);
-        res.next();
-        timeZone = res.getString(1);
-        if ("SYSTEM".equals(timeZone)) {
-          timeZone = res.getString(2);
-        }
-      } catch (SQLException sqle) {
-        Result res =
-            (Result)
-                execute(
-                        new QueryPacket(
-                            "SHOW VARIABLES WHERE Variable_name in ("
-                                + "'system_time_zone',"
-                                + "'time_zone')"),
-                        true)
-                    .get(0);
-        String systemTimeZone = null;
-        while (res.next()) {
-          if ("system_time_zone".equals(res.getString(1))) {
-            systemTimeZone = res.getString(2);
-          } else {
-            timeZone = res.getString(2);
+  private void handleTimezone() throws SQLException {
+    if (conf.connectionTimeZone() == null || "LOCAL".equalsIgnoreCase(conf.connectionTimeZone())) {
+      context.setConnectionTimeZone(TimeZone.getDefault());
+    } else {
+      String zoneId = conf.connectionTimeZone();
+      if ("SERVER".equalsIgnoreCase(zoneId)) {
+        try {
+          Result res =
+              (Result)
+                  execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone"), true).get(0);
+          res.next();
+          zoneId = res.getString(1);
+          if ("SYSTEM".equals(zoneId)) {
+            zoneId = res.getString(2);
+          }
+        } catch (SQLException sqle) {
+          Result res =
+              (Result)
+                  execute(
+                          new QueryPacket(
+                              "SHOW VARIABLES WHERE Variable_name in ("
+                                  + "'system_time_zone',"
+                                  + "'time_zone')"),
+                          true)
+                      .get(0);
+          String systemTimeZone = null;
+          while (res.next()) {
+            if ("system_time_zone".equals(res.getString(1))) {
+              systemTimeZone = res.getString(2);
+            } else {
+              zoneId = res.getString(2);
+            }
+          }
+          if ("SYSTEM".equals(zoneId)) {
+            zoneId = systemTimeZone;
           }
         }
-        if ("SYSTEM".equals(timeZone)) {
-          timeZone = systemTimeZone;
+      }
+
+      try {
+        context.setConnectionTimeZone(TimeZone.getTimeZone(ZoneId.of(zoneId).normalized()));
+      } catch (DateTimeException e) {
+        try {
+          context.setConnectionTimeZone(
+              TimeZone.getTimeZone(ZoneId.of(zoneId, ZoneId.SHORT_IDS).normalized()));
+        } catch (DateTimeException e2) {
+          // unknown zone id
+          throw new SQLException(String.format("Unknown zoneId %s", zoneId), e);
         }
       }
-      return timeZone;
     }
-    return null;
   }
 
   private void postConnectionQueries() throws SQLException {
@@ -620,9 +634,8 @@ public class StandardClient implements Client, AutoCloseable {
         && !galeraAllowedStates.isEmpty()) {
       commands.add("show status like 'wsrep_local_state'");
     }
-
-    String serverTz = conf.timezone() != null ? handleTimezone() : null;
-    String sessionVariableQuery = createSessionVariableQuery(serverTz, context);
+    handleTimezone();
+    String sessionVariableQuery = createSessionVariableQuery(context);
     if (sessionVariableQuery != null) commands.add(sessionVariableQuery);
 
     if (conf.database() != null
@@ -706,11 +719,10 @@ public class StandardClient implements Client, AutoCloseable {
   /**
    * Create session variable if configuration requires additional commands.
    *
-   * @param serverTz server timezone
    * @param context context
    * @return sql setting session command
    */
-  public String createSessionVariableQuery(String serverTz, Context context) {
+  public String createSessionVariableQuery(Context context) {
     List<String> sessionCommands = new ArrayList<>();
 
     // In JDBC, connection must start in autocommit mode
@@ -756,28 +768,14 @@ public class StandardClient implements Client, AutoCloseable {
     }
 
     // force client timezone to connection to ensure result of now(), ...
-    if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
-      boolean mustSetTimezone = true;
-      TimeZone connectionTz =
-          "auto".equalsIgnoreCase(conf.timezone())
-              ? TimeZone.getDefault()
-              : TimeZone.getTimeZone(ZoneId.of(conf.timezone()).normalized());
-      ZoneId clientZoneId = connectionTz.toZoneId();
+    if (conf.forceConnectionTimeZoneToSession()) {
+      TimeZone connectionTz = context.getConnectionTimeZone();
+      ZoneId connectionZoneId = connectionTz.toZoneId();
 
       // try to avoid timezone consideration if server use the same one
-      try {
-        ZoneId serverZoneId = ZoneId.of(serverTz);
-        if (serverZoneId.normalized().equals(clientZoneId)
-            || ZoneId.of(serverTz, ZoneId.SHORT_IDS).equals(clientZoneId)) {
-          mustSetTimezone = false;
-        }
-      } catch (DateTimeException e) {
-        // eat
-      }
-
-      if (mustSetTimezone) {
-        if (clientZoneId.getRules().isFixedOffset()) {
-          ZoneOffset zoneOffset = clientZoneId.getRules().getOffset(Instant.now());
+      if (!connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
+        if (connectionZoneId.getRules().isFixedOffset()) {
+          ZoneOffset zoneOffset = connectionZoneId.getRules().getOffset(Instant.now());
           if (zoneOffset.getTotalSeconds() == 0) {
             // specific for UTC timezone, server permitting only SYSTEM/UTC offset or named time
             // zone
@@ -787,7 +785,7 @@ public class StandardClient implements Client, AutoCloseable {
             sessionCommands.add("time_zone='" + zoneOffset.getId() + "'");
           }
         } else {
-          sessionCommands.add("time_zone='" + clientZoneId.normalized() + "'");
+          sessionCommands.add("time_zone='" + connectionZoneId.normalized() + "'");
         }
       }
     }

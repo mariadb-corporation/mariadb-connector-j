@@ -53,8 +53,8 @@ public class Parameter<T> implements org.mariadb.jdbc.client.util.Parameter {
     }
   }
 
-  public void encodeBinary(Writer encoder) throws IOException, SQLException {
-    codec.encodeBinary(encoder, this.value, null, length);
+  public void encodeBinary(Writer encoder, Context context) throws IOException, SQLException {
+    codec.encodeBinary(encoder, context, this.value, null, length);
   }
 
   public void encodeLongData(Writer encoder) throws IOException, SQLException {

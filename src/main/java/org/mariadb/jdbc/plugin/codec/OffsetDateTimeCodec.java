@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.codec;
 
+import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
+
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.time.LocalDateTime;
@@ -11,6 +13,7 @@ import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.column.TimestampColumn;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -51,25 +54,42 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public OffsetDateTime decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam,
+      final Context context)
       throws SQLDataException {
 
     switch (column.getType()) {
       case DATETIME:
       case TIMESTAMP:
-        LocalDateTime localDateTime =
-            LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam);
-        if (localDateTime == null) return null;
-        Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-        return localDateTime.atZone(cal.getTimeZone().toZoneId()).toOffsetDateTime();
+        ZonedDateTime zdt =
+            ZonedDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam, context);
+        if (zdt == null) return null;
+        return zdt.toOffsetDateTime();
       case STRING:
       case VARCHAR:
       case VARSTRING:
         String val = buf.readString(length.get());
         try {
-          return OffsetDateTime.parse(val);
+          int[] parts = LocalDateTimeCodec.parseTimestamp(val);
+          if (parts == null) {
+            length.set(NULL_LENGTH);
+            return null;
+          }
+          return TimestampColumn.localDateTimeToZoneDateTime(
+                  LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
+                      .plusNanos(parts[6]),
+                  calParam,
+                  context)
+              .toOffsetDateTime();
         } catch (Throwable e) {
-          // eat
+          try {
+            return OffsetDateTime.parse(val);
+          } catch (Throwable ee) {
+            // eat
+          }
         }
         throw new SQLDataException(
             String.format(
@@ -84,25 +104,42 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public OffsetDateTime decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam,
+      final Context context)
       throws SQLDataException {
 
     switch (column.getType()) {
       case DATETIME:
       case TIMESTAMP:
-        LocalDateTime localDateTime =
-            LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam);
-        if (localDateTime == null) return null;
-        Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-        return localDateTime.atZone(cal.getTimeZone().toZoneId()).toOffsetDateTime();
+        ZonedDateTime zdt =
+            ZonedDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam, context);
+        if (zdt == null) return null;
+        return zdt.toOffsetDateTime();
       case STRING:
       case VARCHAR:
       case VARSTRING:
         String val = buf.readString(length.get());
         try {
-          return OffsetDateTime.parse(val);
+          int[] parts = LocalDateTimeCodec.parseTimestamp(val);
+          if (parts == null) {
+            length.set(NULL_LENGTH);
+            return null;
+          }
+          return TimestampColumn.localDateTimeToZoneDateTime(
+                  LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
+                      .plusNanos(parts[6]),
+                  calParam,
+                  context)
+              .toOffsetDateTime();
         } catch (Throwable e) {
-          // eat
+          try {
+            return OffsetDateTime.parse(val);
+          } catch (Throwable ee) {
+            // eat
+          }
         }
         throw new SQLDataException(
             String.format(
@@ -121,7 +158,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
       Writer encoder, Context context, Object val, Calendar calParam, Long maxLen)
       throws IOException {
     OffsetDateTime zdt = (OffsetDateTime) val;
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+    Calendar cal = calParam == null ? context.getDefaultCalendar() : calParam;
     encoder.writeByte('\'');
     encoder.writeAscii(
         zdt.atZoneSameInstant(cal.getTimeZone().toZoneId())
@@ -133,10 +170,11 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar calParam, Long maxLength)
+  public void encodeBinary(
+      Writer encoder, Context context, Object value, Calendar calParam, Long maxLength)
       throws IOException {
     OffsetDateTime zdt = (OffsetDateTime) value;
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+    Calendar cal = calParam == null ? context.getDefaultCalendar() : calParam;
     ZonedDateTime convertedZdt = zdt.atZoneSameInstant(cal.getTimeZone().toZoneId());
     int nano = convertedZdt.getNano();
     if (nano > 0) {

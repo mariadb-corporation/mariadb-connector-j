@@ -3,12 +3,11 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.codec;
 
-import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
-
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
@@ -121,194 +120,29 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   @Override
   @SuppressWarnings("fallthrough")
   public LocalDateTime decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    int[] parts;
-    switch (column.getType()) {
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length.get());
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as LocalDateTime", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
-
-      case STRING:
-      case VARCHAR:
-      case VARSTRING:
-        String val = buf.readString(length.get());
-        try {
-          parts = parseTimestamp(val);
-          if (parts == null) {
-            length.set(NULL_LENGTH);
-            return null;
-          }
-          return LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
-              .plusNanos(parts[6]);
-        } catch (DateTimeException dte) {
-          throw new SQLDataException(
-              String.format(
-                  "value '%s' (%s) cannot be decoded as LocalDateTime", val, column.getType()));
-        }
-
-      case DATE:
-        parts = LocalDateCodec.parseDate(buf, length);
-        if (parts == null) {
-          length.set(NULL_LENGTH);
-          return null;
-        }
-        return LocalDateTime.of(parts[0], parts[1], parts[2], 0, 0, 0);
-
-      case DATETIME:
-      case TIMESTAMP:
-        parts = parseTimestamp(buf.readAscii(length.get()));
-        if (parts == null) {
-          length.set(NULL_LENGTH);
-          return null;
-        }
-        return LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
-            .plusNanos(parts[6]);
-
-      case TIME:
-        parts = LocalTimeCodec.parseTime(buf, length, column);
-        if (parts[0] == -1) {
-          return LocalDateTime.of(1970, 1, 1, 0, 0)
-              .minusHours(parts[1] % 24)
-              .minusMinutes(parts[2])
-              .minusSeconds(parts[3])
-              .minusNanos(parts[4]);
-        }
-        return LocalDateTime.of(1970, 1, 1, parts[1] % 24, parts[2], parts[3]).plusNanos(parts[4]);
-
-      case YEAR:
-        int year = Integer.parseInt(buf.readAscii(length.get()));
-        if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
-        return LocalDateTime.of(year, 1, 1, 0, 0);
-
-      default:
-        buf.skip(length.get());
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as LocalDateTime", column.getType()));
-    }
+    ZonedDateTime zdt = ZonedDateTimeCodec.INSTANCE.decodeText(buf, length, column, cal, context);
+    if (zdt == null) return null;
+    return zdt.toLocalDateTime();
   }
 
   @Override
   @SuppressWarnings("fallthrough")
   public LocalDateTime decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    int year = 1970;
-    int month = 1;
-    long dayOfMonth = 1;
-    int hour = 0;
-    int minutes = 0;
-    int seconds = 0;
-    long microseconds = 0;
-
-    switch (column.getType()) {
-      case TIME:
-        if (length.get() > 0) {
-          // specific case for TIME, to handle value not in 00:00:00-23:59:59
-          boolean negate = buf.readByte() == 1;
-          int day = buf.readInt();
-          hour = buf.readByte();
-          minutes = buf.readByte();
-          seconds = buf.readByte();
-          if (length.get() > 8) {
-            microseconds = buf.readUnsignedInt();
-          }
-
-          if (negate) {
-            return LocalDateTime.of(1970, 1, 1, 0, 0)
-                .minusDays(day)
-                .minusHours(hour)
-                .minusMinutes(minutes)
-                .minusSeconds(seconds)
-                .minusNanos(microseconds * 1000);
-          }
-        }
-        break;
-
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length.get());
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as LocalDateTime", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
-
-      case STRING:
-      case VARCHAR:
-      case VARSTRING:
-        String val = buf.readString(length.get());
-        try {
-          int[] parts = parseTimestamp(val);
-          if (parts == null) {
-            length.set(NULL_LENGTH);
-            return null;
-          }
-          return LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
-              .plusNanos(parts[6]);
-        } catch (DateTimeException dte) {
-          throw new SQLDataException(
-              String.format(
-                  "value '%s' (%s) cannot be decoded as LocalDateTime", val, column.getType()));
-        }
-
-      case DATE:
-      case TIMESTAMP:
-      case DATETIME:
-        if (length.get() == 0) {
-          length.set(NULL_LENGTH);
-          return null;
-        }
-        year = buf.readUnsignedShort();
-        month = buf.readByte();
-        dayOfMonth = buf.readByte();
-
-        if (length.get() > 4) {
-          hour = buf.readByte();
-          minutes = buf.readByte();
-          seconds = buf.readByte();
-
-          if (length.get() > 7) {
-            microseconds = buf.readUnsignedInt();
-          }
-        }
-
-        // xpand workaround https://jira.mariadb.org/browse/XPT-274
-        if (year == 0
-            && month == 0
-            && dayOfMonth == 0
-            && hour == 0
-            && minutes == 0
-            && seconds == 0) {
-          length.set(NULL_LENGTH);
-          return null;
-        }
-
-        break;
-
-      case YEAR:
-        year = buf.readUnsignedShort();
-        if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
-        break;
-      default:
-        buf.skip(length.get());
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as LocalDateTime", column.getType()));
-    }
-
-    return LocalDateTime.of(year, month, (int) dayOfMonth, hour, minutes, seconds)
-        .plusNanos(microseconds * 1000);
+    ZonedDateTime zdt = ZonedDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, cal, context);
+    if (zdt == null) return null;
+    return zdt.toLocalDateTime();
   }
 
   @Override
@@ -322,7 +156,12 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     LocalDateTime val = (LocalDateTime) value;
     int nano = val.getNano();

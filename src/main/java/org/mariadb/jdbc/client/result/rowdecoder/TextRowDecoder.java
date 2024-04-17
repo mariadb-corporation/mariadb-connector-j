@@ -10,8 +10,8 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -21,131 +21,137 @@ public class TextRowDecoder implements RowDecoder {
 
   @Override
   public <T> T decode(
-      Codec<T> codec,
-      Calendar cal,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength,
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex)
+      final Codec<T> codec,
+      final Calendar cal,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength,
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final Context context)
       throws SQLException {
-    return codec.decodeText(rowBuf, fieldLength, metadataList[fieldIndex.get()], cal);
+    return codec.decodeText(rowBuf, fieldLength, metadataList[fieldIndex.get()], cal, context);
   }
 
   @Override
   public Object defaultDecode(
-      Configuration conf,
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength,
+      final Context context)
       throws SQLException {
-    return metadataList[fieldIndex.get()].getDefaultText(conf, rowBuf, fieldLength);
+    return metadataList[fieldIndex.get()].getDefaultText(rowBuf, fieldLength, context);
   }
 
   @Override
   public String decodeString(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength,
+      final Context context)
       throws SQLException {
-    return metadataList[fieldIndex.get()].decodeStringText(rowBuf, fieldLength, null);
+    return metadataList[fieldIndex.get()].decodeStringText(rowBuf, fieldLength, null, context);
   }
 
   public byte decodeByte(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeByteText(rowBuf, fieldLength);
   }
 
   public boolean decodeBoolean(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeBooleanText(rowBuf, fieldLength);
   }
 
   public Date decodeDate(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength,
-      Calendar cal)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength,
+      final Calendar cal,
+      final Context context)
       throws SQLException {
-    return metadataList[fieldIndex.get()].decodeDateText(rowBuf, fieldLength, cal);
+    return metadataList[fieldIndex.get()].decodeDateText(rowBuf, fieldLength, cal, context);
   }
 
   public Time decodeTime(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength,
-      Calendar cal)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength,
+      final Calendar cal,
+      final Context context)
       throws SQLException {
-    return metadataList[fieldIndex.get()].decodeTimeText(rowBuf, fieldLength, cal);
+    return metadataList[fieldIndex.get()].decodeTimeText(rowBuf, fieldLength, cal, context);
   }
 
   public Timestamp decodeTimestamp(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength,
-      Calendar cal)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength,
+      final Calendar cal,
+      final Context context)
       throws SQLException {
-    return metadataList[fieldIndex.get()].decodeTimestampText(rowBuf, fieldLength, cal);
+    return metadataList[fieldIndex.get()].decodeTimestampText(rowBuf, fieldLength, cal, context);
   }
 
   public short decodeShort(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeShortText(rowBuf, fieldLength);
   }
 
   public int decodeInt(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeIntText(rowBuf, fieldLength);
   }
 
   public long decodeLong(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeLongText(rowBuf, fieldLength);
   }
 
   public float decodeFloat(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeFloatText(rowBuf, fieldLength);
   }
 
   public double decodeDouble(
-      ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      final ColumnDecoder[] metadataList,
+      final MutableInt fieldIndex,
+      final StandardReadableByteBuf rowBuf,
+      final MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeDoubleText(rowBuf, fieldLength);
   }
 
-  public boolean wasNull(byte[] nullBitmap, MutableInt fieldIndex, MutableInt fieldLength) {
+  public boolean wasNull(
+      final byte[] nullBitmap, final MutableInt fieldIndex, final MutableInt fieldLength) {
     return fieldLength.get() == NULL_LENGTH;
   }
 
@@ -156,7 +162,7 @@ public class TextRowDecoder implements RowDecoder {
    */
   @Override
   public int setPosition(
-      int newIndex,
+      final int newIndex,
       final MutableInt fieldIndex,
       final int maxIndex,
       final StandardReadableByteBuf rowBuf,

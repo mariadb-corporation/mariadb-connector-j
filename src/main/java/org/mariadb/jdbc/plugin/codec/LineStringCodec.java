@@ -32,14 +32,22 @@ public class LineStringCodec implements Codec<LineString> {
 
   @Override
   public LineString decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return decodeBinary(buf, length, column, cal);
+    return decodeBinary(buf, length, column, cal, context);
   }
 
   @Override
   public LineString decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
@@ -56,13 +64,22 @@ public class LineStringCodec implements Codec<LineString> {
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object value, Calendar cal, Long maxLength)
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeBytes(("ST_LineFromText('" + value.toString() + "')").getBytes());
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     LineString line = (LineString) value;
 

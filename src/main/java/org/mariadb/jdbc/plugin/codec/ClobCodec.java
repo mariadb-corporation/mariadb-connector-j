@@ -47,7 +47,12 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public Clob decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+  public Clob decodeText(
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     return getClob(buf, length, column);
   }
@@ -84,14 +89,22 @@ public class ClobCodec implements Codec<Clob> {
 
   @Override
   public Clob decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     return getClob(buf, length, column);
   }
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object value, Calendar cal, Long maxLength)
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException, SQLException {
     Reader reader = ((Clob) value).getCharacterStream();
     char[] buf = new char[4096];
@@ -109,7 +122,12 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException, SQLException {
     // prefer use of encodeLongData, because length is unknown
     Reader reader = ((Clob) value).getCharacterStream();

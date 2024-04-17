@@ -5,6 +5,8 @@ package org.mariadb.jdbc.client.context;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 
+import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.function.Function;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
@@ -53,6 +55,8 @@ public class BaseContext implements Context {
   private int stateFlag = 0;
 
   private String redirectUrl = null;
+
+  private TimeZone connectionTimeZone = null;
 
   /**
    * Constructor of connection context
@@ -230,5 +234,19 @@ public class BaseContext implements Context {
   @Override
   public void setRedirectUrl(String redirectUrl) {
     this.redirectUrl = redirectUrl;
+  }
+
+  public TimeZone getConnectionTimeZone() {
+    return connectionTimeZone;
+  }
+
+  public void setConnectionTimeZone(TimeZone connectionTimeZone) {
+    this.connectionTimeZone = connectionTimeZone;
+  }
+
+  public Calendar getDefaultCalendar() {
+    return conf.preserveInstants()
+        ? Calendar.getInstance(connectionTimeZone)
+        : Calendar.getInstance();
   }
 }
