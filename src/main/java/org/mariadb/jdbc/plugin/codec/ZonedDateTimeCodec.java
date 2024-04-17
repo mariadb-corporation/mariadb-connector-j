@@ -54,6 +54,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public ZonedDateTime decodeText(
       final ReadableByteBuf buf,
       final MutableInt length,
@@ -146,6 +147,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public ZonedDateTime decodeBinary(
       final ReadableByteBuf buf,
       final MutableInt length,
