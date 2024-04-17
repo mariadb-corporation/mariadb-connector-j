@@ -62,7 +62,7 @@ public class OkPacket implements Completion {
                       context.setAutoIncrement(Long.parseLong(valueSv));
                       break;
                     case "redirect_url":
-                      context.setRedirectUrl(valueSv);
+                      if (!"".equals(valueSv)) context.setRedirectUrl(valueSv);
                       break;
                     case "tx_isolation":
                     case "transaction_isolation":
