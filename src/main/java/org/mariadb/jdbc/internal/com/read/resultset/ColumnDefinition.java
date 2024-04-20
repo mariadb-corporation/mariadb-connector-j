@@ -273,6 +273,22 @@ public class ColumnDefinition {
         } else {
           return length - ((decimals > 0) ? 1 : 0);
         }
+
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+      case BIGINT:
+        if (isSigned()) {
+          return length - 1;
+        }
+        return length;
+
+      case MEDIUMINT:
+        if (isSigned()) {
+          return length - 2;
+        }
+        return length - 1;
+
       case VARCHAR:
       case JSON:
       case ENUM:
