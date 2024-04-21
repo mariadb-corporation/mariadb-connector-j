@@ -918,10 +918,10 @@ public class MediumIntCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.INTEGER, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(9, meta.getPrecision(1));
+    assertEquals(7, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(9, meta.getColumnDisplaySize(1));
+    assertEquals(8, meta.getColumnDisplaySize(1));
   }
 
   @Test

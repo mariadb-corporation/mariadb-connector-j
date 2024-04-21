@@ -55,6 +55,12 @@ public class SignedTinyIntColumn extends ColumnDefinitionPacket implements Colum
   protected SignedTinyIntColumn(SignedTinyIntColumn prev) {
     super(prev, true);
   }
+  public int getPrecision() {
+    // UNSIGNED TINYINT :          0..255 digits=3 nchars=3
+    // SIGNED TINYINT   :   -128..127   digits=3 nchars=4
+    // display size is correct, but need to limit to 3 for precision
+    return Math.min(3, (int) columnLength);
+  }
 
   @Override
   public SignedTinyIntColumn useAliasAsName() {

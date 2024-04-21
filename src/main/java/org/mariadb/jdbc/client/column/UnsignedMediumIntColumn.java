@@ -12,6 +12,7 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
 public class UnsignedMediumIntColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -54,6 +55,18 @@ public class UnsignedMediumIntColumn extends ColumnDefinitionPacket implements C
 
   protected UnsignedMediumIntColumn(UnsignedMediumIntColumn prev) {
     super(prev, true);
+  }
+
+  public int getPrecision() {
+    // UNSIGNED MEDIUMINT :          0..16777215 digits=8 nchars=8
+    // SIGNED MEDIUMINT   :   -8388608..8388607  digits=7 nchars=8
+    // display size is correct, but need to limit to 8 for precision
+    return Math.min(8, (int) columnLength);
+  }
+
+  public int getDisplaySize() {
+    // strangely server return 9 length
+    return Math.min(8, (int) columnLength);
   }
 
   @Override

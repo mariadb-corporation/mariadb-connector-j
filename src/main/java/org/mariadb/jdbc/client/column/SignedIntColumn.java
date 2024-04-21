@@ -56,6 +56,13 @@ public class SignedIntColumn extends ColumnDefinitionPacket implements ColumnDec
     super(prev, true);
   }
 
+  public int getPrecision() {
+    // UNSIGNED INT :             0..4294967295 digits=10 nchars=10
+    // SIGNED INT   :   -2147483648..2147483647 digits=10 nchars=11
+    // display size is correct, but need to limit to 10 for precision
+    return Math.min(10, (int) columnLength);
+  }
+
   @Override
   public SignedIntColumn useAliasAsName() {
     return new SignedIntColumn(this);

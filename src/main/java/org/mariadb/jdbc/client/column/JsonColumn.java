@@ -8,6 +8,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
 public class JsonColumn extends StringColumn implements ColumnDecoder {
@@ -40,6 +41,14 @@ public class JsonColumn extends StringColumn implements ColumnDecoder {
 
   protected JsonColumn(JsonColumn prev) {
     super(prev);
+  }
+  public int getDisplaySize() {
+    if (charset != 63) {
+      Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
+      if (maxWidth != null) return (int) (columnLength / maxWidth);
+      return (int) (columnLength / 4);
+    }
+    return (int) columnLength;
   }
 
   @Override

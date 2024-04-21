@@ -57,6 +57,13 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
     super(prev, true);
   }
 
+  public int getPrecision() {
+    // UNSIGNED BIGINT :             0..18446744073709551615 digits=20 nchars=20
+    // SIGNED BIGINT   :   -9223372036854775808..9223372036854775807 digits=19 nchars=20
+    // display size is correct, but need to limit to 19 for signed precision
+    return Math.min(19, (int) columnLength);
+  }
+
   @Override
   public SignedBigIntColumn useAliasAsName() {
     return new SignedBigIntColumn(this);

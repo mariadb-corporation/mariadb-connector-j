@@ -56,6 +56,18 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
     super(prev, true);
   }
 
+  public int getPrecision() {
+    // UNSIGNED MEDIUMINT :          0..16777215 digits=8 nchars=8
+    // SIGNED MEDIUMINT   :   -8388608..8388607  digits=7 nchars=8
+    // display size is correct, but need to limit to 7 for precision
+    return Math.min(7, (int) columnLength);
+  }
+
+  public int getDisplaySize() {
+    // strangely server return 9 length
+    return Math.min(8, (int) columnLength);
+  }
+
   @Override
   public SignedMediumIntColumn useAliasAsName() {
     return new SignedMediumIntColumn(this);

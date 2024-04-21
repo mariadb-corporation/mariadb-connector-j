@@ -48,6 +48,14 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   protected BlobColumn(BlobColumn prev) {
     super(prev);
   }
+  public int getDisplaySize() {
+    if (charset != 63) {
+      Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
+      if (maxWidth != null) return (int) (columnLength / maxWidth);
+      return (int) (columnLength / 4);
+    }
+    return (int) columnLength;
+  }
 
   @Override
   public BlobColumn useAliasAsName() {

@@ -65,6 +65,15 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
     super(prev, true);
   }
 
+  public int getDisplaySize() {
+    if (charset != 63) {
+      Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
+      if (maxWidth != null) return (int) (columnLength / maxWidth);
+      return (int) (columnLength / 4);
+    }
+    return (int) columnLength;
+  }
+
   @Override
   public StringColumn useAliasAsName() {
     return new StringColumn(this);
