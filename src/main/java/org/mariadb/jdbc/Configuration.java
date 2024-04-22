@@ -64,7 +64,7 @@ public class Configuration {
   // various
   private String timezone = null;
   private String connectionTimeZone = null;
-  private boolean forceConnectionTimeZoneToSession = true;
+  private Boolean forceConnectionTimeZoneToSession = null;
   private boolean preserveInstants;
   private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
@@ -1600,7 +1600,7 @@ public class Configuration {
    *
    * @return forceConnectionTimeZoneToSession
    */
-  public boolean forceConnectionTimeZoneToSession() {
+  public Boolean forceConnectionTimeZoneToSession() {
     return forceConnectionTimeZoneToSession;
   }
 
