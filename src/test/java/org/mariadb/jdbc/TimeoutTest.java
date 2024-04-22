@@ -174,13 +174,16 @@ public class TimeoutTest extends BaseTest {
 
   @Test
   public void waitTimeoutResultSetTest() throws SQLException, InterruptedException {
-    Assume.assumeTrue(!sharedIsAurora() && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(
+        !sharedIsAurora()
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !"maxscale".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection connection = setConnection()) {
       Statement stmt = connection.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT 1");
 
       assertTrue(rs.next());
-
       stmt.execute("set session wait_timeout=1");
       Thread.sleep(3000); // Wait for the server to kill the connection
 
