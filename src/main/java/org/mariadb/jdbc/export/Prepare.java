@@ -4,7 +4,7 @@
 package org.mariadb.jdbc.export;
 
 import java.sql.SQLException;
-import org.mariadb.jdbc.ServerPreparedStatement;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.ColumnDecoder;
 
@@ -26,7 +26,7 @@ public interface Prepare {
    * @param preparedStatement current prepared statement that was using prepare object
    * @throws SQLException if close fails
    */
-  void decrementUse(Client con, ServerPreparedStatement preparedStatement) throws SQLException;
+  void decrementUse(Client con, BasePreparedStatement preparedStatement) throws SQLException;
 
   /**
    * Get current prepare statement id

@@ -8,7 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.mariadb.jdbc.ServerPreparedStatement;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -19,7 +19,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
 
   private final AtomicBoolean closing = new AtomicBoolean();
   private final AtomicBoolean cached = new AtomicBoolean();
-  private final List<ServerPreparedStatement> statements = new ArrayList<>();
+  private final List<BasePreparedStatement> statements = new ArrayList<>();
 
   /**
    * Cache prepare result with flag indicating use
@@ -46,7 +46,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
     }
   }
 
-  public void decrementUse(Client con, ServerPreparedStatement preparedStatement)
+  public void decrementUse(Client con, BasePreparedStatement preparedStatement)
       throws SQLException {
     statements.remove(preparedStatement);
     if (statements.size() == 0 && !cached.get()) {
@@ -59,7 +59,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
    *
    * @param preparedStatement new statement using prepare result
    */
-  public void incrementUse(ServerPreparedStatement preparedStatement) {
+  public void incrementUse(BasePreparedStatement preparedStatement) {
     if (closing.get()) {
       return;
     }
@@ -106,7 +106,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
   /** Resetting cache in case of failover */
   public void reset() {
     statementId = -1;
-    for (ServerPreparedStatement stmt : statements) {
+    for (BasePreparedStatement stmt : statements) {
       stmt.reset();
     }
   }

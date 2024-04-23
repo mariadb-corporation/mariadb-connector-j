@@ -75,33 +75,44 @@ public class ByteCodec implements Codec<Byte> {
 
   @Override
   public Byte decodeText(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeByteText(buffer, length);
+    return column.decodeByteText(buf, length);
   }
 
   @Override
   public Byte decodeBinary(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeByteBinary(buffer, length);
+    return column.decodeByteBinary(buf, length);
   }
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object value, Calendar cal, Long maxLength)
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeAscii(Integer.toString((Byte) value));
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeByte((byte) value);
   }

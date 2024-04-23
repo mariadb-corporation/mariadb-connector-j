@@ -110,7 +110,11 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   @Override
   @SuppressWarnings("fallthrough")
   public LocalTime decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
 
     int[] parts;
@@ -175,7 +179,11 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   @Override
   @SuppressWarnings("fallthrough")
   public LocalTime decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
 
     int hour = 0;
@@ -306,7 +314,12 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     LocalTime val = (LocalTime) value;
     int nano = val.getNano();

@@ -202,27 +202,25 @@ public interface ColumnDecoder extends Column {
   /**
    * Return default Object text encoded
    *
-   * @param conf configuration
    * @param buf row buffer
    * @param length data length
+   * @param context connection context
    * @return default Object
    * @throws SQLDataException if any decoding error occurs
    */
-  Object getDefaultText(
-      final Configuration conf, final ReadableByteBuf buf, final MutableInt length)
+  Object getDefaultText(final ReadableByteBuf buf, final MutableInt length, Context context)
       throws SQLDataException;
 
   /**
    * Return default Object binary encoded
    *
-   * @param conf configuration
    * @param buf row buffer
    * @param length data length
+   * @param context connection context
    * @return default Object
    * @throws SQLDataException if any decoding error occurs
    */
-  Object getDefaultBinary(
-      final Configuration conf, final ReadableByteBuf buf, final MutableInt length)
+  Object getDefaultBinary(final ReadableByteBuf buf, final MutableInt length, Context context)
       throws SQLDataException;
 
   /**
@@ -231,10 +229,12 @@ public interface ColumnDecoder extends Column {
    * @param buf row buffer
    * @param length data length
    * @param cal calendar
+   * @param context connection context
    * @return String value
    * @throws SQLDataException if any decoding error occurs
    */
-  String decodeStringText(final ReadableByteBuf buf, final MutableInt length, final Calendar cal)
+  String decodeStringText(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException;
 
   /**
@@ -246,7 +246,8 @@ public interface ColumnDecoder extends Column {
    * @return String value
    * @throws SQLDataException if any decoding error occurs
    */
-  String decodeStringBinary(final ReadableByteBuf buf, final MutableInt length, final Calendar cal)
+  String decodeStringBinary(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException;
 
   /**
@@ -275,10 +276,12 @@ public interface ColumnDecoder extends Column {
    * @param buf row buffer
    * @param length data length
    * @param cal calendar
+   * @param context connection Context
    * @return date value
    * @throws SQLDataException if any decoding error occurs
    */
-  Date decodeDateText(final ReadableByteBuf buf, final MutableInt length, Calendar cal)
+  Date decodeDateText(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException;
 
   /**
@@ -287,10 +290,12 @@ public interface ColumnDecoder extends Column {
    * @param buf row buffer
    * @param length data length
    * @param cal calendar
+   * @param context connection Context
    * @return date value
    * @throws SQLDataException if any decoding error occurs
    */
-  Date decodeDateBinary(final ReadableByteBuf buf, final MutableInt length, Calendar cal)
+  Date decodeDateBinary(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException;
 
   /**
@@ -299,10 +304,12 @@ public interface ColumnDecoder extends Column {
    * @param buf row buffer
    * @param length data length
    * @param cal calendar
+   * @param context connection context
    * @return time value
    * @throws SQLDataException if any decoding error occurs
    */
-  Time decodeTimeText(final ReadableByteBuf buf, final MutableInt length, Calendar cal)
+  Time decodeTimeText(
+      final ReadableByteBuf buf, final MutableInt length, Calendar cal, Context context)
       throws SQLDataException;
 
   /**
@@ -311,10 +318,12 @@ public interface ColumnDecoder extends Column {
    * @param buf row buffer
    * @param length data length
    * @param cal calendar
+   * @param context connection context
    * @return time value
    * @throws SQLDataException if any decoding error occurs
    */
-  Time decodeTimeBinary(final ReadableByteBuf buf, final MutableInt length, Calendar cal)
+  Time decodeTimeBinary(
+      final ReadableByteBuf buf, final MutableInt length, Calendar cal, Context context)
       throws SQLDataException;
 
   /**
@@ -323,10 +332,12 @@ public interface ColumnDecoder extends Column {
    * @param buf row buffer
    * @param length data length
    * @param cal calendar
+   * @param context connection context
    * @return timestamp value
    * @throws SQLDataException if any decoding error occurs
    */
-  Timestamp decodeTimestampText(final ReadableByteBuf buf, final MutableInt length, Calendar cal)
+  Timestamp decodeTimestampText(
+      final ReadableByteBuf buf, final MutableInt length, Calendar cal, Context context)
       throws SQLDataException;
 
   /**
@@ -335,10 +346,12 @@ public interface ColumnDecoder extends Column {
    * @param buf row buffer
    * @param length data length
    * @param cal calendar
+   * @param context connection context
    * @return timestamp value
    * @throws SQLDataException if any decoding error occurs
    */
-  Timestamp decodeTimestampBinary(final ReadableByteBuf buf, final MutableInt length, Calendar cal)
+  Timestamp decodeTimestampBinary(
+      final ReadableByteBuf buf, final MutableInt length, Calendar cal, Context context)
       throws SQLDataException;
 
   /**

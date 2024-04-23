@@ -50,7 +50,12 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Blob decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+  public Blob decodeText(
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
@@ -74,7 +79,11 @@ public class BlobCodec implements Codec<Blob> {
   @Override
   @SuppressWarnings("fallthrough")
   public Blob decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
@@ -98,7 +107,11 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object value, Calendar cal, Long maxLength)
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException, SQLException {
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
     byte[] array = new byte[4096];
@@ -124,7 +137,12 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException, SQLException {
     long length;
     InputStream is = ((Blob) value).getBinaryStream();

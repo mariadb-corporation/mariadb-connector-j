@@ -11,8 +11,8 @@ import java.sql.*;
 import java.sql.Date;
 import java.sql.Statement;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.result.Result;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.codec.Parameter;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.util.ParameterList;
@@ -55,7 +55,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   public BaseCallableStatement(
       String sql,
       Connection con,
-      ReentrantLock lock,
+      ClosableLock lock,
       String databaseName,
       String procedureName,
       boolean canUseServerTimeout,

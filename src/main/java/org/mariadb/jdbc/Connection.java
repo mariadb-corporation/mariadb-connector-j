@@ -7,13 +7,13 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.sql.ConnectionEvent;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.impl.StandardClient;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.client.ChangeDbPacket;
 import org.mariadb.jdbc.message.client.PingPacket;
@@ -24,19 +24,23 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.ConnectionState;
 import org.mariadb.jdbc.util.constants.ServerStatus;
+import org.mariadb.jdbc.util.timeout.NoOpQueryTimeoutHandler;
+import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
+import org.mariadb.jdbc.util.timeout.QueryTimeoutHandlerImpl;
 
 /** Public Connection class */
 public class Connection implements java.sql.Connection {
 
+  // Redundant character escape '\\}' in RegExp is expected for Android. see CONJ-1161
   private static final Pattern CALLABLE_STATEMENT_PATTERN =
       Pattern.compile(
           "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*"
-              + "call(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*((((`[^`]+`)|([^`}]+))\\.)?"
-              + "((`[^`]+`)|([^`}(]+)))\\s*(\\(.*\\))?(\\s*/\\*([^*]|\\*[^/])*\\*/)*"
-              + "\\s*(#.*)?)\\s*(}\\s*)?$",
+              + "call(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
+              + "((`[^`]+`)|([^`\\}(]+)))\\s*(\\(.*\\))?(\\s*/\\*([^*]|\\*[^/])*\\*/)*"
+              + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
-  private final ReentrantLock lock;
+  private final ClosableLock lock;
   private final Configuration conf;
   private final Client client;
   private final Properties clientInfo = new Properties();
@@ -50,6 +54,7 @@ public class Connection implements java.sql.Connection {
   private int lowercaseTableNames = -1;
   private boolean readOnly;
   private MariaDbPoolConnection poolConnection;
+  private QueryTimeoutHandler queryTimeoutHandler;
 
   /**
    * Connection construction.
@@ -59,7 +64,7 @@ public class Connection implements java.sql.Connection {
    * @param client client object
    */
   @SuppressWarnings({"this-escape"})
-  public Connection(Configuration conf, ReentrantLock lock, Client client) {
+  public Connection(Configuration conf, ClosableLock lock, Client client) {
     this.conf = conf;
     this.forceTransactionEnd =
         Boolean.parseBoolean(conf.nonMappedOptions().getProperty("forceTransactionEnd", "false"));
@@ -70,6 +75,10 @@ public class Connection implements java.sql.Connection {
     this.canUseServerTimeout =
         context.getVersion().isMariaDBServer()
             && context.getVersion().versionGreaterOrEqual(10, 1, 2);
+    this.queryTimeoutHandler =
+        this.canUseServerTimeout
+            ? NoOpQueryTimeoutHandler.INSTANCE
+            : new QueryTimeoutHandlerImpl(this, lock);
     this.canUseServerMaxRows =
         context.getVersion().isMariaDBServer()
             && context.getVersion().versionGreaterOrEqual(10, 3, 0);
@@ -102,7 +111,7 @@ public class Connection implements java.sql.Connection {
             : HostAddress.from(
                 currentIp, client.getHostAddress().port, client.getHostAddress().primary);
 
-    try (Client cli = new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
+    try (Client cli = new StandardClient(conf, hostAddress, new ClosableLock(), true)) {
       cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()), false);
     }
   }
@@ -194,43 +203,37 @@ public class Connection implements java.sql.Connection {
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     if (autoCommit == getAutoCommit()) {
       return;
     }
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       getContext().addStateFlag(ConnectionState.STATE_AUTOCOMMIT);
       client.execute(
           new QueryPacket(((autoCommit) ? "set autocommit=1" : "set autocommit=0")), true);
-    } finally {
-      lock.unlock();
     }
   }
 
   @Override
+  @SuppressWarnings("try")
   public void commit() throws SQLException {
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       if (forceTransactionEnd
           || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
         client.execute(new QueryPacket("COMMIT"), false);
       }
-    } finally {
-      lock.unlock();
     }
   }
 
   @Override
+  @SuppressWarnings("try")
   public void rollback() throws SQLException {
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       if (forceTransactionEnd
           || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
         client.execute(new QueryPacket("ROLLBACK"), true);
       }
-    } finally {
-      lock.unlock();
     }
   }
 
@@ -290,16 +293,14 @@ public class Connection implements java.sql.Connection {
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setReadOnly(boolean readOnly) throws SQLException {
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       if (this.readOnly != readOnly) {
         client.setReadOnly(readOnly);
       }
       this.readOnly = readOnly;
       getContext().addStateFlag(ConnectionState.STATE_READ_ONLY);
-    } finally {
-      lock.unlock();
     }
   }
 
@@ -338,6 +339,7 @@ public class Connection implements java.sql.Connection {
     }
   }
 
+  @SuppressWarnings("try")
   private void setDatabase(String database) throws SQLException {
     // null catalog means keep current.
     // there is no possibility to set no database when one is selected
@@ -346,32 +348,29 @@ public class Connection implements java.sql.Connection {
             && database.equals(client.getContext().getDatabase()))) {
       return;
     }
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       getContext().addStateFlag(ConnectionState.STATE_DATABASE);
       client.execute(new ChangeDbPacket(database), true);
       client.getContext().setDatabase(database);
-    } finally {
-      lock.unlock();
     }
   }
 
   @Override
   public int getTransactionIsolation() throws SQLException {
-    if (conf.useLocalSessionState() && client.getContext().getTransactionIsolationLevel() != null) {
+    boolean useContextState =
+        conf.useLocalSessionState()
+            || (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
+                && ((client.getContext().getVersion().isMariaDBServer()
+                        && (client.getContext().getVersion().versionGreaterOrEqual(10, 2, 2)))
+                    || client.getContext().getVersion().versionGreaterOrEqual(5, 7, 0)));
+    if (useContextState && client.getContext().getTransactionIsolationLevel() != null) {
       return client.getContext().getTransactionIsolationLevel();
     }
 
-    String sql = "SELECT @@session.tx_isolation";
-
-    if (!client.getContext().getVersion().isMariaDBServer()) {
-      if ((client.getContext().getVersion().getMajorVersion() >= 8
-              && client.getContext().getVersion().versionGreaterOrEqual(8, 0, 3))
-          || (client.getContext().getVersion().getMajorVersion() < 8
-              && client.getContext().getVersion().versionGreaterOrEqual(5, 7, 20))) {
-        sql = "SELECT @@session.transaction_isolation";
-      }
-    }
+    String sql =
+        client.getContext().canUseTransactionIsolation()
+            ? "SELECT @@session.transaction_isolation"
+            : "SELECT @@session.tx_isolation";
 
     try (Statement stmt = createStatement()) {
       ResultSet rs = stmt.executeQuery(sql);
@@ -401,8 +400,16 @@ public class Connection implements java.sql.Connection {
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setTransactionIsolation(int level) throws SQLException {
-    if (conf.useLocalSessionState()
+    boolean useContextState =
+        conf.useLocalSessionState()
+            || (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
+                && ((client.getContext().getVersion().isMariaDBServer()
+                        && (client.getContext().getVersion().versionGreaterOrEqual(10, 2, 2)))
+                    || client.getContext().getVersion().versionGreaterOrEqual(5, 7, 0)));
+
+    if (useContextState
         && client.getContext().getTransactionIsolationLevel() != null
         && level == client.getContext().getTransactionIsolationLevel()) {
       return;
@@ -425,14 +432,11 @@ public class Connection implements java.sql.Connection {
       default:
         throw new SQLException("Unsupported transaction isolation level");
     }
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       checkNotClosed();
       getContext().addStateFlag(ConnectionState.STATE_TRANSACTION_ISOLATION);
-      client.getContext().setTransactionIsolationLevel(level);
+      if (conf.useLocalSessionState()) client.getContext().setTransactionIsolationLevel(level);
       client.execute(new QueryPacket(query), true);
-    } finally {
-      lock.unlock();
     }
   }
 
@@ -581,10 +585,10 @@ public class Connection implements java.sql.Connection {
   }
 
   @Override
+  @SuppressWarnings("try")
   public void rollback(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
         if (savepoint instanceof Connection.MariaDbSavepoint) {
           client.execute(
@@ -597,16 +601,14 @@ public class Connection implements java.sql.Connection {
           throw exceptionFactory.create("Unknown savepoint type");
         }
       }
-    } finally {
-      lock.unlock();
     }
   }
 
   @Override
+  @SuppressWarnings("try")
   public void releaseSavepoint(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
         if (savepoint instanceof Connection.MariaDbSavepoint) {
           client.execute(
@@ -619,8 +621,6 @@ public class Connection implements java.sql.Connection {
           throw exceptionFactory.create("Unknown savepoint type");
         }
       }
-    } finally {
-      lock.unlock();
     }
   }
 
@@ -700,12 +700,12 @@ public class Connection implements java.sql.Connection {
   }
 
   @Override
+  @SuppressWarnings("try")
   public boolean isValid(int timeout) throws SQLException {
     if (timeout < 0) {
       throw exceptionFactory.create("the value supplied for timeout is negative");
     }
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       client.execute(PingPacket.INSTANCE, true);
       return true;
     } catch (SQLException sqle) {
@@ -715,8 +715,6 @@ public class Connection implements java.sql.Connection {
         poolConnection.close();
       }
       return false;
-    } finally {
-      lock.unlock();
     }
   }
 
@@ -761,6 +759,7 @@ public class Connection implements java.sql.Connection {
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
     if (this.isClosed()) {
       throw exceptionFactory.create(
@@ -772,11 +771,8 @@ public class Connection implements java.sql.Connection {
     }
     getContext().addStateFlag(ConnectionState.STATE_NETWORK_TIMEOUT);
 
-    lock.lock();
-    try {
+    try (ClosableLock ignore = lock.closeableLock()) {
       client.setSocketTimeout(milliseconds);
-    } finally {
-      lock.unlock();
     }
   }
 
@@ -898,6 +894,10 @@ public class Connection implements java.sql.Connection {
    */
   protected ExceptionFactory getExceptionFactory() {
     return exceptionFactory;
+  }
+
+  public QueryTimeoutHandler handleTimeout(int queryTimeout) {
+    return queryTimeoutHandler.create(queryTimeout);
   }
 
   /**

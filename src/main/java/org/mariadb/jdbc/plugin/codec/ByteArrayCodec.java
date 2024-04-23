@@ -50,7 +50,11 @@ public class ByteArrayCodec implements Codec<byte[]> {
 
   @Override
   public byte[] decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     return getBytes(buf, length, column);
   }
@@ -80,14 +84,22 @@ public class ByteArrayCodec implements Codec<byte[]> {
 
   @Override
   public byte[] decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     return getBytes(buf, length, column);
   }
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object value, Calendar cal, Long maxLength)
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     int length = ((byte[]) value).length;
 
@@ -100,7 +112,12 @@ public class ByteArrayCodec implements Codec<byte[]> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     int length = ((byte[]) value).length;
     if (maxLength != null) length = Math.min(length, maxLength.intValue());

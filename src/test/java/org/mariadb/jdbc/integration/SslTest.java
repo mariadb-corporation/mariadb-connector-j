@@ -149,6 +149,96 @@ public class SslTest extends Common {
   }
 
   @Test
+  public void mandatoryEphemeralSsl() throws SQLException {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(
+        isMariaDBServer()
+            && minVersion(11, 4, 1)
+            && !"mariadb-es".equals(System.getenv("srv"))
+            && !"mariadb-es-test".equals(System.getenv("srv")));
+    try (Connection con = createCon(baseOptions + "&sslMode=verify-ca", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    try (Connection con = createCon(baseOptions + "&sslMode=verify-full", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
+    assertThrows(
+        SQLInvalidAuthorizationSpecException.class,
+        () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
+  }
+
+  @Test
+  void ensureSslUnixSocket() throws SQLException {
+    Assumptions.assumeTrue(
+        isMariaDBServer()
+            && minVersion(11, 4, 1)
+            && !"mariadb-es".equals(System.getenv("srv"))
+            && !"mariadb-es-test".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(
+        System.getenv("local") != null
+            && "1".equals(System.getenv("local"))
+            && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+    java.sql.Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("select @@version_compile_os,@@socket");
+    if (!rs.next() || rs.getString(2) == null) {
+      return;
+    }
+    String path = rs.getString(2);
+
+    try (java.sql.Connection connectionSocket =
+        createCon(baseOptions + "&sslMode=verify-ca&localSocket=" + path, sslPort)) {
+      ResultSet resultSet = connectionSocket.createStatement().executeQuery("select 1");
+      assertTrue(resultSet.next());
+    }
+  }
+
+  @Test
+  public void mandatoryEphemeralSsled25519() throws SQLException {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(
+        isMariaDBServer()
+            && minVersion(11, 4, 1)
+            && !"mariadb-es".equals(System.getenv("srv"))
+            && !"mariadb-es-test".equals(System.getenv("srv")));
+
+    Statement stmt = sharedConn.createStatement();
+    try {
+      stmt.execute("INSTALL SONAME 'auth_ed25519'");
+    } catch (SQLException sqle) {
+      Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
+    }
+    try {
+      stmt.execute("drop user if exists verificationEd25519AuthPlugin@'%'");
+    } catch (SQLException e) {
+      // eat
+    }
+    stmt.execute(
+        "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+            + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord') REQUIRE SSL");
+    stmt.execute(
+        "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO verificationEd25519AuthPlugin@'%' ");
+    try (Connection con =
+        createCon(
+            "user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord&sslMode=verify-ca",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    try (Connection con =
+        createCon(
+            "user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord&sslMode=trust",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    stmt.execute("drop user if exists verificationEd25519AuthPlugin@'%'");
+  }
+
+  @Test
   public void enabledSslProtocolSuites() throws SQLException {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
@@ -260,6 +350,34 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
+    String prevValue = System.getProperty("javax.net.ssl.keyStore");
+    String prevPwdValue = System.getProperty("javax.net.ssl.keyStorePassword");
+    System.setProperty(
+        "javax.net.ssl.keyStore",
+        "file://" + (isWin ? "/" : "") + System.getenv("TEST_DB_CLIENT_PKCS"));
+    System.setProperty("javax.net.ssl.keyStorePassword", "kspass");
+    try {
+      try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
+        assertNotNull(getSslVersion(con));
+      }
+      assertThrows(
+          SQLInvalidAuthorizationSpecException.class,
+          () ->
+              createCon(
+                  baseMutualOptions + "&sslMode=trust&fallbackToSystemKeyStore=false", sslPort));
+    } finally {
+      if (prevValue == null) {
+        System.clearProperty("javax.net.ssl.keyStore");
+      } else {
+        System.setProperty("javax.net.ssl.keyStore", prevValue);
+      }
+      if (prevPwdValue == null) {
+        System.clearProperty("javax.net.ssl.keyStorePassword");
+      } else {
+        System.setProperty("javax.net.ssl.keyStorePassword", prevPwdValue);
+      }
+    }
+
     // wrong keystore type
     assertThrows(
         SQLInvalidAuthorizationSpecException.class,
@@ -316,6 +434,11 @@ public class SslTest extends Common {
     String serverCertPath = retrieveCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
 
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> createCon(baseOptions + "&sslMode=VERIFY_CA&fallbackToSystemTrustStore=false"),
+        "No X509TrustManager found");
+
     // certificate path, like  /path/certificate.crt
     try (Connection con =
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort)) {
@@ -366,10 +489,25 @@ public class SslTest extends Common {
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + certificateString, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    assertThrowsContains(
-        SQLNonTransientConnectionException.class,
-        () -> createBasicCon(baseOptions + "&sslMode=VERIFY_CA", sslPort),
-        "unable to find valid certification");
+
+    if (isMariaDBServer()
+        && minVersion(11, 4, 1)
+        && !"mariadb-es".equals(System.getenv("srv"))
+        && !"mariadb-es-test".equals(System.getenv("srv"))) {
+      try (Connection conn = createBasicCon(baseOptions + "&sslMode=VERIFY_CA", sslPort)) {
+        conn.isValid(1);
+      }
+    } else {
+      try {
+        createBasicCon(baseOptions + "&sslMode=VERIFY_CA", sslPort);
+        fail("must have thrown error");
+      } catch (Exception e) {
+        assertTrue(
+            e.getMessage().contains("unable to find valid certification")
+                || e.getMessage().contains("Self signed certificate"));
+      }
+    }
+
     if (!"maxscale".equals(System.getenv("srv"))) {
       assertThrows(
           SQLInvalidAuthorizationSpecException.class,

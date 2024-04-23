@@ -6,7 +6,7 @@ package org.mariadb.jdbc.message.client;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.mariadb.jdbc.ServerPreparedStatement;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -28,7 +28,7 @@ public interface RedoableWithPrepareClientMessage extends RedoableClientMessage 
    *
    * @return caller
    */
-  ServerPreparedStatement prep();
+  BasePreparedStatement prep();
 
   /**
    * Default encoder caller

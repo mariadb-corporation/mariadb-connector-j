@@ -144,21 +144,6 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   }
 
   public int getDisplaySize() {
-    if (!isBinary()
-        && (dataType == DataType.VARCHAR
-            || dataType == DataType.JSON
-            || dataType == DataType.ENUM
-            || dataType == DataType.SET
-            || dataType == DataType.VARSTRING
-            || dataType == DataType.STRING
-            || dataType == DataType.BLOB
-            || dataType == DataType.TINYBLOB
-            || dataType == DataType.MEDIUMBLOB
-            || dataType == DataType.LONGBLOB)) {
-      Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
-      if (maxWidth != null) return (int) (columnLength / maxWidth);
-      return (int) (columnLength / 4);
-    }
     return (int) columnLength;
   }
 

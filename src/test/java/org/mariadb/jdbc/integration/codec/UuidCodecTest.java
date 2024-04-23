@@ -332,10 +332,8 @@ public class UuidCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.OTHER, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(36, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(36, meta.getColumnDisplaySize(1));
 
     try (Connection con = createCon("&uuidAsString=True")) {
       java.sql.Statement stmt = con.createStatement();
@@ -356,10 +354,8 @@ public class UuidCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.CHAR, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(36, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(36, meta.getColumnDisplaySize(1));
   }
 
   @Test

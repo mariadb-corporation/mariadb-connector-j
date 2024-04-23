@@ -53,17 +53,26 @@ public class TimeCodec implements Codec<Time> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Time decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+  public Time decodeText(
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeTimeText(buf, length, cal);
+    return column.decodeTimeText(buf, length, cal, context);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
   public Time decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam,
+      final Context context)
       throws SQLDataException {
-    return column.decodeTimeBinary(buf, length, calParam);
+    return column.decodeTimeBinary(buf, length, calParam, context);
   }
 
   @Override
@@ -81,7 +90,8 @@ public class TimeCodec implements Codec<Time> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
+  public void encodeBinary(
+      Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     if (providedCal == null) {
       Calendar cal = Calendar.getInstance();

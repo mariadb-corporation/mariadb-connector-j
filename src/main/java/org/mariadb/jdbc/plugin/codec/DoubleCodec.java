@@ -54,7 +54,11 @@ public class DoubleCodec implements Codec<Double> {
   @Override
   @SuppressWarnings("fallthrough")
   public Double decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     return column.decodeDoubleText(buf, length);
   }
@@ -62,7 +66,11 @@ public class DoubleCodec implements Codec<Double> {
   @Override
   @SuppressWarnings("fallthrough")
   public Double decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     return column.decodeDoubleBinary(buf, length);
   }
@@ -74,7 +82,12 @@ public class DoubleCodec implements Codec<Double> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeDouble((Double) value);
   }

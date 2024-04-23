@@ -959,7 +959,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.INTEGER, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(11, meta.getPrecision(1));
+    assertEquals(10, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(11, meta.getColumnDisplaySize(1));
@@ -973,8 +973,10 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.BIGINT, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
+    assertEquals(10, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
+    assertEquals(10, meta.getColumnDisplaySize(1));
 
     // https://jira.mariadb.org/browse/XPT-276
     if (!isXpand()) {

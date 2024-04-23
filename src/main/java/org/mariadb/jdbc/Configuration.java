@@ -63,12 +63,18 @@ public class Configuration {
 
   // various
   private String timezone = null;
+  private String connectionTimeZone = null;
+  private Boolean forceConnectionTimeZoneToSession = null;
+  private boolean preserveInstants;
   private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
+  private boolean nullDatabaseMeansCurrent = false;
   private CatalogTerm useCatalogTerm = CatalogTerm.UseCatalog;
   private boolean createDatabaseIfNotExist = false;
   private boolean useLocalSessionState = false;
   private boolean returnMultiValuesGeneratedIds = false;
+  private boolean jdbcCompliantTruncation = true;
+  private boolean permitRedirect = true;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -104,7 +110,8 @@ public class Configuration {
   private String trustStoreType = null;
   private String enabledSslCipherSuites = null;
   private String enabledSslProtocolSuites = null;
-
+  private boolean fallbackToSystemKeyStore = true;
+  private boolean fallbackToSystemTrustStore = true;
   // protocol
   private boolean allowMultiQueries = false;
   private boolean allowLocalInfile = true;
@@ -165,12 +172,18 @@ public class Configuration {
       HaMode haMode,
       Properties nonMappedOptions,
       String timezone,
+      String connectionTimeZone,
+      boolean forceConnectionTimeZoneToSession,
+      boolean preserveInstants,
       Boolean autocommit,
       boolean useMysqlMetadata,
+      boolean nullDatabaseMeansCurrent,
       CatalogTerm useCatalogTerm,
       boolean createDatabaseIfNotExist,
       boolean useLocalSessionState,
       boolean returnMultiValuesGeneratedIds,
+      boolean jdbcCompliantTruncation,
+      boolean permitRedirect,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -201,6 +214,8 @@ public class Configuration {
       String trustStoreType,
       String enabledSslCipherSuites,
       String enabledSslProtocolSuites,
+      boolean fallbackToSystemKeyStore,
+      boolean fallbackToSystemTrustStore,
       boolean allowMultiQueries,
       boolean allowLocalInfile,
       boolean useCompression,
@@ -243,11 +258,17 @@ public class Configuration {
     this.haMode = haMode;
     this.nonMappedOptions = nonMappedOptions;
     this.timezone = timezone;
+    this.connectionTimeZone = connectionTimeZone;
+    this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
+    this.preserveInstants = preserveInstants;
     this.autocommit = autocommit;
     this.useMysqlMetadata = useMysqlMetadata;
+    this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
     this.useCatalogTerm = useCatalogTerm;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
+    this.jdbcCompliantTruncation = jdbcCompliantTruncation;
+    this.permitRedirect = permitRedirect;
     this.useLocalSessionState = useLocalSessionState;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
@@ -279,6 +300,8 @@ public class Configuration {
     this.trustStoreType = trustStoreType;
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
+    this.fallbackToSystemKeyStore = fallbackToSystemKeyStore;
+    this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
     this.allowMultiQueries = allowMultiQueries;
     this.allowLocalInfile = allowLocalInfile;
     this.useCompression = useCompression;
@@ -324,6 +347,8 @@ public class Configuration {
       String user,
       String password,
       String enabledSslProtocolSuites,
+      Boolean fallbackToSystemKeyStore,
+      Boolean fallbackToSystemTrustStore,
       String socketFactory,
       Integer connectTimeout,
       String pipe,
@@ -349,6 +374,9 @@ public class Configuration {
       Boolean transformedBitIsBoolean,
       Boolean yearIsDateType,
       String timezone,
+      String connectionTimeZone,
+      Boolean forceConnectionTimeZoneToSession,
+      Boolean preserveInstants,
       Boolean dumpQueriesOnException,
       Integer prepStmtCacheSize,
       Boolean useAffectedRows,
@@ -359,10 +387,13 @@ public class Configuration {
       Boolean disablePipeline,
       Boolean autocommit,
       Boolean useMysqlMetadata,
+      Boolean nullDatabaseMeansCurrent,
       String useCatalogTerm,
       Boolean createDatabaseIfNotExist,
       Boolean useLocalSessionState,
       Boolean returnMultiValuesGeneratedIds,
+      Boolean jdbcCompliantTruncation,
+      Boolean permitRedirect,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -405,6 +436,9 @@ public class Configuration {
     this.user = user;
     this.password = password;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
+    if (fallbackToSystemKeyStore != null) this.fallbackToSystemKeyStore = fallbackToSystemKeyStore;
+    if (fallbackToSystemTrustStore != null)
+      this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
     this.socketFactory = socketFactory;
     if (connectTimeout != null) this.connectTimeout = connectTimeout;
     this.pipe = pipe;
@@ -436,16 +470,29 @@ public class Configuration {
     if (transformedBitIsBoolean != null) this.transformedBitIsBoolean = transformedBitIsBoolean;
     if (yearIsDateType != null) this.yearIsDateType = yearIsDateType;
     this.timezone = timezone;
+    if (connectionTimeZone != null) this.connectionTimeZone = connectionTimeZone;
+    if (forceConnectionTimeZoneToSession != null)
+      this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
+    if (preserveInstants != null) this.preserveInstants = preserveInstants;
     if (dumpQueriesOnException != null) this.dumpQueriesOnException = dumpQueriesOnException;
     if (prepStmtCacheSize != null) this.prepStmtCacheSize = prepStmtCacheSize;
     if (useAffectedRows != null) this.useAffectedRows = useAffectedRows;
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
-    if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
-    if (useBulkStmtsForInserts != null) this.useBulkStmtsForInserts = useBulkStmtsForInserts;
+
+    if (useBulkStmts != null) {
+      this.useBulkStmts = useBulkStmts;
+    }
+    if (useBulkStmtsForInserts != null) {
+      this.useBulkStmtsForInserts = useBulkStmtsForInserts;
+    } else if (useBulkStmts != null) {
+      this.useBulkStmtsForInserts = useBulkStmts;
+    }
+
     if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
+    if (nullDatabaseMeansCurrent != null) this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
     if (useCatalogTerm != null) {
       if (!"CATALOG".equalsIgnoreCase(useCatalogTerm)
           && !"SCHEMA".equalsIgnoreCase(useCatalogTerm)) {
@@ -462,6 +509,8 @@ public class Configuration {
     if (useLocalSessionState != null) this.useLocalSessionState = useLocalSessionState;
     if (returnMultiValuesGeneratedIds != null)
       this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
+    if (jdbcCompliantTruncation != null) this.jdbcCompliantTruncation = jdbcCompliantTruncation;
+    if (permitRedirect != null) this.permitRedirect = permitRedirect;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -516,6 +565,22 @@ public class Configuration {
     }
 
     // *************************************************************
+    // timezone verification
+    // *************************************************************
+    if (this.timezone != null) {
+      if (this.connectionTimeZone == null) {
+        if ("disable".equalsIgnoreCase(this.timezone)) {
+          this.forceConnectionTimeZoneToSession = false;
+        } else {
+          this.forceConnectionTimeZoneToSession = true;
+          if (!"auto".equalsIgnoreCase(this.timezone)) {
+            this.connectionTimeZone = this.timezone;
+          }
+        }
+      }
+    }
+
+    // *************************************************************
     // option value verification
     // *************************************************************
 
@@ -534,6 +599,100 @@ public class Configuration {
     } catch (IllegalArgumentException | IllegalAccessException ie) {
       // eat
     }
+  }
+
+  public Builder toBuilder() {
+    Builder builder =
+        new Builder()
+            .user(this.user)
+            .password(this.password)
+            .database(this.database)
+            .addresses(this.addresses == null ? null : this.addresses.toArray(new HostAddress[0]))
+            .haMode(this.haMode)
+            .timezone(this.timezone)
+            .connectionTimeZone(this.connectionTimeZone)
+            .forceConnectionTimeZoneToSession(this.forceConnectionTimeZoneToSession)
+            .preserveInstants(this.preserveInstants)
+            .autocommit(this.autocommit)
+            .useMysqlMetadata(this.useMysqlMetadata)
+            .nullDatabaseMeansCurrent(this.nullDatabaseMeansCurrent)
+            .useCatalogTerm(this.useCatalogTerm == CatalogTerm.UseCatalog ? "CATALOG" : "SCHEMA")
+            .createDatabaseIfNotExist(this.createDatabaseIfNotExist)
+            .useLocalSessionState(this.useLocalSessionState)
+            .returnMultiValuesGeneratedIds(this.returnMultiValuesGeneratedIds)
+            .jdbcCompliantTruncation(this.jdbcCompliantTruncation)
+            .permitRedirect(this.permitRedirect)
+            .transactionIsolation(
+                transactionIsolation == null ? null : this.transactionIsolation.getValue())
+            .defaultFetchSize(this.defaultFetchSize)
+            .maxQuerySizeToLog(this.maxQuerySizeToLog)
+            .maxAllowedPacket(this.maxAllowedPacket)
+            .geometryDefaultType(this.geometryDefaultType)
+            .geometryDefaultType(this.geometryDefaultType)
+            .restrictedAuth(this.restrictedAuth)
+            .initSql(this.initSql)
+            .socketFactory(this.socketFactory)
+            .connectTimeout(this.connectTimeout)
+            .pipe(this.pipe)
+            .localSocket(this.localSocket)
+            .uuidAsString(this.uuidAsString)
+            .tcpKeepAlive(this.tcpKeepAlive)
+            .tcpKeepIdle(this.tcpKeepIdle)
+            .tcpKeepCount(this.tcpKeepCount)
+            .tcpKeepInterval(this.tcpKeepInterval)
+            .tcpAbortiveClose(this.tcpAbortiveClose)
+            .localSocketAddress(this.localSocketAddress)
+            .socketTimeout(this.socketTimeout)
+            .useReadAheadInput(this.useReadAheadInput)
+            .tlsSocketType(this.tlsSocketType)
+            .sslMode(this.sslMode.name())
+            .serverSslCert(this.serverSslCert)
+            .keyStore(this.keyStore)
+            .keyStoreType(this.keyStoreType)
+            .keyStorePassword(this.keyStorePassword)
+            .keyPassword(this.keyPassword)
+            .trustStoreType(this.trustStoreType)
+            .enabledSslCipherSuites(this.enabledSslCipherSuites)
+            .enabledSslProtocolSuites(this.enabledSslProtocolSuites)
+            .fallbackToSystemKeyStore(this.fallbackToSystemKeyStore)
+            .fallbackToSystemTrustStore(this.fallbackToSystemTrustStore)
+            .allowMultiQueries(this.allowMultiQueries)
+            .allowLocalInfile(this.allowLocalInfile)
+            .useCompression(this.useCompression)
+            .useAffectedRows(this.useAffectedRows)
+            .useBulkStmts(this.useBulkStmts)
+            .useBulkStmtsForInserts(this.useBulkStmtsForInserts)
+            .disablePipeline(this.disablePipeline)
+            .cachePrepStmts(this.cachePrepStmts)
+            .prepStmtCacheSize(this.prepStmtCacheSize)
+            .useServerPrepStmts(this.useServerPrepStmts)
+            .credentialType(this.credentialType == null ? null : this.credentialType.type())
+            .sessionVariables(this.sessionVariables)
+            .connectionAttributes(this.connectionAttributes)
+            .servicePrincipalName(this.servicePrincipalName)
+            .blankTableNameMeta(this.blankTableNameMeta)
+            .tinyInt1isBit(this.tinyInt1isBit)
+            .transformedBitIsBoolean(this.transformedBitIsBoolean)
+            .yearIsDateType(this.yearIsDateType)
+            .dumpQueriesOnException(this.dumpQueriesOnException)
+            .includeInnodbStatusInDeadlockExceptions(this.includeInnodbStatusInDeadlockExceptions)
+            .includeThreadDumpInDeadlockExceptions(this.includeThreadDumpInDeadlockExceptions)
+            .retriesAllDown(this.retriesAllDown)
+            .galeraAllowedState(this.galeraAllowedState)
+            .transactionReplay(this.transactionReplay)
+            .transactionReplaySize(this.transactionReplaySize)
+            .pool(this.pool)
+            .poolName(this.poolName)
+            .maxPoolSize(this.maxPoolSize)
+            .minPoolSize(this.minPoolSize)
+            .maxIdleTime(this.maxIdleTime)
+            .registerJmxPool(this.registerJmxPool)
+            .poolValidMinDelay(this.poolValidMinDelay)
+            .useResetConnection(this.useResetConnection)
+            .serverRsaPublicKeyFile(this.serverRsaPublicKeyFile)
+            .allowPublicKeyRetrieval(this.allowPublicKeyRetrieval);
+    builder._nonMappedOptions = this.nonMappedOptions;
+    return builder;
   }
 
   /**
@@ -954,10 +1113,13 @@ public class Configuration {
           }
 
           if (field.getType().equals(String.class)) {
-            sb.append(first ? '?' : '&');
-            first = false;
-            sb.append(field.getName()).append('=');
-            sb.append((String) obj);
+            String defaultValue = (String) field.get(defaultConf);
+            if (!obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append('=');
+              sb.append((String) obj);
+            }
           } else if (field.getType().equals(boolean.class)) {
             boolean defaultValue = field.getBoolean(defaultConf);
             if (!obj.equals(defaultValue)) {
@@ -990,6 +1152,13 @@ public class Configuration {
               }
               sb.append(key).append('=');
               sb.append(properties.get(key));
+            }
+          } else if (field.getType().equals(CatalogTerm.class)) {
+            Object defaultValue = field.get(defaultConf);
+            if (!obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append("=SCHEMA");
             }
           } else if (field.getType().equals(CredentialPlugin.class)) {
             Object defaultValue = field.get(defaultConf);
@@ -1033,85 +1202,15 @@ public class Configuration {
    * @return new cloned configuration object
    */
   public Configuration clone(String username, String password) {
-    return new Configuration(
-        username != null && username.isEmpty() ? null : username,
-        password != null && password.isEmpty() ? null : password,
-        this.database,
-        this.addresses,
-        this.haMode,
-        this.nonMappedOptions,
-        this.timezone,
-        this.autocommit,
-        this.useMysqlMetadata,
-        this.useCatalogTerm,
-        this.createDatabaseIfNotExist,
-        this.useLocalSessionState,
-        this.returnMultiValuesGeneratedIds,
-        this.transactionIsolation,
-        this.defaultFetchSize,
-        this.maxQuerySizeToLog,
-        this.maxAllowedPacket,
-        this.geometryDefaultType,
-        this.restrictedAuth,
-        this.initSql,
-        this.socketFactory,
-        this.connectTimeout,
-        this.pipe,
-        this.localSocket,
-        this.tcpKeepAlive,
-        this.uuidAsString,
-        this.tcpKeepIdle,
-        this.tcpKeepCount,
-        this.tcpKeepInterval,
-        this.tcpAbortiveClose,
-        this.localSocketAddress,
-        this.socketTimeout,
-        this.useReadAheadInput,
-        this.tlsSocketType,
-        this.sslMode,
-        this.serverSslCert,
-        this.keyStore,
-        this.keyStorePassword,
-        this.keyPassword,
-        this.keyStoreType,
-        this.trustStoreType,
-        this.enabledSslCipherSuites,
-        this.enabledSslProtocolSuites,
-        this.allowMultiQueries,
-        this.allowLocalInfile,
-        this.useCompression,
-        this.useAffectedRows,
-        this.useBulkStmts,
-        this.useBulkStmtsForInserts,
-        this.disablePipeline,
-        this.cachePrepStmts,
-        this.prepStmtCacheSize,
-        this.useServerPrepStmts,
-        this.credentialType,
-        this.sessionVariables,
-        this.connectionAttributes,
-        this.servicePrincipalName,
-        this.blankTableNameMeta,
-        this.tinyInt1isBit,
-        this.transformedBitIsBoolean,
-        this.yearIsDateType,
-        this.dumpQueriesOnException,
-        this.includeInnodbStatusInDeadlockExceptions,
-        this.includeThreadDumpInDeadlockExceptions,
-        this.retriesAllDown,
-        this.galeraAllowedState,
-        this.transactionReplay,
-        this.transactionReplaySize,
-        this.pool,
-        this.poolName,
-        this.maxPoolSize,
-        this.minPoolSize,
-        this.maxIdleTime,
-        this.registerJmxPool,
-        this.poolValidMinDelay,
-        this.useResetConnection,
-        this.serverRsaPublicKeyFile,
-        this.allowPublicKeyRetrieval);
+    try {
+      return this.toBuilder()
+          .user(username != null && username.isEmpty() ? null : username)
+          .password(password != null && password.isEmpty() ? null : password)
+          .build();
+    } catch (SQLException e) {
+      // not possible
+    }
+    return null;
   }
 
   /**
@@ -1239,6 +1338,25 @@ public class Configuration {
    */
   public String enabledSslProtocolSuites() {
     return enabledSslProtocolSuites;
+  }
+
+  /**
+   * Indicate if keyStore option is not set to use keystore system property like
+   * "javax.net.ssl.keyStore"
+   *
+   * @return true if can use keystore system property
+   */
+  public boolean fallbackToSystemKeyStore() {
+    return fallbackToSystemKeyStore;
+  }
+
+  /**
+   * Indicate if system default truststore implementation can be used
+   *
+   * @return true if system default truststore implementation can be used
+   */
+  public boolean fallbackToSystemTrustStore() {
+    return fallbackToSystemTrustStore;
   }
 
   /**
@@ -1469,6 +1587,28 @@ public class Configuration {
   }
 
   /**
+   * Set connectionTimeZone
+   *
+   * @return connectionTimeZone
+   */
+  public String connectionTimeZone() {
+    return connectionTimeZone;
+  }
+
+  /**
+   * forceConnectionTimeZoneToSession must connection timezone be forced
+   *
+   * @return forceConnectionTimeZoneToSession
+   */
+  public Boolean forceConnectionTimeZoneToSession() {
+    return forceConnectionTimeZoneToSession;
+  }
+
+  public boolean preserveInstants() {
+    return preserveInstants;
+  }
+
+  /**
    * Must query by logged on exception.
    *
    * @return dump queries on exception
@@ -1560,6 +1700,16 @@ public class Configuration {
   }
 
   /**
+   * When enable, in DatabaseMetadata, will handle null database/schema (depending on
+   * UseCatalog=catalog/schema) as current
+   *
+   * @return must null value be considered as current catalog/schema
+   */
+  public boolean nullDatabaseMeansCurrent() {
+    return nullDatabaseMeansCurrent;
+  }
+
+  /**
    * Indicating using Catalog or Schema
    *
    * @return Indicating using Catalog or Schema
@@ -1595,6 +1745,24 @@ public class Configuration {
    */
   public boolean returnMultiValuesGeneratedIds() {
     return returnMultiValuesGeneratedIds;
+  }
+
+  /**
+   * Force sql_mode to strict mode for JDBC compliance
+   *
+   * @return must force jdbc compliance
+   */
+  public boolean jdbcCompliantTruncation() {
+    return jdbcCompliantTruncation;
+  }
+
+  /**
+   * must client redirect when required
+   *
+   * @return must client redirect when required
+   */
+  public boolean permitRedirect() {
+    return permitRedirect;
   }
 
   /**
@@ -1901,12 +2069,18 @@ public class Configuration {
 
     // various
     private String timezone;
+    private String connectionTimeZone;
+    private Boolean forceConnectionTimeZoneToSession;
+    private Boolean preserveInstants;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
+    private Boolean nullDatabaseMeansCurrent;
     private String useCatalogTerm;
     private Boolean createDatabaseIfNotExist;
     private Boolean useLocalSessionState;
     private Boolean returnMultiValuesGeneratedIds;
+    private Boolean jdbcCompliantTruncation;
+    private Boolean permitRedirect;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -1941,7 +2115,8 @@ public class Configuration {
     private String trustStoreType;
     private String enabledSslCipherSuites;
     private String enabledSslProtocolSuites;
-
+    private Boolean fallbackToSystemKeyStore;
+    private Boolean fallbackToSystemTrustStore;
     // protocol
     private Boolean allowMultiQueries;
     private Boolean allowLocalInfile;
@@ -2089,6 +2264,28 @@ public class Configuration {
      */
     public Builder enabledSslProtocolSuites(String enabledSslProtocolSuites) {
       this.enabledSslProtocolSuites = nullOrEmpty(enabledSslProtocolSuites);
+      return this;
+    }
+
+    /**
+     * Indicate if keystore system properties can be used.
+     *
+     * @param fallbackToSystemKeyStore set if keystore system properties can be used.
+     * @return this {@link Builder}
+     */
+    public Builder fallbackToSystemKeyStore(Boolean fallbackToSystemKeyStore) {
+      this.fallbackToSystemKeyStore = fallbackToSystemKeyStore;
+      return this;
+    }
+
+    /**
+     * Indicate if system default truststore can be used.
+     *
+     * @param fallbackToSystemTrustStore indicate if system default truststore can be used..
+     * @return this {@link Builder}
+     */
+    public Builder fallbackToSystemTrustStore(Boolean fallbackToSystemTrustStore) {
+      this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
       return this;
     }
 
@@ -2480,6 +2677,40 @@ public class Configuration {
     }
 
     /**
+     * indicate what timestamp timezone to use in exchanges with server possible value are
+     * LOCAL|SERVER|user-defined time zone
+     *
+     * @param connectionTimeZone default timezone
+     * @return this {@link Builder}
+     */
+    public Builder connectionTimeZone(String connectionTimeZone) {
+      this.connectionTimeZone = nullOrEmpty(connectionTimeZone);
+      return this;
+    }
+
+    /**
+     * Indicate if connectionTimeZone must be forced to session
+     *
+     * @param forceConnectionTimeZoneToSession must connector force connection timezone
+     * @return this {@link Builder}
+     */
+    public Builder forceConnectionTimeZoneToSession(Boolean forceConnectionTimeZoneToSession) {
+      this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
+      return this;
+    }
+
+    /**
+     * Indicate if connection must preserve instants
+     *
+     * @param preserveInstants must connector preserve instants
+     * @return this {@link Builder}
+     */
+    public Builder preserveInstants(Boolean preserveInstants) {
+      this.preserveInstants = preserveInstants;
+      return this;
+    }
+
+    /**
      * Must queries be dump on exception stracktrace.
      *
      * @param dumpQueriesOnException must queries be dump on exception
@@ -2593,6 +2824,18 @@ public class Configuration {
     }
 
     /**
+     * Permit indicating in DatabaseMetadata if null value must be considered current schema/catalog
+     *
+     * @param nullDatabaseMeansCurrent indicating in DatabaseMetadata if null value must be
+     *     considered current schema/catalog
+     * @return this {@link Builder}
+     */
+    public Builder nullDatabaseMeansCurrent(Boolean nullDatabaseMeansCurrent) {
+      this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
+      return this;
+    }
+
+    /**
      * "schema" and "database" are server synonymous. Connector historically get/set database using
      * Connection.setCatalog()/getCatalog(), setSchema()/getSchema() being no-op This parameter
      * indicate to change that behavior to use Schema in place of Catalog. Behavior will change
@@ -2645,6 +2888,28 @@ public class Configuration {
      */
     public Builder returnMultiValuesGeneratedIds(Boolean returnMultiValuesGeneratedIds) {
       this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
+      return this;
+    }
+
+    /**
+     * indicate if connector must force sql_mode strict mode for jdbc compliance
+     *
+     * @param jdbcCompliantTruncation must force sql_mode strict mode for jdbc compliance
+     * @return this {@link Builder}
+     */
+    public Builder jdbcCompliantTruncation(Boolean jdbcCompliantTruncation) {
+      this.jdbcCompliantTruncation = jdbcCompliantTruncation;
+      return this;
+    }
+
+    /**
+     * indicate if connector must redirect connection when receiving server redirect information
+     *
+     * @param permitRedirect must redirect when required
+     * @return this {@link Builder}
+     */
+    public Builder permitRedirect(Boolean permitRedirect) {
+      this.permitRedirect = permitRedirect;
       return this;
     }
 
@@ -2926,6 +3191,8 @@ public class Configuration {
               this.user,
               this.password,
               this.enabledSslProtocolSuites,
+              this.fallbackToSystemKeyStore,
+              this.fallbackToSystemTrustStore,
               this.socketFactory,
               this.connectTimeout,
               this.pipe,
@@ -2951,6 +3218,9 @@ public class Configuration {
               this.transformedBitIsBoolean,
               this.yearIsDateType,
               this.timezone,
+              this.connectionTimeZone,
+              this.forceConnectionTimeZoneToSession,
+              this.preserveInstants,
               this.dumpQueriesOnException,
               this.prepStmtCacheSize,
               this.useAffectedRows,
@@ -2961,10 +3231,13 @@ public class Configuration {
               this.disablePipeline,
               this.autocommit,
               this.useMysqlMetadata,
+              this.nullDatabaseMeansCurrent,
               this.useCatalogTerm,
               this.createDatabaseIfNotExist,
               this.useLocalSessionState,
               this.returnMultiValuesGeneratedIds,
+              this.jdbcCompliantTruncation,
+              this.permitRedirect,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

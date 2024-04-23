@@ -65,18 +65,20 @@ public class StringCodec implements Codec<String> {
       final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeStringText(buf, length, cal);
+    return column.decodeStringText(buf, length, cal, context);
   }
 
   public String decodeBinary(
       final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeStringBinary(buf, length, cal);
+    return column.decodeStringBinary(buf, length, cal, context);
   }
 
   public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
@@ -88,7 +90,8 @@ public class StringCodec implements Codec<String> {
     encoder.writeByte('\'');
   }
 
-  public void encodeBinary(Writer writer, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      Writer writer, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     byte[] b = value.toString().getBytes(StandardCharsets.UTF_8);
     int len = maxLength != null ? Math.min(maxLength.intValue(), b.length) : b.length;

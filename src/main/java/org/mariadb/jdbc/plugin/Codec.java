@@ -51,6 +51,7 @@ public interface Codec<T> {
    * @param fieldLength encoded value length
    * @param column server column metadata
    * @param cal calendar
+   * @param context connection context
    * @return decoded value
    * @throws SQLDataException if unexpected error occurs during decoding
    */
@@ -58,7 +59,8 @@ public interface Codec<T> {
       final ReadableByteBuf buffer,
       final MutableInt fieldLength,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException;
 
   /**
@@ -68,6 +70,7 @@ public interface Codec<T> {
    * @param fieldLength encoded value length
    * @param column server column metadata
    * @param cal calendar
+   * @param context connection context
    * @return decoded value
    * @throws SQLDataException if unexpected error occurs during decoding
    */
@@ -75,7 +78,8 @@ public interface Codec<T> {
       final ReadableByteBuf buffer,
       final MutableInt fieldLength,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException;
 
   /**
@@ -96,13 +100,14 @@ public interface Codec<T> {
    * Binary encode value to writer
    *
    * @param encoder writer
+   * @param context connection context
    * @param value value to encode
    * @param cal calendar
    * @param length maximum value length
    * @throws IOException if any socket error occurs
    * @throws SQLException if encoding error occurs
    */
-  void encodeBinary(Writer encoder, Object value, Calendar cal, Long length)
+  void encodeBinary(Writer encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException, SQLException;
 
   /**

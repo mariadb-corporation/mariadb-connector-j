@@ -245,4 +245,11 @@ public interface Writer {
    * @throws IOException if any error occurs
    */
   void close() throws IOException;
+
+  /**
+   * Get current sequence object
+   *
+   * @return current sequence
+   */
+  byte getSequence();
 }

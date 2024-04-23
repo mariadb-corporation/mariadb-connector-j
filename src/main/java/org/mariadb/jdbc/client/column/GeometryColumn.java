@@ -7,6 +7,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
@@ -30,15 +31,15 @@ public class GeometryColumn extends BlobColumn {
    * @param extTypeFormat extended type format
    */
   public GeometryColumn(
-      ReadableByteBuf buf,
-      int charset,
-      long length,
-      DataType dataType,
-      byte decimals,
-      int flags,
-      int[] stringPos,
-      String extTypeName,
-      String extTypeFormat) {
+      final ReadableByteBuf buf,
+      final int charset,
+      final long length,
+      final DataType dataType,
+      final byte decimals,
+      final int flags,
+      final int[] stringPos,
+      final String extTypeName,
+      final String extTypeFormat) {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
@@ -51,7 +52,7 @@ public class GeometryColumn extends BlobColumn {
     return new GeometryColumn(this);
   }
 
-  public String defaultClassname(Configuration conf) {
+  public String defaultClassname(final Configuration conf) {
     if (conf.geometryDefaultType() != null && "default".equals(conf.geometryDefaultType())) {
       if (extTypeName != null) {
         switch (extTypeName) {
@@ -76,11 +77,11 @@ public class GeometryColumn extends BlobColumn {
     return "byte[]";
   }
 
-  public int getColumnType(Configuration conf) {
+  public int getColumnType(final Configuration conf) {
     return Types.VARBINARY;
   }
 
-  public String getColumnTypeName(Configuration conf) {
+  public String getColumnTypeName(final Configuration conf) {
     if (extTypeName != null) {
       return extTypeName.toUpperCase(Locale.ROOT);
     }
@@ -88,9 +89,11 @@ public class GeometryColumn extends BlobColumn {
   }
 
   @Override
-  public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, MutableInt length)
+  public Object getDefaultText(
+      final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
-    if (conf.geometryDefaultType() != null && "default".equals(conf.geometryDefaultType())) {
+    if (context.getConf().geometryDefaultType() != null
+        && "default".equals(context.getConf().geometryDefaultType())) {
       buf.skip(4); // SRID
       return Geometry.getGeometry(buf, length.get() - 4, this);
     }
@@ -100,13 +103,15 @@ public class GeometryColumn extends BlobColumn {
   }
 
   @Override
-  public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, MutableInt length)
+  public Object getDefaultBinary(
+      final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
-    return getDefaultText(conf, buf, length);
+    return getDefaultText(buf, length, context);
   }
 
   @Override
-  public Timestamp decodeTimestampText(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public Timestamp decodeTimestampText(
+      final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
       throws SQLDataException {
     buf.skip(length.get());
     throw new SQLDataException(
@@ -114,7 +119,8 @@ public class GeometryColumn extends BlobColumn {
   }
 
   @Override
-  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public Timestamp decodeTimestampBinary(
+      final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
       throws SQLDataException {
     buf.skip(length.get());
     throw new SQLDataException(

@@ -25,7 +25,7 @@ public class ParameterWithCal<T> extends Parameter<T> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder) throws IOException, SQLException {
-    codec.encodeBinary(encoder, this.value, this.cal, length);
+  public void encodeBinary(Writer encoder, Context context) throws IOException, SQLException {
+    codec.encodeBinary(encoder, context, this.value, this.cal, length);
   }
 }

@@ -9,18 +9,21 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.util.ClosableLock;
 
 /** Result-set that will retrieve all rows immediately before returning the result-set. */
 public class CompleteResult extends Result {
 
   /** before first row position = initial position */
   protected static final int BEFORE_FIRST_POS = -1;
+
+  private boolean bulkResult;
+  private boolean mightBeBulkResult;
 
   /**
    * Constructor from exchanges
@@ -34,6 +37,7 @@ public class CompleteResult extends Result {
    * @param resultSetType result set type
    * @param closeOnCompletion close statement on completion
    * @param traceEnable network trace exchange possible
+   * @param mightBeBulkResult might be a bulk unitary result
    * @throws IOException if Socket error occurs
    * @throws SQLException for all other kind of errors
    */
@@ -47,9 +51,9 @@ public class CompleteResult extends Result {
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
-      boolean traceEnable)
+      boolean traceEnable,
+      boolean mightBeBulkResult)
       throws IOException, SQLException {
-
     super(
         stmt,
         binaryProtocol,
@@ -62,6 +66,8 @@ public class CompleteResult extends Result {
         traceEnable,
         false,
         0);
+    this.mightBeBulkResult = mightBeBulkResult;
+
     this.data = new byte[10][];
     if (maxRows > 0) {
       this.data = new byte[10][];
@@ -98,6 +104,10 @@ public class CompleteResult extends Result {
     }
   }
 
+  public void setBulkResult() {
+    if (mightBeBulkResult) bulkResult = true;
+  }
+
   private CompleteResult(ColumnDecoder[] metadataList, CompleteResult prev) {
     super(metadataList, prev);
   }
@@ -111,7 +121,7 @@ public class CompleteResult extends Result {
    * @param context connection context
    * @param resultSetType result set type
    */
-  public CompleteResult(
+  private CompleteResult(
       ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
     super(metadataList, data, context, resultSetType);
   }
@@ -227,10 +237,15 @@ public class CompleteResult extends Result {
   }
 
   @Override
+  public boolean isBulkResult() {
+    return bulkResult;
+  }
+
+  @Override
   public void fetchRemaining() {}
 
   @Override
-  public void closeFromStmtClose(ReentrantLock lock) {
+  public void closeFromStmtClose(ClosableLock lock) {
     this.closed = true;
   }
 

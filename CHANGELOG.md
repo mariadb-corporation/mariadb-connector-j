@@ -1,6 +1,35 @@
 # Change Log
-## [3.3.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.3) (Feb 2024)
+## [3.4.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.0) (Apr 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.3...3.4.0)
 
+##### Notable Changes
+
+* CONJ-981 Add support for connection redirection
+* CONJ-1087 handle mariadb-11.1+ transaction_isolation
+* CONJ-1100 Be able to filter system tables and views
+* CONJ-1105 TLS certificate validation without needs to provide certificate client side
+* CONJ-1171 timezone support missing feature
+* CONJ-1173 Bulk implementation returning individual results for MariaDB 11.5
+* CONJ-1154 avoid unnecessary set transaction isolation queries
+
+##### Bugs Fixed
+
+* CONJ-1103 Connector/J Version 3 Does Not Respect "nullCatalogMeansCurrent" Property
+* CONJ-1161 Database connection failing on android
+* CONJ-1107 MariaDB Connector 3 no longer supports query timeout with MySQL
+* CONJ-1125 Inconsistency in Handling PreparedStatement.executeQuery() between MariaDB and MySQL Connectors
+* CONJ-1156 getTables should be ordered as expected
+* CONJ-1163 jdbcCompliantTruncation Does Not Appear To Be Working
+* CONJ-1164 Variable initialization ahead of LOAD DATA INFILE not possible by validateLocalFileName pattern
+* CONJ-1168 useBulkStmts compatibility value with pre 3.2 version
+* CONJ-1169 improve Client prepared statement setMaxRows implementation
+* CONJ-1170 OFFSET missing from getSQLKeywords
+* CONJ-1158 DatabaseMetaData#getFunctions's result not property ordered
+* CONJ-1159 DatabaseMetaData#getClientInfoProperties not ordered correctly
+* CONJ-1166 Implement connection properties fallbackToSystemKeyStore and fallbackToSystemTrustStore
+* CONJ-1174 ConnectorJ gives precision of 20 for signed bigint
+
+## [3.3.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.3) (Feb 2024)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.2...3.3.3)
 
 ##### Bugs Fixed

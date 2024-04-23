@@ -5,6 +5,8 @@ package org.mariadb.jdbc.client.context;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 
+import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.function.Function;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
@@ -25,6 +27,7 @@ public class BaseContext implements Context {
   private final Function<ReadableByteBuf, ColumnDecoder> columnDecoderFunction;
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
+  private final boolean canUseTransactionIsolation;
 
   /** LRU prepare cache object */
   private final PrepareCache prepareCache;
@@ -50,6 +53,10 @@ public class BaseContext implements Context {
 
   /** Connection state use flag */
   private int stateFlag = 0;
+
+  private String redirectUrl = null;
+
+  private TimeZone connectionTimeZone = null;
 
   /**
    * Constructor of connection context
@@ -86,6 +93,13 @@ public class BaseContext implements Context {
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;
     this.prepareCache = prepareCache;
+    this.canUseTransactionIsolation =
+        (version.isMariaDBServer()
+                && version.getMajorVersion() < 23
+                && version.versionGreaterOrEqual(11, 1, 1))
+            || (!version.isMariaDBServer()
+                && ((version.getMajorVersion() >= 8 && version.versionGreaterOrEqual(8, 0, 3))
+                    || (version.getMajorVersion() < 8 && version.versionGreaterOrEqual(5, 7, 20))));
   }
 
   public long getThreadId() {
@@ -164,7 +178,7 @@ public class BaseContext implements Context {
     return transactionIsolationLevel;
   }
 
-  public void setTransactionIsolationLevel(int transactionIsolationLevel) {
+  public void setTransactionIsolationLevel(Integer transactionIsolationLevel) {
     this.transactionIsolationLevel = transactionIsolationLevel;
   }
 
@@ -207,5 +221,32 @@ public class BaseContext implements Context {
 
   public void setCharset(String charset) {
     this.charset = charset;
+  }
+
+  public String getRedirectUrl() {
+    return redirectUrl;
+  }
+
+  public boolean canUseTransactionIsolation() {
+    return canUseTransactionIsolation;
+  }
+
+  @Override
+  public void setRedirectUrl(String redirectUrl) {
+    this.redirectUrl = redirectUrl;
+  }
+
+  public TimeZone getConnectionTimeZone() {
+    return connectionTimeZone;
+  }
+
+  public void setConnectionTimeZone(TimeZone connectionTimeZone) {
+    this.connectionTimeZone = connectionTimeZone;
+  }
+
+  public Calendar getDefaultCalendar() {
+    return conf.preserveInstants()
+        ? Calendar.getInstance(connectionTimeZone)
+        : Calendar.getInstance();
   }
 }

@@ -78,6 +78,20 @@ public class ConfigurationTest {
   }
 
   @Test
+  public void testBuild() throws SQLException {
+    String base = "jdbc:mariadb://localhost/DB";
+    assertEquals(
+        Configuration.parse(base).toString(),
+        Configuration.parse(base).toBuilder().build().toString());
+    String allOptionSet =
+        "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&autocommit=false&useCatalogTerm=SCHEMA&createDatabaseIfNotExist=true&useLocalSessionState=true&returnMultiValuesGeneratedIds=true&permitRedirect=false&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
+            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
+    assertEquals(
+        Configuration.parse(allOptionSet).toString(),
+        Configuration.parse(allOptionSet).toBuilder().build().toString());
+  }
+
+  @Test
   public void testDatabaseOnly() throws SQLException {
     assertEquals("DB", Configuration.parse("jdbc:mariadb://localhost/DB").database());
     assertNull(Configuration.parse("jdbc:mariadb://localhost/DB").user());
@@ -808,7 +822,7 @@ public class ConfigurationTest {
             .useAffectedRows(true)
             .useServerPrepStmts(true)
             .connectionAttributes("bla=bla")
-            .useBulkStmts(false)
+            .useBulkStmts(true)
             .autocommit(false)
             .includeInnodbStatusInDeadlockExceptions(true)
             .includeThreadDumpInDeadlockExceptions(true)
@@ -840,6 +854,7 @@ public class ConfigurationTest {
             .useReadAheadInput(true)
             .cachePrepStmts(false)
             .serverSslCert("mycertPath")
+            .permitRedirect(false)
             .useLocalSessionState(true)
             .returnMultiValuesGeneratedIds(true)
             .serverRsaPublicKeyFile("RSAPath")
@@ -847,13 +862,20 @@ public class ConfigurationTest {
             .createDatabaseIfNotExist(true)
             .disablePipeline(true)
             .maxAllowedPacket(8000)
+            .nullDatabaseMeansCurrent(true)
+            .fallbackToSystemKeyStore(false)
+            .fallbackToSystemTrustStore(false)
             .initSql("SET @@a='10'")
             .useCatalogTerm("schema")
+            .preserveInstants(true)
+            .connectionTimeZone("SERVER")
+            .forceConnectionTimeZoneToSession(false)
             .build();
-    assertEquals(
-        "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&autocommit=false&useCatalogTerm=UseSchema&createDatabaseIfNotExist=true&useLocalSessionState=true&returnMultiValuesGeneratedIds=true&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
-            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
-        conf.toString());
+    String expected =
+        "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&connectionTimeZone=SERVER&forceConnectionTimeZoneToSession=false&preserveInstants=true&autocommit=false&nullDatabaseMeansCurrent=true&useCatalogTerm=SCHEMA&createDatabaseIfNotExist=true&useLocalSessionState=true&returnMultiValuesGeneratedIds=true&permitRedirect=false&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
+            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&fallbackToSystemKeyStore=false&fallbackToSystemTrustStore=false&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&useBulkStmts=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
+    assertEquals(expected, conf.toString());
+    assertEquals(expected, conf.toBuilder().build().toString());
   }
 
   @Test
@@ -919,11 +941,11 @@ public class ConfigurationTest {
                     + "default options :"));
     assertTrue(
         Configuration.toConf(
-                "jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?nonExisting&nonExistingWithValue=tt&user=me&password=***&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true&")
+                "jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?nonExisting&nonExistingWithValue=tt&user=me&password=***&autocommit=false&createDatabaseIfNotExist=true&")
             .startsWith(
                 "Configuration:\n"
                     + " * resulting Url :"
-                    + " jdbc:mariadb:loadbalance://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true\n"
+                    + " jdbc:mariadb:loadbalance://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&autocommit=false&createDatabaseIfNotExist=true\n"
                     + "Unknown options : \n"
                     + " * nonExisting : \n"
                     + " * nonExistingWithValue : tt\n"
@@ -936,7 +958,6 @@ public class ConfigurationTest {
                     + " * database : db\n"
                     + " * haMode : LOADBALANCE\n"
                     + " * password : ***\n"
-                    + " * timezone : UTC\n"
                     + " * user : me\n"
                     + "\n"
                     + "default options :\n"

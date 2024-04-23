@@ -42,4 +42,23 @@ public interface AuthenticationPlugin {
    */
   ReadableByteBuf process(Writer encoder, Reader decoder, Context context)
       throws IOException, SQLException;
+
+  /**
+   * Can plugins is MitM-proof, permitting returning HASH
+   *
+   * @return true if permitted
+   */
+  default boolean isMitMProof() {
+    return false;
+  }
+
+  /**
+   * Return Hash
+   *
+   * @param credential credential
+   * @return hash
+   */
+  default byte[] hash(Credential credential) {
+    return null;
+  }
 }

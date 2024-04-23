@@ -55,22 +55,24 @@ public class ShortCodec implements Codec<Short> {
 
   @Override
   public Short decodeText(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeShortText(buffer, length);
+    return column.decodeShortText(buf, length);
   }
 
   @Override
   public Short decodeBinary(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeShortBinary(buffer, length);
+    return column.decodeShortBinary(buf, length);
   }
 
   @Override
@@ -80,7 +82,12 @@ public class ShortCodec implements Codec<Short> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeShort((Short) value);
   }

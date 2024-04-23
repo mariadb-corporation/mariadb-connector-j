@@ -4,7 +4,7 @@
 package org.mariadb.jdbc;
 
 import java.sql.*;
-import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.util.ParameterList;
 
@@ -31,7 +31,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
       String databaseName,
       String procedureName,
       String arguments,
-      ReentrantLock lock,
+      ClosableLock lock,
       boolean canUseServerTimeout,
       boolean canUseServerMaxRows,
       boolean canCachePrepStmts,

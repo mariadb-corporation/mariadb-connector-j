@@ -80,7 +80,11 @@ public class LocalDateCodec implements Codec<LocalDate> {
   @Override
   @SuppressWarnings("fallthrough")
   public LocalDate decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
 
     int[] parts;
@@ -159,7 +163,11 @@ public class LocalDateCodec implements Codec<LocalDate> {
   @Override
   @SuppressWarnings("fallthrough")
   public LocalDate decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
 
     int year;
@@ -270,7 +278,8 @@ public class LocalDateCodec implements Codec<LocalDate> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
+  public void encodeBinary(
+      Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     LocalDate val = (LocalDate) value;
     encoder.writeByte(7); // length

@@ -25,6 +25,7 @@ public class PreparedStatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS prepare2");
     stmt.execute("DROP TABLE IF EXISTS prepare3");
     stmt.execute("DROP TABLE IF EXISTS prepare4");
+    stmt.execute("DROP TABLE IF EXISTS prepare5");
   }
 
   @BeforeAll
@@ -36,6 +37,7 @@ public class PreparedStatementTest extends Common {
     stmt.execute("CREATE TABLE prepare3 (t1 LONGTEXT, t2 LONGTEXT, t3 LONGTEXT, t4 LONGTEXT)");
     stmt.execute("CREATE TABLE prepare4 (t1 int)");
     stmt.execute("INSERT INTO prepare4 VALUES (1),(2),(3),(4),(5)");
+    stmt.execute("CREATE TABLE prepare5 (t1 int)");
     createSequenceTables();
   }
 
@@ -235,7 +237,6 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(2, 10);
       assertEquals(1, preparedStatement.executeUpdate());
 
-      // verification that query without resultset return an empty resultset
       preparedStatement.clearParameters();
       Common.assertThrowsContains(
           SQLException.class,
@@ -243,8 +244,7 @@ public class PreparedStatementTest extends Common {
           "Parameter at position 1 is not set");
       preparedStatement.setInt(2, 11);
       preparedStatement.setInt(1, 6);
-      ResultSet rs0 = preparedStatement.executeQuery();
-      assertFalse(rs0.next());
+      preparedStatement.executeUpdate();
 
       // verification
       ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1");
@@ -597,28 +597,50 @@ public class PreparedStatementTest extends Common {
       preparedStatement.addBatch();
       preparedStatement.setInt(1, 20);
       preparedStatement.addBatch();
+      preparedStatement.setInt(1, 40);
+      preparedStatement.addBatch();
       preparedStatement.executeBatch();
       ResultSet rs = preparedStatement.getGeneratedKeys();
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertTrue(rs.next());
       assertEquals(2, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(3, rs.getInt(1));
       assertFalse(rs.next());
     }
 
     try (PreparedStatement preparedStatement =
         sharedConnBinary.prepareStatement(
             "INSERT INTO prepare2(t2) VALUES (?)", java.sql.Statement.RETURN_GENERATED_KEYS)) {
+
+      preparedStatement.setInt(1, 0);
+      preparedStatement.executeUpdate();
+      ResultSet rs = preparedStatement.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(4, rs.getInt(1));
+
       preparedStatement.setInt(1, 10);
       preparedStatement.addBatch();
       preparedStatement.setInt(1, 20);
       preparedStatement.addBatch();
+      preparedStatement.setInt(1, 50);
+      preparedStatement.addBatch();
       preparedStatement.executeBatch();
-      ResultSet rs = preparedStatement.getGeneratedKeys();
+      rs = preparedStatement.getGeneratedKeys();
       assertTrue(rs.next());
-      assertEquals(3, rs.getInt(1));
+      assertEquals(5, rs.getInt(1));
       assertTrue(rs.next());
-      assertEquals(4, rs.getInt(1));
+      assertEquals(6, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(7, rs.getInt(1));
+      assertFalse(rs.next());
+
+      preparedStatement.setInt(1, 50);
+      preparedStatement.execute();
+      rs = preparedStatement.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(8, rs.getInt(1));
       assertFalse(rs.next());
     }
 
@@ -632,9 +654,9 @@ public class PreparedStatementTest extends Common {
         preparedStatement.execute();
         ResultSet rs = preparedStatement.getGeneratedKeys();
         assertTrue(rs.next());
-        assertEquals(5, rs.getInt(1));
+        assertEquals(9, rs.getInt(1));
         assertTrue(rs.next());
-        assertEquals(6, rs.getInt(1));
+        assertEquals(10, rs.getInt(1));
         assertFalse(rs.next());
 
         preparedStatement.setInt(1, 210);
@@ -647,13 +669,13 @@ public class PreparedStatementTest extends Common {
 
         rs = preparedStatement.getGeneratedKeys();
         assertTrue(rs.next());
-        assertEquals(7, rs.getInt(1));
+        assertEquals(11, rs.getInt(1));
         assertTrue(rs.next());
-        assertEquals(8, rs.getInt(1));
+        assertEquals(12, rs.getInt(1));
         assertTrue(rs.next());
-        assertEquals(9, rs.getInt(1));
+        assertEquals(13, rs.getInt(1));
         assertTrue(rs.next());
-        assertEquals(10, rs.getInt(1));
+        assertEquals(14, rs.getInt(1));
         assertFalse(rs.next());
       }
     }
@@ -1091,6 +1113,50 @@ public class PreparedStatementTest extends Common {
   }
 
   @Test
+  public void decrementCacheBatch() throws SQLException {
+    decrementCacheBatch("&useServerPrepStmts=false&prepStmtCacheSize=5");
+    decrementCacheBatch("&useServerPrepStmts=true&prepStmtCacheSize=5");
+    decrementCacheBatch("&useServerPrepStmts=true&useServerPrepStmts=false");
+  }
+
+  private void decrementCacheBatch(String connString) throws SQLException {
+    try (Connection con = createCon(connString)) {
+      int i = 0;
+      PreparedStatement prep = con.prepareStatement("INSERT INTO prepare5 VALUES (?)");
+      prep.setInt(1, i++);
+      prep.addBatch();
+      prep.setInt(1, i++);
+      prep.addBatch();
+      prep.executeBatch();
+
+      PreparedStatement prep2 = con.prepareStatement("INSERT INTO prepare5 VALUES (?)");
+      prep2.setInt(1, i++);
+      prep2.addBatch();
+      prep2.setInt(1, i++);
+      prep2.addBatch();
+      prep2.executeBatch();
+
+      for (int ii = 1; ii < 10; ii++) {
+        try (PreparedStatement prep3 =
+            con.prepareStatement("INSERT INTO prepare5 VALUES (?) /*" + ii + "*/")) {
+          prep3.setInt(1, i++);
+          prep3.addBatch();
+          prep3.setInt(1, i++);
+          prep3.addBatch();
+          prep3.executeBatch();
+          prep3.setQueryTimeout(1);
+        }
+      }
+
+      prep.setQueryTimeout(1); // will close prepare
+      prep2.setQueryTimeout(2); // will close prepare
+      prep.execute();
+      prep.close();
+      prep2.close();
+    }
+  }
+
+  @Test
   public void prepareStatementConcur() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       prepareStatementConcur(con);
@@ -1363,7 +1429,7 @@ public class PreparedStatementTest extends Common {
       try (PreparedStatement prep =
           con.prepareStatement("/*client prepare*/SET @name := ?; SELECT @name ")) {
         prep.setString(1, "test");
-        prep.executeQuery();
+        prep.execute();
         assertTrue(prep.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
         ResultSet rs = prep.getResultSet();
         assertTrue(rs.next());

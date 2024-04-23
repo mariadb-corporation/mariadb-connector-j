@@ -99,7 +99,7 @@ public class MultiQueriesTest extends Common {
     Connection connection = createCon("&allowMultiQueries=true");
     Statement stmt = connection.createStatement();
     stmt.setFetchSize(1);
-    stmt.executeQuery(
+    stmt.execute(
         "DO 2;SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest; DO 1; SELECT"
             + " 2");
     connection.abort(Runnable::run);
@@ -107,7 +107,7 @@ public class MultiQueriesTest extends Common {
     connection = createCon("&allowMultiQueries=true");
     stmt = connection.createStatement();
     stmt.setFetchSize(1);
-    stmt.executeQuery("DO 2;DO 1;SELECT * from AllowMultiQueriesTest");
+    stmt.execute("DO 2;DO 1;SELECT * from AllowMultiQueriesTest");
     connection.abort(Runnable::run);
   }
 

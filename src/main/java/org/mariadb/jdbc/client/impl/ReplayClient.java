@@ -6,11 +6,11 @@ package org.mariadb.jdbc.client.impl;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.context.RedoContext;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
@@ -33,7 +33,7 @@ public class ReplayClient extends StandardClient {
    * @throws SQLException if connection fails
    */
   public ReplayClient(
-      Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
+      Configuration conf, HostAddress hostAddress, ClosableLock lock, boolean skipPostCommands)
       throws SQLException {
     super(conf, hostAddress, lock, skipPostCommands);
   }

@@ -140,6 +140,43 @@ public class DatabaseMetadataTest extends Common {
   public void primaryKeysTest() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
     ResultSet rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "dbpk_test");
+    primaryKeysTest(rs);
+
+    rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+    primaryKeysTest(rs);
+
+    try (Connection con = createCon("&nullDatabaseMeansCurrent=false")) {
+      meta = con.getMetaData();
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      primaryKeysTest(rs);
+
+      con.setCatalog("information_schema");
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      primaryKeysTest(rs);
+    }
+
+    try (Connection con = createCon("&nullDatabaseMeansCurrent=true")) {
+      meta = con.getMetaData();
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      primaryKeysTest(rs);
+
+      con.setCatalog("information_schema");
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      assertFalse(rs.next());
+    }
+
+    try (Connection con = createCon("&nullCatalogMeansCurrent=true")) {
+      meta = con.getMetaData();
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      primaryKeysTest(rs);
+
+      con.setCatalog("information_schema");
+      rs = meta.getPrimaryKeys(null, null, "dbpk_test");
+      assertFalse(rs.next());
+    }
+  }
+
+  private void primaryKeysTest(ResultSet rs) throws SQLException {
     Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
     Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
 
@@ -831,6 +868,22 @@ public class DatabaseMetadataTest extends Common {
     // ensure no regression CONJ-921
     rs = dbmd.getTables(null, null, null, new String[] {"TABLE"});
     assertTrue(rs.next());
+  }
+
+  @Test
+  public void testGetSystemTables() throws SQLException {
+    DatabaseMetaData dbmd = sharedConn.getMetaData();
+    checkSystemRes(dbmd.getTables("mysql", null, null, null));
+    checkSystemRes(dbmd.getTables("sys", null, null, null));
+    checkSystemRes(dbmd.getTables("performance_schema", null, null, null));
+  }
+
+  private void checkSystemRes(ResultSet rs) throws SQLException {
+    while (rs.next()) {
+      String tableType = rs.getString("TABLE_TYPE");
+      if (!tableType.matches("(SYSTEM VIEW|SYSTEM TABLE)"))
+        throw new SQLException("Must have System type, but was " + tableType);
+    }
   }
 
   @Test
@@ -1586,6 +1639,14 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("The name of the application currently utilizing the connection", rs.getString(4));
 
     assertTrue(rs.next());
+    assertEquals("ClientHostname", rs.getString(1));
+    assertEquals(0x00ffffff, rs.getInt(2));
+    assertEquals("", rs.getString(3));
+    assertEquals(
+        "The hostname of the computer the application using the connection is running on",
+        rs.getString(4));
+
+    assertTrue(rs.next());
     assertEquals("ClientUser", rs.getString(1));
     assertEquals(0x00ffffff, rs.getInt(2));
     assertEquals("", rs.getString(3));
@@ -1593,14 +1654,6 @@ public class DatabaseMetadataTest extends Common {
         "The name of the user that the application using the connection is performing work for."
             + " This may not be the same as the user name that was used in establishing the"
             + " connection.",
-        rs.getString(4));
-
-    assertTrue(rs.next());
-    assertEquals("ClientHostname", rs.getString(1));
-    assertEquals(0x00ffffff, rs.getInt(2));
-    assertEquals("", rs.getString(3));
-    assertEquals(
-        "The hostname of the computer the application using the connection is running on",
         rs.getString(4));
 
     assertFalse(rs.next());
@@ -1901,6 +1954,36 @@ public class DatabaseMetadataTest extends Common {
         sharedConn.getMetaData().getFunctions(null, null, null),
         "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS"
             + " String,FUNCTION_TYPE short, SPECIFIC_NAME String");
+  }
+
+  @Test
+  public void getFunctionsOrder() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct1");
+    stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct2");
+    try {
+      stmt.execute(
+          "CREATE FUNCTION dbTmpFct2.dbTmpFcta2 (a int, b int) RETURNS int DETERMINISTIC RETURN a +"
+              + " b");
+      stmt.execute(
+          "CREATE FUNCTION dbTmpFct2.dbTmpFcta1 (a int, b int) RETURNS int DETERMINISTIC RETURN a +"
+              + " b");
+      stmt.execute(
+          "CREATE FUNCTION dbTmpFct1.dbTmpFctb1 (a int, b int) RETURNS int DETERMINISTIC RETURN a +"
+              + " b");
+      DatabaseMetaData dmd = sharedConn.getMetaData();
+      ResultSet rs = dmd.getFunctions(null, null, "%dbTmpFct%");
+      assertTrue(rs.next());
+      assertEquals("dbTmpFctb1", rs.getString(3));
+      assertTrue(rs.next());
+      assertEquals("dbTmpFcta1", rs.getString(3));
+      assertTrue(rs.next());
+      assertEquals("dbTmpFcta2", rs.getString(3));
+      assertFalse(rs.next());
+    } finally {
+      stmt.execute("DROP DATABASE dbTmpFct1");
+      stmt.execute("DROP DATABASE dbTmpFct2");
+    }
   }
 
   @Test
@@ -2803,5 +2886,40 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
     assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
+  }
+
+  @Test
+  public void getTableOrder() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct1");
+    stmt.execute("CREATE DATABASE IF NOT EXISTS dbTmpFct2");
+    DatabaseMetaData dmd = sharedConn.getMetaData();
+    try {
+      stmt.execute("CREATE TABLE dbTmpFct2.dbta2 (a int, b int)");
+      stmt.execute("CREATE TABLE dbTmpFct2.dbta1 (a int, b int)");
+      stmt.execute("CREATE TABLE dbTmpFct1.dbtb1 (a int, b int)");
+      ResultSet rs = dmd.getTables(null, null, "dbt%", null);
+      assertTrue(rs.next());
+      assertEquals("dbtb1", rs.getString(3));
+      assertTrue(rs.next());
+      assertEquals("dbta1", rs.getString(3));
+      assertTrue(rs.next());
+      assertEquals("dbta2", rs.getString(3));
+      assertFalse(rs.next());
+      try (Connection conn = createCon("useCatalogTerm=SCHEMA")) {
+        DatabaseMetaData dmd2 = conn.getMetaData();
+        rs = dmd2.getTables(null, "dbTmpFct%", "dbt%", null);
+        assertTrue(rs.next());
+        assertEquals("dbtb1", rs.getString(3));
+        assertTrue(rs.next());
+        assertEquals("dbta1", rs.getString(3));
+        assertTrue(rs.next());
+        assertEquals("dbta2", rs.getString(3));
+        assertFalse(rs.next());
+      }
+    } finally {
+      stmt.execute("DROP DATABASE dbTmpFct1");
+      stmt.execute("DROP DATABASE dbTmpFct2");
+    }
   }
 }

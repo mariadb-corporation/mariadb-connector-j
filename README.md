@@ -29,7 +29,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>3.3.3</version>
+	<version>3.4.0</version>
 </dependency>
 ```
 
@@ -48,7 +48,7 @@ Development snapshot are available on sonatype nexus repository
 	<dependency>
 		<groupId>org.mariadb.jdbc</groupId>
 		<artifactId>mariadb-java-client</artifactId>
-		<version>3.4.0-SNAPSHOT</version>
+		<version>3.4.1-SNAPSHOT</version>
 	</dependency>
 </dependencies>
 ```
@@ -61,6 +61,15 @@ For a Getting started guide, API docs, recipes, etc. see the
 * [Install driver](https://mariadb.com/kb/en/installing-mariadb-connectorj/)
 * [Changelog](/CHANGELOG.md)
 * [Failover and high-availability](https://mariadb.com/kb/en/failover-and-high-availability-with-mariadb-connector-j/)
+
+## Contributors
+
+A big thanks to all contributors
+
+<a href="https://github.com/mariadb-corporation/mariadb-connector-j/graphs/contributors">
+	<img src="https://contrib.rocks/image?repo=mariadb-corporation/mariadb-connector-j&max=180&columns=18" />
+</a>
+
 
 [codecov-image]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j/branch/master/graph/badge.svg
 

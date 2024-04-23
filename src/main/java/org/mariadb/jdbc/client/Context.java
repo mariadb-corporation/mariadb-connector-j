@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
+import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.function.Function;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
@@ -36,6 +38,15 @@ public interface Context {
    * @param autoIncrement current server autoincrement value
    */
   void setAutoIncrement(long autoIncrement);
+
+  /**
+   * Set server redirection url
+   *
+   * @param redirectUrl redirect url
+   */
+  void setRedirectUrl(String redirectUrl);
+
+  String getRedirectUrl();
 
   /**
    * Get connection initial seed
@@ -152,6 +163,13 @@ public interface Context {
   Configuration getConf();
 
   /**
+   * Can rely on transaction_isolation or keep using deprecated tx_isolation variable
+   *
+   * @return true if you can use transaction_isolation
+   */
+  boolean canUseTransactionIsolation();
+
+  /**
    * Get connection transaction isolation level
    *
    * @return connection transaction isolation level
@@ -163,7 +181,7 @@ public interface Context {
    *
    * @param transactionIsolationLevel new connection transaction isolation level
    */
-  void setTransactionIsolationLevel(int transactionIsolationLevel);
+  void setTransactionIsolationLevel(Integer transactionIsolationLevel);
 
   /**
    * get LRU prepare cache object
@@ -192,7 +210,11 @@ public interface Context {
    */
   void addStateFlag(int state);
 
-  /** Indicate the number of connection on this server */
+  /**
+   * Indicate the number of connection on this server
+   *
+   * @param threadsConnected number of connected threads
+   */
   void setTreadsConnected(long threadsConnected);
 
   /**
@@ -208,4 +230,15 @@ public interface Context {
    * @param charset server charset
    */
   void setCharset(String charset);
+
+  TimeZone getConnectionTimeZone();
+
+  void setConnectionTimeZone(TimeZone connectionTimeZone);
+
+  /**
+   * Get calendar depending on configuration
+   *
+   * @return calendar
+   */
+  Calendar getDefaultCalendar();
 }

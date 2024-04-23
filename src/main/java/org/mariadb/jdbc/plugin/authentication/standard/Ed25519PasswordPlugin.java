@@ -15,6 +15,7 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.GroupElement;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Ed25519ScalarOps;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSANamedCurveTable;
@@ -119,5 +120,48 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
     }
 
     return in.readReusablePacket();
+  }
+
+  public boolean isMitMProof() {
+    return true;
+  }
+
+  /**
+   * Return Hash
+   *
+   * @param credential Credential
+   * @return hash
+   */
+  public byte[] hash(Credential credential) {
+
+    try {
+      byte[] bytePwd = credential.getPassword().getBytes(StandardCharsets.UTF_8);
+
+      MessageDigest hash = MessageDigest.getInstance("SHA-512");
+
+      int mlen = seed.length;
+      final byte[] sm = new byte[64 + mlen];
+
+      byte[] az = hash.digest(bytePwd);
+      az[0] &= 248;
+      az[31] &= 63;
+      az[31] |= 64;
+
+      System.arraycopy(seed, 0, sm, 64, mlen);
+      System.arraycopy(az, 32, sm, 32, 32);
+
+      byte[] buff = Arrays.copyOfRange(sm, 32, 96);
+      hash.reset();
+      hash.digest(buff);
+
+      EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
+      GroupElement elementAvalue = spec.getB().scalarMultiply(az);
+      byte[] elementAarray = elementAvalue.toByteArray();
+      System.arraycopy(elementAarray, 0, sm, 32, elementAarray.length);
+      return elementAarray;
+
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("Could not use SHA-512, failing", e);
+    }
   }
 }

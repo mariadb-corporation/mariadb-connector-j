@@ -45,8 +45,29 @@ public class ProcedureTest extends Common {
     try (CallableStatement cstmt = sharedConn.prepareCall("{ CALL multiply_by_2(?) }")) {
       cstmt.setLong(1, 42L);
       cstmt.registerOutParameter(1, Types.NUMERIC);
-      cstmt.executeQuery();
+      cstmt.execute();
       assertEquals(84, cstmt.getLong(1));
+      cstmt.setLong(1, 43L);
+      cstmt.executeUpdate();
+      assertEquals(86, cstmt.getLong(1));
+      Common.assertThrowsContains(
+          SQLException.class,
+          () -> cstmt.executeQuery(),
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
+    }
+    try (Connection con = createCon("&permitNoResults=true")) {
+      try (CallableStatement cstmt = con.prepareCall("{ CALL multiply_by_2(?) }")) {
+        cstmt.setLong(1, 42L);
+        cstmt.registerOutParameter(1, Types.NUMERIC);
+        cstmt.execute();
+        assertEquals(84, cstmt.getLong(1));
+        cstmt.setLong(1, 43L);
+        cstmt.executeUpdate();
+        assertEquals(86, cstmt.getLong(1));
+        cstmt.setLong(1, 44L);
+        cstmt.execute();
+        assertEquals(88, cstmt.getLong(1));
+      }
     }
   }
 

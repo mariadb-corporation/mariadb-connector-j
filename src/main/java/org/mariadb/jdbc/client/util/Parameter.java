@@ -25,10 +25,11 @@ public interface Parameter {
    * Encode parameter in binary format
    *
    * @param encoder packet writer
+   * @param context connection context
    * @throws IOException if socket error occurs
    * @throws SQLException if other kind of error occurs
    */
-  void encodeBinary(Writer encoder) throws IOException, SQLException;
+  void encodeBinary(Writer encoder, Context context) throws IOException, SQLException;
 
   /**
    * Encode parameter in binary long format

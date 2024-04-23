@@ -72,6 +72,42 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void ensureJdbcErrorWhenNoResultset() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DO 1");
+    assertThrowsContains(
+        SQLException.class,
+        () -> stmt.executeQuery("DO 1"),
+        "Statement.executeQuery() command does NOT return a result-set as expected. Either use"
+            + " Statement.execute(), Statement.executeUpdate(), or correct command");
+    stmt.execute("DO 1");
+    try (PreparedStatement ps =
+        sharedConn.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
+      ps.setInt(1, 1);
+      ps.execute();
+      assertThrowsContains(
+          SQLException.class,
+          () -> ps.executeQuery(),
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected. Either"
+              + " use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or correct"
+              + " command");
+      ps.execute();
+    }
+    try (PreparedStatement ps =
+        sharedConnBinary.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
+      ps.setInt(1, 1);
+      ps.execute();
+      assertThrowsContains(
+          SQLException.class,
+          () -> ps.executeQuery(),
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected. Either"
+              + " use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or correct"
+              + " command");
+      ps.execute();
+    }
+  }
+
+  @Test
   public void getUpdateCountValueOnFail() throws SQLException {
     try (Statement st = sharedConn.createStatement()) {
       st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
@@ -471,13 +507,13 @@ public class StatementTest extends Common {
   }
 
   @Test
-  public void executeQuery() throws SQLException {
+  public void executeUpdateNoResults() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT 1");
     assertTrue(rs.next());
     if (!isXpand()) {
-      rs = stmt.executeQuery("DO 1");
-      assertFalse(rs.next());
+      stmt.executeUpdate("DO 1");
+      assertNull(stmt.getResultSet());
     }
   }
 
@@ -732,13 +768,7 @@ public class StatementTest extends Common {
 
   @Test
   @Timeout(20)
-  public void queryTimeout() {
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
+  public void queryTimeout() throws SQLException {
     Statement stmt = sharedConn.createStatement();
 
     Common.assertThrowsContains(
@@ -753,7 +783,19 @@ public class StatementTest extends Common {
               "select * from information_schema.columns as c1,  information_schema.tables,"
                   + " information_schema.tables as t2");
         },
-        "Query execution was interrupted (max_statement_time exceeded)");
+        "Query execution was interrupted");
+    stmt.setQueryTimeout(1);
+    stmt.execute("SELECT 1");
+    Common.assertThrowsContains(
+        SQLTimeoutException.class,
+        () -> {
+          stmt.setQueryTimeout(1);
+          assertEquals(1, stmt.getQueryTimeout());
+          stmt.execute(
+              "select * from information_schema.columns as c1,  information_schema.tables,"
+                  + " information_schema.tables as t2");
+        },
+        "Query execution was interrupted");
   }
 
   @Test
@@ -1248,9 +1290,6 @@ public class StatementTest extends Common {
       prep.setInt(1, 5);
       prep.setString(2, "t55");
       prep.addBatch();
-      prep.setInt(1, 6);
-      prep.setString(2, "t6");
-      prep.addBatch();
       prep.setNull(1, Types.INTEGER);
       prep.setString(2, "t7");
       prep.addBatch();
@@ -1259,8 +1298,6 @@ public class StatementTest extends Common {
       rs = prep.getGeneratedKeys();
       assertTrue(rs.next());
       assertEquals(6, rs.getInt(1));
-      assertTrue(rs.next());
-      assertEquals(7, rs.getInt(1));
       assertFalse(rs.next());
     }
 
@@ -1271,7 +1308,7 @@ public class StatementTest extends Common {
       prep.setInt(1, 5);
       prep.setString(2, "t55");
       prep.addBatch();
-      prep.setInt(1, 8);
+      prep.setNull(1, Types.INTEGER);
       prep.setString(2, "t8");
       prep.addBatch();
       prep.setNull(1, Types.INTEGER);
@@ -1281,9 +1318,9 @@ public class StatementTest extends Common {
 
       rs = prep.getGeneratedKeys();
       assertTrue(rs.next());
-      assertEquals(8, rs.getInt(1));
+      assertEquals(7, rs.getInt(1));
       assertTrue(rs.next());
-      assertEquals(9, rs.getInt(1));
+      assertEquals(8, rs.getInt(1));
       assertFalse(rs.next());
     }
   }

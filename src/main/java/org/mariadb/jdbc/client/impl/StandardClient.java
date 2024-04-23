@@ -3,10 +3,18 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.impl;
 
+import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslCipherSuites;
+import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslProtocolSuites;
+
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -16,9 +24,11 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.net.ssl.SSLSocket;
+import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -33,18 +43,26 @@ import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.*;
+import org.mariadb.jdbc.client.tls.MariaDbX509EphemeralTrustingManager;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.export.Prepare;
+import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.*;
-import org.mariadb.jdbc.message.server.ErrorPacket;
-import org.mariadb.jdbc.message.server.InitialHandshakePacket;
-import org.mariadb.jdbc.message.server.PrepareResultPacket;
+import org.mariadb.jdbc.message.server.*;
+import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
+import org.mariadb.jdbc.plugin.TlsSocketPlugin;
+import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
+import org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPlugin;
+import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
+import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.Security;
+import org.mariadb.jdbc.util.StringUtils;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.log.Logger;
@@ -57,12 +75,18 @@ public class StandardClient implements Client, AutoCloseable {
   /** connection exception factory */
   protected final ExceptionFactory exceptionFactory;
 
-  private final Socket socket;
+  private static final Pattern REDIRECT_PATTERN =
+      Pattern.compile(
+          "(mariadb|mysql):\\/\\/(([^/@:]+)?(:([^/]+))?@)?(([^/:]+)(:([0-9]+))?)(\\/([^?]+)(\\?(.*))?)?$",
+          Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+  private Socket socket;
   private final MutableByte sequence = new MutableByte();
   private final MutableByte compressionSequence = new MutableByte();
-  private final ReentrantLock lock;
-  private final Configuration conf;
-  private final HostAddress hostAddress;
+  private final ClosableLock lock;
+  private Configuration conf;
+  private AuthenticationPlugin authPlugin;
+  private HostAddress hostAddress;
   private final boolean disablePipeline;
 
   /** connection context */
@@ -73,9 +97,12 @@ public class StandardClient implements Client, AutoCloseable {
 
   private boolean closed = false;
   private Reader reader;
+  private byte[] certFingerprint = null;
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
+
+  private final Consumer<String> redirectConsumer = this::redirect;
 
   /**
    * Constructor
@@ -88,7 +115,7 @@ public class StandardClient implements Client, AutoCloseable {
    */
   @SuppressWarnings({"this-escape"})
   public StandardClient(
-      Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
+      Configuration conf, HostAddress hostAddress, ClosableLock lock, boolean skipPostCommands)
       throws SQLException {
 
     this.conf = conf;
@@ -154,7 +181,7 @@ public class StandardClient implements Client, AutoCloseable {
       // changing to SSL socket if needed
       // **********************************************************************
       SSLSocket sslSocket =
-          ConnectionHelper.sslWrapper(
+          sslWrapper(
               hostAddress,
               socket,
               clientCapabilities,
@@ -190,9 +217,13 @@ public class StandardClient implements Client, AutoCloseable {
               clientCapabilities,
               (byte) handshake.getDefaultCollation())
           .encode(writer, context);
+      authPlugin =
+          "mysql_clear_password".equals(authenticationPluginType)
+              ? new ClearPasswordPlugin()
+              : new NativePasswordPlugin();
       writer.flush();
 
-      ConnectionHelper.authenticationHandler(credential, writer, reader, context);
+      authenticationHandler(credential);
 
       // **********************************************************************
       // activate compression if required
@@ -230,6 +261,278 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * @param credential credential
+   * @throws IOException if any socket error occurs
+   * @throws SQLException if any other kind of issue occurs
+   */
+  public void authenticationHandler(Credential credential) throws IOException, SQLException {
+
+    writer.permitTrace(true);
+    Configuration conf = context.getConf();
+    ReadableByteBuf buf = reader.readReusablePacket();
+
+    authentication_loop:
+    while (true) {
+      switch (buf.getByte() & 0xFF) {
+        case 0xFE:
+          // *************************************************************************************
+          // Authentication Switch Request see
+          // https://mariadb.com/kb/en/library/connection/#authentication-switch-request
+          // *************************************************************************************
+          AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf);
+          authPlugin = AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
+
+          authPlugin.initialize(credential.getPassword(), authSwitchPacket.getSeed(), conf);
+          buf = authPlugin.process(writer, reader, context);
+          break;
+
+        case 0xFF:
+          // *************************************************************************************
+          // ERR_Packet
+          // see https://mariadb.com/kb/en/library/err_packet/
+          // *************************************************************************************
+          ErrorPacket errorPacket = new ErrorPacket(buf, context);
+          throw context
+              .getExceptionFactory()
+              .create(
+                  errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
+
+        case 0x00:
+          // *************************************************************************************
+          // OK_Packet -> Authenticated !
+          // see https://mariadb.com/kb/en/library/ok_packet/
+          // *************************************************************************************
+          OkPacket okPacket = new OkPacket(buf, context);
+
+          // ssl certificates validation using client password
+          if (certFingerprint != null) {
+            // need to ensure server certificates
+            // pass only if :
+            // * connection method is MitM-proof (e.g. unix socket)
+            // * auth plugin is MitM-proof and check SHA2(user's hashed password, scramble,
+            // certificate fingerprint)
+            if (this.socket instanceof UnixDomainSocket) break authentication_loop;
+            if (!authPlugin.isMitMProof()
+                || credential.getPassword() == null
+                || credential.getPassword().isEmpty()
+                || !validateFingerPrint(
+                    authPlugin,
+                    okPacket.getInfo(),
+                    certFingerprint,
+                    credential,
+                    context.getSeed())) {
+              throw context
+                  .getExceptionFactory()
+                  .create(
+                      "Self signed certificates. Either set sslMode=trust, set a password or"
+                          + " provide server certificate to client",
+                      "08000");
+            }
+          }
+
+          if (context.getRedirectUrl() != null && conf.permitRedirect())
+            redirect(context.getRedirectUrl());
+
+          break authentication_loop;
+
+        default:
+          throw context
+              .getExceptionFactory()
+              .create(
+                  "unexpected data during authentication (header=" + (buf.getUnsignedByte()),
+                  "08000");
+      }
+    }
+    writer.permitTrace(true);
+  }
+
+  private static boolean validateFingerPrint(
+      AuthenticationPlugin authPlugin,
+      byte[] validationHash,
+      byte[] fingerPrint,
+      Credential credential,
+      final byte[] seed) {
+    if (validationHash.length == 0) return false;
+    try {
+      assert (validationHash[0] == 0x01); // SHA256 encryption
+
+      byte[] hash = authPlugin.hash(credential);
+
+      final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+      messageDigest.update(hash);
+      messageDigest.update(seed);
+      messageDigest.update(fingerPrint);
+
+      final byte[] digest = messageDigest.digest();
+      final String hashHex = StringUtils.byteArrayToHexString(digest);
+      final String serverValidationHex =
+          new String(validationHash, 1, validationHash.length - 1, StandardCharsets.US_ASCII);
+      return hashHex.equals(serverValidationHex);
+
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("SHA-256 MessageDigest expected to be not available", e);
+    }
+  }
+
+  public void redirect(String redirectUrl) {
+    if (this.conf.permitRedirect() && redirectUrl != null) {
+      // redirect only if not in a transaction
+      if ((this.context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0) {
+        this.context.setRedirectUrl(null);
+        Matcher matcher = REDIRECT_PATTERN.matcher(redirectUrl);
+        if (!matcher.matches()) {
+          logger.error(
+              "error parsing redirection string '"
+                  + redirectUrl
+                  + "'. format must be"
+                  + " 'mariadb/mysql://[<user>[:<password>]@]<host>[:<port>]/[<db>[?<opt1>=<value1>[&<opt2>=<value2>]]]'");
+          return;
+        }
+        try {
+          String redirectHost =
+              matcher.group(7) != null
+                  ? URLDecoder.decode(matcher.group(7), "utf8")
+                  : matcher.group(6);
+          int redirectPort = matcher.group(9) != null ? Integer.parseInt(matcher.group(9)) : 3306;
+
+          if (this.getHostAddress() != null
+              && redirectHost.equals(this.getHostAddress().host)
+              && redirectPort == this.getHostAddress().port) {
+            // redirection to the same host, skip loop redirection
+            return;
+          }
+
+          // actually only options accepted are user and password
+          // there might be additional possible options in the future
+          String redirectUser = matcher.group(3);
+          String redirectPwd = matcher.group(5);
+          Configuration.Builder redirectConfBuilder =
+              this.context.getConf().toBuilder()
+                  .addresses(HostAddress.from(redirectHost, redirectPort, true));
+          if (redirectUser != null) redirectConfBuilder.user(redirectUser);
+          if (redirectPwd != null) redirectConfBuilder.password(redirectPwd);
+          try {
+            Configuration redirectConf = redirectConfBuilder.build();
+            HostAddress redirectHostAddress = redirectConf.addresses().get(0);
+
+            StandardClient redirectClient =
+                new StandardClient(redirectConf, redirectHostAddress, lock, false);
+
+            // properly close current connection
+            this.close();
+            logger.info("redirecting connection " + hostAddress + " to " + redirectUrl);
+            // affect redirection to current client
+            this.closed = false;
+            this.socket = redirectClient.socket;
+            this.conf = redirectConf;
+            this.hostAddress = redirectHostAddress;
+            this.context = redirectClient.context;
+            this.writer = redirectClient.writer;
+            this.reader = redirectClient.reader;
+
+          } catch (SQLException e) {
+            logger.error("fail to redirect to '" + redirectUrl + "'");
+          }
+        } catch (UnsupportedEncodingException ee) {
+          // eat, still supporting java 8
+        }
+      } else {
+        this.context.setRedirectUrl(redirectUrl);
+      }
+    } else {
+      this.context.setRedirectUrl(null);
+    }
+  }
+
+  /**
+   * Create SSL wrapper
+   *
+   * @param hostAddress host
+   * @param socket socket
+   * @param clientCapabilities client capabilities
+   * @param exchangeCharset connection charset
+   * @param context connection context
+   * @param writer socket writer
+   * @return SSLsocket
+   * @throws IOException if any socket error occurs
+   * @throws SQLException for any other kind of error
+   */
+  public SSLSocket sslWrapper(
+      final HostAddress hostAddress,
+      final Socket socket,
+      long clientCapabilities,
+      final byte exchangeCharset,
+      Context context,
+      Writer writer)
+      throws IOException, SQLException {
+
+    Configuration conf = context.getConf();
+    if (conf.sslMode() != SslMode.DISABLE) {
+
+      if (!context.hasServerCapability(Capabilities.SSL)) {
+        throw context
+            .getExceptionFactory()
+            .create("Trying to connect with ssl, but ssl not enabled in the server", "08000");
+      }
+
+      clientCapabilities |= Capabilities.SSL;
+      SslRequestPacket.create(clientCapabilities, exchangeCharset).encode(writer, context);
+
+      TlsSocketPlugin socketPlugin = TlsSocketPluginLoader.get(conf.tlsSocketType());
+      SSLSocketFactory sslSocketFactory;
+      TrustManager[] trustManagers =
+          socketPlugin.getTrustManager(conf, context.getExceptionFactory());
+      try {
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(
+            socketPlugin.getKeyManager(conf, context.getExceptionFactory()), trustManagers, null);
+        sslSocketFactory = sslContext.getSocketFactory();
+      } catch (KeyManagementException keyManagementEx) {
+        throw context
+            .getExceptionFactory()
+            .create("Could not initialize SSL context", "08000", keyManagementEx);
+      } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
+        throw context
+            .getExceptionFactory()
+            .create("SSLContext TLS Algorithm not unknown", "08000", noSuchAlgorithmEx);
+      }
+      SSLSocket sslSocket = socketPlugin.createSocket(socket, sslSocketFactory);
+
+      enabledSslProtocolSuites(sslSocket, conf);
+      enabledSslCipherSuites(sslSocket, conf);
+
+      sslSocket.setUseClientMode(true);
+      sslSocket.startHandshake();
+      if (trustManagers.length > 0
+          && trustManagers[0] instanceof MariaDbX509EphemeralTrustingManager) {
+        certFingerprint = ((MariaDbX509EphemeralTrustingManager) trustManagers[0]).getFingerprint();
+      }
+
+      // perform hostname verification
+      // (rfc2818 indicate that if "client has external information as to the expected identity of
+      // the server, the hostname check MAY be omitted")
+      // validation is only done for not "self-signed" certificates
+      if (certFingerprint == null && conf.sslMode() == SslMode.VERIFY_FULL && hostAddress != null) {
+        SSLSession session = sslSocket.getSession();
+        try {
+          socketPlugin.verify(hostAddress.host, session, context.getThreadId());
+        } catch (SSLException ex) {
+          throw context
+              .getExceptionFactory()
+              .create(
+                  "SSL hostname verification failed : "
+                      + ex.getMessage()
+                      + "\nThis verification can be disabled using the sslMode to VERIFY_CA "
+                      + "but won't prevent man-in-the-middle attacks anymore",
+                  "08006");
+        }
+      }
+      return sslSocket;
+    }
+    return null;
+  }
+
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
     this.writer =
         new PacketWriter(
@@ -265,43 +568,57 @@ public class StandardClient implements Client, AutoCloseable {
    *
    * @throws SQLException if any socket error.
    */
-  private String handleTimezone() throws SQLException {
-    if (!"disable".equalsIgnoreCase(conf.timezone())) {
-      String timeZone = null;
-      try {
-        Result res =
-            (Result)
-                execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone"), true).get(0);
-        res.next();
-        timeZone = res.getString(1);
-        if ("SYSTEM".equals(timeZone)) {
-          timeZone = res.getString(2);
-        }
-      } catch (SQLException sqle) {
-        Result res =
-            (Result)
-                execute(
-                        new QueryPacket(
-                            "SHOW VARIABLES WHERE Variable_name in ("
-                                + "'system_time_zone',"
-                                + "'time_zone')"),
-                        true)
-                    .get(0);
-        String systemTimeZone = null;
-        while (res.next()) {
-          if ("system_time_zone".equals(res.getString(1))) {
-            systemTimeZone = res.getString(2);
-          } else {
-            timeZone = res.getString(2);
+  private void handleTimezone() throws SQLException {
+    if (conf.connectionTimeZone() == null || "LOCAL".equalsIgnoreCase(conf.connectionTimeZone())) {
+      context.setConnectionTimeZone(TimeZone.getDefault());
+    } else {
+      String zoneId = conf.connectionTimeZone();
+      if ("SERVER".equalsIgnoreCase(zoneId)) {
+        try {
+          Result res =
+              (Result)
+                  execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone"), true).get(0);
+          res.next();
+          zoneId = res.getString(1);
+          if ("SYSTEM".equals(zoneId)) {
+            zoneId = res.getString(2);
+          }
+        } catch (SQLException sqle) {
+          Result res =
+              (Result)
+                  execute(
+                          new QueryPacket(
+                              "SHOW VARIABLES WHERE Variable_name in ("
+                                  + "'system_time_zone',"
+                                  + "'time_zone')"),
+                          true)
+                      .get(0);
+          String systemTimeZone = null;
+          while (res.next()) {
+            if ("system_time_zone".equals(res.getString(1))) {
+              systemTimeZone = res.getString(2);
+            } else {
+              zoneId = res.getString(2);
+            }
+          }
+          if ("SYSTEM".equals(zoneId)) {
+            zoneId = systemTimeZone;
           }
         }
-        if ("SYSTEM".equals(timeZone)) {
-          timeZone = systemTimeZone;
+      }
+
+      try {
+        context.setConnectionTimeZone(TimeZone.getTimeZone(ZoneId.of(zoneId).normalized()));
+      } catch (DateTimeException e) {
+        try {
+          context.setConnectionTimeZone(
+              TimeZone.getTimeZone(ZoneId.of(zoneId, ZoneId.SHORT_IDS).normalized()));
+        } catch (DateTimeException e2) {
+          // unknown zone id
+          throw new SQLException(String.format("Unknown zoneId %s", zoneId), e);
         }
       }
-      return timeZone;
     }
-    return null;
   }
 
   private void postConnectionQueries() throws SQLException {
@@ -317,16 +634,9 @@ public class StandardClient implements Client, AutoCloseable {
         && !galeraAllowedStates.isEmpty()) {
       commands.add("show status like 'wsrep_local_state'");
     }
-
-    String serverTz = conf.timezone() != null ? handleTimezone() : null;
-    String sessionVariableQuery = createSessionVariableQuery(serverTz, context);
+    handleTimezone();
+    String sessionVariableQuery = createSessionVariableQuery(context);
     if (sessionVariableQuery != null) commands.add(sessionVariableQuery);
-
-    if (hostAddress != null
-        && !hostAddress.primary
-        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      commands.add("SET SESSION TRANSACTION READ ONLY");
-    }
 
     if (conf.database() != null
         && conf.createDatabaseIfNotExist()
@@ -335,8 +645,6 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));
     }
-    if (context.getCharset() == null || !"utf8mb4".equals(context.getCharset()))
-      commands.add("SET NAMES utf8mb4");
 
     if (conf.initSql() != null) {
       commands.add(conf.initSql());
@@ -411,11 +719,10 @@ public class StandardClient implements Client, AutoCloseable {
   /**
    * Create session variable if configuration requires additional commands.
    *
-   * @param serverTz server timezone
    * @param context context
    * @return sql setting session command
    */
-  public String createSessionVariableQuery(String serverTz, Context context) {
+  public String createSessionVariableQuery(Context context) {
     List<String> sessionCommands = new ArrayList<>();
 
     // In JDBC, connection must start in autocommit mode
@@ -437,13 +744,22 @@ public class StandardClient implements Client, AutoCloseable {
           "autocommit=" + ((conf.autocommit() == null || conf.autocommit()) ? "1" : "0"));
     }
 
-    if (conf.returnMultiValuesGeneratedIds()
+    if (conf.jdbcCompliantTruncation()) {
+      sessionCommands.add("sql_mode=CONCAT(@@sql_mode,',STRICT_TRANS_TABLES')");
+    }
+
+    if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
         && ((context.getVersion().isMariaDBServer()
                 && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
             || context.getVersion().versionGreaterOrEqual(5, 7, 0))) {
+      String concatValues =
+          "," + (context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
+      if (conf.returnMultiValuesGeneratedIds()) concatValues += ",auto_increment_increment";
       sessionCommands.add(
           "session_track_system_variables ="
-              + " CONCAT(@@global.session_track_system_variables,',auto_increment_increment')");
+              + " CONCAT(@@global.session_track_system_variables,'"
+              + concatValues
+              + "')");
     }
 
     // add configured session variable if configured
@@ -452,28 +768,14 @@ public class StandardClient implements Client, AutoCloseable {
     }
 
     // force client timezone to connection to ensure result of now(), ...
-    if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
-      boolean mustSetTimezone = true;
-      TimeZone connectionTz =
-          "auto".equalsIgnoreCase(conf.timezone())
-              ? TimeZone.getDefault()
-              : TimeZone.getTimeZone(ZoneId.of(conf.timezone()).normalized());
-      ZoneId clientZoneId = connectionTz.toZoneId();
+    if (conf.forceConnectionTimeZoneToSession() == null || conf.forceConnectionTimeZoneToSession()) {
+      TimeZone connectionTz = context.getConnectionTimeZone();
+      ZoneId connectionZoneId = connectionTz.toZoneId();
 
       // try to avoid timezone consideration if server use the same one
-      try {
-        ZoneId serverZoneId = ZoneId.of(serverTz);
-        if (serverZoneId.normalized().equals(clientZoneId)
-            || ZoneId.of(serverTz, ZoneId.SHORT_IDS).equals(clientZoneId)) {
-          mustSetTimezone = false;
-        }
-      } catch (DateTimeException e) {
-        // eat
-      }
-
-      if (mustSetTimezone) {
-        if (clientZoneId.getRules().isFixedOffset()) {
-          ZoneOffset zoneOffset = clientZoneId.getRules().getOffset(Instant.now());
+      if (!connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
+        if (connectionZoneId.getRules().isFixedOffset()) {
+          ZoneOffset zoneOffset = connectionZoneId.getRules().getOffset(Instant.now());
           if (zoneOffset.getTotalSeconds() == 0) {
             // specific for UTC timezone, server permitting only SYSTEM/UTC offset or named time
             // zone
@@ -483,22 +785,30 @@ public class StandardClient implements Client, AutoCloseable {
             sessionCommands.add("time_zone='" + zoneOffset.getId() + "'");
           }
         } else {
-          sessionCommands.add("time_zone='" + clientZoneId.normalized() + "'");
+          sessionCommands.add("time_zone='" + connectionZoneId.normalized() + "'");
         }
       }
     }
 
     if (conf.transactionIsolation() != null) {
-      int major = context.getVersion().getMajorVersion();
-      if (!context.getVersion().isMariaDBServer()
-          && ((major >= 8 && context.getVersion().versionGreaterOrEqual(8, 0, 3))
-              || (major < 8 && context.getVersion().versionGreaterOrEqual(5, 7, 20)))) {
-        sessionCommands.add(
-            "@@session.transaction_isolation='" + conf.transactionIsolation().getValue() + "'");
-      } else {
-        sessionCommands.add(
-            "@@session.tx_isolation='" + conf.transactionIsolation().getValue() + "'");
-      }
+      sessionCommands.add(
+          String.format(
+              "@@session.%s='%s'",
+              context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation",
+              conf.transactionIsolation().getValue()));
+    }
+
+    if (hostAddress != null
+        && !hostAddress.primary
+        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+      sessionCommands.add(
+          String.format(
+              "@@session.%s=1",
+              context.canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only"));
+    }
+
+    if (context.getCharset() == null || !"utf8mb4".equals(context.getCharset())) {
+      sessionCommands.add("NAMES utf8mb4");
     }
     if (!sessionCommands.isEmpty()) {
       return "set " + sessionCommands.stream().collect(Collectors.joining(","));
@@ -925,7 +1235,8 @@ public class StandardClient implements Client, AutoCloseable {
               exceptionFactory,
               lock,
               traceEnable,
-              message);
+              message,
+              redirectConsumer);
       if (completion instanceof StreamingResult && !((StreamingResult) completion).loaded()) {
         streamStmt = stmt;
         streamMsg = message;
@@ -1005,8 +1316,7 @@ public class StandardClient implements Client, AutoCloseable {
       if (!lockStatus) {
         // lock not available : query is running
         // force end by executing an KILL connection
-        try (StandardClient cli =
-            new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
+        try (StandardClient cli = new StandardClient(conf, hostAddress, new ClosableLock(), true)) {
           cli.execute(new QueryPacket("KILL " + context.getThreadId()), false);
         } catch (SQLException e) {
           // eat

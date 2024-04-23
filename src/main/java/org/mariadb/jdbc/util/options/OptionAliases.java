@@ -17,5 +17,6 @@ public final class OptionAliases {
     OPTIONS_ALIASES.put("clientcertificatekeystoreurl", "keyStore");
     OPTIONS_ALIASES.put("clientcertificatekeystorepassword", "keyStorePassword");
     OPTIONS_ALIASES.put("clientcertificatekeystoretype", "keyStoreType");
+    OPTIONS_ALIASES.put("nullcatalogmeanscurrent", "nullDatabaseMeansCurrent");
   }
 }

@@ -8,8 +8,8 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -54,6 +54,7 @@ public interface RowDecoder {
    * @param fieldLength field length
    * @param metadataList metadatas
    * @param fieldIndex field index
+   * @param context connection context
    * @return default object according to metadata
    * @param <T> Codec default return type
    * @throws SQLException if any decoding error occurs
@@ -64,26 +65,27 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex)
+      MutableInt fieldIndex,
+      Context context)
       throws SQLException;
 
   /**
    * Decode data according to data type.
    *
-   * @param conf configuration
    * @param metadataList metadata list
    * @param fieldIndex field index
    * @param rowBuf row buffer
    * @param fieldLength field length
+   * @param context connection context
    * @return data
    * @throws SQLException if any decoding error occurs
    */
   Object defaultDecode(
-      Configuration conf,
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      MutableInt fieldLength,
+      Context context)
       throws SQLException;
 
   /**
@@ -136,7 +138,8 @@ public interface RowDecoder {
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
-      Calendar cal)
+      Calendar cal,
+      Context context)
       throws SQLException;
 
   /**
@@ -147,6 +150,7 @@ public interface RowDecoder {
    * @param rowBuf row buffer
    * @param fieldLength field length
    * @param cal calendar
+   * @param context connection context
    * @return data
    * @throws SQLException if data type cannot be decoded to Time value
    */
@@ -155,7 +159,8 @@ public interface RowDecoder {
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
-      Calendar cal)
+      Calendar cal,
+      Context context)
       throws SQLException;
 
   /**
@@ -166,6 +171,7 @@ public interface RowDecoder {
    * @param rowBuf row buffer
    * @param fieldLength field length
    * @param cal calendar
+   * @param context connection context
    * @return data
    * @throws SQLException if data type cannot be decoded to Timestamp value
    */
@@ -174,7 +180,8 @@ public interface RowDecoder {
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
-      Calendar cal)
+      Calendar cal,
+      Context context)
       throws SQLException;
 
   /**
@@ -218,6 +225,7 @@ public interface RowDecoder {
    * @param fieldIndex field index
    * @param rowBuf row buffer
    * @param fieldLength field length
+   * @param context connection Context
    * @return data
    * @throws SQLException if data type cannot be decoded to String value
    */
@@ -225,7 +233,8 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      MutableInt fieldLength,
+      Context context)
       throws SQLException;
 
   /**

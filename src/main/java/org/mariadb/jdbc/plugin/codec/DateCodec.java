@@ -49,24 +49,33 @@ public class DateCodec implements Codec<Date> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Date decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+  public Date decodeText(
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeDateText(buf, length, cal);
+    return column.decodeDateText(buf, length, cal, context);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
   public Date decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeDateBinary(buf, length, cal);
+    return column.decodeDateBinary(buf, length, cal, context);
   }
 
   @Override
   public void encodeText(
       Writer encoder, Context context, Object val, Calendar providedCal, Long maxLen)
       throws IOException {
-    Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
+    Calendar cal = providedCal == null ? context.getDefaultCalendar() : providedCal;
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
     sdf.setTimeZone(cal.getTimeZone());
     String dateString = sdf.format(val);
@@ -77,7 +86,8 @@ public class DateCodec implements Codec<Date> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
+  public void encodeBinary(
+      Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     if (providedCal == null) {
       Calendar cal = Calendar.getInstance();

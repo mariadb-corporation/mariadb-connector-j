@@ -3,12 +3,14 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import org.mariadb.jdbc.ServerPreparedStatement;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.Parameter;
@@ -24,9 +26,10 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
  */
 public final class BulkExecutePacket implements RedoableWithPrepareClientMessage {
   private final String command;
-  private final ServerPreparedStatement prep;
+  private final BasePreparedStatement prep;
   private List<Parameters> batchParameterList;
   private Prepare prepareResult;
+  private boolean mightBeBulkResult;
 
   /**
    * Constructor
@@ -40,7 +43,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
       Prepare prepareResult,
       List<Parameters> batchParameterList,
       String command,
-      ServerPreparedStatement prep) {
+      BasePreparedStatement prep) {
     this.batchParameterList = batchParameterList;
     this.prepareResult = prepareResult;
     this.command = command;
@@ -75,7 +78,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
     }
     byte[] lastCmdData = null;
     int bulkPacketNo = 0;
-
+    mightBeBulkResult = context.hasClientCapability(BULK_UNIT_RESULTS);
     // Implementation After writing a bunch of parameter to buffer is marked. then : - when writing
     // next bunch of parameter, if buffer grow more than max_allowed_packet, send buffer up to mark,
     // then create a new packet with current bunch of data - if a bunch of parameter data type
@@ -89,7 +92,9 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
       writer.initPacket();
       writer.writeByte(0xfa); // COM_STMT_BULK_EXECUTE
       writer.writeInt(statementId);
-      writer.writeShort((short) 128); // always SEND_TYPES_TO_SERVER
+      writer.writeShort(
+          (short)
+              (mightBeBulkResult ? 192 : 128)); // always SEND_TYPES_TO_SERVER + SEND_UNIT_RESULTS
 
       for (int i = 0; i < parameterCount; i++) {
         writer.writeShort((short) parameterHeaderType[i].getBinaryEncodeType());
@@ -117,7 +122,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
             writer.writeByte(0x01); // value is null
           } else {
             writer.writeByte(0x00); // value follow
-            param.encodeBinary(writer);
+            param.encodeBinary(writer, context);
           }
         }
 
@@ -180,6 +185,10 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
     return bulkPacketNo;
   }
 
+  public boolean mightBeBulkResult() {
+    return mightBeBulkResult;
+  }
+
   public int batchUpdateLength() {
     return batchParameterList.size();
   }
@@ -188,7 +197,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
     return command;
   }
 
-  public ServerPreparedStatement prep() {
+  public BasePreparedStatement prep() {
     return prep;
   }
 

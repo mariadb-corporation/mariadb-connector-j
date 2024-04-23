@@ -5,7 +5,7 @@ package org.mariadb.jdbc.client.impl;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.mariadb.jdbc.ServerPreparedStatement;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
@@ -43,7 +43,7 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
     return false;
   }
 
-  public synchronized Prepare get(String key, ServerPreparedStatement preparedStatement) {
+  public synchronized Prepare get(String key, BasePreparedStatement preparedStatement) {
     CachedPrepareResultPacket prepare = super.get(key);
     if (prepare != null && preparedStatement != null) {
       prepare.incrementUse(preparedStatement);
@@ -52,7 +52,7 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
   }
 
   public synchronized Prepare put(
-      String key, Prepare result, ServerPreparedStatement preparedStatement) {
+      String key, Prepare result, BasePreparedStatement preparedStatement) {
     CachedPrepareResultPacket cached = super.get(key);
 
     // if there is already some cached data, return existing cached data

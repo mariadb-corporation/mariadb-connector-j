@@ -39,7 +39,11 @@ public class StreamCodec implements Codec<InputStream> {
 
   @Override
   public InputStream decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
@@ -61,7 +65,11 @@ public class StreamCodec implements Codec<InputStream> {
 
   @Override
   public InputStream decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
@@ -111,7 +119,12 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     // length is not known
     byte[] blobBytes = new byte[4096];

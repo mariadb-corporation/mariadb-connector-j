@@ -55,22 +55,24 @@ public class IntCodec implements Codec<Integer> {
 
   @Override
   public Integer decodeText(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeIntText(buffer, length);
+    return column.decodeIntText(buf, length);
   }
 
   @Override
   public Integer decodeBinary(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeIntBinary(buffer, length);
+    return column.decodeIntBinary(buf, length);
   }
 
   @Override
@@ -80,7 +82,12 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeInt((Integer) value);
   }

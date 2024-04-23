@@ -8,6 +8,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
 public class JsonColumn extends StringColumn implements ColumnDecoder {
@@ -26,20 +27,28 @@ public class JsonColumn extends StringColumn implements ColumnDecoder {
    * @param extTypeFormat extended type format
    */
   public JsonColumn(
-      ReadableByteBuf buf,
-      int charset,
-      long length,
-      DataType dataType,
-      byte decimals,
-      int flags,
-      int[] stringPos,
-      String extTypeName,
-      String extTypeFormat) {
+      final ReadableByteBuf buf,
+      final int charset,
+      final long length,
+      final DataType dataType,
+      final byte decimals,
+      final int flags,
+      final int[] stringPos,
+      final String extTypeName,
+      final String extTypeFormat) {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
   protected JsonColumn(JsonColumn prev) {
     super(prev);
+  }
+  public int getDisplaySize() {
+    if (charset != 63) {
+      Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
+      if (maxWidth != null) return (int) (columnLength / maxWidth);
+      return (int) (columnLength / 4);
+    }
+    return (int) columnLength;
   }
 
   @Override
@@ -47,15 +56,15 @@ public class JsonColumn extends StringColumn implements ColumnDecoder {
     return new JsonColumn(this);
   }
 
-  public String defaultClassname(Configuration conf) {
+  public String defaultClassname(final Configuration conf) {
     return String.class.getName();
   }
 
-  public int getColumnType(Configuration conf) {
+  public int getColumnType(final Configuration conf) {
     return Types.LONGVARCHAR;
   }
 
-  public String getColumnTypeName(Configuration conf) {
+  public String getColumnTypeName(final Configuration conf) {
     return "JSON";
   }
 }

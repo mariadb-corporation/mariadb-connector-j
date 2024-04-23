@@ -59,13 +59,21 @@ public class BitSetCodec implements Codec<BitSet> {
 
   @Override
   public BitSet decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal) {
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context) {
     return parseBit(buf, length);
   }
 
   @Override
   public BitSet decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal) {
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal,
+      final Context context) {
     return parseBit(buf, length);
   }
 
@@ -74,7 +82,12 @@ public class BitSetCodec implements Codec<BitSet> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long length)
+  public void encodeText(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long length)
       throws IOException {
     byte[] bytes = ((BitSet) value).toByteArray();
     revertOrder(bytes);
@@ -88,7 +101,12 @@ public class BitSetCodec implements Codec<BitSet> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     byte[] bytes = ((BitSet) value).toByteArray();
     revertOrder(bytes);

@@ -118,7 +118,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
       for (int i = 0; i < parameterCount; i++) {
         Parameter p = parameters.get(i);
         if (!p.isNull() && !p.canEncodeLongData()) {
-          p.encodeBinary(writer);
+          p.encodeBinary(writer, context);
         }
       }
     }

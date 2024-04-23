@@ -55,22 +55,24 @@ public class LongCodec implements Codec<Long> {
 
   @Override
   public Long decodeText(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeLongText(buffer, length);
+    return column.decodeLongText(buf, length);
   }
 
   @Override
   public Long decodeBinary(
-      final ReadableByteBuf buffer,
+      final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return column.decodeLongBinary(buffer, length);
+    return column.decodeLongBinary(buf, length);
   }
 
   @Override
@@ -80,7 +82,12 @@ public class LongCodec implements Codec<Long> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      final Writer encoder,
+      final Context context,
+      final Object value,
+      final Calendar cal,
+      final Long maxLength)
       throws IOException {
     encoder.writeLong((Long) value);
   }

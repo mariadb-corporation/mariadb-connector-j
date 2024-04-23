@@ -9,6 +9,7 @@ import java.sql.*;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
@@ -32,15 +33,15 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
    * @param extTypeFormat extended type format
    */
   public BigDecimalColumn(
-      ReadableByteBuf buf,
-      int charset,
-      long length,
-      DataType dataType,
-      byte decimals,
-      int flags,
-      int[] stringPos,
-      String extTypeName,
-      String extTypeFormat) {
+      final ReadableByteBuf buf,
+      final int charset,
+      final long length,
+      final DataType dataType,
+      final byte decimals,
+      final int flags,
+      final int[] stringPos,
+      final String extTypeName,
+      final String extTypeFormat) {
     super(
         buf,
         charset,
@@ -63,15 +64,15 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
     return new BigDecimalColumn(this);
   }
 
-  public String defaultClassname(Configuration conf) {
+  public String defaultClassname(final Configuration conf) {
     return BigDecimal.class.getName();
   }
 
-  public int getColumnType(Configuration conf) {
+  public int getColumnType(final Configuration conf) {
     return Types.DECIMAL;
   }
 
-  public String getColumnTypeName(Configuration conf) {
+  public String getColumnTypeName(final Configuration conf) {
     if (isSigned()) return "DECIMAL";
     return "DECIMAL UNSIGNED";
   }
@@ -89,30 +90,34 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   @Override
-  public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, MutableInt length)
+  public Object getDefaultText(
+      final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
     return new BigDecimal(buf.readAscii(length.get()));
   }
 
   @Override
-  public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, MutableInt length)
+  public Object getDefaultBinary(
+      final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
     return new BigDecimal(buf.readAscii(length.get()));
   }
 
   @Override
-  public boolean decodeBooleanText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public boolean decodeBooleanText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     return new BigDecimal(buf.readAscii(length.get())).intValue() != 0;
   }
 
   @Override
-  public boolean decodeBooleanBinary(ReadableByteBuf buf, MutableInt length)
+  public boolean decodeBooleanBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
     return decodeBooleanText(buf, length);
   }
 
   @Override
-  public byte decodeByteText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public byte decodeByteText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     String str = buf.readString(length.get());
     try {
       return new BigDecimal(str).setScale(0, RoundingMode.DOWN).byteValueExact();
@@ -123,24 +128,28 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   @Override
-  public byte decodeByteBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public byte decodeByteBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     return decodeByteText(buf, length);
   }
 
   @Override
-  public String decodeStringText(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public String decodeStringText(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
     return buf.readString(length.get());
   }
 
   @Override
-  public String decodeStringBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public String decodeStringBinary(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
     return buf.readString(length.get());
   }
 
   @Override
-  public short decodeShortText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public short decodeShortText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     long result;
     String str = buf.readString(length.get());
     try {
@@ -155,12 +164,14 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   @Override
-  public short decodeShortBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public short decodeShortBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     return decodeShortText(buf, length);
   }
 
   @Override
-  public int decodeIntText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public int decodeIntText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     long result;
     String str = buf.readString(length.get());
     try {
@@ -176,12 +187,14 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   @Override
-  public int decodeIntBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public int decodeIntBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     return decodeIntText(buf, length);
   }
 
   @Override
-  public long decodeLongText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public long decodeLongText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     String str2 = buf.readAscii(length.get());
     try {
       return new BigDecimal(str2).setScale(0, RoundingMode.DOWN).longValueExact();
@@ -191,7 +204,8 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   @Override
-  public long decodeLongBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public long decodeLongBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     String str = buf.readString(length.get());
     try {
       return new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
@@ -201,55 +215,64 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   @Override
-  public float decodeFloatText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public float decodeFloatText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     return Float.parseFloat(buf.readAscii(length.get()));
   }
 
   @Override
-  public float decodeFloatBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     return new BigDecimal(buf.readAscii(length.get())).floatValue();
   }
 
   @Override
-  public double decodeDoubleText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public double decodeDoubleText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     return Double.parseDouble(buf.readAscii(length.get()));
   }
 
   @Override
-  public double decodeDoubleBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+  public double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException {
     return new BigDecimal(buf.readAscii(length.get())).doubleValue();
   }
 
   @Override
-  public Date decodeDateText(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public Date decodeDateText(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
 
   @Override
-  public Date decodeDateBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public Date decodeDateBinary(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
 
   @Override
-  public Time decodeTimeText(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public Time decodeTimeText(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
 
   @Override
-  public Time decodeTimeBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public Time decodeTimeBinary(
+      final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
 
   @Override
-  public Timestamp decodeTimestampText(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public Timestamp decodeTimestampText(
+      final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
       throws SQLDataException {
     buf.skip(length.get());
     throw new SQLDataException(
@@ -257,7 +280,8 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   @Override
-  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
+  public Timestamp decodeTimestampBinary(
+      final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
       throws SQLDataException {
     buf.skip(length.get());
     throw new SQLDataException(

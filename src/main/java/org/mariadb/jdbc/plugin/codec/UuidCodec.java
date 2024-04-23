@@ -41,18 +41,20 @@ public class UuidCodec implements Codec<UUID> {
       final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return UUID.fromString(column.decodeStringText(buf, length, cal));
+    return UUID.fromString(column.decodeStringText(buf, length, cal, context));
   }
 
   public UUID decodeBinary(
       final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
-      final Calendar cal)
+      final Calendar cal,
+      final Context context)
       throws SQLDataException {
-    return UUID.fromString(column.decodeStringBinary(buf, length, cal));
+    return UUID.fromString(column.decodeStringBinary(buf, length, cal, context));
   }
 
   public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
@@ -62,7 +64,8 @@ public class UuidCodec implements Codec<UUID> {
     encoder.writeByte('\'');
   }
 
-  public void encodeBinary(Writer writer, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      Writer writer, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     String valueSt = value.toString();
     writer.writeLength(valueSt.length());

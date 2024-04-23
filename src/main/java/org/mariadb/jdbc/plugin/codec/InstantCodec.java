@@ -48,20 +48,28 @@ public class InstantCodec implements Codec<Instant> {
 
   @Override
   public Instant decodeText(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam,
+      final Context context)
       throws SQLDataException {
     LocalDateTime localDateTime =
-        LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam);
+        LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam, context);
     if (localDateTime == null) return null;
     return localDateTime.atZone(ZoneId.systemDefault()).toInstant();
   }
 
   @Override
   public Instant decodeBinary(
-      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam,
+      final Context context)
       throws SQLDataException {
     LocalDateTime localDateTime =
-        LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam);
+        LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam, context);
     if (localDateTime == null) return null;
     return localDateTime.atZone(ZoneId.systemDefault()).toInstant();
   }
@@ -92,7 +100,8 @@ public class InstantCodec implements Codec<Instant> {
   }
 
   @Override
-  public void encodeBinary(Writer encoder, Object value, Calendar calParam, Long maxLength)
+  public void encodeBinary(
+      Writer encoder, Context context, Object value, Calendar calParam, Long maxLength)
       throws IOException {
     Instant instant = (Instant) value;
     ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault());

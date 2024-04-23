@@ -15,19 +15,22 @@ public final class ClientParser implements PrepareResult {
   private final int paramCount;
   private final boolean isInsert;
   private final boolean isInsertDuplicate;
+  private final boolean isMultiQuery;
 
   private ClientParser(
       String sql,
       byte[] query,
       List<Integer> paramPositions,
       boolean isInsert,
-      boolean isInsertDuplicate) {
+      boolean isInsertDuplicate,
+      boolean isMultiQuery) {
     this.sql = sql;
     this.query = query;
     this.paramPositions = paramPositions;
     this.paramCount = paramPositions.size();
     this.isInsert = isInsert;
     this.isInsertDuplicate = isInsertDuplicate;
+    this.isMultiQuery = isMultiQuery;
   }
 
   /**
@@ -50,6 +53,7 @@ public final class ClientParser implements PrepareResult {
     boolean singleQuotes = false;
     boolean isInsert = false;
     boolean isInsertDupplicate = false;
+    int multiQueryIdx = -1;
     byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
     for (int i = 0; i < queryLength; i++) {
@@ -73,6 +77,12 @@ public final class ClientParser implements PrepareResult {
             state = LexState.Normal;
           } else if (state == LexState.Normal && lastChar == (byte) '/') {
             state = LexState.EOLComment;
+          }
+          break;
+
+        case (byte) ';':
+          if (state == LexState.Normal && multiQueryIdx == -1) {
+            multiQueryIdx = i;
           }
           break;
 
@@ -183,8 +193,10 @@ public final class ClientParser implements PrepareResult {
       }
       lastChar = car;
     }
-
-    return new ClientParser(queryString, query, paramPositions, isInsert, isInsertDupplicate);
+    // multi contains ";" not finishing statement.
+    boolean isMulti = multiQueryIdx != -1 && multiQueryIdx < queryLength - 1;
+    return new ClientParser(
+        queryString, query, paramPositions, isInsert, isInsertDupplicate, isMulti);
   }
 
   public String getSql() {
@@ -209,6 +221,10 @@ public final class ClientParser implements PrepareResult {
 
   public boolean isInsertDuplicate() {
     return isInsertDuplicate;
+  }
+
+  public boolean isMultiQuery() {
+    return isMultiQuery;
   }
 
   enum LexState {
