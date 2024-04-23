@@ -1034,7 +1034,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     + " DEFERRABILITY"
                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-                    + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+                    + " ON KCU.CONSTRAINT_CATALOG = RC.CONSTRAINT_CATALOG"
+                    + " AND KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schema;
     boolean firstCondition =
@@ -1089,7 +1090,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     + " DEFERRABILITY"
                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-                    + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+                    + " ON KCU.CONSTRAINT_CATALOG = RC.CONSTRAINT_CATALOG"
+                    + " AND KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME ");
 
     boolean firstCondition = databaseCond(true, sb, "KCU.TABLE_SCHEMA", database, false);
@@ -2691,7 +2693,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     + " DEFERRABILITY "
                     + "FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-                    + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
+                    + " ON KCU.CONSTRAINT_CATALOG = RC.CONSTRAINT_CATALOG"
+                    + " AND KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
                     + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME ");
     String parentDatabase =
         conf.useCatalogTerm() == CatalogTerm.UseCatalog ? parentCatalog : parentSchema;
