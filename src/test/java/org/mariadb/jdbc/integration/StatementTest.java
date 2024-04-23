@@ -1290,9 +1290,6 @@ public class StatementTest extends Common {
       prep.setInt(1, 5);
       prep.setString(2, "t55");
       prep.addBatch();
-      prep.setInt(1, 6);
-      prep.setString(2, "t6");
-      prep.addBatch();
       prep.setNull(1, Types.INTEGER);
       prep.setString(2, "t7");
       prep.addBatch();
@@ -1301,8 +1298,6 @@ public class StatementTest extends Common {
       rs = prep.getGeneratedKeys();
       assertTrue(rs.next());
       assertEquals(6, rs.getInt(1));
-      assertTrue(rs.next());
-      assertEquals(7, rs.getInt(1));
       assertFalse(rs.next());
     }
 
@@ -1313,7 +1308,7 @@ public class StatementTest extends Common {
       prep.setInt(1, 5);
       prep.setString(2, "t55");
       prep.addBatch();
-      prep.setInt(1, 8);
+      prep.setNull(1, Types.INTEGER);
       prep.setString(2, "t8");
       prep.addBatch();
       prep.setNull(1, Types.INTEGER);
@@ -1323,9 +1318,9 @@ public class StatementTest extends Common {
 
       rs = prep.getGeneratedKeys();
       assertTrue(rs.next());
-      assertEquals(8, rs.getInt(1));
+      assertEquals(7, rs.getInt(1));
       assertTrue(rs.next());
-      assertEquals(9, rs.getInt(1));
+      assertEquals(8, rs.getInt(1));
       assertFalse(rs.next());
     }
   }

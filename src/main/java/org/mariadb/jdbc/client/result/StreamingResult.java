@@ -98,6 +98,13 @@ public class StreamingResult extends Result {
     return true;
   }
 
+  @Override
+  public boolean isBulkResult() {
+    return false;
+  }
+
+  public void setBulkResult() {}
+
   /**
    * This permit to replace current stream results by next ones.
    *

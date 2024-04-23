@@ -78,7 +78,8 @@ public class UpdatableResult extends CompleteResult {
         context,
         resultSetType,
         closeOnCompletion,
-        traceEnable);
+        traceEnable,
+        false);
     checkIfUpdatable();
     parameters = new ParameterList(metadataList.length);
   }

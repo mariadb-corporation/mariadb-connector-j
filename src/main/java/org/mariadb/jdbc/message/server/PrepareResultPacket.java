@@ -5,7 +5,7 @@ package org.mariadb.jdbc.message.server;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.ServerPreparedStatement;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -120,7 +120,7 @@ public class PrepareResultPacket implements Completion, Prepare {
    * @param preparedStatement current prepared statement that was using prepare object
    * @throws SQLException if exception occurs
    */
-  public void decrementUse(Client con, ServerPreparedStatement preparedStatement)
+  public void decrementUse(Client con, BasePreparedStatement preparedStatement)
       throws SQLException {
     close(con);
   }

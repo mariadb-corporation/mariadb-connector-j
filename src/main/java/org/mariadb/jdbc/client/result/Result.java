@@ -226,6 +226,7 @@ public abstract class Result implements ResultSet, Completion {
             warnings = readBuf.readUnsignedShort();
           }
           outputParameter = (serverStatus & ServerStatus.PS_OUT_PARAMETERS) != 0;
+          if ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) == 0) setBulkResult();
           context.setServerStatus(serverStatus);
           context.setWarning(warnings);
           loaded = true;
@@ -242,6 +243,8 @@ public abstract class Result implements ResultSet, Completion {
     }
     return true;
   }
+
+  public abstract void setBulkResult();
 
   public void closeOnCompletion() throws SQLException {
     this.closeOnCompletion = true;
@@ -316,6 +319,13 @@ public abstract class Result implements ResultSet, Completion {
    * @return if streaming result-set
    */
   public abstract boolean streaming();
+
+  /**
+   * Indicate if result-set is a bulk unitary result
+   *
+   * @return true if unitary result-set
+   */
+  public abstract boolean isBulkResult();
 
   /**
    * Fetch remaining results.

@@ -335,7 +335,8 @@ public interface ClientMessage {
               context,
               resultSetType,
               closeOnCompletion,
-              traceEnable);
+              traceEnable,
+              mightBeBulkResult());
         }
     }
   }
@@ -347,6 +348,10 @@ public interface ClientMessage {
    */
   default InputStream getLocalInfileInputStream() {
     return null;
+  }
+
+  default boolean mightBeBulkResult() {
+    return false;
   }
 
   /**

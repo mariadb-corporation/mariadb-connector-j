@@ -155,6 +155,11 @@ public final class ConnectionHelper {
             | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
             | Capabilities.CLIENT_SESSION_TRACK;
 
+    if (Boolean.parseBoolean(
+        configuration.nonMappedOptions().getProperty("enableBulkUnitResult", "true"))) {
+      capabilities |= Capabilities.BULK_UNIT_RESULTS;
+    }
+
     // since skipping metadata is only available when using binary protocol,
     // only set it when server permit it and using binary protocol
     if (configuration.useServerPrepStmts()

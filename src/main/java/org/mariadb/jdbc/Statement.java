@@ -61,8 +61,6 @@ public class Statement implements java.sql.Statement {
   /** connection */
   protected final Connection con;
 
-  protected Boolean isInsertDuplicate = null;
-
   /** required query timeout */
   protected int queryTimeout;
 
@@ -96,6 +94,8 @@ public class Statement implements java.sql.Statement {
   protected InputStream localInfileInputStream;
 
   private List<String> batchQueries;
+
+  protected ClientParser clientParser = null;
 
   /**
    * Constructor
@@ -906,8 +906,11 @@ public class Statement implements java.sql.Statement {
     }
 
     List<String[]> insertIds = new ArrayList<>();
+    if (con.getContext().getConf().returnMultiValuesGeneratedIds())
+      parseCommandIfNeeded(getLastSql());
     if (con.getContext().getConf().returnMultiValuesGeneratedIds()
-        && !checkIfInsertDuplicateCommand(getLastSql())) {
+        && clientParser != null
+        && !clientParser.isInsertDuplicate()) {
       // For compatibility with 2.x connector
       long autoIncrement = con.getContext().getAutoIncrement();
       if (currResult instanceof OkPacket) {
@@ -962,18 +965,12 @@ public class Statement implements java.sql.Statement {
         resultSetType);
   }
 
-  protected boolean checkIfInsertDuplicateCommand(String sql) {
-    if (isInsertDuplicate == null) {
-      if (sql == null) {
-        isInsertDuplicate = false;
-      } else {
-        ClientParser parser =
-            ClientParser.parameterParts(
-                sql, (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0);
-        isInsertDuplicate = parser.isInsertDuplicate();
-      }
+  protected void parseCommandIfNeeded(String sql) {
+    if (clientParser == null && sql != null) {
+      clientParser =
+          ClientParser.parameterParts(
+              sql, (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0);
     }
-    return isInsertDuplicate;
   }
 
   /**

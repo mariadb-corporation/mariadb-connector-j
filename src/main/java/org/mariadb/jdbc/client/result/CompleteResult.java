@@ -22,6 +22,9 @@ public class CompleteResult extends Result {
   /** before first row position = initial position */
   protected static final int BEFORE_FIRST_POS = -1;
 
+  private boolean bulkResult;
+  private boolean mightBeBulkResult;
+
   /**
    * Constructor from exchanges
    *
@@ -34,6 +37,7 @@ public class CompleteResult extends Result {
    * @param resultSetType result set type
    * @param closeOnCompletion close statement on completion
    * @param traceEnable network trace exchange possible
+   * @param mightBeBulkResult might be a bulk unitary result
    * @throws IOException if Socket error occurs
    * @throws SQLException for all other kind of errors
    */
@@ -47,9 +51,9 @@ public class CompleteResult extends Result {
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
-      boolean traceEnable)
+      boolean traceEnable,
+      boolean mightBeBulkResult)
       throws IOException, SQLException {
-
     super(
         stmt,
         binaryProtocol,
@@ -62,6 +66,8 @@ public class CompleteResult extends Result {
         traceEnable,
         false,
         0);
+    this.mightBeBulkResult = mightBeBulkResult;
+
     this.data = new byte[10][];
     if (maxRows > 0) {
       this.data = new byte[10][];
@@ -96,6 +102,10 @@ public class CompleteResult extends Result {
         }
       }
     }
+  }
+
+  public void setBulkResult() {
+    if (mightBeBulkResult) bulkResult = true;
   }
 
   private CompleteResult(ColumnDecoder[] metadataList, CompleteResult prev) {
@@ -224,6 +234,11 @@ public class CompleteResult extends Result {
   @Override
   public boolean streaming() {
     return false;
+  }
+
+  @Override
+  public boolean isBulkResult() {
+    return bulkResult;
   }
 
   @Override

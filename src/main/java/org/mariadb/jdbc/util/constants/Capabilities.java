@@ -98,4 +98,7 @@ public final class Capabilities {
 
   /** permit metadata caching */
   public static final long CACHE_METADATA = 1L << 36;
+
+  /** permit returning all bulk individual results */
+  public static final long BULK_UNIT_RESULTS = 1L << 37;
 }

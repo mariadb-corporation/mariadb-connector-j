@@ -249,6 +249,12 @@ public class BatchTest extends Common {
 
   @Test
   public void differentParameterType() throws SQLException {
+    boolean expectUnknown =
+        isMariaDBServer()
+            && !isXpand()
+            && ("mariadb-es".equals(System.getenv("srv"))
+                || "mariadb-es-test".equals(System.getenv("srv"))
+                || !minVersion(11, 5, 0));
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false);
     }
@@ -257,12 +263,12 @@ public class BatchTest extends Common {
     }
     try (Connection con =
         createCon("&useServerPrepStmts=false&useBulkStmts&useBulkStmtsForInserts")) {
-      differentParameterType(con, isMariaDBServer() && !isXpand());
+      differentParameterType(con, expectUnknown);
     }
     try (Connection con =
         createCon(
             "&useServerPrepStmts=false&useBulkStmtsForInserts&useBulkStmts&disablePipeline")) {
-      differentParameterType(con, isMariaDBServer() && !isXpand());
+      differentParameterType(con, expectUnknown);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false);
@@ -277,10 +283,10 @@ public class BatchTest extends Common {
     try (Connection con =
         createCon(
             "&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
-      differentParameterType(con, isMariaDBServer() && !isXpand());
+      differentParameterType(con, expectUnknown);
     }
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts&allowLocalInfile")) {
-      differentParameterType(con, isMariaDBServer() && !isXpand());
+      differentParameterType(con, expectUnknown);
     }
     try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
       differentParameterType(con, false);
@@ -292,12 +298,12 @@ public class BatchTest extends Common {
       differentParameterType(con, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts")) {
-      differentParameterType(con, isMariaDBServer() && !isXpand());
+      differentParameterType(con, expectUnknown);
     }
     try (Connection con =
         createCon(
             "&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
-      differentParameterType(con, isMariaDBServer() && !isXpand());
+      differentParameterType(con, expectUnknown);
     }
     try (Connection con =
         createCon("&useServerPrepStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
@@ -457,13 +463,8 @@ public class BatchTest extends Common {
       prep.addBatch();
       int[] res = prep.executeBatch();
       assertEquals(2, res.length);
-      if (expectSuccessUnknown) {
-        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
-        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
-      } else {
-        assertEquals(1, res[0]);
-        assertEquals(2, res[1]);
-      }
+      assertEquals(1, res[0]);
+      assertEquals(2, res[1]);
     }
     rs = stmt.executeQuery("SELECT * FROM BatchTest");
     assertTrue(rs.next());
