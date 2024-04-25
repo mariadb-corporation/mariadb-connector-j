@@ -8,7 +8,6 @@ import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.message.ServerMessage;
-import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
 /** Column metadata definition */

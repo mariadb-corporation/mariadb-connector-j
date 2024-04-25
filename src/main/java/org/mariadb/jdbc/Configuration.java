@@ -783,7 +783,7 @@ public class Configuration {
             if (database.isEmpty()) database = null;
           }
           String urlParameters = additionalParameters.substring(optIndex + 1);
-          if (urlParameters != null && !urlParameters.isEmpty()) {
+          if (!urlParameters.isEmpty()) {
             String[] parameters = urlParameters.split("&");
             for (String parameter : parameters) {
               int pos = parameter.indexOf('=');
@@ -975,11 +975,10 @@ public class Configuration {
         if (!propertyToSkip.contains(field.getName())) {
           Object fieldValue = field.get(conf);
           if (fieldValue == null) {
-            (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+            (field.get(defaultConf) == null ? sbDefaultOpts : sbDifferentOpts)
                 .append("\n * ")
                 .append(field.getName())
-                .append(" : ")
-                .append(fieldValue);
+                .append(" : null");
           } else {
             if (field.getName().equals("haMode")) {
               (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)

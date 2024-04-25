@@ -403,12 +403,8 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       final LocalDateTime ldt, final Calendar calParam, final Context context) {
     if (calParam == null) {
       if (context.getConf().preserveInstants()) {
-        ZonedDateTime zdt = ldt.atZone(context.getConnectionTimeZone().toZoneId());
-        ZonedDateTime zdt2 =
-            zdt.withZoneSameInstant(
-                (calParam == null ? TimeZone.getDefault() : calParam.getTimeZone()).toZoneId());
-        LocalDateTime sss = zdt2.toLocalDateTime();
-        return zdt2;
+        return ldt.atZone(context.getConnectionTimeZone().toZoneId())
+            .withZoneSameInstant(TimeZone.getDefault().toZoneId());
       }
       return ldt.atZone(TimeZone.getDefault().toZoneId());
     }

@@ -180,6 +180,7 @@ public class Common {
           try {
             stmt.execute("INSTALL SONAME 'ha_blackhole'");
           } catch (SQLException e) {
+            // eat
           }
 
           String createTable =

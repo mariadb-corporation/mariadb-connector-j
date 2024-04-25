@@ -42,6 +42,7 @@ public class JsonColumn extends StringColumn implements ColumnDecoder {
   protected JsonColumn(JsonColumn prev) {
     super(prev);
   }
+
   public int getDisplaySize() {
     if (charset != 63) {
       Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);

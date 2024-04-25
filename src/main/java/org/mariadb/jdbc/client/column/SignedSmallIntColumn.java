@@ -55,6 +55,7 @@ public class SignedSmallIntColumn extends ColumnDefinitionPacket implements Colu
   protected SignedSmallIntColumn(SignedSmallIntColumn prev) {
     super(prev, true);
   }
+
   public int getPrecision() {
     // UNSIGNED SMALLINT :          0..65535 digits=5 nchars=5
     // SIGNED SMALLINT   :   -32768..32767   digits=5 nchars=6

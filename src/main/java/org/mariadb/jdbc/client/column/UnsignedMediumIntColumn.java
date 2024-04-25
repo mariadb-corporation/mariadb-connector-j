@@ -12,7 +12,6 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
-import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
 public class UnsignedMediumIntColumn extends ColumnDefinitionPacket implements ColumnDecoder {

@@ -1654,7 +1654,7 @@ public abstract class Result implements ResultSet, Completion {
     fieldLength.set(
         rowDecoder.setPosition(
             columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    Calendar calendar = null;
+
     if (wasNull()) {
       if (type.isPrimitive()) {
         throw new SQLException(
@@ -1672,7 +1672,7 @@ public abstract class Result implements ResultSet, Completion {
     for (Codec<?> codec : conf.codecs()) {
       if (codec.canDecode(column, type)) {
         return rowDecoder.decode(
-            (Codec<T>) codec, calendar, rowBuf, fieldLength, metadataList, fieldIndex, context);
+            (Codec<T>) codec, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
       }
     }
     rowBuf.skip(fieldLength.get());
