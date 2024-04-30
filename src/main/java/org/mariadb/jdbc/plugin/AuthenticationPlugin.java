@@ -61,4 +61,10 @@ public interface AuthenticationPlugin {
   default byte[] hash(Credential credential) {
     return null;
   }
+
+  /**
+   * Authentication plugin required SSL to be used
+   * @return true if SSL is required
+   */
+  default boolean requireSsl() { return false; }
 }

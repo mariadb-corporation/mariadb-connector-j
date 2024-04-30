@@ -5,6 +5,7 @@ package org.mariadb.jdbc.client.impl;
 
 import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslCipherSuites;
 import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslProtocolSuites;
+import static org.mariadb.jdbc.util.constants.Capabilities.SSL;
 
 import java.io.*;
 import java.net.Socket;
@@ -282,6 +283,13 @@ public class StandardClient implements Client, AutoCloseable {
           // *************************************************************************************
           AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf);
           authPlugin = AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
+          if (authPlugin.requireSsl() && !context.hasClientCapability(SSL)) {
+            throw context
+                    .getExceptionFactory()
+                    .create(
+                            "Cannot use authentication plugin " + authPlugin.type() + " if SSL is not enabled.",
+                            "08000");
+          }
 
           authPlugin.initialize(credential.getPassword(), authSwitchPacket.getSeed(), conf);
           buf = authPlugin.process(writer, reader, context);
