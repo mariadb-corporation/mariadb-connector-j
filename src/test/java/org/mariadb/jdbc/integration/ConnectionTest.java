@@ -799,20 +799,33 @@ public class ConnectionTest extends Common {
         String.format(
             "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
             hostname, testPort, database, pamUser, pamPwd, defaultOther);
-    try {
-      try (Connection connection =
-          DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
-        // must have succeeded
-        connection.getCatalog();
-      }
-    } catch (SQLException e) {
-      System.err.println(
-          "fail with connectionString : "
-              + connStr
-              + "&restrictedAuth=dialog,mysql_clear_password");
-      throw e;
-    }
+    if ("1".equals(System.getenv("CLEAR_TEXT"))) {
+      // mysql_clear_password is not permit if not using SSL
+      assertThrowsContains(SQLException.class, () -> DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password"), "Cannot use authentication plugin mysql_clear_password if SSL is not enabled");
+    } else {
+      try {
+        try (Connection connection =
+            DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
+          // must have succeeded
+          connection.getCatalog();
+        }
+      } catch (SQLException e) {
 
+      }
+      try {
+        try (Connection connection =
+            DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
+          // must have succeeded
+          connection.getCatalog();
+        }
+      } catch (SQLException e) {
+        System.err.println(
+            "fail with connectionString : "
+                + connStr
+                + "&restrictedAuth=dialog,mysql_clear_password");
+        throw e;
+      }
+    }
     Common.assertThrowsContains(
         SQLException.class,
         () -> DriverManager.getConnection(connStr + "&restrictedAuth=other"),
