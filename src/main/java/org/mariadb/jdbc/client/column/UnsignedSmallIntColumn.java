@@ -71,7 +71,7 @@ public class UnsignedSmallIntColumn extends ColumnDefinitionPacket implements Co
   }
 
   public int getColumnType(final Configuration conf) {
-    return Types.INTEGER;
+    return Types.SMALLINT;
   }
 
   public String getColumnTypeName(final Configuration conf) {
