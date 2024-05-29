@@ -536,7 +536,7 @@ public class Configuration {
     if (registerJmxPool != null) this.registerJmxPool = registerJmxPool;
     if (poolValidMinDelay != null) this.poolValidMinDelay = poolValidMinDelay;
     if (useResetConnection != null) this.useResetConnection = useResetConnection;
-    if (serverRsaPublicKeyFile != null) this.serverRsaPublicKeyFile = serverRsaPublicKeyFile;
+    if (serverRsaPublicKeyFile != null) this.serverRsaPublicKeyFile = serverRsaPublicKeyFile.isEmpty() ? null : serverRsaPublicKeyFile;
     if (allowPublicKeyRetrieval != null) this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
     if (useReadAheadInput != null) this.useReadAheadInput = useReadAheadInput;
     if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;

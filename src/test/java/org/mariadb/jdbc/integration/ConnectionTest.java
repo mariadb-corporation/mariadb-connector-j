@@ -1077,6 +1077,7 @@ public class ConnectionTest extends Common {
   public void sslNotSet() throws SQLException {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 4, 0));
     Assumptions.assumeFalse(haveSsl());
     Common.assertThrowsContains(
         SQLException.class, () -> createCon("sslMode=trust"), "ssl not enabled in the server");

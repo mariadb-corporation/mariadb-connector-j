@@ -71,23 +71,21 @@ public class Common {
       } catch (NumberFormatException | NullPointerException e) {
         // eat
       }
-      if (srv == null) {
-        try (Connection c = (Connection) DriverManager.getConnection(mDefUrl + "&allowPublicKeyRetrieval=true")) {
-          DatabaseMetaData meta = c.getMetaData();
-          if ("MySQL".equals(meta.getDatabaseProductName()) && meta.getDatabaseProductVersion().substring(0,3).compareTo("8.4") >= 0) {
-            // choose to use allowPublicKeyRetrieval=true for testing
-            //            Statement stmt = c.createStatement();
-            //            ResultSet rs = stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
-            //            if (rs.next()) {
-            //              mDefUrl += "&serverRsaPublicKeyFile=" + rs.getString(2);
-            //            }
-            mDefUrl += "&allowPublicKeyRetrieval=true";
+      try (Connection c = (Connection) DriverManager.getConnection(mDefUrl + "&allowPublicKeyRetrieval=true")) {
+        DatabaseMetaData meta = c.getMetaData();
+        if ("MySQL".equals(meta.getDatabaseProductName()) && meta.getDatabaseProductVersion().substring(0,3).compareTo("8.4") >= 0) {
+          // choose to use allowPublicKeyRetrieval=true for testing
+          Statement stmt = c.createStatement();
+          ResultSet rs = stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
+          if (rs.next()) {
+            mDefUrl += "&serverRsaPublicKeyFile=" + rs.getString(2);
           }
-        } catch (SQLException e) {
-          // eat
-          e.printStackTrace();
+          //mDefUrl += "&allowPublicKeyRetrieval=true";
         }
-      } else if ("mysql".equals(srv) && versionInt > 8.4) mDefUrl += "&allowPublicKeyRetrieval=true";
+      } catch (SQLException e) {
+        // eat
+        e.printStackTrace();
+      }
 
     } catch (IOException io) {
       io.printStackTrace();
