@@ -70,7 +70,7 @@ public class UnsignedTinyIntColumn extends ColumnDefinitionPacket implements Col
     if (conf.tinyInt1isBit() && columnLength == 1) {
       return conf.transformedBitIsBoolean() ? Types.BOOLEAN : Types.BIT;
     }
-    return Types.SMALLINT;
+    return Types.TINYINT;
   }
 
   public String getColumnTypeName(final Configuration conf) {

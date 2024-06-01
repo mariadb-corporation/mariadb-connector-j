@@ -66,7 +66,7 @@ public class UnsignedIntColumn extends ColumnDefinitionPacket implements ColumnD
   }
 
   public int getColumnType(final Configuration conf) {
-    return Types.BIGINT;
+    return Types.INTEGER;
   }
 
   public String getColumnTypeName(final Configuration conf) {
