@@ -19,17 +19,21 @@ import: mariadb-corporation/connector-test-machine:common-build.yml@master
 jobs:
   include:
     - stage: Language
-      env: srv=mariadb v=10.6 packet=40 PROFILE=java8
+      env: srv=mariadb v=11.4 packet=40 PROFILE=java8
       jdk: openjdk8
-      name: "CS 10.6 - openjdk 8"
+      name: "CS 11.4 - openjdk 8"
     - stage: Language
-      env: srv=mariadb v=10.6 packet=8
+      env: srv=mariadb v=11.4 packet=8
       jdk: openjdk11
-      name: "CS 10.6 - openjdk 11 - packet 8M"
+      name: "CS 11.4 - openjdk 11 - packet 8M"
     - stage: Language
-      env: srv=mariadb v=10.6 packet=40
+      env: srv=mariadb v=11.4 packet=40
       jdk: openjdk17
-      name: "CS 10.6 - openjdk 17 - packet 40M"
+      name: "CS 11.4 - openjdk 17 - packet 40M"
+    - stage: Language
+      env: srv=mariadb v=11.4
+      jdk: openjdk21
+      name: "CS 11.4 - openjdk 21"
     - stage: Benchmarks
       env: srv=mariadb v=10.6 local=1 BENCH=1
       name: "Benchmarks"
