@@ -101,8 +101,8 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
     } else {
       if (columnLength < 0) {
         return "LONGTEXT";
-      } else if (getDisplaySize() <= 65532) {
-        return "VARCHAR";
+      } else if (getDisplaySize() <= 255) {
+        return "TINYTEXT";
       } else if (getDisplaySize() <= 65535) {
         return "TEXT";
       } else if (getDisplaySize() <= 16777215) {

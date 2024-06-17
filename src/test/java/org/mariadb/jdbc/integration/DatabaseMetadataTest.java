@@ -2753,7 +2753,7 @@ public class DatabaseMetadataTest extends Common {
             "varchar100 12 VARCHAR 100",
             "varchar255 12 VARCHAR 255",
             "text 12 TEXT 65535",
-            "tinytext 12 VARCHAR 255",
+            "tinytext 12 TINYTEXT 255",
             "mediumtext 12 MEDIUMTEXT 16777215",
             "longtext -1 LONGTEXT 0"
           };
