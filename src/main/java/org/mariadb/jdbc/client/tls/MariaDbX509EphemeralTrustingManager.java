@@ -7,6 +7,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
 import java.security.cert.X509Certificate;
 import javax.net.ssl.X509TrustManager;
 
@@ -41,7 +42,7 @@ public class MariaDbX509EphemeralTrustingManager implements X509TrustManager {
     try {
       internal.checkServerTrusted(x509Certificates, authType);
     } catch (CertificateException e) {
-      if (x509Certificates == null || x509Certificates.length < 1) throw e;
+      if (e instanceof CertificateExpiredException || x509Certificates == null || x509Certificates.length < 1) throw e;
       try {
         fingerprint = getThumbprint(x509Certificates[0], "SHA-256");
       } catch (NoSuchAlgorithmException | CertificateEncodingException ex) {
