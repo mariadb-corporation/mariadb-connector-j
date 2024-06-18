@@ -125,7 +125,6 @@ public class StandardClient implements Client, AutoCloseable {
     this.exceptionFactory = new ExceptionFactory(conf, hostAddress);
     this.disablePipeline = conf.disablePipeline();
 
-    String host = hostAddress != null ? hostAddress.host : null;
     this.socketTimeout = conf.socketTimeout();
     this.socket = ConnectionHelper.connectSocket(conf, hostAddress);
 
@@ -214,7 +213,7 @@ public class StandardClient implements Client, AutoCloseable {
               authenticationPluginType,
               context.getSeed(),
               conf,
-              host,
+              hostAddress.host,
               clientCapabilities,
               (byte) handshake.getDefaultCollation())
           .encode(writer, context);
@@ -249,11 +248,7 @@ public class StandardClient implements Client, AutoCloseable {
       destroySocket();
 
       String errorMsg =
-          String.format(
-              "Could not connect to %s:%s : %s", host, socket.getPort(), ioException.getMessage());
-      if (host == null) {
-        errorMsg = String.format("Could not connect to socket : %s", ioException.getMessage());
-      }
+          String.format("Could not connect to %s : %s", hostAddress, ioException.getMessage());
 
       throw exceptionFactory.create(errorMsg, "08000", ioException);
     } catch (SQLException sqlException) {
@@ -285,10 +280,12 @@ public class StandardClient implements Client, AutoCloseable {
           authPlugin = AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
           if (authPlugin.requireSsl() && !context.hasClientCapability(SSL)) {
             throw context
-                    .getExceptionFactory()
-                    .create(
-                            "Cannot use authentication plugin " + authPlugin.type() + " if SSL is not enabled.",
-                            "08000");
+                .getExceptionFactory()
+                .create(
+                    "Cannot use authentication plugin "
+                        + authPlugin.type()
+                        + " if SSL is not enabled.",
+                    "08000");
           }
 
           authPlugin.initialize(credential.getPassword(), authSwitchPacket.getSeed(), conf);

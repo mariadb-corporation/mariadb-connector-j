@@ -64,7 +64,10 @@ public interface AuthenticationPlugin {
 
   /**
    * Authentication plugin required SSL to be used
+   *
    * @return true if SSL is required
    */
-  default boolean requireSsl() { return false; }
+  default boolean requireSsl() {
+    return false;
+  }
 }

@@ -42,7 +42,9 @@ public class MariaDbX509EphemeralTrustingManager implements X509TrustManager {
     try {
       internal.checkServerTrusted(x509Certificates, authType);
     } catch (CertificateException e) {
-      if (e instanceof CertificateExpiredException || x509Certificates == null || x509Certificates.length < 1) throw e;
+      if (e instanceof CertificateExpiredException
+          || x509Certificates == null
+          || x509Certificates.length < 1) throw e;
       try {
         fingerprint = getThumbprint(x509Certificates[0], "SHA-256");
       } catch (NoSuchAlgorithmException | CertificateEncodingException ex) {

@@ -17,6 +17,10 @@ public class HostAddress {
   /** port */
   public int port;
 
+  public String pipe;
+
+  public String localSocket;
+
   /** primary node */
   public Boolean primary;
 
@@ -30,10 +34,12 @@ public class HostAddress {
    * @param port port
    * @param primary is primary
    */
-  private HostAddress(String host, int port, Boolean primary) {
+  private HostAddress(String host, int port, Boolean primary, String pipe, String localSocket) {
     this.host = host;
     this.port = port;
     this.primary = primary;
+    this.pipe = pipe;
+    this.localSocket = localSocket;
   }
 
   /**
@@ -44,7 +50,15 @@ public class HostAddress {
    * @return host
    */
   public static HostAddress from(String host, int port) {
-    return new HostAddress(host, port, null);
+    return new HostAddress(host, port, null, null, null);
+  }
+
+  public static HostAddress pipe(String pipe) {
+    return new HostAddress(null, 3306, null, pipe, null);
+  }
+
+  public static HostAddress localSocket(String localSocket) {
+    return new HostAddress(null, 3306, null, null, localSocket);
   }
 
   /**
@@ -56,7 +70,7 @@ public class HostAddress {
    * @return host
    */
   public static HostAddress from(String host, int port, boolean primary) {
-    return new HostAddress(host, port, primary);
+    return new HostAddress(host, port, primary, null, null);
   }
 
   /**
@@ -112,7 +126,7 @@ public class HostAddress {
 
     boolean primary = haMode != HaMode.REPLICATION || first;
 
-    return new HostAddress(host, port, primary);
+    return new HostAddress(host, port, primary, null, null);
   }
 
   private static int getPort(String portString) throws SQLException {
@@ -143,6 +157,10 @@ public class HostAddress {
         case "host":
           host = value.replace("[", "").replace("]", "");
           break;
+        case "localsocket":
+          return new HostAddress(null, 3306, null, null, token[1]);
+        case "pipe":
+          return new HostAddress(null, 3306, null, token[1], null);
         case "port":
           port = getPort(value);
           break;
@@ -167,11 +185,13 @@ public class HostAddress {
       }
     }
 
-    return new HostAddress(host, port, primary);
+    return new HostAddress(host, port, primary, null, null);
   }
 
   @Override
   public String toString() {
+    if (pipe != null) return String.format("address=(pipe=%s)", pipe);
+    if (localSocket != null) return String.format("address=(localSocket=%s)", localSocket);
     return String.format(
         "address=(host=%s)(port=%s)%s",
         host, port, ((primary != null) ? ("(type=" + (primary ? "primary)" : "replica)")) : ""));

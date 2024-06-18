@@ -64,23 +64,26 @@ public class Common {
                   hostname, port, database, user, password, defaultOther);
 
       String srv = System.getenv("srv");
-      String version =  System.getenv("v");
+      String version = System.getenv("v");
       double versionInt = 0;
       try {
         versionInt = Double.parseDouble(version);
       } catch (NumberFormatException | NullPointerException e) {
         // eat
       }
-      try (Connection c = (Connection) DriverManager.getConnection(mDefUrl + "&allowPublicKeyRetrieval=true")) {
+      try (Connection c =
+          (Connection) DriverManager.getConnection(mDefUrl + "&allowPublicKeyRetrieval=true")) {
         DatabaseMetaData meta = c.getMetaData();
-        if ("MySQL".equals(meta.getDatabaseProductName()) && meta.getDatabaseProductVersion().substring(0,3).compareTo("8.4") >= 0) {
+        if ("MySQL".equals(meta.getDatabaseProductName())
+            && meta.getDatabaseProductVersion().substring(0, 3).compareTo("8.4") >= 0) {
           // choose to use allowPublicKeyRetrieval=true for testing
           Statement stmt = c.createStatement();
-          ResultSet rs = stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
+          ResultSet rs =
+              stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
           if (rs.next()) {
             mDefUrl += "&serverRsaPublicKeyFile=" + rs.getString(2);
           }
-          //mDefUrl += "&allowPublicKeyRetrieval=true";
+          // mDefUrl += "&allowPublicKeyRetrieval=true";
         }
       } catch (SQLException e) {
         // eat

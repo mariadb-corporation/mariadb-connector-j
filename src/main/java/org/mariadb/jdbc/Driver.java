@@ -58,23 +58,20 @@ public final class Driver implements java.sql.Driver {
         ClientInstance<Configuration, HostAddress, ClosableLock, Boolean, Client> clientInstance =
             (configuration.transactionReplay()) ? ReplayClient::new : StandardClient::new;
 
-        if (configuration.addresses().isEmpty()) {
-          // unix socket / windows pipe
-          client = clientInstance.apply(configuration, null, lock, false);
-        } else {
-          // loop until finding
-          SQLException lastException = null;
-          for (HostAddress host : configuration.addresses()) {
-            try {
-              client = clientInstance.apply(configuration, host, lock, false);
-              return new Connection(configuration, lock, client);
-            } catch (SQLException e) {
-              lastException = e;
-            }
+        if (configuration.addresses().isEmpty())
+          throw new SQLException("host, pipe or local socket must be set to connect socket");
+
+        // loop until finding
+        SQLException lastException = null;
+        for (HostAddress host : configuration.addresses()) {
+          try {
+            client = clientInstance.apply(configuration, host, lock, false);
+            return new Connection(configuration, lock, client);
+          } catch (SQLException e) {
+            lastException = e;
           }
-          throw lastException;
         }
-        break;
+        throw lastException;
     }
     return new Connection(configuration, lock, client);
   }

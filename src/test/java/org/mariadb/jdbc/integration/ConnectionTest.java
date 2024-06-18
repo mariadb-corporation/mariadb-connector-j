@@ -55,11 +55,11 @@ public class ConnectionTest extends Common {
     assertThrowsContains(
         SQLException.class,
         () -> DriverManager.getConnection("jdbc:mariadb:///db"),
-        "hostname must be set to connect socket if not using local socket or pipe");
+        "host, pipe or local socket must be set to connect socket");
     assertThrowsContains(
         SQLException.class,
         () -> DriverManager.getConnection("jdbc:mariadb:///db?socketFactory=test"),
-        "hostname must be set to connect socket");
+        "host, pipe or local socket must be set to connect socket");
   }
 
   @Test
@@ -801,7 +801,11 @@ public class ConnectionTest extends Common {
             hostname, testPort, database, pamUser, pamPwd, defaultOther);
     if ("1".equals(System.getenv("CLEAR_TEXT"))) {
       // mysql_clear_password is not permit if not using SSL
-      assertThrowsContains(SQLException.class, () -> DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password"), "Cannot use authentication plugin mysql_clear_password if SSL is not enabled");
+      assertThrowsContains(
+          SQLException.class,
+          () ->
+              DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password"),
+          "Cannot use authentication plugin mysql_clear_password if SSL is not enabled");
     } else {
       try {
         try (Connection connection =
@@ -866,10 +870,7 @@ public class ConnectionTest extends Common {
   public void windowsNamedPipe() throws SQLException {
     ResultSet rs = null;
     try {
-      rs =
-          sharedConn
-              .createStatement()
-              .executeQuery("select @@named_pipe,@@socket,@@named_pipe_full_access_group");
+      rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket");
     } catch (SQLException sqle) {
       // on non Windows system, named_pipe doesn't exist.
     }
@@ -880,9 +881,16 @@ public class ConnectionTest extends Common {
       String namedPipeName = rs.getString(2);
       System.out.println("namedPipeName:" + namedPipeName);
       if (!isMariaDBServer() && minVersion(8, 0, 14)) {
-        String namedPipeFullAccess = rs.getString(3);
-        System.out.println("namedPipeFullAccess:" + namedPipeFullAccess);
-        Assumptions.assumeTrue(namedPipeFullAccess != null && !namedPipeFullAccess.isEmpty());
+        try {
+          rs = sharedConn.createStatement().executeQuery("select @@named_pipe_full_access_group");
+          if (rs != null) {
+            String namedPipeFullAccess = rs.getString(1);
+            System.out.println("namedPipeFullAccess:" + namedPipeFullAccess);
+            Assumptions.assumeTrue(namedPipeFullAccess != null && !namedPipeFullAccess.isEmpty());
+          }
+        } catch (SQLException sqle) {
+          // on non Windows system, named_pipe doesn't exist.
+        }
       }
 
       // skip test if no namedPipeName was obtained because then we do not use a socket connection
@@ -909,6 +917,20 @@ public class ConnectionTest extends Common {
                   sharedConn.getCatalog(),
                   mDefUrl.substring(mDefUrl.indexOf("?user=") + 1),
                   namedPipeName))) {
+        connection.setNetworkTimeout(null, 300);
+        java.sql.Statement stmt = connection.createStatement();
+        try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
+          assertTrue(rs2.next());
+        }
+      }
+      // connection host format host name
+      try (java.sql.Connection connection =
+          DriverManager.getConnection(
+              String.format(
+                  "jdbc:mariadb://address=(pipe=%s)/%s?%s&tcpAbortiveClose&tcpKeepAlive",
+                  namedPipeName,
+                  sharedConn.getCatalog(),
+                  mDefUrl.substring(mDefUrl.indexOf("?user=") + 1)))) {
         connection.setNetworkTimeout(null, 300);
         java.sql.Statement stmt = connection.createStatement();
         try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
@@ -1001,17 +1023,26 @@ public class ConnectionTest extends Common {
     }
     stmt.execute("FLUSH PRIVILEGES");
 
-    String url =
-        String.format(
-            "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
-            sharedConn.getCatalog(), path);
-
-    try (java.sql.Connection connection = DriverManager.getConnection(url)) {
+    try (java.sql.Connection connection =
+        DriverManager.getConnection(
+            String.format(
+                "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
+                sharedConn.getCatalog(), path))) {
       connection.setNetworkTimeout(null, 300);
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
     }
 
+    // host format
+    try (java.sql.Connection connection =
+        DriverManager.getConnection(
+            String.format(
+                "jdbc:mariadb://address=(localSocket=%s)/%s?user=testSocket&password=heyPassw!µ20§rd&tcpAbortiveClose&tcpKeepAlive",
+                path, sharedConn.getCatalog()))) {
+      connection.setNetworkTimeout(null, 300);
+      rs = connection.createStatement().executeQuery("select 1");
+      assertTrue(rs.next());
+    }
     Common.assertThrowsContains(
         SQLException.class,
         () ->

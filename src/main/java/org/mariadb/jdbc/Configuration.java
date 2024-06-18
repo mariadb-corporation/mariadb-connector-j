@@ -536,7 +536,9 @@ public class Configuration {
     if (registerJmxPool != null) this.registerJmxPool = registerJmxPool;
     if (poolValidMinDelay != null) this.poolValidMinDelay = poolValidMinDelay;
     if (useResetConnection != null) this.useResetConnection = useResetConnection;
-    if (serverRsaPublicKeyFile != null) this.serverRsaPublicKeyFile = serverRsaPublicKeyFile.isEmpty() ? null : serverRsaPublicKeyFile;
+    if (serverRsaPublicKeyFile != null)
+      this.serverRsaPublicKeyFile =
+          serverRsaPublicKeyFile.isEmpty() ? null : serverRsaPublicKeyFile;
     if (allowPublicKeyRetrieval != null) this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
     if (useReadAheadInput != null) this.useReadAheadInput = useReadAheadInput;
     if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;
@@ -551,6 +553,17 @@ public class Configuration {
     if (keyPassword != null) this.keyPassword = keyPassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
     if (trustStoreType != null) this.trustStoreType = trustStoreType;
+
+    // *************************************************************
+    // hosts
+    // *************************************************************
+    if (addresses.isEmpty()) {
+      if (this.localSocket != null) {
+        addresses.add(HostAddress.localSocket(this.localSocket));
+      } else if (this.pipe != null) {
+        addresses.add(HostAddress.pipe(this.pipe));
+      }
+    }
 
     // *************************************************************
     // host primary check
@@ -754,7 +767,13 @@ public class Configuration {
       builder.haMode(parseHaMode(url, separator));
 
       String urlSecondPart = url.substring(separator + 2);
-      int dbIndex = urlSecondPart.indexOf("/");
+
+      int skipPos;
+      int posToSkip = 0;
+      while ((skipPos = urlSecondPart.indexOf("address=(", posToSkip)) > -1) {
+        posToSkip = urlSecondPart.indexOf(")", skipPos);
+      }
+      int dbIndex = urlSecondPart.indexOf("/", posToSkip);
       int paramIndex = urlSecondPart.indexOf("?");
 
       String hostAddressesString;
@@ -1069,13 +1088,7 @@ public class Configuration {
         sb.append(hostAddress.host);
         if (hostAddress.port != 3306) sb.append(":").append(hostAddress.port);
       } else {
-        sb.append("address=(host=")
-            .append(hostAddress.host)
-            .append(")")
-            .append("(port=")
-            .append(hostAddress.port)
-            .append(")");
-        sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+        sb.append(hostAddress);
       }
     }
 
@@ -2332,6 +2345,16 @@ public class Configuration {
      */
     public Builder addHost(String host, int port, boolean master) {
       this._addresses.add(HostAddress.from(nullOrEmpty(host), port, master));
+      return this;
+    }
+
+    public Builder addPipeHost(String pipe) {
+      this._addresses.add(HostAddress.pipe(pipe));
+      return this;
+    }
+
+    public Builder addLocalSocketHost(String localSocket) {
+      this._addresses.add(HostAddress.localSocket(localSocket));
       return this;
     }
 

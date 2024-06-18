@@ -25,11 +25,11 @@ public class SocketUtility {
     Platform.getOSType();
 
     return (conf, hostAddress) -> {
-      if (conf.pipe() != null) {
-        return new NamedPipeSocket(hostAddress != null ? hostAddress.host : null, conf.pipe());
-      } else if (conf.localSocket() != null) {
+      if (hostAddress.pipe != null) {
+        return new NamedPipeSocket(hostAddress.host, hostAddress.pipe);
+      } else if (hostAddress.localSocket != null) {
         try {
-          return new UnixDomainSocket(conf.localSocket());
+          return new UnixDomainSocket(hostAddress.localSocket);
         } catch (RuntimeException re) {
           throw new IOException(re.getMessage(), re.getCause());
         }

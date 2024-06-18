@@ -168,6 +168,24 @@ public class ConfigurationTest {
   }
 
   @Test
+  public void testPipeSocket() throws SQLException {
+    String url =
+        "jdbc:mariadb:sequential://address=(pipe=Mariadb106),address=(localSocket=/socket),address=(host=local)(port=3306)(type=primary)/DB?socketTimeout=50";
+    Configuration conf =
+        new Configuration.Builder()
+            .database("DB")
+            .addPipeHost("Mariadb106")
+            .addLocalSocketHost("/socket")
+            .addHost("local", 3306)
+            .haMode(HaMode.SEQUENTIAL)
+            .socketTimeout(50)
+            .build();
+    assertEquals(url, conf.initialUrl());
+    conf = Configuration.parse(url);
+    assertEquals(url, conf.initialUrl());
+  }
+
+  @Test
   public void testAcceptsUrl() {
     Driver driver = new Driver();
     assertFalse(driver.acceptsURL(null));

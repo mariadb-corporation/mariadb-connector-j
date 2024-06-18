@@ -67,7 +67,6 @@ public final class ConnectionHelper {
     SocketFactory socketFactory;
     String socketFactoryName = conf.socketFactory();
     if (socketFactoryName != null) {
-      if (hostAddress == null) throw new SQLException("hostname must be set to connect socket");
       try {
         @SuppressWarnings("unchecked")
         Class<SocketFactory> socketFactoryClass =
@@ -107,14 +106,11 @@ public final class ConnectionHelper {
       throws SQLException {
     Socket socket;
     try {
-      if (conf.pipe() == null && conf.localSocket() == null && hostAddress == null)
-        throw new SQLException(
-            "hostname must be set to connect socket if not using local socket or pipe");
       socket = createSocket(conf, hostAddress);
       SocketHelper.setSocketOption(conf, socket);
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
-            conf.pipe() == null && conf.localSocket() == null
+            hostAddress.pipe == null && hostAddress.localSocket == null
                 ? new InetSocketAddress(hostAddress.host, hostAddress.port)
                 : null;
         socket.connect(sockAddr, conf.connectTimeout());
@@ -123,9 +119,7 @@ public final class ConnectionHelper {
 
     } catch (IOException ioe) {
       throw new SQLNonTransientConnectionException(
-          String.format(
-              "Socket fail to connect to host:%s. %s",
-              hostAddress == null ? conf.localSocket() : hostAddress, ioe.getMessage()),
+          String.format("Socket fail to connect to %s. %s", hostAddress, ioe.getMessage()),
           "08000",
           ioe);
     }
