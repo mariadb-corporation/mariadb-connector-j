@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import javax.crypto.Cipher;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -35,6 +36,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   private String authenticationData;
   private byte[] seed;
   private Configuration conf;
+  private HostAddress hostAddress;
 
   /**
    * Send an SHA-2 encrypted password. encryption XOR(SHA256(password), SHA256(seed,
@@ -159,11 +161,14 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    * @param authenticationData authentication data (password/token)
    * @param seed server provided seed
    * @param conf Connection string options
+   * @param hostAddress host information
    */
-  public void initialize(String authenticationData, byte[] seed, Configuration conf) {
+  public void initialize(
+      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
     this.seed = seed;
     this.authenticationData = authenticationData;
     this.conf = conf;
+    this.hostAddress = hostAddress;
   }
 
   /**
@@ -197,7 +202,8 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
           case 3:
             return in.readReusablePacket();
           case 4:
-            if (conf.sslMode() != SslMode.DISABLE) {
+            SslMode sslMode = hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
+            if (sslMode != SslMode.DISABLE) {
               // send clear password
 
               byte[] bytePwd = authenticationData.getBytes();

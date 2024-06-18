@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.mariadb.jdbc.export.HaMode;
+import org.mariadb.jdbc.export.SslMode;
 
 /** Host entry */
 public class HostAddress {
@@ -19,6 +20,7 @@ public class HostAddress {
 
   public String pipe;
 
+  public SslMode sslMode;
   public String localSocket;
 
   /** primary node */
@@ -34,12 +36,14 @@ public class HostAddress {
    * @param port port
    * @param primary is primary
    */
-  private HostAddress(String host, int port, Boolean primary, String pipe, String localSocket) {
+  private HostAddress(
+      String host, int port, Boolean primary, String pipe, String localSocket, String sslMode) {
     this.host = host;
     this.port = port;
     this.primary = primary;
     this.pipe = pipe;
     this.localSocket = localSocket;
+    this.sslMode = sslMode == null ? null : SslMode.from(sslMode);
   }
 
   /**
@@ -50,15 +54,15 @@ public class HostAddress {
    * @return host
    */
   public static HostAddress from(String host, int port) {
-    return new HostAddress(host, port, null, null, null);
+    return new HostAddress(host, port, null, null, null, null);
   }
 
   public static HostAddress pipe(String pipe) {
-    return new HostAddress(null, 3306, null, pipe, null);
+    return new HostAddress(null, 3306, null, pipe, null, null);
   }
 
   public static HostAddress localSocket(String localSocket) {
-    return new HostAddress(null, 3306, null, null, localSocket);
+    return new HostAddress(null, 3306, null, null, localSocket, null);
   }
 
   /**
@@ -70,7 +74,32 @@ public class HostAddress {
    * @return host
    */
   public static HostAddress from(String host, int port, boolean primary) {
-    return new HostAddress(host, port, primary, null, null);
+    return new HostAddress(host, port, primary, null, null, null);
+  }
+
+  /**
+   * Create a Host
+   *
+   * @param host host (DNS/IP)
+   * @param port port
+   * @param sslMode ssl mode
+   * @return host
+   */
+  public static HostAddress from(String host, int port, String sslMode) {
+    return new HostAddress(host, port, null, null, null, sslMode);
+  }
+
+  /**
+   * Create a Host
+   *
+   * @param host host (DNS/IP)
+   * @param port port
+   * @param primary is primary
+   * @param sslMode ssl mode
+   * @return host
+   */
+  public static HostAddress from(String host, int port, boolean primary, String sslMode) {
+    return new HostAddress(host, port, primary, null, null, sslMode);
   }
 
   /**
@@ -126,7 +155,7 @@ public class HostAddress {
 
     boolean primary = haMode != HaMode.REPLICATION || first;
 
-    return new HostAddress(host, port, primary, null, null);
+    return new HostAddress(host, port, primary, null, null, null);
   }
 
   private static int getPort(String portString) throws SQLException {
@@ -141,6 +170,9 @@ public class HostAddress {
       throws SQLException {
     String host = null;
     int port = 3306;
+    String sslMode = null;
+    String pipe = null;
+    String localsocket = null;
     Boolean primary = null;
 
     String[] array = str.replace(" ", "").split("(?=\\()|(?<=\\))");
@@ -158,11 +190,16 @@ public class HostAddress {
           host = value.replace("[", "").replace("]", "");
           break;
         case "localsocket":
-          return new HostAddress(null, 3306, null, null, token[1]);
+          localsocket = token[1];
+          break;
         case "pipe":
-          return new HostAddress(null, 3306, null, token[1], null);
+          pipe = token[1];
+          break;
         case "port":
           port = getPort(value);
+          break;
+        case "sslmode":
+          sslMode = token[1];
           break;
         case "type":
           if ("master".equalsIgnoreCase(value) || "primary".equalsIgnoreCase(value)) {
@@ -185,7 +222,7 @@ public class HostAddress {
       }
     }
 
-    return new HostAddress(host, port, primary, null, null);
+    return new HostAddress(host, port, primary, pipe, localsocket, sslMode);
   }
 
   @Override
@@ -193,8 +230,11 @@ public class HostAddress {
     if (pipe != null) return String.format("address=(pipe=%s)", pipe);
     if (localSocket != null) return String.format("address=(localSocket=%s)", localSocket);
     return String.format(
-        "address=(host=%s)(port=%s)%s",
-        host, port, ((primary != null) ? ("(type=" + (primary ? "primary)" : "replica)")) : ""));
+        "address=(host=%s)(port=%s)%s%s",
+        host,
+        port,
+        (sslMode != null) ? "(sslMode=" + sslMode.getValue() + ")" : "",
+        ((primary != null) ? ("(type=" + (primary ? "primary)" : "replica)")) : ""));
   }
 
   @Override

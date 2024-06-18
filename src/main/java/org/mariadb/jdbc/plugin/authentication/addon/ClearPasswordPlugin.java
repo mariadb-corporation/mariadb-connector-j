@@ -6,6 +6,7 @@ package org.mariadb.jdbc.plugin.authentication.addon;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -29,7 +30,16 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
     return true;
   }
 
-  public void initialize(String authenticationData, byte[] authData, Configuration conf) {
+  /**
+   * Initialization.
+   *
+   * @param authenticationData authentication data (password/token)
+   * @param seed server provided seed
+   * @param conf Connection string options
+   * @param hostAddress host information
+   */
+  public void initialize(
+      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
     this.authenticationData = authenticationData;
   }
 

@@ -239,6 +239,41 @@ public class SslTest extends Common {
   }
 
   @Test
+  void ensureUnixSocketSsl() throws SQLException {
+    Assumptions.assumeTrue(
+        System.getenv("local") != null
+            && "1".equals(System.getenv("local"))
+            && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+    java.sql.Statement stmt = sharedConn.createStatement();
+    stmt.execute(
+        "insert into test_table (mediumtext_column) values('"
+            + PreparedStatementTest.generateLongText(50000)
+            + "')");
+    ResultSet rs = stmt.executeQuery("select @@version_compile_os,@@socket");
+    if (!rs.next() || rs.getString(2) == null) {
+      return;
+    }
+    String path = rs.getString(2);
+    String url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            "//address=(localSocket="
+                + path
+                + "),address=(host="
+                + hostname
+                + ")(port="
+                + port
+                + ")(sslMode=verify-full)(type=primary)/");
+    try (Connection con = (Connection) DriverManager.getConnection(url)) {
+      assertNotNull(getSslVersion(con));
+      Assertions.assertEquals(
+          String.format(
+              "address=(host=%s)(port=%s)(sslMode=verify-full)(type=primary)", hostname, port),
+          con.__test_host());
+    }
+  }
+
+  @Test
   public void enabledSslProtocolSuites() throws SQLException {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));

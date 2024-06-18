@@ -6,6 +6,7 @@ package org.mariadb.jdbc.plugin;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -27,8 +28,10 @@ public interface AuthenticationPlugin {
    * @param authenticationData authentication data (password/token)
    * @param seed server provided seed
    * @param conf Connection options
+   * @param hostAddress host address
    */
-  void initialize(String authenticationData, byte[] seed, Configuration conf);
+  void initialize(
+      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress);
 
   /**
    * Process plugin authentication.

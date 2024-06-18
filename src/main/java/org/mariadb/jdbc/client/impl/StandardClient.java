@@ -223,7 +223,7 @@ public class StandardClient implements Client, AutoCloseable {
               : new NativePasswordPlugin();
       writer.flush();
 
-      authenticationHandler(credential);
+      authenticationHandler(credential, hostAddress);
 
       // **********************************************************************
       // activate compression if required
@@ -259,10 +259,12 @@ public class StandardClient implements Client, AutoCloseable {
 
   /**
    * @param credential credential
+   * @param hostAddress host address
    * @throws IOException if any socket error occurs
    * @throws SQLException if any other kind of issue occurs
    */
-  public void authenticationHandler(Credential credential) throws IOException, SQLException {
+  public void authenticationHandler(Credential credential, HostAddress hostAddress)
+      throws IOException, SQLException {
 
     writer.permitTrace(true);
     Configuration conf = context.getConf();
@@ -288,7 +290,8 @@ public class StandardClient implements Client, AutoCloseable {
                     "08000");
           }
 
-          authPlugin.initialize(credential.getPassword(), authSwitchPacket.getSeed(), conf);
+          authPlugin.initialize(
+              credential.getPassword(), authSwitchPacket.getSeed(), conf, hostAddress);
           buf = authPlugin.process(writer, reader, context);
           break;
 
@@ -473,7 +476,8 @@ public class StandardClient implements Client, AutoCloseable {
       throws IOException, SQLException {
 
     Configuration conf = context.getConf();
-    if (conf.sslMode() != SslMode.DISABLE) {
+    SslMode sslMode = hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
+    if (sslMode != SslMode.DISABLE) {
 
       if (!context.hasServerCapability(Capabilities.SSL)) {
         throw context
@@ -487,7 +491,7 @@ public class StandardClient implements Client, AutoCloseable {
       TlsSocketPlugin socketPlugin = TlsSocketPluginLoader.get(conf.tlsSocketType());
       SSLSocketFactory sslSocketFactory;
       TrustManager[] trustManagers =
-          socketPlugin.getTrustManager(conf, context.getExceptionFactory());
+          socketPlugin.getTrustManager(conf, context.getExceptionFactory(), hostAddress);
       try {
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(
@@ -518,7 +522,7 @@ public class StandardClient implements Client, AutoCloseable {
       // (rfc2818 indicate that if "client has external information as to the expected identity of
       // the server, the hostname check MAY be omitted")
       // validation is only done for not "self-signed" certificates
-      if (certFingerprint == null && conf.sslMode() == SslMode.VERIFY_FULL && hostAddress != null) {
+      if (certFingerprint == null && sslMode == SslMode.VERIFY_FULL && hostAddress.host != null) {
         SSLSession session = sslSocket.getSession();
         try {
           socketPlugin.verify(hostAddress.host, session, context.getThreadId());

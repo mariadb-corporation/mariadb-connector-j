@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.UUID;
 import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.tls.HostnameVerifier;
 import org.mariadb.jdbc.client.tls.MariaDbX509EphemeralTrustingManager;
 import org.mariadb.jdbc.client.tls.MariaDbX509KeyManager;
@@ -89,12 +90,13 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   }
 
   @Override
-  public TrustManager[] getTrustManager(Configuration conf, ExceptionFactory exceptionFactory)
+  public TrustManager[] getTrustManager(
+      Configuration conf, ExceptionFactory exceptionFactory, HostAddress hostAddress)
       throws SQLException {
 
     TrustManager[] trustManager = null;
-
-    if (conf.sslMode() == SslMode.TRUST) {
+    SslMode sslMode = hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
+    if (sslMode == SslMode.TRUST) {
       trustManager = new X509TrustManager[] {new MariaDbX509TrustingManager()};
     } else {
       // if certificate is provided, load it.

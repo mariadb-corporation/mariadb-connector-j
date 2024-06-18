@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -34,8 +35,10 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    * @param authenticationData authentication data (password/token)
    * @param seed server provided seed
    * @param conf Connection string options
+   * @param hostAddress host information
    */
-  public void initialize(String authenticationData, byte[] seed, Configuration conf) {
+  public void initialize(
+      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
     this.authenticationData = authenticationData;
     this.conf = conf;
   }

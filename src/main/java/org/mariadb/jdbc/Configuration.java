@@ -2340,11 +2340,38 @@ public class Configuration {
      *
      * @param host hostname or IP
      * @param port port
+     * @param sslMode ssl mode. possible values disable/trust/verify-ca/verify-full
+     * @return this {@link Builder}
+     */
+    public Builder addHost(String host, int port, String sslMode) {
+      this._addresses.add(HostAddress.from(nullOrEmpty(host), port, sslMode));
+      return this;
+    }
+
+    /**
+     * Add Host to possible addresses to connect
+     *
+     * @param host hostname or IP
+     * @param port port
      * @param master is master or replica
      * @return this {@link Builder}
      */
     public Builder addHost(String host, int port, boolean master) {
       this._addresses.add(HostAddress.from(nullOrEmpty(host), port, master));
+      return this;
+    }
+
+    /**
+     * Add Host to possible addresses to connect
+     *
+     * @param host hostname or IP
+     * @param port port
+     * @param master is master or replica
+     * @param sslMode ssl mode. possible values disable/trust/verify-ca/verify-full
+     * @return this {@link Builder}
+     */
+    public Builder addHost(String host, int port, boolean master, String sslMode) {
+      this._addresses.add(HostAddress.from(nullOrEmpty(host), port, master, sslMode));
       return this;
     }
 

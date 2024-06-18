@@ -211,8 +211,8 @@ public final class ConnectionHelper {
                 && (hostAddress != null && !hostAddress.primary)))) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
-
-    if (configuration.sslMode() != SslMode.DISABLE) {
+    SslMode sslMode = hostAddress.sslMode == null ? configuration.sslMode() : hostAddress.sslMode;
+    if (sslMode != SslMode.DISABLE) {
       capabilities |= Capabilities.SSL;
     }
     return capabilities & serverCapabilities;

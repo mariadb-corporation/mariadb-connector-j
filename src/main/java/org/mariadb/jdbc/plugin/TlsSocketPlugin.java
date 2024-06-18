@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.sql.SQLException;
 import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
 /** TLS Socket interface plugin */
@@ -20,7 +21,8 @@ public interface TlsSocketPlugin {
    */
   String type();
 
-  TrustManager[] getTrustManager(Configuration conf, ExceptionFactory exceptionFactory)
+  TrustManager[] getTrustManager(
+      Configuration conf, ExceptionFactory exceptionFactory, HostAddress hostAddress)
       throws SQLException;
 
   KeyManager[] getKeyManager(Configuration conf, ExceptionFactory exceptionFactory)

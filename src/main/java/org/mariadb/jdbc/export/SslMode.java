@@ -25,6 +25,10 @@ public enum SslMode {
     this.aliases = aliases;
   }
 
+  public String getValue() {
+    return value;
+  }
+
   /**
    * Create SSLMode from enumeration value, or aliases
    *
