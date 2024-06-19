@@ -262,7 +262,7 @@ public class SslTest extends Common {
                 + ")(sslMode=verify-full)(type=primary)/");
     try (Connection con = (Connection) DriverManager.getConnection(url)) {
       assertNotNull(getSslVersion(con));
-      Assertions.assertEquals("address=(localSocket=/run/mysqld/mysqld.sock)", con.__test_host());
+      Assertions.assertEquals("address=(localSocket=" + path + ")", con.__test_host());
     }
   }
 

@@ -207,9 +207,11 @@ public class CredentialPluginTest extends Common {
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(isMariaDBServer() && haveSsl());
-
-    assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST&sslMode=DISABLE"));
-    assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST"));
+    if (!minVersion(11, 4, 1)) {
+      // Self-signed certificates error
+      assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST&sslMode=DISABLE"));
+      assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST"));
+    }
 
     try (Connection conn = createCon("credentialType=ENVTEST&sslMode=TRUST")) {
       Statement stmt = conn.createStatement();
