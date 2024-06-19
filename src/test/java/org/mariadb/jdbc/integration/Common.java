@@ -13,9 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.function.Executable;
@@ -223,9 +221,13 @@ public class Common {
   public static Connection createCon(String option, Integer sslPort) throws SQLException {
     Configuration conf = Configuration.parse(mDefUrl + "&" + option);
     if (sslPort != null) {
-      for (HostAddress hostAddress : conf.addresses()) {
-        hostAddress.port = sslPort;
+      Configuration.Builder builder = conf.toBuilder();
+      List<HostAddress> newAddresses = new ArrayList<>();
+      for (HostAddress host : conf.addresses()) {
+        newAddresses.add(host.withPort(sslPort));
       }
+      builder.addresses(newAddresses);
+      return Driver.connect(builder.build());
     }
     return Driver.connect(conf);
   }
@@ -234,9 +236,13 @@ public class Common {
     Configuration conf =
         Configuration.parse(mDefUrl.substring(0, mDefUrl.indexOf("?")) + "?" + option);
     if (sslPort != null) {
-      for (HostAddress hostAddress : conf.addresses()) {
-        hostAddress.port = sslPort;
+      Configuration.Builder builder = conf.toBuilder();
+      List<HostAddress> newAddresses = new ArrayList<>();
+      for (HostAddress host : conf.addresses()) {
+        newAddresses.add(host.withPort(sslPort));
       }
+      builder.addresses(newAddresses);
+      return Driver.connect(builder.build());
     }
     return Driver.connect(conf);
   }

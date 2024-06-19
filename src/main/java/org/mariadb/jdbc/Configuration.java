@@ -563,6 +563,21 @@ public class Configuration {
       } else if (this.pipe != null) {
         addresses.add(HostAddress.pipe(this.pipe));
       }
+    } else {
+      if (this.localSocket != null) {
+        List<HostAddress> newAddresses = new ArrayList<>();
+        for (HostAddress host : addresses) {
+          newAddresses.add(host.withLocalSocket(this.localSocket));
+        }
+        this.addresses = newAddresses;
+      }
+      if (this.pipe != null) {
+        List<HostAddress> newAddresses = new ArrayList<>();
+        for (HostAddress host : addresses) {
+          newAddresses.add(host.withPipe(this.pipe));
+        }
+        this.addresses = newAddresses;
+      }
     }
 
     // *************************************************************
@@ -2394,6 +2409,17 @@ public class Configuration {
     public Builder addresses(HostAddress... hostAddress) {
       this._addresses = new ArrayList<>();
       this._addresses.addAll(Arrays.asList(hostAddress));
+      return this;
+    }
+
+    /**
+     * add host addresses
+     *
+     * @param hostAddress host addresses
+     * @return this {@link Builder}
+     */
+    public Builder addresses(List<HostAddress> hostAddress) {
+      this._addresses.addAll(hostAddress);
       return this;
     }
 

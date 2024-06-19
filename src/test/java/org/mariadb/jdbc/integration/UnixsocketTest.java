@@ -109,4 +109,15 @@ public class UnixsocketTest extends Common {
             + " but ending with "
             + finalLines);
   }
+
+  @Test
+  public void unixSocketErrorOnWindows() throws IOException {
+    Assumptions.assumeTrue(isWindows());
+    String url = mDefUrl + "&localSocket=/tmp/not_valid_socket&localSocketAddress=localhost";
+    java.sql.Driver driver = new org.mariadb.jdbc.Driver();
+    assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () -> driver.connect(url, new Properties()),
+        "Unix domain sockets are not supported on Windows");
+  }
 }

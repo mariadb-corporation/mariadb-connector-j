@@ -16,12 +16,12 @@ public class HostAddress {
   public final String host;
 
   /** port */
-  public int port;
+  public final int port;
 
-  public String pipe;
+  public final String pipe;
 
-  public SslMode sslMode;
-  public String localSocket;
+  public final SslMode sslMode;
+  public final String localSocket;
 
   /** primary node */
   public Boolean primary;
@@ -37,13 +37,13 @@ public class HostAddress {
    * @param primary is primary
    */
   private HostAddress(
-      String host, int port, Boolean primary, String pipe, String localSocket, String sslMode) {
+      String host, int port, Boolean primary, String pipe, String localSocket, SslMode sslMode) {
     this.host = host;
     this.port = port;
     this.primary = primary;
     this.pipe = pipe;
     this.localSocket = localSocket;
-    this.sslMode = sslMode == null ? null : SslMode.from(sslMode);
+    this.sslMode = sslMode;
   }
 
   /**
@@ -86,7 +86,8 @@ public class HostAddress {
    * @return host
    */
   public static HostAddress from(String host, int port, String sslMode) {
-    return new HostAddress(host, port, null, null, null, sslMode);
+    return new HostAddress(
+        host, port, null, null, null, sslMode == null ? null : SslMode.from(sslMode));
   }
 
   /**
@@ -99,7 +100,8 @@ public class HostAddress {
    * @return host
    */
   public static HostAddress from(String host, int port, boolean primary, String sslMode) {
-    return new HostAddress(host, port, primary, null, null, sslMode);
+    return new HostAddress(
+        host, port, primary, null, null, sslMode == null ? null : SslMode.from(sslMode));
   }
 
   /**
@@ -222,7 +224,8 @@ public class HostAddress {
       }
     }
 
-    return new HostAddress(host, port, primary, pipe, localsocket, sslMode);
+    return new HostAddress(
+        host, port, primary, pipe, localsocket, sslMode == null ? null : SslMode.from(sslMode));
   }
 
   @Override
@@ -265,6 +268,21 @@ public class HostAddress {
   public void forceThreadsConnected(long threadsConnected, long threadConnectedTimeout) {
     this.threadsConnected = threadsConnected;
     this.threadConnectedTimeout = threadConnectedTimeout;
+  }
+
+  public HostAddress withPipe(String pipe) {
+    return new HostAddress(
+        this.host, this.port, this.primary, pipe, this.localSocket, this.sslMode);
+  }
+
+  public HostAddress withLocalSocket(String localSocket) {
+    return new HostAddress(
+        this.host, this.port, this.primary, this.pipe, localSocket, this.sslMode);
+  }
+
+  public HostAddress withPort(int port) {
+    return new HostAddress(
+        this.host, port, this.primary, this.pipe, this.localSocket, this.sslMode);
   }
 
   public Long getThreadConnectedTimeout() {
