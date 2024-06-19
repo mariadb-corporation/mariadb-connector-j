@@ -139,7 +139,7 @@ public class ReplayClient extends StandardClient {
           RedoableWithPrepareClientMessage redoable =
               ((RedoableWithPrepareClientMessage) querySaver);
           String cmd = redoable.getCommand();
-          prepare = context.getPrepareCache().get(cmd, redoable.prep());
+          prepare = context.getPrepareCacheCmd(cmd, redoable.prep());
           if (prepare == null) {
             PreparePacket preparePacket = new PreparePacket(cmd);
             sendQuery(preparePacket);

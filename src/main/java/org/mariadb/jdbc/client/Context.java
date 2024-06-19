@@ -6,8 +6,10 @@ package org.mariadb.jdbc.client;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.function.Function;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.export.Prepare;
 
 public interface Context {
 
@@ -184,11 +186,23 @@ public interface Context {
   void setTransactionIsolationLevel(Integer transactionIsolationLevel);
 
   /**
-   * get LRU prepare cache object
+   * Return cached prepare if key match
    *
-   * @return prepare cache
+   * @param sql sql command
+   * @param preparedStatement current statement
+   * @return Prepare if found, null if not
    */
-  PrepareCache getPrepareCache();
+  Prepare getPrepareCacheCmd(String sql, BasePreparedStatement preparedStatement);
+
+  /**
+   * Put prepare result in cache
+   *
+   * @param sql sql command
+   * @param result prepare result
+   * @param preparedStatement current statement
+   * @return Prepare if was already cached
+   */
+  Prepare putPrepareCacheCmd(String sql, Prepare result, BasePreparedStatement preparedStatement);
 
   /** Reset prepare cache (after a failover) */
   void resetPrepareCache();

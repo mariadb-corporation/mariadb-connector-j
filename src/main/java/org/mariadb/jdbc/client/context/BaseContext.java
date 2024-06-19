@@ -8,10 +8,12 @@ import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.function.Function;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
@@ -182,8 +184,13 @@ public class BaseContext implements Context {
     this.transactionIsolationLevel = transactionIsolationLevel;
   }
 
-  public PrepareCache getPrepareCache() {
-    return prepareCache;
+  public Prepare getPrepareCacheCmd(String sql, BasePreparedStatement preparedStatement) {
+    return prepareCache.get(database + "|" + sql, preparedStatement);
+  }
+
+  public Prepare putPrepareCacheCmd(
+      String sql, Prepare result, BasePreparedStatement preparedStatement) {
+    return prepareCache.put(database + "|" + sql, result, preparedStatement);
   }
 
   public void resetPrepareCache() {

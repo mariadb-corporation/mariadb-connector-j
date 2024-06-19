@@ -80,14 +80,10 @@ public final class PreparePacket implements ClientMessage {
       PrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
       PrepareResultPacket previousCached =
           (PrepareResultPacket)
-              context
-                  .getPrepareCache()
-                  .put(
-                      sql,
-                      prepare,
-                      stmt instanceof ServerPreparedStatement
-                          ? (ServerPreparedStatement) stmt
-                          : null);
+              context.putPrepareCacheCmd(
+                  sql,
+                  prepare,
+                  stmt instanceof ServerPreparedStatement ? (ServerPreparedStatement) stmt : null);
       if (stmt != null) {
         ((BasePreparedStatement) stmt)
             .setPrepareResult(previousCached != null ? previousCached : prepare);

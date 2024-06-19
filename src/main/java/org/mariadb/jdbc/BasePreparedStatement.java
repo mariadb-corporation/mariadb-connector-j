@@ -1757,7 +1757,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   protected void executeBatchBulk(String cmd) throws SQLException {
     List<Completion> res;
     if (prepareResult == null && canCachePrepStmts)
-      prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+      prepareResult = con.getContext().getPrepareCacheCmd(cmd, this);
     try {
       if (prepareResult == null) {
         ClientMessage[] packets;

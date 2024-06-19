@@ -69,7 +69,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         resultSetType,
         resultSetConcurrency,
         defaultFetchSize);
-    prepareResult = canCachePrepStmts ? con.getContext().getPrepareCache().get(sql, this) : null;
+    prepareResult = canCachePrepStmts ? con.getContext().getPrepareCacheCmd(sql, this) : null;
     if (prepareResult == null && !PREPARABLE_STATEMENT_PATTERN.matcher(sql).find()) {
       con.getClient().execute(new PreparePacket(sql), this, true);
     }
@@ -89,7 +89,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
       String cmd = escapeTimeout(sql);
       if (prepareResult == null)
-        if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+        if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCacheCmd(cmd, this);
       if (prepareResult == null && con.getContext().permitPipeline()) {
         executePipeline(cmd);
       } else {
@@ -135,7 +135,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   private void executeStandard(String cmd) throws SQLException {
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+      if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCacheCmd(cmd, this);
       if (prepareResult == null) {
         con.getClient().execute(new PreparePacket(cmd), this, true);
       }
@@ -200,7 +200,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    */
   private void executeBatchPipeline(String cmd) throws SQLException {
     if (prepareResult == null && canCachePrepStmts)
-      prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+      prepareResult = con.getContext().getPrepareCacheCmd(cmd, this);
     // server is 10.2+, permitting to execute last prepare with (-1) statement id.
     // Server send prepare, followed by execute, in one exchange.
     int maxCmd = 250;
@@ -285,7 +285,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       // prepare is in loop, because if connection fail, prepare is reset, and need to be re
       // prepared
       if (prepareResult == null) {
-        if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+        if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCacheCmd(cmd, this);
         if (prepareResult == null) {
           con.getClient().execute(new PreparePacket(cmd), this, false);
         }

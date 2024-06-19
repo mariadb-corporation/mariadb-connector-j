@@ -1524,4 +1524,42 @@ public class PreparedStatementTest extends Common {
       }
     }
   }
+
+  @Test
+  public void prepCacheMultiDb() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP DATABASE IF EXISTS dbtest1");
+    stmt.execute("DROP DATABASE IF EXISTS dbtest2");
+    stmt.execute("CREATE DATABASE dbtest1");
+    stmt.execute("CREATE DATABASE dbtest2");
+    stmt.execute("CREATE TABLE dbtest1.commontable(t1 varchar(32))");
+    stmt.execute("CREATE TABLE dbtest2.commontable(t2 varchar(32))");
+
+    stmt.execute("INSERT INTO dbtest1.commontable VALUES ('db1')");
+    stmt.execute("INSERT INTO dbtest2.commontable VALUES ('db2')");
+    try (Connection con = createCon("&cachePrepStmts&useServerPrepStmts")) {
+      con.setCatalog("dbtest1");
+      try (PreparedStatement prep = con.prepareStatement("SELECT * FROM commontable")) {
+        ResultSet rs = prep.executeQuery();
+        rs.next();
+        assertEquals("db1", rs.getString(1));
+      }
+      try (PreparedStatement prep = con.prepareStatement("SELECT * FROM commontable")) {
+        ResultSet rs = prep.executeQuery();
+        rs.next();
+        assertEquals("db1", rs.getString(1));
+      }
+      con.setCatalog("dbtest2");
+      try (PreparedStatement prep = con.prepareStatement("SELECT * FROM commontable")) {
+        ResultSet rs = prep.executeQuery();
+        rs.next();
+        assertEquals("db2", rs.getString(1));
+      }
+      try (PreparedStatement prep = con.prepareStatement("SELECT * FROM commontable")) {
+        ResultSet rs = prep.executeQuery();
+        rs.next();
+        assertEquals("db2", rs.getString(1));
+      }
+    }
+  }
 }
