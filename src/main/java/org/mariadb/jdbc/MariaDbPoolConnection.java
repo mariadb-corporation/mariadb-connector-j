@@ -176,8 +176,17 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
         case 1401:
           xaErrorCode = XAException.XAER_RMERR;
           break;
+        case 1440:
+          xaErrorCode = XAException.XAER_DUPID;
+          break;
         case 1402:
           xaErrorCode = XAException.XA_RBROLLBACK;
+          break;
+        case 1613:
+          xaErrorCode = XAException.XA_RBTIMEOUT;
+          break;
+        case 1614:
+          xaErrorCode = XAException.XA_RBDEADLOCK;
           break;
         default:
           xaErrorCode = 0;
