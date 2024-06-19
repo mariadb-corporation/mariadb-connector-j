@@ -1050,8 +1050,15 @@ public class ConnectionTest extends Common {
                 "jdbc:mariadb:///"
                     + sharedConn.getCatalog()
                     + "?user=testSocket&password=heyPassw!µ20§rd&localSocket=/wrongPath"),
-        "Socket fail to connect to host");
-
+        "Socket fail to connect to address=(localSocket=/wrongPath)");
+    Common.assertThrowsContains(
+        SQLException.class,
+        () ->
+            DriverManager.getConnection(
+                "jdbc:mariadb://address=(localSocket=/wrongPath)/"
+                    + sharedConn.getCatalog()
+                    + "?user=testSocket&password=heyPassw!µ20§rd"),
+        "Socket fail to connect to address=(localSocket=/wrongPath)");
     if (haveSsl()) {
       String serverCertPath = SslTest.retrieveCertificatePath();
       if (serverCertPath != null) {

@@ -245,10 +245,6 @@ public class SslTest extends Common {
             && "1".equals(System.getenv("local"))
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
     java.sql.Statement stmt = sharedConn.createStatement();
-    stmt.execute(
-        "insert into test_table (mediumtext_column) values('"
-            + PreparedStatementTest.generateLongText(50000)
-            + "')");
     ResultSet rs = stmt.executeQuery("select @@version_compile_os,@@socket");
     if (!rs.next() || rs.getString(2) == null) {
       return;
