@@ -15,7 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jmh.version>1.37</jmh.version>
         <junit.version>5.7.0</junit.version>
-        <junit-pioneer.version>2.2.0</junit-pioneer.version>
+        <junit-pioneer.version>1.9.1</junit-pioneer.version>
         <assertj.version>3.26.0</assertj.version>
         <osgi.version>6.0.0</osgi.version>
         <osgi.compendium.version>5.0.0</osgi.compendium.version>
@@ -25,7 +25,7 @@
         <jacoco.version>0.8.12</jacoco.version>
         <waffle-jna.version>3.3.0</waffle-jna.version>
         <mysql-connector-java.version>8.4.0</mysql-connector-java.version>
-        <bnd-maven-plugin.version>7.0.0</bnd-maven-plugin.version>
+        <bnd-maven-plugin.version>6.4.0</bnd-maven-plugin.version>
         <spotless.version>2.43.0</spotless.version>
     </properties>
 
