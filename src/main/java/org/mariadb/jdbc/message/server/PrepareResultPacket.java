@@ -17,7 +17,7 @@ import org.mariadb.jdbc.util.log.Loggers;
  * Prepare result packet
  *
  * @see <a href="https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK">Prepare result
- *     packet</a> *
+ *     packet</a>
  */
 public class PrepareResultPacket implements Completion, Prepare {
   static final ColumnDecoder CONSTANT_PARAMETER;

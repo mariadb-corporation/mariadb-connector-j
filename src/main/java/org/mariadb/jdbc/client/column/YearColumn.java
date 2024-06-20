@@ -40,6 +40,11 @@ public class YearColumn extends UnsignedSmallIntColumn {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected YearColumn(YearColumn prev) {
     super(prev);
   }

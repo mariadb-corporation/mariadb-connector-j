@@ -896,6 +896,12 @@ public class Connection implements java.sql.Connection {
     return exceptionFactory;
   }
 
+  /**
+   * Return a QueryTimeoutHandler for old server that don't support Statement timeout.
+   *
+   * @param queryTimeout query timeout
+   * @return a query timeout handler
+   */
   public QueryTimeoutHandler handleTimeout(int queryTimeout) {
     return queryTimeoutHandler.create(queryTimeout);
   }

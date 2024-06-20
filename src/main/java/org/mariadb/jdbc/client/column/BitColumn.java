@@ -53,6 +53,11 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected BitColumn(BitColumn prev) {
     super(prev, true);
   }

@@ -52,6 +52,11 @@ public class UnsignedIntColumn extends ColumnDefinitionPacket implements ColumnD
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected UnsignedIntColumn(UnsignedIntColumn prev) {
     super(prev, true);
   }

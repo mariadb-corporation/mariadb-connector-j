@@ -52,6 +52,11 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected SignedMediumIntColumn(SignedMediumIntColumn prev) {
     super(prev, true);
   }

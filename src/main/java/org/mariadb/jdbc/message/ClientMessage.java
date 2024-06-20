@@ -350,6 +350,11 @@ public interface ClientMessage {
     return null;
   }
 
+  /**
+   * Indicating if result might be a COM_STMT_BULK result
+   *
+   * @return true if so.
+   */
   default boolean mightBeBulkResult() {
     return false;
   }

@@ -61,6 +61,11 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected StringColumn(StringColumn prev) {
     super(prev, true);
   }

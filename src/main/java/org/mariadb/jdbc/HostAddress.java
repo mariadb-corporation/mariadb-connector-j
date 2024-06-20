@@ -57,9 +57,19 @@ public class HostAddress {
     return new HostAddress(host, port, null, null, null, null);
   }
 
+  /**
+   * Constructor for windows pipe host
+   * @param pipe windows pipe path
+   * @return hostAddress
+   */
   public static HostAddress pipe(String pipe) {
     return new HostAddress(null, 3306, null, pipe, null, null);
   }
+  /**
+   * Constructor for unix socket host
+   * @param localSocket unix socket path
+   * @return hostAddress
+   */
 
   public static HostAddress localSocket(String localSocket) {
     return new HostAddress(null, 3306, null, null, localSocket, null);
@@ -133,6 +143,14 @@ public class HostAddress {
     return arr;
   }
 
+  /**
+   * Parse Single host
+   * @param str string to parse
+   * @param haMode current High-Availability mode
+   * @param first is it the first host
+   * @return HostAddress
+   * @throws SQLException if port is not Integer
+   */
   private static HostAddress parseSimpleHostAddress(String str, HaMode haMode, boolean first)
       throws SQLException {
     String host;
@@ -160,6 +178,13 @@ public class HostAddress {
     return new HostAddress(host, port, primary, null, null, null);
   }
 
+  /**
+   * Parsing host port
+   *
+   * @param portString port in string value
+   * @return int value of port
+   * @throws SQLException in case of failing to parse port.
+   */
   private static int getPort(String portString) throws SQLException {
     try {
       return Integer.parseInt(portString);

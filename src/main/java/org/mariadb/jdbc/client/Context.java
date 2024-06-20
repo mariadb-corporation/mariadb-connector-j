@@ -48,6 +48,11 @@ public interface Context {
    */
   void setRedirectUrl(String redirectUrl);
 
+  /**
+   * get redirect Url if server indicate reconnection url
+   *
+   * @return null if no redirection required, value if so
+   */
   String getRedirectUrl();
 
   /**
@@ -245,8 +250,18 @@ public interface Context {
    */
   void setCharset(String charset);
 
+  /**
+   * Get current connection timezone
+   *
+   * @return connection timezone
+   */
   TimeZone getConnectionTimeZone();
 
+  /**
+   * Set current connection timezone
+   *
+   * @param connectionTimeZone connection timezone
+   */
   void setConnectionTimeZone(TimeZone connectionTimeZone);
 
   /**

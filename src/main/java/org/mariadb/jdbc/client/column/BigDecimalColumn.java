@@ -55,6 +55,11 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected BigDecimalColumn(BigDecimalColumn prev) {
     super(prev, true);
   }

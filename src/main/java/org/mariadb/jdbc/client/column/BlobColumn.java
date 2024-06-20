@@ -45,6 +45,11 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected BlobColumn(BlobColumn prev) {
     super(prev);
   }

@@ -5,9 +5,15 @@ package org.mariadb.jdbc.client.util;
 
 import java.util.concurrent.locks.ReentrantLock;
 
+/** Utility class to permit use AutoClosable, ensuring proper lock release. */
 public final class ClosableLock extends ReentrantLock implements AutoCloseable {
   private static final long serialVersionUID = -8041187539350329669L;
 
+  /**
+   * Default constructor, retaining lock.
+   *
+   * @return Closable lock
+   */
   public ClosableLock closeableLock() {
     this.lock();
     return this;

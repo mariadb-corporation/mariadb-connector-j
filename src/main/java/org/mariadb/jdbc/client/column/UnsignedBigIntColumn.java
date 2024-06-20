@@ -53,6 +53,11 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected UnsignedBigIntColumn(UnsignedBigIntColumn prev) {
     super(prev, true);
   }

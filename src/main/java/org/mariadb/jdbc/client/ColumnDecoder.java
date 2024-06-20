@@ -243,6 +243,7 @@ public interface ColumnDecoder extends Column {
    * @param buf row buffer
    * @param length data length
    * @param cal calendar
+   * @param context current context
    * @return String value
    * @throws SQLDataException if any decoding error occurs
    */

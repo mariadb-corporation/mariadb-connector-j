@@ -52,6 +52,11 @@ public class SignedTinyIntColumn extends ColumnDefinitionPacket implements Colum
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected SignedTinyIntColumn(SignedTinyIntColumn prev) {
     super(prev, true);
   }

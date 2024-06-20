@@ -54,6 +54,11 @@ public class UuidColumn extends ColumnDefinitionPacket implements ColumnDecoder 
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected UuidColumn(UuidColumn prev) {
     super(prev, true);
   }

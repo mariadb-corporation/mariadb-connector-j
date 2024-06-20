@@ -53,6 +53,11 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected TimeColumn(TimeColumn prev) {
     super(prev, true);
   }

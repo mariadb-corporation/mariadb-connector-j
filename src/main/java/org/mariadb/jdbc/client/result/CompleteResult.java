@@ -210,6 +210,11 @@ public class CompleteResult extends Result {
     return new CompleteResult(columns, rows.toArray(new byte[0][0]), context, resultSetType);
   }
 
+  /**
+   * Recreate Result-set with metadata using alias as name.
+   *
+   * @return Result-set with metadata using alias as name
+   */
   public CompleteResult newResultsetWithUseAliasAsName() {
     ColumnDecoder[] newMeta = new ColumnDecoder[metadataList.length];
     for (int i = 0; i < metadataList.length; i++) {

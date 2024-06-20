@@ -56,6 +56,11 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected DateColumn(DateColumn prev) {
     super(prev, true);
   }

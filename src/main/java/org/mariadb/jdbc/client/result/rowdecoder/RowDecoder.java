@@ -130,6 +130,7 @@ public interface RowDecoder {
    * @param rowBuf row buffer
    * @param fieldLength field length
    * @param cal calendar
+   * @param context current context
    * @return data
    * @throws SQLException if data type cannot be decoded to Date value
    */

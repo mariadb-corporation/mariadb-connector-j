@@ -54,6 +54,11 @@ public class DoubleColumn extends ColumnDefinitionPacket implements ColumnDecode
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected DoubleColumn(DoubleColumn prev) {
     super(prev, true);
   }

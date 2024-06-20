@@ -52,6 +52,11 @@ public class UnsignedMediumIntColumn extends ColumnDefinitionPacket implements C
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected UnsignedMediumIntColumn(UnsignedMediumIntColumn prev) {
     super(prev, true);
   }

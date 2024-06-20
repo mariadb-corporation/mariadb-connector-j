@@ -244,6 +244,7 @@ public abstract class Result implements ResultSet, Completion {
     return true;
   }
 
+  /** Indicate that result is a bulk result */
   public abstract void setBulkResult();
 
   public void closeOnCompletion() throws SQLException {

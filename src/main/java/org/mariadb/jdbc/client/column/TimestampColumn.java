@@ -64,6 +64,11 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected TimestampColumn(TimestampColumn prev) {
     super(prev, true);
   }

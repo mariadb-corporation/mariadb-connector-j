@@ -629,6 +629,12 @@ public class Configuration {
     }
   }
 
+  /**
+   * Create a Builder from current configuration. Since configuration data are final, this permit to
+   * change configuration, creating another object.
+   *
+   * @return builder
+   */
   public Builder toBuilder() {
     Builder builder =
         new Builder()
@@ -1631,6 +1637,11 @@ public class Configuration {
     return forceConnectionTimeZoneToSession;
   }
 
+  /**
+   * Must timezone change preserve instants
+   *
+   * @return true if instants must be preserved
+   */
   public boolean preserveInstants() {
     return preserveInstants;
   }
@@ -2390,11 +2401,23 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Add a windows pipe host
+     *
+     * @param pipe windows pipe path
+     * @return this {@link Builder}
+     */
     public Builder addPipeHost(String pipe) {
       this._addresses.add(HostAddress.pipe(pipe));
       return this;
     }
 
+    /**
+     * Add a unix socket host
+     *
+     * @param localSocket unix socket path
+     * @return this {@link Builder}
+     */
     public Builder addLocalSocketHost(String localSocket) {
       this._addresses.add(HostAddress.localSocket(localSocket));
       return this;

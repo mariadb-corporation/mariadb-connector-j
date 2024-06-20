@@ -39,6 +39,11 @@ public class JsonColumn extends StringColumn implements ColumnDecoder {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected JsonColumn(JsonColumn prev) {
     super(prev);
   }

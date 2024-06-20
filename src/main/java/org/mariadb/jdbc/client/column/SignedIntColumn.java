@@ -52,6 +52,11 @@ public class SignedIntColumn extends ColumnDefinitionPacket implements ColumnDec
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected SignedIntColumn(SignedIntColumn prev) {
     super(prev, true);
   }

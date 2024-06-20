@@ -43,6 +43,11 @@ public class GeometryColumn extends BlobColumn {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected GeometryColumn(GeometryColumn prev) {
     super(prev);
   }

@@ -54,6 +54,11 @@ public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected FloatColumn(FloatColumn prev) {
     super(prev, true);
   }

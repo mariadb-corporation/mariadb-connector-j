@@ -53,6 +53,11 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
         false);
   }
 
+  /**
+   * Recreate new column using alias as name.
+   *
+   * @param prev current column
+   */
   protected SignedBigIntColumn(SignedBigIntColumn prev) {
     super(prev, true);
   }
