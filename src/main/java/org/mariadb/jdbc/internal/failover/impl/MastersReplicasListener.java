@@ -305,7 +305,7 @@ public class MastersReplicasListener extends AbstractMastersReplicasListener {
   @Override
   public boolean noBackslashEscapes() {
     Protocol protocol = (currentProtocol != null) ? currentProtocol : secondaryProtocol;
-    return protocol.noBackslashEscapes();
+    return protocol != null && protocol.noBackslashEscapes();
   }
 
   /**
