@@ -924,6 +924,12 @@ public class ConfigurationTest {
     assertThrows(
         SQLException.class,
         () -> Configuration.parse("jdbc:mariadb://localhost/test?useCatalogTerm=Wrong"));
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?databaseTerm=Catalog");
+    assertEquals(conf.useCatalogTerm(), CatalogTerm.UseCatalog);
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?databaseTerm=Schema");
+    assertEquals(conf.useCatalogTerm(), CatalogTerm.UseSchema);
   }
 
   @Test
