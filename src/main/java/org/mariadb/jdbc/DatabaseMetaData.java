@@ -187,45 +187,14 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     }
   }
 
-  /**
-   * Get imported keys.
-   *
-   * @param tableDef table definition
-   * @param tableName table name
-   * @param database database
-   * @param connection connection
-   * @return resultset resultset
-   * @throws ParseException exception
-   */
-  private ResultSet getImportedKeys(
-      String tableDef, String tableName, String database, org.mariadb.jdbc.Connection connection)
-      throws Exception {
-    boolean importedKeysWithConstraintNames =
-        Boolean.parseBoolean(
-            conf.nonMappedOptions().getProperty("importedKeysWithConstraintNames", "true"));
-    String[] columnNames = {
-      "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME",
-      "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM",
-      "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ",
-      "UPDATE_RULE", "DELETE_RULE", "FK_NAME",
-      "PK_NAME", "DEFERRABILITY"
-    };
-    DataType[] dataTypes = {
-      DataType.VARCHAR, DataType.NULL, DataType.VARCHAR,
-      DataType.VARCHAR, DataType.VARCHAR, DataType.NULL,
-      DataType.VARCHAR, DataType.VARCHAR, DataType.SMALLINT,
-      DataType.SMALLINT, DataType.SMALLINT, DataType.VARCHAR,
-      DataType.VARCHAR, DataType.SMALLINT
-    };
-
+  private void parseShowCreateTable(
+      String tableDef, String database, String tableName, boolean importedKeysWithConstraintNames, List<String[]> data)
+      throws ParseException, SQLException {
     String[] parts = tableDef.split("\n");
-
-    List<String[]> data = new ArrayList<>();
-
     for (String part : parts) {
       part = part.trim();
       if (!part.toUpperCase(Locale.ROOT).startsWith("CONSTRAINT")
-          && !part.toUpperCase(Locale.ROOT).contains("FOREIGN KEY")) {
+              && !part.toUpperCase(Locale.ROOT).contains("FOREIGN KEY")) {
         continue;
       }
       char[] partChar = part.toCharArray();
@@ -247,7 +216,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       int onDeleteReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
 
       for (String referenceAction :
-          new String[] {"RESTRICT", "CASCADE", "SET NULL", "NO ACTION", "SET DEFAULT"}) {
+              new String[] {"RESTRICT", "CASCADE", "SET NULL", "NO ACTION", "SET DEFAULT"}) {
         if (part.toUpperCase(Locale.ROOT).contains("ON UPDATE " + referenceAction)) {
           onUpdateReferenceAction = getImportedKeyAction(referenceAction);
         }
@@ -258,15 +227,15 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       Map<String, Map<String[], String>> externalInfos = new HashMap<>();
       for (int i = 0; i < primaryKeyCols.size(); i++) {
 
-        String[] row = new String[columnNames.length];
+        String[] row = new String[14];
         row[0] =
-            conf.useCatalogTerm() == CatalogTerm.UseCatalog
-                ? (pkTable.schema == null ? database : pkTable.schema)
-                : "def"; // PKTABLE_CAT
+                conf.useCatalogTerm() == CatalogTerm.UseCatalog
+                        ? (pkTable.schema == null ? database : pkTable.schema)
+                        : "def"; // PKTABLE_CAT
         row[1] =
-            conf.useCatalogTerm() == CatalogTerm.UseSchema
-                ? (pkTable.schema == null ? database : pkTable.schema)
-                : null; // PKTABLE_SCHEM
+                conf.useCatalogTerm() == CatalogTerm.UseSchema
+                        ? (pkTable.schema == null ? database : pkTable.schema)
+                        : null; // PKTABLE_SCHEM
         row[2] = pkTable.name; // PKTABLE_NAME
         row[3] = primaryKeyCols.get(i).name; // PKCOLUMN_NAME
         row[4] = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? database : "def"; // FKTABLE_CAT
@@ -279,8 +248,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         row[11] = constraintName.name; // FK_NAME
         if (importedKeysWithConstraintNames) {
           String ext =
-              (pkTable.schema == null ? "" : quoteIdentifier(pkTable.schema) + ".")
-                  + quoteIdentifier(pkTable.name);
+                  quoteIdentifier(pkTable.schema == null ? database : pkTable.schema) + "."
+                          + quoteIdentifier(pkTable.name);
           if (!externalInfos.containsKey(ext)) {
             externalInfos.put(ext, getExtImportedKeys(ext, connection));
           }
@@ -289,12 +258,14 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           if (externalInfo != null) {
             for (Map.Entry<String[], String> entry : externalInfo.entrySet()) {
               boolean foundAll = true;
+              List<Identifier> pkKeysFound = new ArrayList<>();
 
               for (String keyPart : entry.getKey()) {
                 boolean foundKey = false;
                 for (Identifier keyCol : primaryKeyCols) {
                   if (keyCol.name.equals(keyPart)) {
                     foundKey = true;
+                    pkKeysFound.add(keyCol);
                     break;
                   }
                 }
@@ -303,7 +274,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                   break;
                 }
               }
-              if (foundAll) {
+              // either found all the keys, or found at least all the one required
+              if (foundAll || pkKeysFound.size() == primaryKeyCols.size()) {
                 row[12] = entry.getValue();
               }
             }
@@ -315,34 +287,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         data.add(row);
       }
     }
-    String[][] arr = data.toArray(new String[0][]);
-    /* Sort array by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, and KEY_SEQ.*/
-    Arrays.sort(
-        arr,
-        (row1, row2) -> {
-          int result = 0;
-          if (row1[0] != null) result = row1[0].compareTo(row2[0]); // PKTABLE_CAT
-          if (result == 0) {
-            if (row1[1] != null) result = row1[1].compareTo(row2[1]); // PKTABLE_SCHEM
-            if (result == 0) {
-              result = row1[2].compareTo(row2[2]); // PKTABLE_NAME
-              if (result == 0) {
-                result = row1[8].length() - row2[8].length(); // KEY_SEQ
-                if (result == 0) {
-                  result = row1[8].compareTo(row2[8]);
-                }
-              }
-            }
-          }
-          return result;
-        });
-    return CompleteResult.createResultSet(
-        columnNames,
-        dataTypes,
-        arr,
-        connection.getContext(),
-        ColumnFlags.PRIMARY_KEY,
-        ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   private Map<String[], String> getExtImportedKeys(
@@ -358,7 +302,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         // field
         continue;
       }
-      if (part.startsWith("PRIMARY KEY") || part.startsWith("UNIQUE KEY")) {
+      if (part.startsWith("PRIMARY KEY") || part.startsWith("UNIQUE KEY")  || part.startsWith("KEY")) {
         String name = "PRIMARY";
         if (part.indexOf("`") < part.indexOf("(")) {
           int offset = part.indexOf("`");
@@ -451,19 +395,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     // We avoid using information schema queries by default, because this appears to be an expensive
     // query (CONJ-41).
-    if (table == null) {
+    if (table == null || table.isEmpty()) {
       throw new SQLException("'table' parameter in getImportedKeys cannot be null");
     }
-
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schema;
-    if (database == null || database.isEmpty()) {
-      return getImportedKeysUsingInformationSchema(database, table);
-    }
 
     try {
       return getImportedKeysUsingShowCreateTable(database, table);
     } catch (Exception e) {
-      // Likely, parsing failed, try out I_S query.
+      // since 3.4.1 show create is now used by default, and there is no reason to have parsing exception,
+      // but cannot remove that try-catch in a correction release.
+      // TODO to be removed next minor version
       return getImportedKeysUsingInformationSchema(database, table);
     }
   }
@@ -1062,9 +1004,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getImportedKeysUsingInformationSchema(final String database, String table)
       throws SQLException {
-    if (table == null || table.isEmpty()) {
-      throw new SQLException("'table' parameter in getImportedKeys cannot be null");
-    }
     StringBuilder sb =
         new StringBuilder("SELECT ")
             .append(
@@ -1114,14 +1053,86 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getImportedKeysUsingShowCreateTable(final String database, String table)
       throws Exception {
-    ResultSet rs =
-        connection
-            .createStatement()
-            .executeQuery(
-                "SHOW CREATE TABLE " + quoteIdentifier(database) + "." + quoteIdentifier(table));
-    rs.next();
-    String tableDef = rs.getString(2);
-    return getImportedKeys(tableDef, table, database, connection);
+
+    boolean importedKeysWithConstraintNames =
+            Boolean.parseBoolean(
+                    conf.nonMappedOptions().getProperty("importedKeysWithConstraintNames", "true"));
+    String[] columnNames = {
+            "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME",
+            "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM",
+            "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ",
+            "UPDATE_RULE", "DELETE_RULE", "FK_NAME",
+            "PK_NAME", "DEFERRABILITY"
+    };
+    DataType[] dataTypes = {
+            DataType.VARCHAR, DataType.NULL, DataType.VARCHAR,
+            DataType.VARCHAR, DataType.VARCHAR, DataType.NULL,
+            DataType.VARCHAR, DataType.VARCHAR, DataType.SMALLINT,
+            DataType.SMALLINT, DataType.SMALLINT, DataType.VARCHAR,
+            DataType.VARCHAR, DataType.SMALLINT
+    };
+
+
+    List<String[]> data = new ArrayList<>();
+
+    Statement stmt = connection.createStatement();
+    if (database != null) {
+      ResultSet rs =
+              stmt
+              .executeQuery(
+                  "SHOW CREATE TABLE " + quoteIdentifier(database) + "." + quoteIdentifier(table));
+      rs.next();
+      String tableDef = rs.getString(2);
+      parseShowCreateTable(
+              tableDef, database, table, importedKeysWithConstraintNames, data);
+
+    } else {
+      List<String> databases = new ArrayList<>();
+      ResultSet rs = stmt.executeQuery("SHOW DATABASES");
+      while (rs.next()) databases.add(rs.getString(1));
+
+      for (String db : databases) {
+        try {
+          rs =
+              stmt.executeQuery(
+                  "SHOW CREATE TABLE " + quoteIdentifier(db) + "." + quoteIdentifier(table));
+          rs.next();
+          String tableDef = rs.getString(2);
+          parseShowCreateTable(tableDef, db, table, importedKeysWithConstraintNames, data);
+        } catch (SQLException e) {
+          // eat
+        }
+      }
+    }
+    String[][] arr = data.toArray(new String[0][]);
+    /* Sort array by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, and KEY_SEQ.*/
+    Arrays.sort(
+            arr,
+            (row1, row2) -> {
+              int result = 0;
+              if (row1[0] != null) result = row1[0].compareTo(row2[0]); // PKTABLE_CAT
+              if (result == 0) {
+                if (row1[1] != null) result = row1[1].compareTo(row2[1]); // PKTABLE_SCHEM
+                if (result == 0) {
+                  result = row1[2].compareTo(row2[2]); // PKTABLE_NAME
+                  if (result == 0) {
+                    result = row1[8].length() - row2[8].length(); // KEY_SEQ
+                    if (result == 0) {
+                      result = row1[8].compareTo(row2[8]);
+                    }
+                  }
+                }
+              }
+              return result;
+            });
+    return CompleteResult.createResultSet(
+            columnNames,
+            dataTypes,
+            arr,
+            connection.getContext(),
+            ColumnFlags.PRIMARY_KEY,
+            ResultSet.TYPE_SCROLL_INSENSITIVE);
+
   }
 
   /**
