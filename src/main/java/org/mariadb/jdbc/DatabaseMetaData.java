@@ -990,7 +990,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     sb.append(firstCondition ? " WHERE " : " AND ")
         .append("KCU.REFERENCED_TABLE_NAME = ")
         .append(escapeQuote(table));
-    sb.append(" ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ");
+    sb.append(" ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, PK_NAME, KEY_SEQ");
     return executeQuery(sb.toString());
   }
 
@@ -1105,26 +1105,29 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       }
     }
     String[][] arr = data.toArray(new String[0][]);
-    /* Sort array by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, and KEY_SEQ.*/
+    /* Sort array by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, PK_NAME, and KEY_SEQ.*/
     Arrays.sort(
-            arr,
-            (row1, row2) -> {
-              int result = 0;
-              if (row1[0] != null) result = row1[0].compareTo(row2[0]); // PKTABLE_CAT
+        arr,
+        (row1, row2) -> {
+          int result = 0;
+          if (row1[0] != null) result = row1[0].compareTo(row2[0]); // PKTABLE_CAT
+          if (result == 0) {
+            if (row1[1] != null) result = row1[1].compareTo(row2[1]); // PKTABLE_SCHEM
+            if (result == 0) {
+              result = row1[2].compareTo(row2[2]); // PKTABLE_NAME
               if (result == 0) {
-                if (row1[1] != null) result = row1[1].compareTo(row2[1]); // PKTABLE_SCHEM
+                if (row1[12] != null) result = row1[12].compareTo(row2[12]); // adding PK_NAME for reliability
                 if (result == 0) {
-                  result = row1[2].compareTo(row2[2]); // PKTABLE_NAME
+                  result = row1[8].length() - row2[8].length(); // KEY_SEQ
                   if (result == 0) {
-                    result = row1[8].length() - row2[8].length(); // KEY_SEQ
-                    if (result == 0) {
-                      result = row1[8].compareTo(row2[8]);
-                    }
+                    result = row1[8].compareTo(row2[8]);
                   }
                 }
               }
-              return result;
-            });
+            }
+          }
+          return result;
+        });
     return CompleteResult.createResultSet(
             columnNames,
             dataTypes,

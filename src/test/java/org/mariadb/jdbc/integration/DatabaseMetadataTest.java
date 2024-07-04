@@ -661,13 +661,12 @@ public class DatabaseMetadataTest extends Common {
     ResultSet rs2 = meta.getImportedKeys(database, null, "ref_snippet");
     rs.next();
     rs2.next();
-    assertEquals("uk_user__alias", rs.getString(13));
-    assertEquals("uk_user__alias", rs2.getString(13));
-    rs.next();
-    rs2.next();
     assertEquals("ix_user__user", rs.getString(13));
     assertEquals("ix_user__user", rs2.getString(13));
-
+    rs.next();
+    rs2.next();
+    assertEquals("uk_user__alias", rs.getString(13));
+    assertEquals("uk_user__alias", rs2.getString(13));
     stmt.execute("DROP TABLE ref_snippet");
     stmt.execute("DROP TABLE data_user");
   }
