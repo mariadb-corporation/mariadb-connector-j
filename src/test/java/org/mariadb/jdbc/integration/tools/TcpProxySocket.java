@@ -49,10 +49,11 @@ public class TcpProxySocket implements Runnable {
   }
 
   /** Kill proxy. */
-  public void kill() {
+  public void kill(boolean rst) {
     stop = true;
     try {
       if (server != null) {
+        if (rst) server.setSoLinger(true, 0);
         server.close();
       }
     } catch (IOException e) {
@@ -60,6 +61,7 @@ public class TcpProxySocket implements Runnable {
     }
     try {
       if (client != null) {
+        if (rst) client.setSoLinger(true, 0);
         client.close();
       }
     } catch (IOException e) {

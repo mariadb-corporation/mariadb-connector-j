@@ -250,10 +250,13 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//([^/]*)/" + database,
             String.format(
-                "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/",
-                proxy.getLocalPort(), hostAddress.host, hostAddress.port));
+                "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/"
+                    + database,
+                proxy.getLocalPort(),
+                hostAddress.host,
+                hostAddress.port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
@@ -281,7 +284,7 @@ public class MultiHostTest extends Common {
       stmt.execute("START TRANSACTION");
       stmt.execute("SET @con=1");
 
-      proxy.restart(100);
+      proxy.restart(100, true);
       try {
         ResultSet rs = stmt.executeQuery("SELECT @con");
         if (rs.next()) {
