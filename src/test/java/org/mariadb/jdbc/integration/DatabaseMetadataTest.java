@@ -249,12 +249,12 @@ public class DatabaseMetadataTest extends Common {
       stmt.execute("drop table if exists primarykeytest1");
       stmt.execute("CREATE TABLE primarykeytest1 ( id1 integer, constraint pk primary key(id1))");
       stmt.execute(
-          "CREATE TABLE primarykeytest2 (" +
-                  "id2a integer, " +
-                  "id2b integer, " +
-                  "constraint pk primary key(id2a, id2b), " +
-                  "constraint fk11 foreign key fk1 (id2a) references primarykeytest1(id1),  " +
-                  "constraint fk21 foreign key fk2 (id2b) references primarykeytest1(id1))");
+          "CREATE TABLE primarykeytest2 ("
+              + "id2a integer, "
+              + "id2b integer, "
+              + "constraint pk primary key(id2a, id2b), "
+              + "constraint fk11 foreign key fk1 (id2a) references primarykeytest1(id1),  "
+              + "constraint fk21 foreign key fk2 (id2b) references primarykeytest1(id1))");
 
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getPrimaryKeys(con.getCatalog(), null, "primarykeytest2");
@@ -636,25 +636,23 @@ public class DatabaseMetadataTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS ref_snippet");
     stmt.execute("DROP TABLE IF EXISTS data_user");
-    stmt.execute("CREATE TABLE `data_user` (" +
-            "  `id` int(11) NOT NULL AUTO_INCREMENT," +
-            "  `username` varchar(50) NOT NULL," +
-            "  `alias` varchar(50) NOT NULL," +
-            "  `active` bit(1) NOT NULL," +
-            "  PRIMARY KEY (`id`)," +
-            "  KEY `ix_user__user` (`username`,`active`)," +
-            "  UNIQUE KEY `uk_user__alias` (`alias`)) ENGINE=InnoDB");
     stmt.execute(
-        "CREATE TABLE `ref_snippet` ("
+        "CREATE TABLE `data_user` ("
             + "  `id` int(11) NOT NULL AUTO_INCREMENT,"
-            + "  `snippet` varchar(2000) NOT NULL,"
+            + "  `username` varchar(50) NOT NULL,"
+            + "  `alias` varchar(50) NOT NULL,"
             + "  `active` bit(1) NOT NULL,"
-            + "  `created_by` varchar(50) NOT NULL,"
-            + "  `created_alias` varchar(50) NOT NULL,"
             + "  PRIMARY KEY (`id`),"
-            + "  KEY `ix_snippet__owner` (`created_by`,`active`),"
-            + "  CONSTRAINT `fk_snippet__user__username` FOREIGN KEY (`created_by`) REFERENCES `data_user` (`username`),"
-            + "  CONSTRAINT `fk_snippet__user__alias` FOREIGN KEY (`created_alias`) REFERENCES `data_user` (`alias`)) ENGINE=InnoDB");
+            + "  KEY `ix_user__user` (`username`,`active`),"
+            + "  UNIQUE KEY `uk_user__alias` (`alias`)) ENGINE=InnoDB");
+    stmt.execute(
+        "CREATE TABLE `ref_snippet` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `snippet`"
+            + " varchar(2000) NOT NULL,  `active` bit(1) NOT NULL,  `created_by` varchar(50) NOT"
+            + " NULL,  `created_alias` varchar(50) NOT NULL,  PRIMARY KEY (`id`),  KEY"
+            + " `ix_snippet__owner` (`created_by`,`active`),  CONSTRAINT"
+            + " `fk_snippet__user__username` FOREIGN KEY (`created_by`) REFERENCES `data_user`"
+            + " (`username`),  CONSTRAINT `fk_snippet__user__alias` FOREIGN KEY (`created_alias`)"
+            + " REFERENCES `data_user` (`alias`)) ENGINE=InnoDB");
 
     DatabaseMetaData meta = sharedConn.getMetaData();
     ResultSet rs = meta.getExportedKeys(database, null, "data_user");
@@ -671,7 +669,7 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("DROP TABLE data_user");
   }
 
-    @Test
+  @Test
   public void exportedKeysTest() throws SQLException {
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();

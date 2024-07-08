@@ -59,18 +59,20 @@ public class HostAddress {
 
   /**
    * Constructor for windows pipe host
+   *
    * @param pipe windows pipe path
    * @return hostAddress
    */
   public static HostAddress pipe(String pipe) {
     return new HostAddress(null, 3306, null, pipe, null, null);
   }
+
   /**
    * Constructor for unix socket host
+   *
    * @param localSocket unix socket path
    * @return hostAddress
    */
-
   public static HostAddress localSocket(String localSocket) {
     return new HostAddress(null, 3306, null, null, localSocket, null);
   }
@@ -145,6 +147,7 @@ public class HostAddress {
 
   /**
    * Parse Single host
+   *
    * @param str string to parse
    * @param haMode current High-Availability mode
    * @param first is it the first host
