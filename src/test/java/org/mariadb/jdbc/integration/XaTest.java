@@ -67,6 +67,21 @@ public class XaTest extends Common {
   }
 
   @Test
+  public void testPinGlobalTxToPhysicalConnection() throws Exception {
+
+    MariaDbDataSource xads = new MariaDbDataSource(mDefUrl + "&pinGlobalTxToPhysicalConnection");
+    Xid txid = new MariaDbXid(1, new byte[] {0xf}, new byte[] {0x01});
+
+    XAConnection c1 = xads.getXAConnection();
+    c1.getXAResource().start(txid, XAResource.TMNOFLAGS);
+    c1.getXAResource().end(txid, XAResource.TMSUCCESS);
+
+    XAConnection c2 = xads.getXAConnection();
+    c2.getXAResource().prepare(txid);
+    c2.getXAResource().commit(txid, false);
+  }
+
+  @Test
   public void xaRmTest() throws Exception {
     MariaDbDataSource dataSource1 = new MariaDbDataSource(mDefUrl);
     MariaDbDataSource dataSource2 = new MariaDbDataSource(mDefUrl + "&test=t");

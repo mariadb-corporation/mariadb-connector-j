@@ -207,7 +207,10 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
     if (conf == null) config();
-    return new MariaDbPoolConnection(Driver.connect(conf));
+    org.mariadb.jdbc.Connection conn = Driver.connect(conf);
+    return conf.pinGlobalTxToPhysicalConnection()
+        ? new MariaDbPoolPinnedConnection(conn)
+        : new MariaDbPoolConnection(conn);
   }
 
   @Override
@@ -215,20 +218,29 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
       throws SQLException {
     if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
-    return new MariaDbPoolConnection(Driver.connect(conf));
+    org.mariadb.jdbc.Connection conn = Driver.connect(conf);
+    return conf.pinGlobalTxToPhysicalConnection()
+        ? new MariaDbPoolPinnedConnection(conn)
+        : new MariaDbPoolConnection(conn);
   }
 
   @Override
   public XAConnection getXAConnection() throws SQLException {
     if (conf == null) config();
-    return new MariaDbPoolConnection(Driver.connect(conf));
+    org.mariadb.jdbc.Connection conn = Driver.connect(conf);
+    return conf.pinGlobalTxToPhysicalConnection()
+        ? new MariaDbPoolPinnedConnection(conn)
+        : new MariaDbPoolConnection(conn);
   }
 
   @Override
   public XAConnection getXAConnection(String username, String password) throws SQLException {
     if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
-    return new MariaDbPoolConnection(Driver.connect(conf));
+    org.mariadb.jdbc.Connection conn = Driver.connect(conf);
+    return conf.pinGlobalTxToPhysicalConnection()
+        ? new MariaDbPoolPinnedConnection(conn)
+        : new MariaDbPoolConnection(conn);
   }
 
   /**

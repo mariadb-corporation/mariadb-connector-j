@@ -907,6 +907,15 @@ public class Connection implements java.sql.Connection {
   }
 
   /**
+   * Internal : retrieve internal ClosableLock
+   *
+   * @return ClosableLock
+   */
+  protected ClosableLock getLock() {
+    return lock;
+  }
+
+  /**
    * for _TEST_ only
    *
    * @return current host

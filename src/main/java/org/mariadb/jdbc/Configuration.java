@@ -82,6 +82,7 @@ public class Configuration {
   private String geometryDefaultType = null;
   private String restrictedAuth = null;
   private String initSql = null;
+  private boolean pinGlobalTxToPhysicalConnection = false;
 
   // socket
   private String socketFactory = null;
@@ -184,6 +185,7 @@ public class Configuration {
       boolean returnMultiValuesGeneratedIds,
       boolean jdbcCompliantTruncation,
       boolean permitRedirect,
+      boolean pinGlobalTxToPhysicalConnection,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -269,6 +271,7 @@ public class Configuration {
     this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     this.jdbcCompliantTruncation = jdbcCompliantTruncation;
     this.permitRedirect = permitRedirect;
+    this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
     this.useLocalSessionState = useLocalSessionState;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
@@ -394,6 +397,7 @@ public class Configuration {
       Boolean returnMultiValuesGeneratedIds,
       Boolean jdbcCompliantTruncation,
       Boolean permitRedirect,
+      Boolean pinGlobalTxToPhysicalConnection,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -511,6 +515,8 @@ public class Configuration {
       this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
     if (jdbcCompliantTruncation != null) this.jdbcCompliantTruncation = jdbcCompliantTruncation;
     if (permitRedirect != null) this.permitRedirect = permitRedirect;
+    if (pinGlobalTxToPhysicalConnection != null)
+      this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -656,6 +662,7 @@ public class Configuration {
             .returnMultiValuesGeneratedIds(this.returnMultiValuesGeneratedIds)
             .jdbcCompliantTruncation(this.jdbcCompliantTruncation)
             .permitRedirect(this.permitRedirect)
+            .pinGlobalTxToPhysicalConnection(this.pinGlobalTxToPhysicalConnection)
             .transactionIsolation(
                 transactionIsolation == null ? null : this.transactionIsolation.getValue())
             .defaultFetchSize(this.defaultFetchSize)
@@ -1804,6 +1811,15 @@ public class Configuration {
   }
 
   /**
+   * When enabled, ensure that for XA operation to use the same connection
+   *
+   * @return pinGlobalTxToPhysicalConnection
+   */
+  public boolean pinGlobalTxToPhysicalConnection() {
+    return pinGlobalTxToPhysicalConnection;
+  }
+
+  /**
    * On deadlock exception, must driver execute additional commands to show innodb status in error
    * description.
    *
@@ -2119,6 +2135,7 @@ public class Configuration {
     private Boolean returnMultiValuesGeneratedIds;
     private Boolean jdbcCompliantTruncation;
     private Boolean permitRedirect;
+    private Boolean pinGlobalTxToPhysicalConnection;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -3012,6 +3029,17 @@ public class Configuration {
     }
 
     /**
+     * Indicate if for XA transaction, connector must reuse same connection.
+     *
+     * @param pinGlobalTxToPhysicalConnection force reuse of same connection
+     * @return this {@link Builder}
+     */
+    public Builder pinGlobalTxToPhysicalConnection(Boolean pinGlobalTxToPhysicalConnection) {
+      this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
+      return this;
+    }
+
+    /**
      * On dead-lock exception must add innodb status in exception error message. If enabled, an
      * additional command will be done to retrieve innodb status when dead-lock occurs.
      *
@@ -3336,6 +3364,7 @@ public class Configuration {
               this.returnMultiValuesGeneratedIds,
               this.jdbcCompliantTruncation,
               this.permitRedirect,
+              this.pinGlobalTxToPhysicalConnection,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

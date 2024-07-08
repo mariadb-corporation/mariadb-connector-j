@@ -140,67 +140,67 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     return new MariaDbXAResource();
   }
 
+  protected static XAException mapXaException(SQLException sqle) {
+    int xaErrorCode;
+
+    switch (sqle.getErrorCode()) {
+      case 1397:
+        xaErrorCode = XAException.XAER_NOTA;
+        break;
+      case 1398:
+        xaErrorCode = XAException.XAER_INVAL;
+        break;
+      case 1399:
+        xaErrorCode = XAException.XAER_RMFAIL;
+        break;
+      case 1400:
+        xaErrorCode = XAException.XAER_OUTSIDE;
+        break;
+      case 1401:
+        xaErrorCode = XAException.XAER_RMERR;
+        break;
+      case 1440:
+        xaErrorCode = XAException.XAER_DUPID;
+        break;
+      case 1402:
+        xaErrorCode = XAException.XA_RBROLLBACK;
+        break;
+      case 1613:
+        xaErrorCode = XAException.XA_RBTIMEOUT;
+        break;
+      case 1614:
+        xaErrorCode = XAException.XA_RBDEADLOCK;
+        break;
+      default:
+        xaErrorCode = 0;
+        break;
+    }
+    XAException xaException;
+    if (xaErrorCode != 0) {
+      xaException = new XAException(xaErrorCode);
+    } else {
+      xaException = new XAException(sqle.getMessage());
+    }
+    xaException.initCause(sqle);
+    return xaException;
+  }
+
+  protected static String flagsToString(int flags) {
+    switch (flags) {
+      case XAResource.TMJOIN:
+        return "JOIN";
+      case XAResource.TMONEPHASE:
+        return "ONE PHASE";
+      case XAResource.TMRESUME:
+        return "RESUME";
+      case XAResource.TMSUSPEND:
+        return "SUSPEND";
+      default:
+        return "";
+    }
+  }
+
   private class MariaDbXAResource implements XAResource {
-
-    private String flagsToString(int flags) {
-      switch (flags) {
-        case TMJOIN:
-          return "JOIN";
-        case TMONEPHASE:
-          return "ONE PHASE";
-        case TMRESUME:
-          return "RESUME";
-        case TMSUSPEND:
-          return "SUSPEND";
-        default:
-          return "";
-      }
-    }
-
-    private XAException mapXaException(SQLException sqle) {
-      int xaErrorCode;
-
-      switch (sqle.getErrorCode()) {
-        case 1397:
-          xaErrorCode = XAException.XAER_NOTA;
-          break;
-        case 1398:
-          xaErrorCode = XAException.XAER_INVAL;
-          break;
-        case 1399:
-          xaErrorCode = XAException.XAER_RMFAIL;
-          break;
-        case 1400:
-          xaErrorCode = XAException.XAER_OUTSIDE;
-          break;
-        case 1401:
-          xaErrorCode = XAException.XAER_RMERR;
-          break;
-        case 1440:
-          xaErrorCode = XAException.XAER_DUPID;
-          break;
-        case 1402:
-          xaErrorCode = XAException.XA_RBROLLBACK;
-          break;
-        case 1613:
-          xaErrorCode = XAException.XA_RBTIMEOUT;
-          break;
-        case 1614:
-          xaErrorCode = XAException.XA_RBDEADLOCK;
-          break;
-        default:
-          xaErrorCode = 0;
-          break;
-      }
-      XAException xaException;
-      if (xaErrorCode != 0) {
-        xaException = new XAException(xaErrorCode);
-      } else {
-        xaException = new XAException(sqle.getMessage());
-      }
-      xaException.initCause(sqle);
-      return xaException;
-    }
 
     private void execute(String command) throws XAException {
       try {
