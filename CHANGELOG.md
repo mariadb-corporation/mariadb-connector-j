@@ -4,18 +4,18 @@
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.0...3.4.1)
 
 ##### Bugs Fixed
-CONJ-1181	Ensure Prepare cache use schema
-CONJ-1178	DatabaseMetaData.getImportedKeys return different PK_NAME value than getExportedKeys.
-CONJ-1180	Correct DatabaseMeta.getExportedKeys() performances
-CONJ-1185	Android app compatibility, regex CANON_EQ flag not supported
-CONJ-1188	database meta getSQLKeywords listing all reserved key word, not restricted keywords only
-CONJ-1189	implementation of pinGlobalTxToPhysicalConnection for XA Connection
-CONJ-1190	Adding MySQL option 'databaseTerm' as alias for useCatalogTerm for compatibility
-CONJ-1191	slow metadata getImportedKeys when not having database set
-CONJ-685	permit setting sslMode per host
-CONJ-686	Allow mixing TCP and socket hosts in failover configuration
-CONJ-1068	ResultSetMetaData.getColumnTypeName() returns VARCHAR instead of TINYTEXT
-CONJ-1182	missing XA_RBTIMEOUT,XA_RBTIMEOUT and XA_RBDEADLOCK error mapping
+* CONJ-1181 Ensure Prepare cache use schema
+* CONJ-1178 DatabaseMetaData.getImportedKeys return different PK_NAME value than getExportedKeys.
+* CONJ-1180 Correct DatabaseMeta.getExportedKeys() performances
+* CONJ-1185 Android app compatibility, regex CANON_EQ flag not supported
+* CONJ-1188 database meta getSQLKeywords listing all reserved key word, not restricted keywords only
+* CONJ-1189 implementation of pinGlobalTxToPhysicalConnection for XA Connection
+* CONJ-1190 Adding MySQL option 'databaseTerm' as alias for useCatalogTerm for compatibility
+* CONJ-1191 slow metadata getImportedKeys when not having database set
+* CONJ-685 permit setting sslMode per host
+* CONJ-686 Allow mixing TCP and socket hosts in failover configuration
+* CONJ-1068 ResultSetMetaData.getColumnTypeName() returns VARCHAR instead of TINYTEXT
+* CONJ-1182 missing XA_RBTIMEOUT,XA_RBTIMEOUT and XA_RBDEADLOCK error mapping
 
 
 ## [3.4.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.0) (Apr 2024)
