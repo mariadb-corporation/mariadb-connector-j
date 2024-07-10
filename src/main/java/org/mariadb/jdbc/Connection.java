@@ -76,7 +76,7 @@ public class Connection implements java.sql.Connection {
         context.getVersion().isMariaDBServer()
             && context.getVersion().versionGreaterOrEqual(10, 1, 2)
             && Boolean.parseBoolean(
-                conf.nonMappedOptions().getProperty("enableServerTimeout", "true"));
+                conf.nonMappedOptions().getProperty("canUseServerTimeout", "true"));
     this.queryTimeoutHandler =
         this.canUseServerTimeout
             ? NoOpQueryTimeoutHandler.INSTANCE

@@ -632,7 +632,7 @@ public class StatementTest extends Common {
     }
     assertEquals(10, i);
 
-    try (Connection conn = createCon("&enableServerTimeout=false")) {
+    try (Connection conn = createCon("&canUseServerTimeout=false")) {
       Statement stmt2 = conn.createStatement();
       stmt2.setQueryTimeout(2);
       stmt2.setMaxRows(10);
