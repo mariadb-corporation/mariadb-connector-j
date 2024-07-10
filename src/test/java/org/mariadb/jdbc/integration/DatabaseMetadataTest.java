@@ -686,13 +686,8 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("cross2", rs.getString("FKTABLE_NAME"));
     assertEquals("id_ref0", rs.getString("FKCOLUMN_NAME"));
     assertTrue(rs.getInt("KEY_SEQ") == 1 || rs.wasNull());
-    if (!isMariaDBServer() && minVersion(8, 0, 0)) {
-      assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("UPDATE_RULE"));
-      assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
-    } else {
-      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
-      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-    }
+    assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
+    assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
     assertTrue(
         "PRIMARY".equals(rs.getString("PK_NAME"))
@@ -711,11 +706,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("id_ref1", rs.getString("FKCOLUMN_NAME"));
     assertTrue(rs.getInt("KEY_SEQ") == 1 || rs.wasNull());
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
-    if (!isMariaDBServer() && minVersion(8, 0, 0)) {
-      assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
-    } else {
-      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-    }
+    assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     assertTrue(
         "cross3_ibfk_1".equals(rs.getString("FK_NAME"))
             || "fk_my_name".equals(rs.getString("FK_NAME")));
@@ -732,11 +723,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("id_ref2", rs.getString("FKCOLUMN_NAME"));
     assertTrue(rs.getInt("KEY_SEQ") == 2 || rs.wasNull());
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
-    if (!isMariaDBServer() && minVersion(8, 0, 0)) {
-      assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
-    } else {
-      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-    }
+    assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     assertTrue(
         "fk_my_name".equals(rs.getString("FK_NAME"))
             || "cross3_ibfk_1".equals(rs.getString("FK_NAME")));
@@ -760,13 +747,8 @@ public class DatabaseMetadataTest extends Common {
       assertEquals("cross2", rs.getString("FKTABLE_NAME"));
       assertEquals("id_ref0", rs.getString("FKCOLUMN_NAME"));
       assertTrue(rs.getInt("KEY_SEQ") == 1 || rs.wasNull());
-      if (!isMariaDBServer() && minVersion(8, 0, 0)) {
-        assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("UPDATE_RULE"));
-        assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
-      } else {
-        assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
-        assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      }
+      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
+      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
       assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
       assertTrue(
           "PRIMARY".equals(rs.getString("PK_NAME"))
@@ -786,11 +768,7 @@ public class DatabaseMetadataTest extends Common {
       assertEquals("id_ref1", rs.getString("FKCOLUMN_NAME"));
       assertTrue(rs.getInt("KEY_SEQ") == 1 || rs.wasNull());
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
-      if (!isMariaDBServer() && minVersion(8, 0, 0)) {
-        assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
-      } else {
-        assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      }
+      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
       assertTrue(
           "cross3_ibfk_1".equals(rs.getString("FK_NAME"))
               || "fk_my_name".equals(rs.getString("FK_NAME")));
@@ -807,11 +785,7 @@ public class DatabaseMetadataTest extends Common {
       assertEquals("id_ref2", rs.getString("FKCOLUMN_NAME"));
       assertTrue(rs.getInt("KEY_SEQ") == 2 || rs.wasNull());
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
-      if (!isMariaDBServer() && minVersion(8, 0, 0)) {
-        assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
-      } else {
-        assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      }
+      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
       assertTrue(
           "fk_my_name".equals(rs.getString("FK_NAME"))
               || "cross3_ibfk_1".equals(rs.getString("FK_NAME")));
