@@ -631,6 +631,20 @@ public class StatementTest extends Common {
       assertEquals(i, rs.getInt(1));
     }
     assertEquals(10, i);
+
+    try (Connection conn = createCon("&enableServerTimeout=false")) {
+      Statement stmt2 = conn.createStatement();
+      stmt2.setQueryTimeout(2);
+      stmt2.setMaxRows(10);
+      rs = stmt2.executeQuery("SELECT * FROM sequence_1_to_10000");
+      i = 0;
+      while (rs.next()) {
+        i++;
+        assertEquals(i, rs.getInt(1));
+      }
+      assertEquals(10, i);
+
+    }
   }
 
   @Test
