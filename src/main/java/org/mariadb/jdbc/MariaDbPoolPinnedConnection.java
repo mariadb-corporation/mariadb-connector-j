@@ -160,10 +160,19 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
 
     @Override
     public void start(Xid xid, int flags) throws XAException {
-      if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS) {
-        throw new XAException(XAException.XAER_INVAL);
+      switch (flags) {
+        case TMJOIN:
+        case TMRESUME:
+          //  specific to pinGlobalTxToPhysicalConnection option set,
+          //  force resume in place of JOIN
+          execute(xid, "XA START " + xidToString(xid) + " RESUME", false);
+          break;
+        case TMNOFLAGS:
+          execute(xid, "XA START " + xidToString(xid), false);
+          break;
+        default:
+          throw new XAException(XAException.XAER_INVAL);
       }
-      execute(xid, "XA START " + xidToString(xid) + " " + flagsToString(flags), false);
     }
   }
 }
