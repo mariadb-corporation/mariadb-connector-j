@@ -169,7 +169,7 @@ public interface ClientMessage {
         // * OK response
         // *********************************************************************************************************
       case (byte) 0x00:
-        OkPacket ok = new OkPacket(buf, context);
+        OkPacket ok = OkPacket.parse(buf, context);
         if (context.getRedirectUrl() != null
             && (context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0
             && (context.getServerStatus() & ServerStatus.MORE_RESULTS_EXISTS) == 0) {

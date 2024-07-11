@@ -643,7 +643,6 @@ public class StatementTest extends Common {
         assertEquals(i, rs.getInt(1));
       }
       assertEquals(10, i);
-
     }
   }
 

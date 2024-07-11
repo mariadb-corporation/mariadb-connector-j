@@ -311,7 +311,7 @@ public class StandardClient implements Client, AutoCloseable {
           // OK_Packet -> Authenticated !
           // see https://mariadb.com/kb/en/library/ok_packet/
           // *************************************************************************************
-          OkPacket okPacket = new OkPacket(buf, context);
+          OkPacket okPacket = OkPacket.parseWithInfo(buf, context);
 
           // ssl certificates validation using client password
           if (certFingerprint != null) {
