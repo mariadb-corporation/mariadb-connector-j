@@ -93,6 +93,15 @@ public class StatementTest extends Common {
               + " command");
       ps.execute();
     }
+    try (Connection con = createCon("&permitNoResults=true")) {
+      try (PreparedStatement ps = con.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
+        ps.setInt(1, 1);
+        ps.execute();
+        ResultSet rs = ps.executeQuery();
+        assertFalse(rs.next());
+        ps.execute();
+      }
+    }
     try (PreparedStatement ps =
         sharedConnBinary.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
       ps.setInt(1, 1);
@@ -104,6 +113,14 @@ public class StatementTest extends Common {
               + " use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or correct"
               + " command");
       ps.execute();
+    }
+    try (Connection con = createCon("permitNoResults=true&useServerPrepStmts=true")) {
+      try (PreparedStatement ps = con.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
+        ps.setInt(1, 1);
+        ps.execute();
+        ResultSet rs = ps.executeQuery();
+        assertFalse(rs.next());
+      }
     }
   }
 

@@ -67,6 +67,8 @@ public class ProcedureTest extends Common {
         cstmt.setLong(1, 44L);
         cstmt.execute();
         assertEquals(88, cstmt.getLong(1));
+        ResultSet rs = cstmt.executeQuery();
+        assertFalse(rs.next());
       }
     }
   }

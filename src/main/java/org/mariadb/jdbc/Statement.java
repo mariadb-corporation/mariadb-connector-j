@@ -10,6 +10,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.result.CompleteResult;
@@ -167,6 +168,12 @@ public class Statement implements java.sql.Statement {
     currResult = results.remove(0);
     if (currResult instanceof Result) {
       return (Result) currResult;
+    }
+    if (Boolean.parseBoolean(
+        con.getContext().getConf().nonMappedOptions().getProperty("permitNoResults", "false"))) {
+      // for compatibility with pre 3.4.0 version
+      return new CompleteResult(
+          new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
     }
     throw new SQLException(
         "Statement.executeQuery() command does NOT return a result-set as expected. Either use"
