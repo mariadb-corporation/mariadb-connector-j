@@ -345,14 +345,19 @@ public class SslTest extends Common {
     Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
 
     // without password
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions
-                    + "&sslMode=trust&keyStore="
-                    + System.getenv("TEST_DB_CLIENT_PKCS"),
-                sslPort));
+    try {
+      assertThrows(
+          SQLInvalidAuthorizationSpecException.class,
+          () ->
+              createCon(
+                  baseMutualOptions
+                      + "&sslMode=trust&keyStore="
+                      + System.getenv("TEST_DB_CLIENT_PKCS"),
+                  sslPort));
+    } catch (Throwable e) {
+      e.printStackTrace();
+      throw e;
+    }
     // with password
     try (Connection con =
         createCon(
