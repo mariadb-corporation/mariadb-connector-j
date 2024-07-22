@@ -799,7 +799,12 @@ public class Configuration {
       int skipPos;
       int posToSkip = 0;
       while ((skipPos = urlSecondPart.indexOf("address=(", posToSkip)) > -1) {
-        posToSkip = urlSecondPart.indexOf(")", skipPos);
+        posToSkip = urlSecondPart.indexOf(")", skipPos) + 1;
+        while (urlSecondPart.startsWith("(", posToSkip)) {
+          int endingBraceIndex = urlSecondPart.indexOf(")", posToSkip);
+          if (endingBraceIndex == -1) break;
+          posToSkip = endingBraceIndex + 1;
+        }
       }
       int dbIndex = urlSecondPart.indexOf("/", posToSkip);
       int paramIndex = urlSecondPart.indexOf("?");

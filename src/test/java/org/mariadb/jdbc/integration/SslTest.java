@@ -252,7 +252,7 @@ public class SslTest extends Common {
     String path = rs.getString(2);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             "//address=(localSocket="
                 + path
                 + "),address=(host="
@@ -500,7 +500,10 @@ public class SslTest extends Common {
         throw new SQLException("proxy error", i);
       }
 
-      String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+      String url =
+          mDefUrl.replaceAll(
+              "//(" + hostname + "|" + hostname + ":" + port + ")/",
+              "//localhost:" + proxy.getLocalPort() + "/");
       Common.assertThrowsContains(
           SQLException.class,
           () ->

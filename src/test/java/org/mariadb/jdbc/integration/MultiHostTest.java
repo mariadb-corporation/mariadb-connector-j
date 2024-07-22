@@ -58,7 +58,7 @@ public class MultiHostTest extends Common {
     HostAddress hostAddress = conf.addresses().get(0);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//mariadb1.example.com:%s,mariadb2.example.com:%s,mariadb3.example.com:%s/",
                 hostAddress.port, hostAddress.port, hostAddress.port));
@@ -170,7 +170,7 @@ public class MultiHostTest extends Common {
     HostAddress hostAddress = conf.addresses().get(0);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=9999)(type=master),address=(host=%s)(port=%s)(type=master)/",
                 hostAddress.host, hostAddress.port));
@@ -188,7 +188,7 @@ public class MultiHostTest extends Common {
 
     url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//%s:%s,%s,%s/",
                 hostAddress.host, hostAddress.port, hostAddress.host, hostAddress.port));
@@ -250,7 +250,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/" + database,
+            "//(" + hostname + "|" + hostname + ":" + port + ")/" + database,
             String.format(
                 "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/"
                     + database,
@@ -374,7 +374,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=master)/", proxy.getLocalPort()));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
@@ -441,7 +441,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//localhost:%s,%s:%s/", proxy.getLocalPort(), hostAddress.host, hostAddress.port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
@@ -503,7 +503,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=primary),address=(host=%s)(port=%s)(type=replica)/",
                 proxy.getLocalPort(), hostAddress.host, hostAddress.port));
@@ -567,7 +567,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//%s:%s,localhost:%s/", hostAddress.host, hostAddress.port, proxy.getLocalPort()));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
