@@ -289,8 +289,7 @@ public class MultiHostTest extends Common {
         ResultSet rs = stmt.executeQuery("SELECT @con");
         if (rs.next()) {
           System.out.println("Resultset res:" + rs.getString(1));
-        }
-        fail("must have thrown exception");
+        } else fail("must have thrown exception");
       } catch (SQLTransientConnectionException e) {
         assertTrue(e.getMessage().contains("In progress transaction was lost"));
       }
