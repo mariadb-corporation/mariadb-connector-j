@@ -110,8 +110,8 @@ public final class ConnectionHelper {
       socket = createSocket(conf, hostAddress);
       SocketHelper.setSocketOption(conf, socket);
       if (!socket.isConnected()) {
-        boolean isLocalSocket = hostAddress.pipe == null && hostAddress.localSocket == null;
-        if (isLocalSocket) {
+        boolean isRemoteSocket = hostAddress.pipe == null && hostAddress.localSocket == null;
+        if (!isRemoteSocket) {
           socket.connect(null, conf.connectTimeout());
         } else {
           InetAddress[] allAddress = InetAddress.getAllByName(hostAddress.host);
