@@ -673,12 +673,8 @@ public class PacketWriter implements Writer {
           return;
         }
 
-        // need to keep all data, buf can grow more than maxPacketLength
-        // grow buf if needed
-        if (bufLength == maxPacketLength) return;
-        if (len + pos > newCapacity) {
-          newCapacity = Math.min(maxPacketLength, len + pos);
-        }
+        growBuffer(len);
+        return;
       }
     }
 
@@ -808,8 +804,7 @@ public class PacketWriter implements Writer {
     pos = mark;
     writeSocket(true);
     out.flush();
-    initPacket();
-
+    cmdLength = 0;
     System.arraycopy(buf, mark, buf, pos, end - mark);
     pos += end - mark;
     mark = -1;

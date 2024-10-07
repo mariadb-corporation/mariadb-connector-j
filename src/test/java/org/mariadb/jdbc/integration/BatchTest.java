@@ -22,6 +22,9 @@ public class BatchTest extends Common {
         "CREATE TABLE BatchTest (t1 int not null primary key auto_increment, t2 LONGTEXT)");
     createSequenceTables();
     stmt.execute("CREATE TABLE timestampCal(id int, val TIMESTAMP)");
+    stmt.execute(
+        "CREATE TABLE batchParamTest (sn_key INTEGER, sn_name VARCHAR(255), sn_description"
+            + " VARCHAR(255), sn_object LONGBLOB, CONSTRAINT pk_test_i PRIMARY KEY (sn_key) ) ");
   }
 
   @AfterAll
@@ -29,6 +32,7 @@ public class BatchTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS timestampCal");
     stmt.execute("DROP TABLE IF EXISTS BatchTest");
+    stmt.execute("DROP TABLE IF EXISTS batchParamTest");
   }
 
   @Test
@@ -655,6 +659,38 @@ public class BatchTest extends Common {
       // Duplicate entry '1' for key 'PRIMARY'
       assertThrows(BatchUpdateException.class, prep::executeBatch);
     }
+  }
+
+  @Test
+  public void bigParameterFlushTest() throws SQLException {
+    int maxAllowedPacket = getMaxAllowedPacket();
+    Assumptions.assumeTrue(maxAllowedPacket > 22 * 1024 * 1024);
+    String insertStatement =
+        "INSERT INTO batchParamTest (sn_key, sn_name, sn_description, sn_object) VALUES (?, ?, ?,"
+            + " ?)";
+    try (PreparedStatement prep = sharedConn.prepareStatement(insertStatement)) {
+      prep.setInt(1, 1000);
+      prep.setString(2, "name1");
+      prep.setString(3, "desc1");
+      prep.setBytes(4, new byte[334004]);
+      prep.addBatch();
+
+      prep.setInt(1, 1001);
+      prep.setString(2, "name2");
+      prep.setString(3, "desc2");
+      prep.setBytes(4, new byte[21963743]);
+      prep.addBatch();
+
+      prep.executeBatch();
+      prep.clearBatch();
+      sharedConn.commit();
+    }
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT * FROM batchParamTest");
+    assertTrue(rs.next());
+    assertEquals(334004, rs.getBytes(4).length);
+    assertTrue(rs.next());
+    assertEquals(21963743, rs.getBytes(4).length);
   }
 
   @Test
