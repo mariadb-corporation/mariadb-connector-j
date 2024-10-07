@@ -155,4 +155,38 @@ public class ConfigurationTest extends Common {
       stmt.execute("SET @@global.sql_mode = '" + sqlMode + "'");
     }
   }
+
+  @Test
+  public void connectionCollationTest() throws SQLException {
+    try (org.mariadb.jdbc.Connection conn =
+        createCon("&connectionCollation=utf8mb4_vietnamese_ci")) {
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT @@session.COLLATION_CONNECTION");
+      rs.next();
+      assertEquals("utf8mb4_vietnamese_ci", rs.getString(1));
+    }
+
+    try (org.mariadb.jdbc.Connection conn = createCon("&connectionCollation=")) {
+      Statement stmt = conn.createStatement();
+      ResultSet rs =
+          stmt.executeQuery("SELECT @@global.COLLATION_CONNECTION, @@session.COLLATION_CONNECTION");
+      rs.next();
+      assertEquals(rs.getString(2), rs.getString(1));
+    }
+
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs =
+        stmt.executeQuery("SELECT @@global.COLLATION_CONNECTION, @@session.COLLATION_CONNECTION");
+    rs.next();
+    assertEquals(rs.getString(2), rs.getString(1));
+
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("&connectionCollation=utf8_vietnamese_ci"),
+        "wrong connection collation 'utf8_vietnamese_ci' only utf8mb4 collation are accepted");
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("&connectionCollation=utf8mb4_vietnamese_ci;SELECT"),
+        "wrong connection collation 'utf8mb4_vietnamese_ci;SELECT' name");
+  }
 }

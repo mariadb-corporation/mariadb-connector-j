@@ -63,6 +63,7 @@ public class Configuration {
 
   // various
   private String timezone = null;
+  private String connectionCollation = null;
   private String connectionTimeZone = null;
   private Boolean forceConnectionTimeZoneToSession = null;
   private boolean preserveInstants;
@@ -174,6 +175,7 @@ public class Configuration {
       Properties nonMappedOptions,
       String timezone,
       String connectionTimeZone,
+      String connectionCollation,
       boolean forceConnectionTimeZoneToSession,
       boolean preserveInstants,
       Boolean autocommit,
@@ -261,6 +263,7 @@ public class Configuration {
     this.nonMappedOptions = nonMappedOptions;
     this.timezone = timezone;
     this.connectionTimeZone = connectionTimeZone;
+    this.connectionCollation = connectionCollation;
     this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
     this.preserveInstants = preserveInstants;
     this.autocommit = autocommit;
@@ -378,6 +381,7 @@ public class Configuration {
       Boolean yearIsDateType,
       String timezone,
       String connectionTimeZone,
+      String connectionCollation,
       Boolean forceConnectionTimeZoneToSession,
       Boolean preserveInstants,
       Boolean dumpQueriesOnException,
@@ -475,6 +479,7 @@ public class Configuration {
     if (yearIsDateType != null) this.yearIsDateType = yearIsDateType;
     this.timezone = timezone;
     if (connectionTimeZone != null) this.connectionTimeZone = connectionTimeZone;
+    if (connectionCollation != null) this.connectionCollation = connectionCollation;
     if (forceConnectionTimeZoneToSession != null)
       this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
     if (preserveInstants != null) this.preserveInstants = preserveInstants;
@@ -618,6 +623,24 @@ public class Configuration {
     // option value verification
     // *************************************************************
 
+    // ensure connection collation format
+    if (connectionCollation != null) {
+      if ("".equals(connectionCollation.trim())) {
+        this.connectionCollation = null;
+      } else {
+        // ensure this is an utf8mb4 collation
+        if (!connectionCollation.toLowerCase(Locale.ROOT).startsWith("utf8mb4_")) {
+          throw new SQLException(
+              String.format(
+                  "wrong connection collation '%s' only utf8mb4 collation are accepted",
+                  connectionCollation));
+        } else if (!connectionCollation.matches("^[a-zA-Z0-9_]+$")) {
+          throw new SQLException(
+              String.format("wrong connection collation '%s' name", connectionCollation));
+        }
+      }
+    }
+
     // int fields must all be positive
     Field[] fields = Configuration.class.getDeclaredFields();
     try {
@@ -651,6 +674,7 @@ public class Configuration {
             .haMode(this.haMode)
             .timezone(this.timezone)
             .connectionTimeZone(this.connectionTimeZone)
+            .connectionCollation(this.connectionCollation)
             .forceConnectionTimeZoneToSession(this.forceConnectionTimeZoneToSession)
             .preserveInstants(this.preserveInstants)
             .autocommit(this.autocommit)
@@ -1641,6 +1665,15 @@ public class Configuration {
   }
 
   /**
+   * get connectionCollation
+   *
+   * @return connectionCollation
+   */
+  public String connectionCollation() {
+    return connectionCollation;
+  }
+
+  /**
    * forceConnectionTimeZoneToSession must connection timezone be forced
    *
    * @return forceConnectionTimeZoneToSession
@@ -2129,6 +2162,7 @@ public class Configuration {
     // various
     private String timezone;
     private String connectionTimeZone;
+    private String connectionCollation;
     private Boolean forceConnectionTimeZoneToSession;
     private Boolean preserveInstants;
     private Boolean autocommit;
@@ -2809,6 +2843,18 @@ public class Configuration {
     }
 
     /**
+     * indicate what utf8mb4 collation to use. if not set, server default collation for utf8mb4 will
+     * be used
+     *
+     * @param connectionCollation utf8mb4 collation to use
+     * @return this {@link Builder}
+     */
+    public Builder connectionCollation(String connectionCollation) {
+      this.connectionCollation = nullOrEmpty(connectionCollation);
+      return this;
+    }
+
+    /**
      * Indicate if connectionTimeZone must be forced to session
      *
      * @param forceConnectionTimeZoneToSession must connector force connection timezone
@@ -3350,6 +3396,7 @@ public class Configuration {
               this.yearIsDateType,
               this.timezone,
               this.connectionTimeZone,
+              this.connectionCollation,
               this.forceConnectionTimeZoneToSession,
               this.preserveInstants,
               this.dumpQueriesOnException,

@@ -817,9 +817,16 @@ public class StandardClient implements Client, AutoCloseable {
               context.canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only"));
     }
 
-    if (context.getCharset() == null || !"utf8mb4".equals(context.getCharset())) {
-      sessionCommands.add("NAMES utf8mb4");
+    if (context.getCharset() == null
+        || !"utf8mb4".equals(context.getCharset())
+        || conf.connectionCollation() != null) {
+      String defaultCharsetSet = "NAMES utf8mb4";
+      if (conf.connectionCollation() != null) {
+        defaultCharsetSet += " COLLATE " + conf.connectionCollation();
+      }
+      sessionCommands.add(defaultCharsetSet);
     }
+
     if (!sessionCommands.isEmpty()) {
       return "set " + sessionCommands.stream().collect(Collectors.joining(","));
     }
