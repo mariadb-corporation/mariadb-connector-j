@@ -761,6 +761,39 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void parsecAuthPlugin() throws Throwable {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && isMariaDBServer() && minVersion(10, 6, 1));
+    Statement stmt = sharedConn.createStatement();
+
+    try {
+      stmt.execute("INSTALL SONAME 'auth_parsec'");
+    } catch (SQLException sqle) {
+      Assumptions.assumeTrue(false, "server doesn't have auth_parsec plugin, cancelling test");
+    }
+
+    stmt.execute("drop user IF EXISTS verifParsec@'%'");
+    stmt.execute("drop user IF EXISTS verifParsec2@'%'");
+    stmt.execute(
+        "CREATE USER verifParsec@'%' IDENTIFIED VIA parsec USING PASSWORD('MySup8%rPassw@ord')");
+    stmt.execute("CREATE USER verifParsec2@'%' IDENTIFIED VIA parsec USING PASSWORD('')");
+    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec@'%'");
+    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec2@'%'");
+
+    try (Connection connection = createCon("user=verifParsec&password=MySup8%rPassw@ord")) {
+      // must have succeeded
+      connection.getCatalog();
+    }
+
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("user=verifParsec2&password=MySup8%rPassw@ord&restrictedAuth=dialog"),
+        "Client restrict authentication plugin to a limited set");
+    stmt.execute("drop user verifParsec@'%'");
+    stmt.execute("drop user verifParsec2@'%'");
+  }
+
+  @Test
   public void pamAuthPlugin() throws Throwable {
     // https://mariadb.com/kb/en/authentication-plugin-pam/
     // only test on travis, because only work on Unix-like operating systems.
