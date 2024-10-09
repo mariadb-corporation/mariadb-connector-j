@@ -85,6 +85,26 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
     char[] password =
         this.authenticationData == null ? new char[0] : this.authenticationData.toCharArray();
 
+    KeyFactory ed25519KeyFactory;
+    Signature ed25519Signature;
+
+    try {
+      // in case using java 15+
+      ed25519KeyFactory = KeyFactory.getInstance("Ed25519");
+      ed25519Signature = Signature.getInstance("Ed25519");
+    } catch (NoSuchAlgorithmException e) {
+      try {
+        // java before 15, try using BouncyCastle if present
+        ed25519KeyFactory = KeyFactory.getInstance("Ed25519", "BC");
+        ed25519Signature = Signature.getInstance("Ed25519", "BC");
+      } catch (NoSuchAlgorithmException | NoSuchProviderException ee) {
+        throw new SQLException(
+            "Parsec authentication not available. Either use Java 15+ or add BouncyCastle"
+                + " dependency",
+            e);
+      }
+    }
+
     try {
       // hash password with PBKDF2
       PBEKeySpec spec = new PBEKeySpec(password, salt, 1024 << iterations, 256);
@@ -94,17 +114,17 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       // create a PKCS8 ED25519 private key with raw secret
       PKCS8EncodedKeySpec keySpec =
           new PKCS8EncodedKeySpec(combineArray(pkcs8Ed25519header, derivedKey));
-      PrivateKey privateKey = KeyFactory.getInstance("Ed25519").generatePrivate(keySpec);
+      PrivateKey privateKey = ed25519KeyFactory.generatePrivate(keySpec);
 
       // generate client nonce
       byte[] clientScramble = new byte[32];
       SecureRandom.getInstanceStrong().nextBytes(clientScramble);
 
       // sign concatenation of server nonce + client nonce with private key
-      Signature sig = Signature.getInstance("Ed25519");
-      sig.initSign(privateKey);
-      sig.update(combineArray(seed, clientScramble));
-      byte[] signature = sig.sign();
+
+      ed25519Signature.initSign(privateKey);
+      ed25519Signature.update(combineArray(seed, clientScramble));
+      byte[] signature = ed25519Signature.sign();
 
       // send result to server
       out.writeBytes(clientScramble);
@@ -117,9 +137,9 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
         | InvalidKeySpecException
         | InvalidKeyException
         | SignatureException e) {
-      throw new RuntimeException(e);
+      // not expected
+      throw new SQLException("Error during parsec authentication", e);
     }
-
   }
 
   private byte[] combineArray(byte[] arr1, byte[] arr2) {

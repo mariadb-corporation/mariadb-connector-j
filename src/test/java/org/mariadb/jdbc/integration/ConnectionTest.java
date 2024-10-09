@@ -780,9 +780,24 @@ public class ConnectionTest extends Common {
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec@'%'");
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec2@'%'");
 
-    try (Connection connection = createCon("user=verifParsec&password=MySup8%rPassw@ord")) {
-      // must have succeeded
-      connection.getCatalog();
+    String version = System.getProperty("java.version");
+    int majorVersion =
+        (version.indexOf(".") >= 0)
+            ? Integer.parseInt(version.substring(0, version.indexOf(".")))
+            : Integer.parseInt(version);
+    if (majorVersion < 15) {
+      // before java 15, Ed25519 is not supported
+      // assuming, that BouncyCastle is not on test classpath
+      assertThrowsContains(
+          SQLException.class,
+          () -> createCon("user=verifParsec&password=MySup8%rPassw@ord"),
+          "Parsec authentication not available. Either use Java 15+ or add BouncyCastle"
+              + " dependency");
+    } else {
+      try (Connection connection = createCon("user=verifParsec&password=MySup8%rPassw@ord")) {
+        // must have succeeded
+        connection.getCatalog();
+      }
     }
 
     assertThrowsContains(
