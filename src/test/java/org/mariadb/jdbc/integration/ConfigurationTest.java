@@ -171,14 +171,16 @@ public class ConfigurationTest extends Common {
       ResultSet rs =
           stmt.executeQuery("SELECT @@global.COLLATION_CONNECTION, @@session.COLLATION_CONNECTION");
       rs.next();
-      assertEquals(rs.getString(2), rs.getString(1));
+      // could be different, because charset default might differ from server default
+      assertTrue(rs.getString(2).equals(rs.getString(1)) || "utf8mb4_unicode_ci".equals(rs.getString(1)));
     }
 
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery("SELECT @@global.COLLATION_CONNECTION, @@session.COLLATION_CONNECTION");
     rs.next();
-    assertEquals(rs.getString(2), rs.getString(1));
+    // could be different, because charset default might differ from server default
+    assertTrue(rs.getString(2).equals(rs.getString(1)) || "utf8mb4_unicode_ci".equals(rs.getString(1)));
 
     assertThrowsContains(
         SQLException.class,
