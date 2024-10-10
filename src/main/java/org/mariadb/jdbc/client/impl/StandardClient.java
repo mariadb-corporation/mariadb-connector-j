@@ -19,6 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLTimeoutException;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -243,17 +244,21 @@ public class StandardClient implements Client, AutoCloseable {
         postConnectionQueries();
       }
       setSocketTimeout(conf.socketTimeout());
-
-    } catch (IOException ioException) {
-      destroySocket();
-
-      String errorMsg =
-          String.format("Could not connect to %s : %s", hostAddress, ioException.getMessage());
-
-      throw exceptionFactory.create(errorMsg, "08000", ioException);
     } catch (SQLException sqlException) {
       destroySocket();
       throw sqlException;
+    } catch (SocketTimeoutException ste) {
+      destroySocket();
+      throw new SQLTimeoutException(
+          String.format("Socket timeout when connecting to %s. %s", hostAddress, ste.getMessage()),
+          "08000",
+          ste);
+    } catch (IOException ioException) {
+      destroySocket();
+      throw exceptionFactory.create(
+          String.format("Could not connect to %s : %s", hostAddress, ioException.getMessage()),
+          "08000",
+          ioException);
     }
   }
 
