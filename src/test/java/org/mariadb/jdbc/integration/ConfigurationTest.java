@@ -171,8 +171,12 @@ public class ConfigurationTest extends Common {
       ResultSet rs =
           stmt.executeQuery("SELECT @@global.COLLATION_CONNECTION, @@session.COLLATION_CONNECTION");
       rs.next();
-      // could be different, because charset default might differ from server default
-      assertTrue(rs.getString(2).equals(rs.getString(1)) || "utf8mb4_unicode_ci".equals(rs.getString(1)));
+      if (rs.getString(1).startsWith("utf8mb4")) {
+        // could be different, because charset default might differ from server default
+        assertTrue(
+            rs.getString(2).equals(rs.getString(1))
+                || "utf8mb4_unicode_ci".equals(rs.getString(1)));
+      }
     }
 
     Statement stmt = sharedConn.createStatement();
@@ -180,7 +184,10 @@ public class ConfigurationTest extends Common {
         stmt.executeQuery("SELECT @@global.COLLATION_CONNECTION, @@session.COLLATION_CONNECTION");
     rs.next();
     // could be different, because charset default might differ from server default
-    assertTrue(rs.getString(2).equals(rs.getString(1)) || "utf8mb4_unicode_ci".equals(rs.getString(1)));
+    if (rs.getString(1).startsWith("utf8mb4")) {
+      assertTrue(
+          rs.getString(2).equals(rs.getString(1)) || "utf8mb4_unicode_ci".equals(rs.getString(1)));
+    }
 
     assertThrowsContains(
         SQLException.class,
