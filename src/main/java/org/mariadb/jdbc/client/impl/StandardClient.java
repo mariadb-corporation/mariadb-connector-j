@@ -771,11 +771,6 @@ public class StandardClient implements Client, AutoCloseable {
               + "')");
     }
 
-    // add configured session variable if configured
-    if (conf.sessionVariables() != null) {
-      sessionCommands.add(Security.parseSessionVariables(conf.sessionVariables()));
-    }
-
     // force client timezone to connection to ensure result of now(), ...
     if (conf.forceConnectionTimeZoneToSession() == null
         || conf.forceConnectionTimeZoneToSession()) {
@@ -825,6 +820,11 @@ public class StandardClient implements Client, AutoCloseable {
         defaultCharsetSet += " COLLATE " + conf.connectionCollation();
       }
       sessionCommands.add(defaultCharsetSet);
+    }
+
+    // add configured session variable if configured
+    if (conf.sessionVariables() != null) {
+      sessionCommands.add(Security.parseSessionVariables(conf.sessionVariables()));
     }
 
     if (!sessionCommands.isEmpty()) {
