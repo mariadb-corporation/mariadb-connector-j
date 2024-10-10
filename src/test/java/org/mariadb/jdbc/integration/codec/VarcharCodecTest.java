@@ -896,6 +896,8 @@ public class VarcharCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, "e🌟2");
       prep.execute();
+      prep.setObject(1, '0', Types.BOOLEAN);
+      prep.execute();
       prep.setObject(1, null);
       prep.execute();
       prep.setObject(1, "e🌟3", Types.VARCHAR);
@@ -922,6 +924,9 @@ public class VarcharCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setNString(1, "e🌟12");
       prep.execute();
+      assertThrowsContains(SQLSyntaxErrorException.class, () -> prep.setObject(1, "e🌟12", Types.BLOB), "Cannot convert");
+      assertThrowsContains(SQLSyntaxErrorException.class, () -> prep.setObject(1, "e🌟12", Types.OTHER), "Could not convert");
+
     }
 
     ResultSet rs =
@@ -945,6 +950,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     rs.updateString(2, null);
     rs.updateRow();
     assertNull(rs.getString(2));
+    assertTrue(rs.next());
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
@@ -1020,6 +1026,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertNull(rs.getString(2));
 
+    assertTrue(rs.next());
     assertTrue(rs.next());
     assertEquals("f🌟12", rs.getString(2));
 

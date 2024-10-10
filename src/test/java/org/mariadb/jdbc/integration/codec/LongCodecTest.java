@@ -975,6 +975,8 @@ public class LongCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, 2L);
       prep.execute();
+      prep.setObject(1, 3L, Types.DECIMAL);
+      prep.execute();
       prep.setObject(1, BigInteger.TEN);
       prep.execute();
       prep.setObject(1, null);
@@ -985,6 +987,7 @@ public class LongCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.BIGINT);
       prep.execute();
+      assertThrowsContains(SQLSyntaxErrorException.class, () -> prep.setObject(1, 3L, Types.BLOB), "Could not convert");
     }
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
@@ -1000,6 +1003,7 @@ public class LongCodecTest extends CommonCodecTest {
     rs.updateLong("t1", 60L);
     rs.updateRow();
     assertEquals(60L, rs.getLong(2));
+    assertTrue(rs.next());
 
     assertTrue(rs.next());
     assertEquals(10, rs.getLong(2));
@@ -1044,6 +1048,7 @@ public class LongCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(60L, rs.getLong(2));
+    assertTrue(rs.next());
 
     assertTrue(rs.next());
     assertEquals(0L, rs.getLong(2));
