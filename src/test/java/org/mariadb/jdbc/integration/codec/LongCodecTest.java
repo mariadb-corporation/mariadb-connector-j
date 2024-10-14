@@ -987,7 +987,10 @@ public class LongCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.BIGINT);
       prep.execute();
-      assertThrowsContains(SQLSyntaxErrorException.class, () -> prep.setObject(1, 3L, Types.BLOB), "Could not convert");
+      assertThrowsContains(
+          SQLSyntaxErrorException.class,
+          () -> prep.setObject(1, 3L, Types.BLOB),
+          "Could not convert");
     }
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)

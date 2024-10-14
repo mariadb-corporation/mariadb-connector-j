@@ -905,10 +905,13 @@ public class ConfigurationTest {
             .connectionTimeZone("SERVER")
             .forceConnectionTimeZoneToSession(false)
             .connectionCollation("utf8mb4_vietnamese_ci")
+            .trustStore("/tmp/file")
+            .trustStorePassword("PWD")
+            .trustStoreType("jks")
             .build();
     String expected =
         "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&connectionCollation=utf8mb4_vietnamese_ci&connectionTimeZone=SERVER&forceConnectionTimeZoneToSession=false&preserveInstants=true&autocommit=false&nullDatabaseMeansCurrent=true&useCatalogTerm=SCHEMA&createDatabaseIfNotExist=true&useLocalSessionState=true&returnMultiValuesGeneratedIds=true&permitRedirect=false&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
-            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&fallbackToSystemKeyStore=false&fallbackToSystemTrustStore=false&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&useBulkStmts=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
+            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&trustStore=/tmp/file&keyStorePassword=***&trustStorePassword=***&keyStoreType=JKS&trustStoreType=jks&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&fallbackToSystemKeyStore=false&fallbackToSystemTrustStore=false&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&useBulkStmts=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
     assertEquals(expected, conf.toString());
     assertEquals(expected, conf.toBuilder().build().toString());
   }
@@ -1012,13 +1015,13 @@ public class ConfigurationTest {
             .startsWith(
                 "Configuration:\n"
                     + " * resulting Url :"
-                    + " jdbc:mariadb://localhost/test?user=root&sslMode=VERIFY_CA&serverSslCert=/tmp/t.pem&keyStore=/tmp/keystore&keyStorePassword=kspass&trustStoreType=JKS\n"
+                    + " jdbc:mariadb://localhost/test?user=root&sslMode=VERIFY_CA&serverSslCert=/tmp/t.pem&keyStore=/tmp/keystore&keyStorePassword=***&trustStoreType=JKS\n"
                     + "Unknown options : None\n"
                     + "\n"
                     + "Non default options : \n"
                     + " * database : test\n"
                     + " * keyStore : /tmp/keystore\n"
-                    + " * keyStorePassword : kspass\n"
+                    + " * keyStorePassword : ***\n"
                     + " * serverSslCert : /tmp/t.pem\n"
                     + " * sslMode : VERIFY_CA\n"
                     + " * trustStoreType : JKS\n"

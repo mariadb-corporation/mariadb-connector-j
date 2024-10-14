@@ -924,9 +924,14 @@ public class VarcharCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setNString(1, "e🌟12");
       prep.execute();
-      assertThrowsContains(SQLSyntaxErrorException.class, () -> prep.setObject(1, "e🌟12", Types.BLOB), "Cannot convert");
-      assertThrowsContains(SQLSyntaxErrorException.class, () -> prep.setObject(1, "e🌟12", Types.OTHER), "Could not convert");
-
+      assertThrowsContains(
+          SQLSyntaxErrorException.class,
+          () -> prep.setObject(1, "e🌟12", Types.BLOB),
+          "Cannot convert");
+      assertThrowsContains(
+          SQLSyntaxErrorException.class,
+          () -> prep.setObject(1, "e🌟12", Types.OTHER),
+          "Could not convert");
     }
 
     ResultSet rs =

@@ -106,7 +106,9 @@ public class Configuration {
   private SslMode sslMode = SslMode.DISABLE;
   private String serverSslCert = null;
   private String keyStore = null;
+  private String trustStore = null;
   private String keyStorePassword = null;
+  private String trustStorePassword = null;
   private String keyPassword = null;
   private String keyStoreType = null;
   private String trustStoreType = null;
@@ -212,7 +214,9 @@ public class Configuration {
       SslMode sslMode,
       String serverSslCert,
       String keyStore,
+      String trustStore,
       String keyStorePassword,
+      String trustStorePassword,
       String keyPassword,
       String keyStoreType,
       String trustStoreType,
@@ -300,7 +304,9 @@ public class Configuration {
     this.sslMode = sslMode;
     this.serverSslCert = serverSslCert;
     this.keyStore = keyStore;
+    this.trustStore = trustStore;
     this.keyStorePassword = keyStorePassword;
+    this.trustStorePassword = trustStorePassword;
     this.keyPassword = keyPassword;
     this.keyStoreType = keyStoreType;
     this.trustStoreType = trustStoreType;
@@ -423,7 +429,9 @@ public class Configuration {
       Boolean allowPublicKeyRetrieval,
       String serverSslCert,
       String keyStore,
+      String trustStore,
       String keyStorePassword,
+      String trustStorePassword,
       String keyPassword,
       String keyStoreType,
       String trustStoreType,
@@ -560,7 +568,9 @@ public class Configuration {
     if (initSql != null) this.initSql = initSql;
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
     if (keyStore != null) this.keyStore = keyStore;
+    if (trustStore != null) this.trustStore = trustStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
+    if (trustStorePassword != null) this.trustStorePassword = trustStorePassword;
     if (keyPassword != null) this.keyPassword = keyPassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
     if (trustStoreType != null) this.trustStoreType = trustStoreType;
@@ -713,8 +723,10 @@ public class Configuration {
             .sslMode(this.sslMode.name())
             .serverSslCert(this.serverSslCert)
             .keyStore(this.keyStore)
+            .trustStore(this.trustStore)
             .keyStoreType(this.keyStoreType)
             .keyStorePassword(this.keyStorePassword)
+            .trustStorePassword(this.trustStorePassword)
             .keyPassword(this.keyPassword)
             .trustStoreType(this.trustStoreType)
             .enabledSslCipherSuites(this.enabledSslCipherSuites)
@@ -1072,13 +1084,18 @@ public class Configuration {
               case "Integer":
               case "SslMode":
               case "CatalogTerm":
-                (Objects.equals(fieldValue, field.get(defaultConf))
+                StringBuilder sbb =
+                    (Objects.equals(fieldValue, field.get(defaultConf))
                         ? sbDefaultOpts
-                        : sbDifferentOpts)
-                    .append("\n * ")
-                    .append(field.getName())
-                    .append(" : ")
-                    .append(fieldValue);
+                        : sbDifferentOpts);
+
+                sbb.append("\n * ").append(field.getName()).append(" : ");
+                if ("password".equals(field.getName())
+                    || "keyStorePassword".equals(field.getName())
+                    || "trustStorePassword".equals(field.getName())) {
+                  sbb.append("***");
+                } else sbb.append(fieldValue);
+
                 break;
               case "ArrayList":
                 (Objects.equals(fieldValue.toString(), field.get(defaultConf).toString())
@@ -1173,7 +1190,9 @@ public class Configuration {
 
         if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
 
-          if ("password".equals(field.getName())) {
+          if ("password".equals(field.getName())
+              || "keyStorePassword".equals(field.getName())
+              || "trustStorePassword".equals(field.getName())) {
             sb.append(first ? '?' : '&');
             first = false;
             sb.append(field.getName()).append('=');
@@ -1365,12 +1384,30 @@ public class Configuration {
   }
 
   /**
+   * trust store
+   *
+   * @return trust store
+   */
+  public String trustStore() {
+    return trustStore;
+  }
+
+  /**
    * key store password
    *
    * @return key store password
    */
   public String keyStorePassword() {
     return keyStorePassword;
+  }
+
+  /**
+   * trust store password
+   *
+   * @return trust store password
+   */
+  public String trustStorePassword() {
+    return trustStorePassword;
   }
 
   /**
@@ -2203,7 +2240,9 @@ public class Configuration {
     private String sslMode;
     private String serverSslCert;
     private String keyStore;
+    private String trustStore;
     private String keyStorePassword;
+    private String trustStorePassword;
     private String keyPassword;
     private String keyStoreType;
     private String trustStoreType;
@@ -2296,6 +2335,18 @@ public class Configuration {
     }
 
     /**
+     * File path of the trustStore file that contain trusted certificates (similar to java System
+     * property \"javax.net.ssl.trustStore\")
+     *
+     * @param trustStore client trust store certificates
+     * @return this {@link Builder}
+     */
+    public Builder trustStore(String trustStore) {
+      this.trustStore = nullOrEmpty(trustStore);
+      return this;
+    }
+
+    /**
      * Client keystore password
      *
      * @param keyStorePassword client store password
@@ -2303,6 +2354,17 @@ public class Configuration {
      */
     public Builder keyStorePassword(String keyStorePassword) {
       this.keyStorePassword = nullOrEmpty(keyStorePassword);
+      return this;
+    }
+
+    /**
+     * Client truststore password
+     *
+     * @param trustStorePassword client truststore password
+     * @return this {@link Builder}
+     */
+    public Builder trustStorePassword(String trustStorePassword) {
+      this.trustStorePassword = nullOrEmpty(trustStorePassword);
       return this;
     }
 
@@ -3438,7 +3500,9 @@ public class Configuration {
               this.allowPublicKeyRetrieval,
               this.serverSslCert,
               this.keyStore,
+              this.trustStore,
               this.keyStorePassword,
+              this.trustStorePassword,
               this.keyPassword,
               this.keyStoreType,
               this.trustStoreType,
