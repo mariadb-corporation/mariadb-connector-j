@@ -266,10 +266,10 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
+                    + "&deniedListTimeout=300&retriesAllDown=4&connectTimeout=50&deniedListTimeout=50")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
-      proxy.restart(50);
+      proxy.restart(100);
       con.isValid(1000);
     }
 
@@ -279,7 +279,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=20&deniedListTimeout=20&socketTimeout=100")) {
+                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=50&deniedListTimeout=50&socketTimeout=100")) {
       Statement stmt = con.createStatement();
       stmt.execute("START TRANSACTION");
       stmt.execute("SET @con=1");
