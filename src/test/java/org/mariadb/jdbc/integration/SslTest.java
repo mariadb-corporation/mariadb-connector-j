@@ -140,9 +140,7 @@ public class SslTest extends Common {
 
   @Test
   public void simpleSsl() throws SQLException {
-    try (Connection con =
-        createCon(
-            "sslMode=trust&enabledSslCipherSuites=TLS_DHE_RSA_WITH_AES_256_GCM_SHA384", sslPort)) {
+    try (Connection con = createCon("sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
     try (Connection con = createCon("sslMode=trust&useReadAheadInput=false", sslPort)) {

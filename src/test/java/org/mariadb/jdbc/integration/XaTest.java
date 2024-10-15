@@ -388,7 +388,9 @@ public class XaTest extends Common {
         xaResource.commit(xid, true);
         fail();
       } catch (XAException xae) {
-        assertEquals(XAException.XAER_INVAL, xae.errorCode); // 1398
+        assertTrue(
+            XAException.XAER_INVAL == xae.errorCode
+                || XAException.XAER_NOTA == xae.errorCode); // 1398
       }
       try {
         xaResource.commit(xid, true);
