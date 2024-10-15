@@ -777,8 +777,7 @@ public class StandardClient implements Client, AutoCloseable {
     }
 
     // force client timezone to connection to ensure result of now(), ...
-    if (conf.forceConnectionTimeZoneToSession() == null
-        || conf.forceConnectionTimeZoneToSession()) {
+    if (Boolean.TRUE.equals(conf.forceConnectionTimeZoneToSession())) {
       TimeZone connectionTz = context.getConnectionTimeZone();
       ZoneId connectionZoneId = connectionTz.toZoneId();
 
