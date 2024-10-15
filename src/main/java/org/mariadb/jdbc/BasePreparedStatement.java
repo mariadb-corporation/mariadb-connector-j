@@ -156,15 +156,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   public abstract ParameterMetaData getParameterMetaData() throws SQLException;
 
   /**
-   * Set all parameters
-   *
-   * @param parameters parameters
-   */
-  public void setParameters(Parameters parameters) {
-    this.parameters = parameters;
-  }
-
-  /**
    * Set parameter
    *
    * @param index parameter index

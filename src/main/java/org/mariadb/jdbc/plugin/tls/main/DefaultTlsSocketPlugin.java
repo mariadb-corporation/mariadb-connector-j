@@ -5,9 +5,12 @@ package org.mariadb.jdbc.plugin.tls.main;
 
 import java.io.*;
 import java.net.URI;
+import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.SQLException;
@@ -100,7 +103,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       trustManager = new X509TrustManager[] {new MariaDbX509TrustingManager()};
     } else {
       // if certificate is provided, load it.
-      if (conf.serverSslCert() != null) {
+      if (conf.serverSslCert() != null || conf.trustStore() != null) {
         KeyStore ks;
         try {
           ks =
@@ -112,19 +115,57 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
           throw exceptionFactory.create(
               "Failed to create keystore instance", "08000", generalSecurityEx);
         }
-
-        try (InputStream inStream = getInputStreamFromPath(conf.serverSslCert())) {
-          // generate a keyStore from the provided cert
-
-          // Note: KeyStore requires it be loaded even if you don't load anything into it
-          // (will be initialized with "javax.net.ssl.trustStore") values.
-          ks.load(null);
-          CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
-          for (Certificate ca : caList) {
-            ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+        if (conf.trustStore() != null) {
+          InputStream inStream;
+          try {
+            inStream = new URL(conf.trustStore()).openStream();
+          } catch (IOException ioexception) {
+            try {
+              inStream = new FileInputStream(conf.trustStore());
+            } catch (FileNotFoundException fileNotFoundEx) {
+              throw new SQLException(
+                  "Failed to find trustStore file. trustStore=" + conf.trustStore(),
+                  "08000",
+                  fileNotFoundEx);
+            }
           }
+          try {
+            ks.load(
+                inStream,
+                conf.trustStorePassword() == null ? null : conf.trustStorePassword().toCharArray());
+          } catch (IOException | NoSuchAlgorithmException | CertificateException ioEx) {
+            throw exceptionFactory.create("Failed load keyStore", "08000", ioEx);
+          } finally {
+            try {
+              inStream.close();
+            } catch (IOException e) {
+              // eat
+            }
+          }
+        } else {
+          try (InputStream inStream = getInputStreamFromPath(conf.serverSslCert())) {
+            // generate a keyStore from the provided cert
 
+            // Note: KeyStore requires it be loaded even if you don't load anything into it
+            // (will be initialized with "javax.net.ssl.trustStore") values.
+            ks.load(null);
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
+            for (Certificate ca : caList) {
+              ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+            }
+
+          } catch (IOException ioEx) {
+            throw exceptionFactory.create("Failed load keyStore", "08000", ioEx);
+          } catch (GeneralSecurityException generalSecurityEx) {
+            throw exceptionFactory.create(
+                "Failed to store certificate from serverSslCert into a keyStore",
+                "08000",
+                generalSecurityEx);
+          }
+        }
+
+        try {
           TrustManagerFactory tmf =
               TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
           tmf.init(ks);
@@ -135,11 +176,16 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
             }
           }
 
-        } catch (IOException ioEx) {
-          throw exceptionFactory.create("Failed load keyStore", "08000", ioEx);
+          for (TrustManager tm : tmf.getTrustManagers()) {
+            if (tm instanceof X509TrustManager) {
+              trustManager = new X509TrustManager[] {(X509TrustManager) tm};
+              break;
+            }
+          }
+
         } catch (GeneralSecurityException generalSecurityEx) {
           throw exceptionFactory.create(
-              "Failed to store certificate from serverSslCert into a keyStore",
+              "Failed to load certificates from serverSslCert/trustStore",
               "08000",
               generalSecurityEx);
         }

@@ -106,6 +106,9 @@ public class ErrorTest extends Common {
 
   @Test
   public void deadLockInformation() throws SQLException {
+    // skip for mysql, since idle_transaction_timeout doesn't exist, so test takes too much time
+    Assumptions.assumeTrue(isMariaDBServer());
+
     Statement stmt = sharedConn.createStatement();
     stmt.execute("insert into deadlock(a) values(0), (1)");
 
@@ -132,6 +135,7 @@ public class ErrorTest extends Common {
         try {
           stmt2.execute("SET SESSION idle_transaction_timeout=2, innodb_lock_wait_timeout=2");
         } catch (SQLException e) {
+          e.printStackTrace();
           // eat ( for mariadb >= 10.3)
         }
         stmt2.execute("start transaction");

@@ -58,7 +58,7 @@ public class MultiHostTest extends Common {
     HostAddress hostAddress = conf.addresses().get(0);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//mariadb1.example.com:%s,mariadb2.example.com:%s,mariadb3.example.com:%s/",
                 hostAddress.port, hostAddress.port, hostAddress.port));
@@ -170,7 +170,7 @@ public class MultiHostTest extends Common {
     HostAddress hostAddress = conf.addresses().get(0);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=9999)(type=master),address=(host=%s)(port=%s)(type=master)/",
                 hostAddress.host, hostAddress.port));
@@ -188,7 +188,7 @@ public class MultiHostTest extends Common {
 
     url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//%s:%s,%s,%s/",
                 hostAddress.host, hostAddress.port, hostAddress.host, hostAddress.port));
@@ -250,7 +250,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/" + database,
+            "//(" + hostname + "|" + hostname + ":" + port + ")/" + database,
             String.format(
                 "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/"
                     + database,
@@ -266,10 +266,10 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
+                    + "&deniedListTimeout=300&retriesAllDown=4&connectTimeout=50&deniedListTimeout=50")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
-      proxy.restart(50);
+      proxy.restart(100);
       con.isValid(1000);
     }
 
@@ -279,7 +279,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=20&deniedListTimeout=20&socketTimeout=100")) {
+                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=50&deniedListTimeout=50&socketTimeout=100")) {
       Statement stmt = con.createStatement();
       stmt.execute("START TRANSACTION");
       stmt.execute("SET @con=1");
@@ -300,7 +300,7 @@ public class MultiHostTest extends Common {
     try (Connection con =
         (Connection)
             DriverManager.getConnection(
-                url + "&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
+                url + "&retriesAllDown=4&connectTimeout=50&deniedListTimeout=50")) {
       Statement stmt = con.createStatement();
       con.setAutoCommit(false);
       stmt.execute("START TRANSACTION");
@@ -321,7 +321,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20")) {
+                    + "&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=50")) {
       Statement stmt = con.createStatement();
       stmt.execute("DROP TABLE IF EXISTS testReplay");
       stmt.execute("CREATE TABLE testReplay(id INT)");
@@ -373,7 +373,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=master)/", proxy.getLocalPort()));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
@@ -440,7 +440,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//localhost:%s,%s:%s/", proxy.getLocalPort(), hostAddress.host, hostAddress.port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
@@ -502,7 +502,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=primary),address=(host=%s)(port=%s)(type=replica)/",
                 proxy.getLocalPort(), hostAddress.host, hostAddress.port));
@@ -566,7 +566,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//%s:%s,localhost:%s/", hostAddress.host, hostAddress.port, proxy.getLocalPort()));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");

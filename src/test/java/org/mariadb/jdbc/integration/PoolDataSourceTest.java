@@ -609,7 +609,7 @@ public class PoolDataSourceTest extends Common {
               stmt.execute("SELECT 1");
 
             } catch (SQLException e) {
-              e.printStackTrace();
+              // e.printStackTrace();
             }
           });
     }

@@ -19,6 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLTimeoutException;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -243,17 +244,21 @@ public class StandardClient implements Client, AutoCloseable {
         postConnectionQueries();
       }
       setSocketTimeout(conf.socketTimeout());
-
-    } catch (IOException ioException) {
-      destroySocket();
-
-      String errorMsg =
-          String.format("Could not connect to %s : %s", hostAddress, ioException.getMessage());
-
-      throw exceptionFactory.create(errorMsg, "08000", ioException);
     } catch (SQLException sqlException) {
       destroySocket();
       throw sqlException;
+    } catch (SocketTimeoutException ste) {
+      destroySocket();
+      throw new SQLTimeoutException(
+          String.format("Socket timeout when connecting to %s. %s", hostAddress, ste.getMessage()),
+          "08000",
+          ste);
+    } catch (IOException ioException) {
+      destroySocket();
+      throw exceptionFactory.create(
+          String.format("Could not connect to %s : %s", hostAddress, ioException.getMessage()),
+          "08000",
+          ioException);
     }
   }
 
@@ -771,14 +776,8 @@ public class StandardClient implements Client, AutoCloseable {
               + "')");
     }
 
-    // add configured session variable if configured
-    if (conf.sessionVariables() != null) {
-      sessionCommands.add(Security.parseSessionVariables(conf.sessionVariables()));
-    }
-
     // force client timezone to connection to ensure result of now(), ...
-    if (conf.forceConnectionTimeZoneToSession() == null
-        || conf.forceConnectionTimeZoneToSession()) {
+    if (Boolean.TRUE.equals(conf.forceConnectionTimeZoneToSession())) {
       TimeZone connectionTz = context.getConnectionTimeZone();
       ZoneId connectionZoneId = connectionTz.toZoneId();
 
@@ -817,9 +816,21 @@ public class StandardClient implements Client, AutoCloseable {
               context.canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only"));
     }
 
-    if (context.getCharset() == null || !"utf8mb4".equals(context.getCharset())) {
-      sessionCommands.add("NAMES utf8mb4");
+    if (context.getCharset() == null
+        || !"utf8mb4".equals(context.getCharset())
+        || conf.connectionCollation() != null) {
+      String defaultCharsetSet = "NAMES utf8mb4";
+      if (conf.connectionCollation() != null) {
+        defaultCharsetSet += " COLLATE " + conf.connectionCollation();
+      }
+      sessionCommands.add(defaultCharsetSet);
     }
+
+    // add configured session variable if configured
+    if (conf.sessionVariables() != null) {
+      sessionCommands.add(Security.parseSessionVariables(conf.sessionVariables()));
+    }
+
     if (!sessionCommands.isEmpty()) {
       return "set " + sessionCommands.stream().collect(Collectors.joining(","));
     }

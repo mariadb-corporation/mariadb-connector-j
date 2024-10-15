@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLTimeoutException;
 import java.util.Arrays;
 import java.util.List;
 import javax.net.SocketFactory;
@@ -117,7 +119,14 @@ public final class ConnectionHelper {
       }
       return socket;
 
+    } catch (SocketTimeoutException ste) {
+      throw new SQLTimeoutException(
+          String.format("Socket timeout when connecting to %s. %s", hostAddress, ste.getMessage()),
+          "08000",
+          ste);
+
     } catch (IOException ioe) {
+
       throw new SQLNonTransientConnectionException(
           String.format("Socket fail to connect to %s. %s", hostAddress, ioe.getMessage()),
           "08000",
@@ -152,6 +161,11 @@ public final class ConnectionHelper {
     if (Boolean.parseBoolean(
         configuration.nonMappedOptions().getProperty("enableBulkUnitResult", "true"))) {
       capabilities |= Capabilities.BULK_UNIT_RESULTS;
+    }
+
+    if (Boolean.parseBoolean(
+        configuration.nonMappedOptions().getProperty("disableSessionTracking", "true"))) {
+      capabilities &= ~Capabilities.CLIENT_SESSION_TRACK;
     }
 
     // since skipping metadata is only available when using binary protocol,

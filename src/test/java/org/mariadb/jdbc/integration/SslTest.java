@@ -7,11 +7,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import javax.net.ssl.SSLContext;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
@@ -103,6 +104,18 @@ public class SslTest extends Common {
     return serverCertificatePath;
   }
 
+  public static String retrieveCaCertificatePath() throws Exception {
+    String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists(System.getenv("TEST_DB_SERVER_CA_CERT"));
+    }
+
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists("../../ssl/ca.crt");
+    }
+    return serverCertificatePath;
+  }
+
   private static String checkFileExists(String path) throws IOException {
     if (path == null) return null;
     File f = new File(path);
@@ -127,7 +140,9 @@ public class SslTest extends Common {
 
   @Test
   public void simpleSsl() throws SQLException {
-    try (Connection con = createCon("sslMode=trust", sslPort)) {
+    try (Connection con =
+        createCon(
+            "sslMode=trust&enabledSslCipherSuites=TLS_DHE_RSA_WITH_AES_256_GCM_SHA384", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
     try (Connection con = createCon("sslMode=trust&useReadAheadInput=false", sslPort)) {
@@ -252,7 +267,7 @@ public class SslTest extends Common {
     String path = rs.getString(2);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             "//address=(localSocket="
                 + path
                 + "),address=(host="
@@ -345,14 +360,19 @@ public class SslTest extends Common {
     Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
 
     // without password
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions
-                    + "&sslMode=trust&keyStore="
-                    + System.getenv("TEST_DB_CLIENT_PKCS"),
-                sslPort));
+    try {
+      assertThrows(
+          SQLInvalidAuthorizationSpecException.class,
+          () ->
+              createCon(
+                  baseMutualOptions
+                      + "&sslMode=trust&keyStore="
+                      + System.getenv("TEST_DB_CLIENT_PKCS"),
+                  sslPort));
+    } catch (Throwable e) {
+      e.printStackTrace();
+      throw e;
+    }
     // with password
     try (Connection con =
         createCon(
@@ -495,7 +515,10 @@ public class SslTest extends Common {
         throw new SQLException("proxy error", i);
       }
 
-      String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+      String url =
+          mDefUrl.replaceAll(
+              "//(" + hostname + "|" + hostname + ":" + port + ")/",
+              "//localhost:" + proxy.getLocalPort() + "/");
       Common.assertThrowsContains(
           SQLException.class,
           () ->
@@ -544,6 +567,113 @@ public class SslTest extends Common {
                   baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath,
                   sslPort));
     }
+  }
+
+  @Test
+  public void trustStoreParameter() throws Throwable {
+    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
+    String serverCertPath = retrieveCertificatePath();
+    String caCertPath = retrieveCaCertificatePath();
+    Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
+
+    KeyStore ks = KeyStore.getInstance("jks");
+    char[] pwdArray = "myPwd0".toCharArray();
+    ks.load(null, pwdArray);
+
+    File temptrustStoreFile = File.createTempFile("newKeyStoreFileName", ".jks");
+
+    KeyStore ks2 = KeyStore.getInstance("pkcs12");
+    ks2.load(null, pwdArray);
+    File temptrustStoreFile2 = File.createTempFile("newKeyStoreFileName", ".pkcs12");
+
+    try (InputStream inStream = new File(serverCertPath).toURI().toURL().openStream()) {
+      CertificateFactory cf = CertificateFactory.getInstance("X.509");
+      Collection<? extends Certificate> serverCertList = cf.generateCertificates(inStream);
+      List<Certificate> certs = new ArrayList<>();
+      for (Iterator<? extends Certificate> iter = serverCertList.iterator(); iter.hasNext(); ) {
+        certs.add(iter.next());
+      }
+      if (caCertPath != null) {
+        try (InputStream inStream2 = new File(caCertPath).toURI().toURL().openStream()) {
+          CertificateFactory cf2 = CertificateFactory.getInstance("X.509");
+          Collection<? extends Certificate> caCertList = cf.generateCertificates(inStream);
+          for (Iterator<? extends Certificate> iter = caCertList.iterator(); iter.hasNext(); ) {
+            certs.add(iter.next());
+          }
+        }
+      }
+      for (Certificate cert : certs) {
+        ks.setCertificateEntry(hostname, cert);
+        ks2.setCertificateEntry(hostname, cert);
+      }
+
+      try (FileOutputStream fos = new FileOutputStream(temptrustStoreFile.getPath())) {
+        ks.store(fos, pwdArray);
+      }
+      try (FileOutputStream fos = new FileOutputStream(temptrustStoreFile2.getPath())) {
+        ks2.store(fos, pwdArray);
+      }
+    }
+
+    // certificate path, like  /path/certificate.crt
+    try (Connection con =
+        createCon(
+            baseOptions
+                + "&sslMode=VERIFY_CA&trustStore="
+                + temptrustStoreFile
+                + "&trustStoreType=jks&trustStorePassword=myPwd0",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+
+    try (Connection con =
+        createCon(
+            baseOptions
+                + "&sslMode=VERIFY_CA&trustStore="
+                + temptrustStoreFile
+                + "&trustStoreType=jks&trustStorePassword=myPwd0",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    // with alias
+    try (Connection con =
+        createCon(
+            baseOptions
+                + "&sslMode=VERIFY_CA&trustCertificateKeystoreUrl="
+                + temptrustStoreFile
+                + "&trustCertificateKeyStoretype=jks&trustCertificateKeystorePassword=myPwd0",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    assertThrowsContains(
+        SQLException.class,
+        () ->
+            createCon(
+                baseOptions
+                    + "&sslMode=VERIFY_CA&trustStore="
+                    + temptrustStoreFile
+                    + "&trustStoreType=jks&trustStorePassword=wrongPwd",
+                sslPort),
+        "Failed load keyStore");
+    try (Connection con =
+        createCon(
+            baseOptions
+                + "&sslMode=VERIFY_CA&trustStore="
+                + temptrustStoreFile2
+                + "&trustStoreType=pkcs12&trustStorePassword=myPwd0",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    assertThrowsContains(
+        SQLException.class,
+        () ->
+            createCon(
+                baseOptions
+                    + "&sslMode=VERIFY_CA&trustStore="
+                    + temptrustStoreFile2
+                    + "&trustStoreType=pkcs12&trustStorePassword=wrongPwd",
+                sslPort),
+        "Failed load keyStore");
   }
 
   private String getServerCertificate(String serverCertPath) throws SQLException {

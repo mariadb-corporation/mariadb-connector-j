@@ -21,12 +21,15 @@ public class XaTest extends Common {
 
   private static MariaDbDataSource dataSource;
   private static MariaDbPoolDataSource poolDataSource;
+  private static MariaDbDataSource pinnedDataSource;
+  private static MariaDbPoolDataSource pinnedPoolDataSource;
 
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS xatable");
     if (poolDataSource != null) poolDataSource.close();
+    if (pinnedPoolDataSource != null) pinnedPoolDataSource.close();
   }
 
   @BeforeAll
@@ -42,6 +45,8 @@ public class XaTest extends Common {
     stmt.execute("FLUSH TABLES");
     dataSource = new MariaDbDataSource(mDefUrl);
     poolDataSource = new MariaDbPoolDataSource(mDefUrl);
+    pinnedDataSource = new MariaDbDataSource(mDefUrl + "&pinGlobalTxToPhysicalConnection");
+    pinnedPoolDataSource = new MariaDbPoolDataSource(mDefUrl + "&pinGlobalTxToPhysicalConnection");
   }
 
   @Test
@@ -79,6 +84,9 @@ public class XaTest extends Common {
     XAConnection c2 = xads.getXAConnection();
     c2.getXAResource().prepare(txid);
     c2.getXAResource().commit(txid, false);
+
+    c1.close();
+    c2.close();
   }
 
   @Test
@@ -95,12 +103,24 @@ public class XaTest extends Common {
     c2.getXAResource().start(txid, XAResource.TMJOIN);
     c2.getConnection().createStatement().executeQuery("SELECT 1");
     c2.getXAResource().end(txid, XAResource.TMSUCCESS);
+
+    c1.close();
+    c2.close();
   }
 
   @Test
   public void xaRmTest() throws Exception {
-    MariaDbDataSource dataSource1 = new MariaDbDataSource(mDefUrl);
-    MariaDbDataSource dataSource2 = new MariaDbDataSource(mDefUrl + "&test=t");
+    xaRmTest(false);
+    xaRmTest(true);
+  }
+
+  private void xaRmTest(boolean pinnedConnection) throws Exception {
+    MariaDbDataSource dataSource1 =
+        new MariaDbDataSource(
+            mDefUrl + (pinnedConnection ? "&pinGlobalTxToPhysicalConnection" : ""));
+    MariaDbDataSource dataSource2 =
+        new MariaDbDataSource(
+            mDefUrl + (pinnedConnection ? "&pinGlobalTxToPhysicalConnection" : "") + "&test=t");
     XAConnection con1 = dataSource1.getXAConnection();
     XAConnection con2 = dataSource1.getXAConnection();
     XAConnection con3 = dataSource2.getXAConnection();
@@ -219,6 +239,9 @@ public class XaTest extends Common {
     Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     testCommit(dataSource);
     testCommit(poolDataSource);
+
+    testCommit(pinnedDataSource);
+    testCommit(pinnedPoolDataSource);
   }
 
   public void testCommit(XADataSource dataSource) throws Exception {
@@ -239,6 +262,9 @@ public class XaTest extends Common {
     Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     testRollback(dataSource);
     testRollback(poolDataSource);
+
+    testRollback(pinnedDataSource);
+    testRollback(pinnedPoolDataSource);
   }
 
   public void testRollback(XADataSource dataSource) throws Exception {
@@ -252,6 +278,11 @@ public class XaTest extends Common {
 
   @Test
   public void testRecover() throws Exception {
+    testRecover(dataSource);
+    testRecover(pinnedDataSource);
+  }
+
+  private void testRecover(XADataSource dataSource) throws Exception {
     Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     XAConnection xaConnection = dataSource.getXAConnection();
     try {
@@ -281,9 +312,17 @@ public class XaTest extends Common {
 
   @Test
   public void resumeAndJoinTest() throws Exception {
+    resumeAndJoinTest(false);
+    resumeAndJoinTest(true);
+  }
+
+  private void resumeAndJoinTest(boolean pinnedConnection) throws Exception {
+
     Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     Connection conn1;
-    MariaDbDataSource ds = new MariaDbDataSource(mDefUrl);
+    MariaDbDataSource ds =
+        new MariaDbDataSource(
+            mDefUrl + (pinnedConnection ? "&pinGlobalTxToPhysicalConnection" : ""));
 
     XAConnection xaConn1 = null;
     Xid xid = newXid();
@@ -306,17 +345,98 @@ public class XaTest extends Common {
       xaRes1.start(xid, XAResource.TMNOFLAGS);
       conn1.createStatement().executeQuery("SELECT 1");
       xaRes1.end(xid, XAResource.TMSUCCESS);
-      try {
+      if (pinnedConnection) {
         xaRes1.start(xid, XAResource.TMJOIN);
-        fail(); // without pinGlobalTxToPhysicalConnection=true
-      } catch (XAException xaex) {
-        xaConn1.close();
+      } else {
+        try {
+          xaRes1.start(xid, XAResource.TMJOIN);
+          fail(); // without pinGlobalTxToPhysicalConnection=true
+        } catch (XAException xaex) {
+          xaConn1.close();
+        }
       }
 
     } finally {
       if (xaConn1 != null) {
         xaConn1.close();
       }
+    }
+  }
+
+  @Test
+  public void errorCodeTest() throws SQLException, XAException {
+    XAConnection con = poolDataSource.getXAConnection();
+    try {
+      Xid xid = newXid();
+      Xid xid2 = newXid();
+      XAResource xaResource = con.getXAResource();
+      try {
+        xaResource.prepare(xid);
+        xaResource.commit(xid, true);
+        fail();
+      } catch (XAException xae) {
+        assertEquals(XAException.XAER_RMFAIL, xae.errorCode); // 1399
+      }
+      try {
+        xaResource.forget(xid);
+        xaResource.rollback(xid);
+        fail();
+      } catch (XAException xae) {
+        assertEquals(XAException.XAER_NOTA, xae.errorCode); // 1397
+      }
+      try {
+        xaResource.commit(xid, true);
+        fail();
+      } catch (XAException xae) {
+        assertEquals(XAException.XAER_INVAL, xae.errorCode); // 1398
+      }
+      try {
+        xaResource.commit(xid, true);
+        fail();
+      } catch (XAException xae) {
+        assertEquals(XAException.XAER_INVAL, xae.errorCode); // 1398
+      }
+      xaResource.start(xid2, XAResource.TMNOFLAGS);
+      xaResource.end(xid2, XAResource.TMSUCCESS);
+      try {
+        xaResource.start(xid2, XAResource.TMRESUME);
+      } catch (XAException e) {
+        // eat
+      }
+      try {
+        xaResource.end(xid2, XAResource.TMSUSPEND);
+      } catch (XAException e) {
+        // eat
+      }
+
+      try {
+        xaResource.start(xid2, XAResource.TMJOIN);
+      } catch (XAException e) {
+        // eat
+      }
+
+      try {
+        xaResource.end(xid2, XAResource.TMFAIL);
+      } catch (XAException e) {
+        // eat
+      }
+      xaResource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
+      try {
+        xaResource.recover(XAResource.TMFAIL);
+        fail();
+      } catch (XAException e) {
+        // eat
+      }
+      xaResource.recover(XAResource.TMNOFLAGS);
+      con.close();
+      try {
+        xaResource.recover(XAResource.TMSTARTRSCAN);
+        fail();
+      } catch (XAException e) {
+        // eat
+      }
+    } finally {
+      con.close();
     }
   }
 }

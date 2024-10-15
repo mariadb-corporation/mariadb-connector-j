@@ -1,9 +1,26 @@
 # Change Log
 
+## [3.5.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.0) (Oct 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.1...3.5.0)
+
+#### Notable changes
+
+* CONJ-1193 Parsec authentication implementation
+* CONJ-1183 permit setting specific truststore
+
+#### Bugs Fixed
+
+* CONJ-1202 Session variable setting must be executed last
+* CONJ-1201 incorrect default behavior for forceConnectionTimeZoneToSession
+* CONJ-1200 Batch import fails with exception "Unknown command"
+* CONJ-1199 option `connectionCollation` addition in order to force collation
+* CONJ-1187 Use different exception type for connection timeouts
+
 ## [3.4.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.1) (Jul 2024)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.0...3.4.1)
 
 ##### Bugs Fixed
+
 * CONJ-1181 Ensure Prepare cache use schema
 * CONJ-1178 DatabaseMetaData.getImportedKeys return different PK_NAME value than getExportedKeys.
 * CONJ-1180 Correct DatabaseMeta.getExportedKeys() performances

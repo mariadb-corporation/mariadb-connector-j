@@ -126,7 +126,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
           }
         }
 
-        if (!writer.isMarked() && writer.hasFlushed()) {
+        if (!writer.bufIsDataAfterMark() && !writer.isMarked() && writer.hasFlushed()) {
           // parameter were too big to fit in a MySQL packet
           // need to finish the packet separately
           writer.flush();

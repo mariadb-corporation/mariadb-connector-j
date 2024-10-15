@@ -269,7 +269,10 @@ public class Common {
       throw new SQLException("proxy error", i);
     }
 
-    String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+    String url =
+        mDefUrl.replaceAll(
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
+            "//localhost:" + proxy.getLocalPort() + "/");
     if (mode != HaMode.NONE) {
       url =
           url.replaceAll(

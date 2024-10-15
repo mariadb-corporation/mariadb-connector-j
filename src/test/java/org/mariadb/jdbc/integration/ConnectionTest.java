@@ -345,6 +345,21 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void databaseNoStateChange() throws SQLException {
+    try (Connection connection = createCon("&disableSessionTracking=true")) {
+      assertEquals(database, connection.getCatalog());
+
+      try (Statement stmt = connection.createStatement()) {
+        stmt.execute("drop database if exists _test_db");
+        stmt.execute("create database _test_db");
+        stmt.execute("USE _test_db");
+        assertEquals("_test_db", connection.getCatalog());
+        stmt.execute("drop database _test_db");
+      }
+    }
+  }
+
+  @Test
   public void catalog() throws SQLException {
     Assumptions.assumeTrue(
         (isMariaDBServer() && minVersion(10, 2, 0)) || (!isMariaDBServer() && minVersion(5, 7, 0)));
