@@ -534,6 +534,27 @@ public class DateTimeCodecTest extends CommonCodecTest {
   public void getDateTimezoneTest() throws SQLException {
     TimeZone initialTz = Calendar.getInstance().getTimeZone();
 
+    TimeZone.setDefault(TimeZone.getTimeZone("GMT+11"));
+    try (Connection con = createCon()) {
+      // expect server tz to be different.
+      ResultSet rs = con.createStatement().executeQuery("SELECT @@session.time_zone");
+      rs.next();
+      String zoneId = rs.getString(1);
+      TimeZone serverTz = null;
+      try {
+        serverTz = TimeZone.getTimeZone(ZoneId.of(zoneId).normalized());
+      } catch (DateTimeException e) {
+        try {
+          serverTz =
+                  TimeZone.getTimeZone(ZoneId.of(zoneId, ZoneId.SHORT_IDS).normalized());
+        } catch (DateTimeException e2) {
+          // unknown zone id
+        }
+      }
+      assertNotEquals(TimeZone.getDefault(), serverTz);
+    }
+
+
     TimeZone.setDefault(TimeZone.getTimeZone("GMT+8"));
     try (Connection conGmt8 = createCon("timezone=auto")) {
       getDateTimezoneTestGmt8(conGmt8, getPrepare(conGmt8), TimeZone.getTimeZone("GMT+8"));
