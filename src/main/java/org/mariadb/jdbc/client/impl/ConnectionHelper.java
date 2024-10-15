@@ -164,7 +164,7 @@ public final class ConnectionHelper {
     }
 
     if (Boolean.parseBoolean(
-        configuration.nonMappedOptions().getProperty("disableSessionTracking", "true"))) {
+        configuration.nonMappedOptions().getProperty("disableSessionTracking", "false"))) {
       capabilities &= ~Capabilities.CLIENT_SESSION_TRACK;
     }
 
