@@ -545,15 +545,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
         serverTz = TimeZone.getTimeZone(ZoneId.of(zoneId).normalized());
       } catch (DateTimeException e) {
         try {
-          serverTz =
-                  TimeZone.getTimeZone(ZoneId.of(zoneId, ZoneId.SHORT_IDS).normalized());
+          serverTz = TimeZone.getTimeZone(ZoneId.of(zoneId, ZoneId.SHORT_IDS).normalized());
         } catch (DateTimeException e2) {
           // unknown zone id
         }
       }
       assertNotEquals(TimeZone.getDefault(), serverTz);
     }
-
 
     TimeZone.setDefault(TimeZone.getTimeZone("GMT+8"));
     try (Connection conGmt8 = createCon("timezone=auto")) {

@@ -65,6 +65,11 @@ public class ParameterMetaDataTest extends Common {
         ParameterMetaData meta = pstmt.getParameterMetaData();
         assertEquals(1, meta.getParameterCount());
         assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(1));
+
+        assertEquals(ParameterMetaData.parameterNullable, meta.isNullable(1));
+        assertTrue(meta.isSigned(1));
+        meta.unwrap(java.sql.ParameterMetaData.class);
+        meta.isWrapperFor(java.sql.ParameterMetaData.class);
         Common.assertThrowsContains(
             SQLSyntaxErrorException.class,
             () -> meta.getParameterTypeName(1),

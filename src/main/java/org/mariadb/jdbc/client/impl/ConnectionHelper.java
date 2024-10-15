@@ -163,6 +163,11 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.BULK_UNIT_RESULTS;
     }
 
+    if (Boolean.parseBoolean(
+        configuration.nonMappedOptions().getProperty("disableSessionTracking", "true"))) {
+      capabilities &= ~Capabilities.CLIENT_SESSION_TRACK;
+    }
+
     // since skipping metadata is only available when using binary protocol,
     // only set it when server permit it and using binary protocol
     if (configuration.useServerPrepStmts()

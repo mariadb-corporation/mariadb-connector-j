@@ -175,12 +175,8 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
         xaErrorCode = 0;
         break;
     }
-    XAException xaException;
-    if (xaErrorCode != 0) {
-      xaException = new XAException(xaErrorCode);
-    } else {
-      xaException = new XAException(sqle.getMessage());
-    }
+    XAException xaException = new XAException(sqle.getMessage());
+    xaException.errorCode = xaErrorCode;
     xaException.initCause(sqle);
     return xaException;
   }
