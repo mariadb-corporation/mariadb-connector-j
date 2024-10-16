@@ -131,6 +131,9 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
   @Override
   public void close() throws SQLException {
     fireConnectionClosed(new ConnectionEvent(this));
+  }
+
+  protected void realClose() throws SQLException {
     connection.setPoolConnection(null);
     connection.close();
   }
