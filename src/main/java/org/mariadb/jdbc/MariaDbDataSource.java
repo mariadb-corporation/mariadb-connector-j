@@ -208,9 +208,12 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
   public PooledConnection getPooledConnection() throws SQLException {
     if (conf == null) config();
     org.mariadb.jdbc.Connection conn = Driver.connect(conf);
-    return conf.pinGlobalTxToPhysicalConnection()
-        ? new MariaDbPoolPinnedConnection(conn)
-        : new MariaDbPoolConnection(conn);
+    MariaDbPoolConnection poolConnection =
+        conf.pinGlobalTxToPhysicalConnection()
+            ? new MariaDbPoolPinnedConnection(conn)
+            : new MariaDbPoolConnection(conn);
+    setConnectionCloseListener(poolConnection);
+    return poolConnection;
   }
 
   @Override
@@ -219,28 +222,40 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
     org.mariadb.jdbc.Connection conn = Driver.connect(conf);
-    return conf.pinGlobalTxToPhysicalConnection()
-        ? new MariaDbPoolPinnedConnection(conn)
-        : new MariaDbPoolConnection(conn);
+    MariaDbPoolConnection poolConnection =
+        conf.pinGlobalTxToPhysicalConnection()
+            ? new MariaDbPoolPinnedConnection(conn)
+            : new MariaDbPoolConnection(conn);
+    setConnectionCloseListener(poolConnection);
+    return poolConnection;
+  }
+
+  private void setConnectionCloseListener(MariaDbPoolConnection mariaDbPoolConnection) {
+    mariaDbPoolConnection.addConnectionEventListener(
+        new ConnectionEventListener() {
+
+          @Override
+          public void connectionClosed(ConnectionEvent event) {
+            try {
+              mariaDbPoolConnection.realClose();
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          }
+
+          @Override
+          public void connectionErrorOccurred(ConnectionEvent event) {}
+        });
   }
 
   @Override
   public XAConnection getXAConnection() throws SQLException {
-    if (conf == null) config();
-    org.mariadb.jdbc.Connection conn = Driver.connect(conf);
-    return conf.pinGlobalTxToPhysicalConnection()
-        ? new MariaDbPoolPinnedConnection(conn)
-        : new MariaDbPoolConnection(conn);
+    return (MariaDbPoolConnection) getPooledConnection();
   }
 
   @Override
   public XAConnection getXAConnection(String username, String password) throws SQLException {
-    if (conf == null) config();
-    Configuration conf = this.conf.clone(username, password);
-    org.mariadb.jdbc.Connection conn = Driver.connect(conf);
-    return conf.pinGlobalTxToPhysicalConnection()
-        ? new MariaDbPoolPinnedConnection(conn)
-        : new MariaDbPoolConnection(conn);
+    return (MariaDbPoolConnection) getPooledConnection(username, password);
   }
 
   /**
