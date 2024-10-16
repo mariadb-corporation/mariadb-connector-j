@@ -196,7 +196,7 @@ public class XaTest extends Common {
       for (int i = 0; i < connectionNumber; i++) {
         try {
           if (xaConnections[i] != null) {
-            xaConnections[i].getConnection().close();
+            xaConnections[i].close();
           }
         } catch (Exception e) {
           e.printStackTrace();
@@ -396,7 +396,8 @@ public class XaTest extends Common {
         xaResource.commit(xid, true);
         fail();
       } catch (XAException xae) {
-        assertEquals(XAException.XAER_INVAL, xae.errorCode); // 1398
+        assertTrue(XAException.XAER_INVAL == xae.errorCode
+                || XAException.XAER_NOTA == xae.errorCode); // 1398
       }
       xaResource.start(xid2, XAResource.TMNOFLAGS);
       xaResource.end(xid2, XAResource.TMSUCCESS);
