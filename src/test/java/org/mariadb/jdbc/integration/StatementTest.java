@@ -1232,7 +1232,7 @@ public class StatementTest extends Common {
       Type it = codec.getClass().getGenericInterfaces()[0];
       ParameterizedType parameterizedType = (ParameterizedType) it;
       Type typeParameter = parameterizedType.getActualTypeArguments()[0];
-      if (!"byte[]".equals(codec.className()))
+      if (!"byte[]".equals(codec.className()) && !"[F".equals(codec.className()))
         assertEquals(((Class<?>) typeParameter).getName(), codec.className());
     }
   }

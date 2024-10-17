@@ -32,3 +32,5 @@ org.mariadb.jdbc.plugin.codec.TimeCodec
 org.mariadb.jdbc.plugin.codec.TimestampCodec
 org.mariadb.jdbc.plugin.codec.UuidCodec
 org.mariadb.jdbc.plugin.codec.ZonedDateTimeCodec
+org.mariadb.jdbc.plugin.codec.FloatArrayCodec
+org.mariadb.jdbc.plugin.codec.FloatObjectArrayCodec
