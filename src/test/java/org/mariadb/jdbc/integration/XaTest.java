@@ -396,7 +396,8 @@ public class XaTest extends Common {
         xaResource.commit(xid, true);
         fail();
       } catch (XAException xae) {
-        assertTrue(XAException.XAER_INVAL == xae.errorCode
+        assertTrue(
+            XAException.XAER_INVAL == xae.errorCode
                 || XAException.XAER_NOTA == xae.errorCode); // 1398
       }
       xaResource.start(xid2, XAResource.TMNOFLAGS);
