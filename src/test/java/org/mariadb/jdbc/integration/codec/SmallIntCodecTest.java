@@ -855,11 +855,13 @@ public class SmallIntCodecTest extends CommonCodecTest {
 
   private void getArray(ResultSet rs) {
     Common.assertThrowsContains(
-        SQLException.class, () -> rs.getArray(1), "Method ResultSet.getArray not supported");
+        SQLException.class,
+        () -> rs.getArray(1),
+        "Data type SMALLINT cannot be decoded as float[]");
     Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getArray("t1alias"),
-        "Method ResultSet.getArray not supported");
+        "Data type SMALLINT cannot be decoded as float[]");
   }
 
   @Test

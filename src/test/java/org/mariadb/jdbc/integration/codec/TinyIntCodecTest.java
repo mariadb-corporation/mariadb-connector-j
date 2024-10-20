@@ -873,11 +873,11 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   public void getArray(ResultSet rs) {
     Common.assertThrowsContains(
-        SQLException.class, () -> rs.getArray(1), "Method ResultSet.getArray not supported");
+        SQLException.class, () -> rs.getArray(1), "Data type TINYINT cannot be decoded as float[]");
     Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getArray("t1alias"),
-        "Method ResultSet.getArray not supported");
+        "Data type TINYINT cannot be decoded as float[]");
   }
 
   @Test

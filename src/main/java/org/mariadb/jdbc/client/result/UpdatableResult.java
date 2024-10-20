@@ -20,6 +20,7 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.result.rowdecoder.BinaryRowDecoder;
 import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.array.FloatArray;
 import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.ParameterList;
 
@@ -289,6 +290,18 @@ public class UpdatableResult extends CompleteResult {
   public void updateTime(int columnIndex, Time x) throws SQLException {
     checkUpdatable(columnIndex);
     parameters.set(columnIndex - 1, new Parameter<>(TimeCodec.INSTANCE, x));
+  }
+
+  @Override
+  public void updateArray(int columnIndex, Array x) throws SQLException {
+    checkUpdatable(columnIndex);
+    if (x instanceof FloatArray) {
+      parameters.set(
+          columnIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) x.getArray()));
+      return;
+    }
+    throw exceptionFactory.notSupported(
+        String.format("this type of Array parameter %s is not supported", x.getClass()));
   }
 
   @Override

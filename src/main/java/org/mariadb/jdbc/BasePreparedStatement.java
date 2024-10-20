@@ -29,6 +29,7 @@ import org.mariadb.jdbc.message.client.PreparePacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.array.FloatArray;
 import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.ParameterList;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
@@ -756,7 +757,19 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setArray(int parameterIndex, Array x) throws SQLException {
-    throw exceptionFactory().notSupported("Array parameter are not supported");
+    checkIndex(parameterIndex);
+    if (x == null) {
+      parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
+      return;
+    }
+    if (x instanceof FloatArray) {
+      parameters.set(
+          parameterIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) x.getArray()));
+      return;
+    }
+    throw exceptionFactory()
+        .notSupported(
+            String.format("this type of Array parameter %s is not supported", x.getClass()));
   }
 
   /**

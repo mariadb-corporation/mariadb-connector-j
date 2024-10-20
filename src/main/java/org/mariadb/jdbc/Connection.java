@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
+import java.nio.FloatBuffer;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
@@ -19,6 +20,7 @@ import org.mariadb.jdbc.message.client.ChangeDbPacket;
 import org.mariadb.jdbc.message.client.PingPacket;
 import org.mariadb.jdbc.message.client.QueryPacket;
 import org.mariadb.jdbc.message.client.ResetPacket;
+import org.mariadb.jdbc.plugin.array.FloatArray;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
@@ -742,7 +744,37 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-    throw exceptionFactory.notSupported("Array type is not supported");
+    return createArrayOf(typeName, (Object) elements);
+  }
+
+  public Array createArrayOf(String typeName, Object elements) throws SQLException {
+    if (typeName == null) throw exceptionFactory.notSupported("typeName is not mandatory");
+    if (elements == null) return null;
+
+    switch (typeName) {
+      case "float":
+      case "Float":
+        if (float[].class.equals(elements.getClass())) {
+          return new FloatArray((float[]) elements, client.getContext());
+        }
+        if (Float[].class.equals(elements.getClass())) {
+          float[] result =
+              Arrays.stream(((Float[]) elements))
+                  .collect(
+                      () -> FloatBuffer.allocate(((Float[]) elements).length),
+                      FloatBuffer::put,
+                      (left, right) -> {
+                        throw new UnsupportedOperationException();
+                      })
+                  .array();
+          return new FloatArray(result, client.getContext());
+        }
+        throw exceptionFactory.notSupported(
+            "elements class is expect to be float[]/Float[] for 'float/Float' typeName");
+      default:
+        throw exceptionFactory.notSupported(
+            String.format("typeName %s is not supported", typeName));
+    }
   }
 
   @Override

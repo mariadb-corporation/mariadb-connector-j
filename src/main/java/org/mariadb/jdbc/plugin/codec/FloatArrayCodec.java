@@ -107,7 +107,7 @@ public class FloatArrayCodec implements Codec<float[]> {
       default:
         buf.skip(length.get());
         throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as byte[]", column.getType()));
+            String.format("Data type %s cannot be decoded as float[]", column.getType()));
     }
   }
 
@@ -131,7 +131,9 @@ public class FloatArrayCodec implements Codec<float[]> {
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    encoder.writeBytes(toByteArray((float[]) value));
+    byte[] arr = toByteArray((float[]) value);
+    encoder.writeLength(arr.length);
+    encoder.writeBytes(arr);
   }
 
   public int getBinaryEncodeType() {

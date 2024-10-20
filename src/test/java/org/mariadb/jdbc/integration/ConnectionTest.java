@@ -398,7 +398,8 @@ public class ConnectionTest extends Common {
     assertTrue(sharedConn.createClob() instanceof Clob);
     assertTrue(sharedConn.createNClob() instanceof NClob);
     assertThrows(SQLException.class, () -> sharedConn.createSQLXML());
-    assertThrows(SQLException.class, () -> sharedConn.createArrayOf("", null));
+    assertNull(sharedConn.createArrayOf("", null));
+    assertThrows(SQLException.class, () -> sharedConn.createArrayOf("string", "ddd"));
     assertThrows(SQLException.class, () -> sharedConn.createStruct("", null));
     assertNull(sharedConn.getSchema());
     sharedConn.setSchema("fff");

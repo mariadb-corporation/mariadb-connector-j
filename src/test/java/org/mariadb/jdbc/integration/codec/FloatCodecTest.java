@@ -645,11 +645,11 @@ public class FloatCodecTest extends CommonCodecTest {
   public void getArray() throws SQLException {
     ResultSet rs = get();
     Common.assertThrowsContains(
-        SQLException.class, () -> rs.getArray(1), "Method ResultSet.getArray not supported");
+        SQLException.class, () -> rs.getArray(1), "Data type FLOAT cannot be decoded as float[]");
     Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getArray("t1alias"),
-        "Method ResultSet.getArray not supported");
+        "Data type FLOAT cannot be decoded as float[]");
   }
 
   @Test

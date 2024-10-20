@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.util.Map;
 import org.junit.jupiter.api.*;
 
 public class UpdateResultSetTest extends Common {
@@ -1164,9 +1165,9 @@ public class UpdateResultSetTest extends Common {
       Common.assertThrowsContains(
           SQLException.class, () -> rs.updateRef("t1", null), "not supported");
       Common.assertThrowsContains(
-          SQLException.class, () -> rs.updateArray(2, null), "not supported");
+          SQLException.class, () -> rs.updateArray(2, new FakeArray()), "not supported");
       Common.assertThrowsContains(
-          SQLException.class, () -> rs.updateArray("t1", null), "not supported");
+          SQLException.class, () -> rs.updateArray("t1", new FakeArray()), "not supported");
       Common.assertThrowsContains(
           SQLException.class, () -> rs.updateRowId(2, null), "not supported");
       Common.assertThrowsContains(
@@ -1202,5 +1203,61 @@ public class UpdateResultSetTest extends Common {
       assertEquals("11", rs.getString("t1"));
     }
     sharedConn.rollback();
+  }
+
+  private class FakeArray implements Array {
+    @Override
+    public String getBaseTypeName() throws SQLException {
+      return null;
+    }
+
+    @Override
+    public int getBaseType() throws SQLException {
+      return 0;
+    }
+
+    @Override
+    public Object getArray() throws SQLException {
+      return null;
+    }
+
+    @Override
+    public Object getArray(Map<String, Class<?>> map) throws SQLException {
+      return null;
+    }
+
+    @Override
+    public Object getArray(long index, int count) throws SQLException {
+      return null;
+    }
+
+    @Override
+    public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+      return null;
+    }
+
+    @Override
+    public ResultSet getResultSet() throws SQLException {
+      return null;
+    }
+
+    @Override
+    public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
+      return null;
+    }
+
+    @Override
+    public ResultSet getResultSet(long index, int count) throws SQLException {
+      return null;
+    }
+
+    @Override
+    public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map)
+        throws SQLException {
+      return null;
+    }
+
+    @Override
+    public void free() throws SQLException {}
   }
 }
