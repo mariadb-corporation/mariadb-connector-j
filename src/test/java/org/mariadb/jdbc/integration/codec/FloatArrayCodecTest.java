@@ -6,6 +6,7 @@ package org.mariadb.jdbc.integration.codec;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
+import java.util.HashMap;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -103,6 +104,103 @@ public class FloatArrayCodecTest extends CommonCodecTest {
       assertArrayEquals(val2, res);
       Array resArray = rs.getArray(2);
       assertEquals(valArray2, resArray);
+    }
+  }
+
+  @Test
+  public void floatArrayArrayObjWithType() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("TRUNCATE TABLE BinaryCodec");
+    floatArrayArrayObjWithType(sharedConn);
+    stmt.execute("TRUNCATE TABLE BinaryCodec");
+    floatArrayArrayObjWithType(sharedConnBinary);
+  }
+
+  private void floatArrayArrayObjWithType(org.mariadb.jdbc.Connection con) throws SQLException {
+    float[] val = new float[] {1, 2, 3};
+    float[] val2 = new float[] {4, 5};
+    float[] val3 = new float[] {7, 8, 9, 10};
+
+    Array valArray = con.createArrayOf("float", val);
+
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO BinaryCodec(t0, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setObject(2, valArray, Types.ARRAY);
+      prep.execute();
+
+      prep.setInt(1, 2);
+      prep.setObject(2, val2, Types.ARRAY);
+      prep.execute();
+
+      prep.setInt(1, 3);
+      prep.setObject(2, val3, Types.ARRAY);
+      prep.execute();
+    }
+
+    try (PreparedStatement prep =
+        con.prepareStatement(
+            "SELECT * FROM BinaryCodec",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE)) {
+      ResultSet rs = prep.executeQuery();
+      assertTrue(rs.next());
+      float[] res = (float[]) rs.getArray(2).getArray();
+      assertArrayEquals(val, res);
+      Array arr = rs.getArray(2);
+      assertArrayEquals(val, (float[]) arr.getArray(1, 3));
+      assertArrayEquals(new float[] {2, 3}, (float[]) arr.getArray(2, 2));
+      assertArrayEquals(new float[] {1, 2}, (float[]) arr.getArray(1, 2));
+      assertThrowsContains(
+          SQLException.class,
+          () -> arr.getArray(0, 2),
+          "Wrong index position. Is 0 but must be in 1-3 range");
+      assertThrowsContains(
+          SQLException.class,
+          () -> arr.getArray(2, 20),
+          "Count value is too big. Count is 20 but cannot be > to 2");
+      assertEquals("float[]", arr.getBaseTypeName());
+      assertEquals(Types.FLOAT, arr.getBaseType());
+      assertThrowsContains(
+          SQLException.class,
+          () -> arr.getArray(new HashMap<>()),
+          "getArray(Map<String, Class<?>> map) is not supported");
+      assertThrowsContains(
+          SQLException.class,
+          () -> arr.getArray(1, 2, new HashMap<>()),
+          "getArray(long index, int count, Map<String, Class<?>> map) is not supported");
+
+      ResultSet rss = arr.getResultSet();
+      assertTrue(rss.next());
+      assertEquals(1, rss.getFloat(1));
+      assertTrue(rss.next());
+      assertEquals(2, rss.getFloat(1));
+      assertTrue(rss.next());
+      assertEquals(3, rss.getFloat(1));
+      assertFalse(rss.next());
+
+      rss = arr.getResultSet(2, 2);
+      assertTrue(rss.next());
+      assertEquals(2, rss.getFloat(1));
+      assertTrue(rss.next());
+      assertEquals(3, rss.getFloat(1));
+      assertFalse(rss.next());
+      assertThrowsContains(
+          SQLException.class,
+          () -> arr.getResultSet(new HashMap<>()),
+          "getResultSet(Map<String, Class<?>> map) is not supported");
+      assertThrowsContains(
+          SQLException.class,
+          () -> arr.getResultSet(1, 2, new HashMap<>()),
+          "getResultSet(long index, int count, Map<String, Class<?>> map) is not supported");
+      arr.free();
+      assertTrue(rs.next());
+      float[] res2 = rs.getObject(2, float[].class);
+      assertArrayEquals(val2, res2);
+
+      assertTrue(rs.next());
+      float[] res3 = rs.getObject(2, float[].class);
+      assertArrayEquals(val3, res3);
     }
   }
 

@@ -1131,6 +1131,23 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       // in case of not corresponding data type, converting
       switch (targetSqlType) {
         case Types.ARRAY:
+          if (obj instanceof float[]) {
+            parameters.set(
+                parameterIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) obj));
+            return;
+          } else if (obj instanceof Float[]) {
+            parameters.set(
+                parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, (Float[]) obj));
+            return;
+          } else if (obj instanceof FloatArray) {
+            parameters.set(
+                parameterIndex - 1,
+                new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) ((FloatArray) obj).getArray()));
+            return;
+          }
+          throw exceptionFactory()
+              .notSupported(
+                  String.format("ARRAY Type not supported for %s", obj.getClass().getName()));
         case Types.DATALINK:
         case Types.JAVA_OBJECT:
         case Types.REF:

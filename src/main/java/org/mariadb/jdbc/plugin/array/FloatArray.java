@@ -82,7 +82,11 @@ public class FloatArray implements Array {
   public ResultSet getResultSet(long index, int count) throws SQLException {
     byte[][] rows = new byte[count][];
     for (int i = 0; i < count; i++) {
-      rows[i] = Float.toString(this.val[(int) index - 1 + i]).getBytes(StandardCharsets.US_ASCII);
+      byte[] val =
+          Float.toString(this.val[(int) index - 1 + i]).getBytes(StandardCharsets.US_ASCII);
+      rows[i] = new byte[val.length + 1];
+      rows[i][0] = (byte) val.length;
+      System.arraycopy(val, 0, rows[i], 1, val.length);
     }
 
     return new CompleteResult(
