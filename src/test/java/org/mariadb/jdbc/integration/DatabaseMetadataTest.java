@@ -2854,9 +2854,6 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void testTemporaryTables() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 2, 0));
-    Assumptions.assumeTrue(
-        !"mariadb-es".equals(System.getenv("srv"))
-            && !"mariadb-es-test".equals(System.getenv("srv")));
 
     java.sql.Statement stmt = sharedConn.createStatement();
     stmt.execute("create temporary table testTemporaryTables (b int)");

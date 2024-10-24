@@ -253,12 +253,7 @@ public class BatchTest extends Common {
 
   @Test
   public void differentParameterType() throws SQLException {
-    boolean expectUnknown =
-        isMariaDBServer()
-            && !isXpand()
-            && ("mariadb-es".equals(System.getenv("srv"))
-                || "mariadb-es-test".equals(System.getenv("srv"))
-                || !minVersion(11, 5, 0));
+    boolean expectUnknown = isMariaDBServer() && !isXpand() && !minVersion(11, 5, 0);
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false);
     }
