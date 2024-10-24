@@ -94,7 +94,7 @@ public class LineStringCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals(
           new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true),
           rs.getObject(1));
@@ -251,7 +251,7 @@ public class LineStringCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals("LINESTRING", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -260,7 +260,7 @@ public class LineStringCodecTest extends CommonCodecTest {
 
     assertEquals(
         geoDefault
-            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
+            ? (hasCapability(Capabilities.EXTENDED_METADATA)
                 ? LineString.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]",

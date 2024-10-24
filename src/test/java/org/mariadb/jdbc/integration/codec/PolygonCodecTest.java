@@ -143,7 +143,7 @@ public class PolygonCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));
@@ -343,7 +343,7 @@ public class PolygonCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals("POLYGON", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -352,7 +352,7 @@ public class PolygonCodecTest extends CommonCodecTest {
     assertEquals(useSchema ? database : "", meta.getSchemaName(1));
     assertEquals(
         (geoDefault
-            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
+            ? (hasCapability(Capabilities.EXTENDED_METADATA)
                 ? Polygon.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]"),

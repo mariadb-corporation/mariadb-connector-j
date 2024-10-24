@@ -35,7 +35,7 @@ public class UuidCodecTest extends CommonCodecTest {
     Assumptions.assumeTrue(
         isMariaDBServer()
             && minVersion(10, 7, 0)
-            && hasCapability(Capabilities.EXTENDED_TYPE_INFO));
+            && hasCapability(Capabilities.EXTENDED_METADATA));
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE UuidCodec (t1 UUID, t2 UUID, t3 UUID, t4 UUID)");
     stmt.execute("CREATE TABLE UuidCodec2 (t1 UUID)");
