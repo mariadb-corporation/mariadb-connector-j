@@ -1,6 +1,16 @@
 language: java
 jdk: openjdk17
 version: ~> 1.0
+os: linux
+dist: jammy
+services: docker
+addons:
+  hosts:
+    - mariadb.example.com
+    - mariadb1.example.com
+    - mariadb2.example.com
+    - mariadb3.example.com
+
 
 before_install:
   - |-
@@ -11,36 +21,31 @@ before_install:
         ;;
     esac
 
+install:
+  - git clone https://github.com/mariadb-corporation/connector-test-machine.git
+  - |-
+    if [ -z "$server_branch" ] ; then
+      case $TRAVIS_OS_NAME in
+        windows)
+          connector-test-machine/launch.bat -t "$srv" -v "$v" -d "$DB"
+          # Since refreshenv doesn't seem to work, we set this manually
+          export WIX="/c/Program Files (x86)/WiX Toolset v3.11"
+          ;;
+        linux)
+          source connector-test-machine/launch.sh -t "$srv" -v "$v" -d "$DB" -l "$local" -c "$CLEAR_TEXT" -p "$packet"
+          ;;
+      esac
+    fi
+
 env:
   global: local=0 RUN_LONG_TEST=true PROFILE=default DB=testj CLEAR_TEXT=0
 
-import: mariadb-corporation/connector-test-machine:common-build.yml@master
-
 jobs:
   include:
-    - stage: Language
-      env: srv=mariadb v=11.4 packet=40 PROFILE=java8
-      jdk: openjdk8
-      name: "CS 11.4 - openjdk 8"
-    - stage: Language
-      env: srv=mariadb v=11.4 packet=8
-      jdk: openjdk11
-      name: "CS 11.4 - openjdk 11 - packet 8M"
-    - stage: Language
-      env: srv=mariadb v=11.4 packet=40
+    - env: srv=mariadb-es-test v=11.4
       jdk: openjdk17
-      name: "CS 11.4 - openjdk 17 - packet 40M"
-    - stage: Language
-      env: srv=mariadb v=11.4
-      jdk: openjdk21
-      name: "CS 11.4 - openjdk 21"
-    - stage: Benchmarks
-      env: srv=mariadb v=10.6 local=1 BENCH=1
-      name: "Benchmarks"
-    - stage: Language
-      env: srv=mariadb v=10.6 packet=40
-      jdk: openjdk21
-      name: "CS 10.6 - openjdk 21"
+      name: "ES 11.4 - openjdk 8"
+
 script:
   - echo $PROFILE
   - mvn clean -Dmaven.test.skip -P $PROFILE
