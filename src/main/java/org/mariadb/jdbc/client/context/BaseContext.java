@@ -96,9 +96,7 @@ public class BaseContext implements Context {
     this.exceptionFactory = exceptionFactory;
     this.prepareCache = prepareCache;
     this.canUseTransactionIsolation =
-        (version.isMariaDBServer()
-                && version.getMajorVersion() < 23
-                && version.versionGreaterOrEqual(11, 1, 1))
+        (version.isMariaDBServer() && version.versionGreaterOrEqual(11, 1, 1))
             || (!version.isMariaDBServer()
                 && ((version.getMajorVersion() >= 8 && version.versionGreaterOrEqual(8, 0, 3))
                     || (version.getMajorVersion() < 8 && version.versionGreaterOrEqual(5, 7, 20))));

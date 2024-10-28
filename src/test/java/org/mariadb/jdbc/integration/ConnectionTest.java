@@ -594,7 +594,6 @@ public class ConnectionTest extends Common {
       Statement stmt = connection.createStatement();
       boolean canUseTransactionReadOnly =
           (isMariaDBServer()
-                  && sharedConn.getContext().getVersion().getMajorVersion() < 23
                   && sharedConn.getContext().getVersion().versionGreaterOrEqual(11, 1, 1))
               || (!sharedConn.getContext().getVersion().isMariaDBServer()
                   && ((sharedConn.getContext().getVersion().getMajorVersion() >= 8
