@@ -88,7 +88,7 @@ public class BaseContext implements Context {
     this.eofDeprecated = hasClientCapability(Capabilities.CLIENT_DEPRECATE_EOF);
     this.skipMeta = hasClientCapability(Capabilities.CACHE_METADATA);
     this.columnDecoderFunction =
-        hasClientCapability(Capabilities.EXTENDED_TYPE_INFO)
+        hasClientCapability(Capabilities.EXTENDED_METADATA)
             ? ColumnDecoder::decode
             : ColumnDecoder::decodeStd;
     this.conf = conf;

@@ -94,7 +94,7 @@ public final class Capabilities {
   public static final long STMT_BULK_OPERATIONS = 1L << 34;
 
   /** metadata extended information */
-  public static final long EXTENDED_TYPE_INFO = 1L << 35;
+  public static final long EXTENDED_METADATA = 1L << 35;
 
   /** permit metadata caching */
   public static final long CACHE_METADATA = 1L << 36;

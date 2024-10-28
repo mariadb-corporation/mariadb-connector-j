@@ -205,7 +205,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));
@@ -271,7 +271,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals("MULTIPOLYGON", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -279,7 +279,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals(
         geoDefault
-            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
+            ? (hasCapability(Capabilities.EXTENDED_METADATA)
                 ? MultiPolygon.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]",

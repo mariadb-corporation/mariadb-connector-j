@@ -203,7 +203,7 @@ public final class ConnectionHelper {
         Boolean.parseBoolean(
             configuration.nonMappedOptions().getProperty("extendedTypeInfo", "true"));
     if (extendedTypeInfo) {
-      capabilities |= Capabilities.EXTENDED_TYPE_INFO;
+      capabilities |= Capabilities.EXTENDED_METADATA;
     }
 
     // useEof is a technical option

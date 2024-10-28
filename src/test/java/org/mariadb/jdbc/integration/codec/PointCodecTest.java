@@ -87,7 +87,7 @@ public class PointCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals(new Point(10, 1), rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(new Point(1.5, 18), rs.getObject(2));
@@ -178,7 +178,7 @@ public class PointCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals("POINT", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -186,7 +186,7 @@ public class PointCodecTest extends CommonCodecTest {
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals(
         geoDefault
-            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
+            ? (hasCapability(Capabilities.EXTENDED_METADATA)
                 ? Point.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]",

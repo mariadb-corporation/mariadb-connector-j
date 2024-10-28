@@ -170,7 +170,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals(geo1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(geo2, rs.getObject(2));
@@ -243,7 +243,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
+    if (hasCapability(Capabilities.EXTENDED_METADATA)) {
       assertEquals("GEOMETRYCOLLECTION", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
