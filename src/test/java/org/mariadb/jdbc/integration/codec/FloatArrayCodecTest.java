@@ -130,7 +130,7 @@ public class FloatArrayCodecTest extends CommonCodecTest {
       prep.execute();
 
       prep.setInt(1, 2);
-      prep.setObject(2, val2, Types.ARRAY);
+      prep.setObject(2, new Float[] {4f, 5f}, Types.ARRAY);
       prep.execute();
 
       prep.setInt(1, 3);

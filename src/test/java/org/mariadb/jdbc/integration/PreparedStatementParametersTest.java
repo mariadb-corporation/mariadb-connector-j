@@ -355,6 +355,10 @@ public class PreparedStatementParametersTest extends Common {
           SQLException.class,
           () -> preparedStatement.setRef(1, null),
           "REF parameter are not supported");
+      Common.assertThrowsContains(
+              SQLException.class,
+              () -> preparedStatement.setObject(1, "", Types.REF),
+              "Type not supported");
       preparedStatement.setArray(1, null);
       Common.assertThrowsContains(
           SQLException.class,
