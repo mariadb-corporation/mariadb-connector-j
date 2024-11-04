@@ -56,7 +56,8 @@ public class PreparedStatementTest extends Common {
   public void prepToString() throws SQLException {
     try (PreparedStatement stmt = sharedConn.prepareStatement("SELECT ?,?")) {
       stmt.setNull(2, Types.INTEGER);
-      Assertions.assertEquals("ClientPreparedStatement{sql:'SELECT ?,?', parameters:[null,null]}", stmt.toString());
+      Assertions.assertEquals(
+          "ClientPreparedStatement{sql:'SELECT ?,?', parameters:[null,null]}", stmt.toString());
     }
   }
 
