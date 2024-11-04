@@ -4,3 +4,4 @@ org.mariadb.jdbc.plugin.authentication.standard.Ed25519PasswordPlugin
 org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin
 org.mariadb.jdbc.plugin.authentication.standard.SendPamAuthPacket
 org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin
+org.mariadb.jdbc.plugin.authentication.standard.ParsecPasswordPlugin
