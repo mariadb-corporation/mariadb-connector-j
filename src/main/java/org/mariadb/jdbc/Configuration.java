@@ -1148,7 +1148,7 @@ public class Configuration {
     StringBuilder sb = new StringBuilder();
     sb.append("jdbc:mariadb:");
     if (conf.haMode != HaMode.NONE) {
-      sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
+      sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT).replace("_", "-")).append(":");
     }
     sb.append("//");
     for (int i = 0; i < conf.addresses.size(); i++) {

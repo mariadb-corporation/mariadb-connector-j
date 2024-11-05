@@ -154,7 +154,22 @@ public class ConfigurationTest {
             .socketTimeout(50)
             .build();
     assertEquals(
-        "jdbc:mariadb:loadbalance://address=(host=local)(port=3306)(type=primary),address=(host=local)(port=3307)(type=primary),address=(host=local)(port=3308)(type=primary)/DB?socketTimeout=50",
+        "jdbc:mariadb:loadbalance://local,local:3307,local:3308/DB?socketTimeout=50",
+        conf.initialUrl());
+
+    conf =
+        new Configuration.Builder()
+            .database("DB")
+            .addHost("local1", 3306)
+            .addHost("local2", 3306)
+            .addHost("local3", 3306)
+            .addHost("local4", 3306, false)
+            .addHost("local5", 3306, false)
+            .haMode(HaMode.LOADBALANCE)
+            .socketTimeout(50)
+            .build();
+    assertEquals(
+        "jdbc:mariadb:loadbalance://local1,local2,local3,address=(host=local4)(type=replica),address=(host=local5)(type=replica)/DB?socketTimeout=50",
         conf.initialUrl());
 
     conf =
@@ -170,7 +185,7 @@ public class ConfigurationTest {
   @Test
   public void testPipeSocket() throws SQLException {
     String url =
-        "jdbc:mariadb:sequential://address=(pipe=Mariadb106),address=(localSocket=/socket),address=(host=local)(port=3306)(type=primary)/DB?socketTimeout=50";
+        "jdbc:mariadb:sequential://address=(pipe=Mariadb106),address=(localSocket=/socket),local/DB?socketTimeout=50";
     Configuration conf =
         new Configuration.Builder()
             .database("DB")
@@ -186,9 +201,35 @@ public class ConfigurationTest {
   }
 
   @Test
+  public void testSequentialWrite() throws SQLException {
+    String url =
+        "jdbc:mariadb:load-balance-read://127.0.0.5,127.0.0.6,address=(host=127.0.0.7)(type=replica),address=(host=127.0.0.8)(type=replica)/DB?socketTimeout=50";
+    Configuration conf =
+        new Configuration.Builder()
+            .database("DB")
+            .addHost("127.0.0.5", 3306)
+            .addHost("127.0.0.6", 3306)
+            .addHost("127.0.0.7", 3306, false)
+            .addHost("127.0.0.8", 3306, false)
+            .haMode(HaMode.LOAD_BALANCE_READ)
+            .socketTimeout(50)
+            .build();
+    assertEquals(url, conf.initialUrl());
+    conf = Configuration.parse(url);
+    assertEquals(url, conf.initialUrl());
+
+    // alias
+    assertEquals(
+        url,
+        Configuration.parse(
+                "jdbc:mariadb:load-balance-read://127.0.0.5,127.0.0.6,address=(host=127.0.0.7)(type=replica),address=(host=127.0.0.8)(type=replica)/DB?socketTimeout=50")
+            .initialUrl());
+  }
+
+  @Test
   public void testPipeSocketSsl() throws SQLException {
     String url =
-        "jdbc:mariadb:sequential://address=(pipe=Mariadb106),address=(localSocket=/socket),address=(host=local)(port=3306)(sslMode=verify-full)(type=primary)/DB?socketTimeout=50";
+        "jdbc:mariadb:sequential://address=(pipe=Mariadb106),address=(localSocket=/socket),address=(host=local)(sslMode=verify-full)(type=primary)/DB?socketTimeout=50";
     Configuration conf =
         new Configuration.Builder()
             .database("DB")
@@ -617,13 +658,14 @@ public class ConfigurationTest {
 
   @Test
   public void address() {
-    assertEquals("address=(host=test)(port=3306)", HostAddress.from("test", 3306).toString());
+    assertEquals("test", HostAddress.from("test", 3306).toString());
+    assertEquals("test:3304", HostAddress.from("test", 3304).toString());
     assertEquals(
-        "address=(host=test)(port=3306)(type=replica)",
-        HostAddress.from("test", 3306, false).toString());
+        "address=(host=test)(type=replica)", HostAddress.from("test", 3306, false).toString());
     assertEquals(
-        "address=(host=test)(port=3306)(type=primary)",
-        HostAddress.from("test", 3306, true).toString());
+        "address=(host=test)(port=3307)(type=replica)",
+        HostAddress.from("test", 3307, false).toString());
+    assertEquals("test", HostAddress.from("test", 3306, true).toString());
   }
 
   @Test
@@ -989,14 +1031,13 @@ public class ConfigurationTest {
             .startsWith(
                 "Configuration:\n"
                     + " * resulting Url :"
-                    + " jdbc:mariadb:loadbalance://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&autocommit=false&createDatabaseIfNotExist=true\n"
+                    + " jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&autocommit=false&createDatabaseIfNotExist=true\n"
                     + "Unknown options : \n"
                     + " * nonExisting : \n"
                     + " * nonExistingWithValue : tt\n"
                     + "\n"
                     + "Non default options : \n"
-                    + " * addresses : [address=(host=host1)(port=3305)(type=primary),"
-                    + " address=(host=host2)(port=3307)(type=replica)]\n"
+                    + " * addresses : [host1:3305, address=(host=host2)(port=3307)(type=replica)]\n"
                     + " * autocommit : false\n"
                     + " * createDatabaseIfNotExist : true\n"
                     + " * database : db\n"
@@ -1028,7 +1069,7 @@ public class ConfigurationTest {
                     + " * user : root\n"
                     + "\n"
                     + "default options :\n"
-                    + " * addresses : [address=(host=localhost)(port=3306)(type=primary)]\n"
+                    + " * addresses : [localhost]\n"
                     + " * allowLocalInfile : true"));
   }
 }

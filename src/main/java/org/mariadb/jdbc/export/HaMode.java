@@ -21,6 +21,7 @@ public enum HaMode {
       return HaMode.getAvailableRoundRobinHost(this, hostAddresses, denyList, primary);
     }
   },
+
   /** sequential: driver will always connect according to connection string order */
   SEQUENTIAL("sequential") {
     public Optional<HostAddress> getAvailableHost(
@@ -30,6 +31,24 @@ public enum HaMode {
       return getAvailableHostInOrder(hostAddresses, denyList, primary);
     }
   },
+
+  /**
+   * load-balance-read: driver will always connect primary servers according to connection string
+   * order and replica using round-robin, permitting balancing connections
+   */
+  LOAD_BALANCE_READ("load-balance-read") {
+    public Optional<HostAddress> getAvailableHost(
+        List<HostAddress> hostAddresses,
+        ConcurrentMap<HostAddress, Long> denyList,
+        boolean primary) {
+      if (primary) {
+        return SEQUENTIAL.getAvailableHost(hostAddresses, denyList, true);
+      } else {
+        return LOADBALANCE.getAvailableHost(hostAddresses, denyList, false);
+      }
+    }
+  },
+
   /**
    * load-balance: driver will connect to any host using round-robin, permitting balancing
    * connections
@@ -45,6 +64,7 @@ public enum HaMode {
       return HaMode.getAvailableRoundRobinHost(this, hostAddresses, denyList, primary);
     }
   },
+
   /** no ha-mode. Connect to first host only */
   NONE("") {
     public Optional<HostAddress> getAvailableHost(

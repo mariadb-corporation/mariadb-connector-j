@@ -260,10 +260,12 @@ public class HostAddress {
   public String toString() {
     if (pipe != null) return String.format("address=(pipe=%s)", pipe);
     if (localSocket != null) return String.format("address=(localSocket=%s)", localSocket);
+    if (sslMode == null && sslMode == null && primary != Boolean.FALSE)
+      return port != 3306 ? host + ":" + port : host;
     return String.format(
-        "address=(host=%s)(port=%s)%s%s",
+        "address=(host=%s)%s%s%s",
         host,
-        port,
+        (port != 3306) ? "(port=" + port + ")" : "",
         (sslMode != null) ? "(sslMode=" + sslMode.getValue() + ")" : "",
         ((primary != null) ? ("(type=" + (primary ? "primary)" : "replica)")) : ""));
   }

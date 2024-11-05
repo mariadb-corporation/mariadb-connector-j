@@ -19,9 +19,7 @@ public class RedirectionTest extends Common {
   void basicRedirection() throws Exception {
 
     Connection connection = createProxyCon(HaMode.NONE, "");
-    Assertions.assertEquals(
-        String.format("address=(host=localhost)(port=%s)(type=primary)", proxy.getLocalPort()),
-        connection.__test_host());
+    Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     boolean permitRedirection = true;
     Statement stmt = connection.createStatement();
     try {
@@ -36,8 +34,7 @@ public class RedirectionTest extends Common {
 
     if (permitRedirection) {
       Assertions.assertEquals(
-          String.format("address=(host=%s)(port=%s)(type=primary)", hostname, port),
-          connection.__test_host());
+          port == 3306 ? hostname : hostname + ":" + port, connection.__test_host());
     }
     connection.close();
     proxy.stop();
@@ -47,9 +44,7 @@ public class RedirectionTest extends Common {
   void redirectionDuringTransaction() throws Exception {
 
     Connection connection = createProxyCon(HaMode.NONE, "");
-    Assertions.assertEquals(
-        String.format("address=(host=localhost)(port=%s)(type=primary)", proxy.getLocalPort()),
-        connection.__test_host());
+    Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     boolean permitRedirection = true;
     Statement stmt = connection.createStatement();
 
@@ -63,14 +58,11 @@ public class RedirectionTest extends Common {
     ResultSet rs = stmt.executeQuery("SELECT 1");
     Assertions.assertTrue(rs.next());
     Assertions.assertEquals(1, rs.getInt(1));
-    Assertions.assertEquals(
-        String.format("address=(host=localhost)(port=%s)(type=primary)", proxy.getLocalPort()),
-        connection.__test_host());
+    Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     connection.commit();
     if (permitRedirection) {
       Assertions.assertEquals(
-          String.format("address=(host=%s)(port=%s)(type=primary)", hostname, port),
-          connection.__test_host());
+          port == 3306 ? hostname : hostname + ":" + port, connection.__test_host());
     }
     rs = stmt.executeQuery("SELECT 1");
     Assertions.assertTrue(rs.next());
