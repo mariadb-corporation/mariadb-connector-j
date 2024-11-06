@@ -44,7 +44,7 @@ public class DateCodec implements Codec<Date> {
   }
 
   public boolean canEncode(Object value) {
-    return value instanceof Date || java.util.Date.class.equals(value.getClass());
+    return value instanceof Date;
   }
 
   @Override

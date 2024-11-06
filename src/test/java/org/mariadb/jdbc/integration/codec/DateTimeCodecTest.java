@@ -1513,7 +1513,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setTimestamp(1, Timestamp.valueOf("2015-12-12 01:55:12.654"));
       prep.execute();
-      prep.setObject(1, Timestamp.valueOf("2016-12-12 01:55:12"));
+      prep.setObject(1, new java.util.Date(Timestamp.valueOf("2016-12-18 01:55:12.2").getTime()));
       prep.execute();
       prep.setObject(1, Timestamp.valueOf("2016-12-12 01:55:12.654"));
       prep.execute();
@@ -1624,9 +1624,12 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
     assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2016-12-12 01:55:12"), rs.getTimestamp(2));
+    assertEquals(Timestamp.valueOf("2016-12-18 01:55:12.2"), rs.getTimestamp(2));
     assertTrue(rs.next());
     assertEquals(Timestamp.valueOf("2016-12-12 01:55:12.654"), rs.getTimestamp(2));
+    assertEquals(
+        new java.util.Date(Timestamp.valueOf("2016-12-12 01:55:12.654").getTime()),
+        rs.getObject(2, java.util.Date.class));
     assertTrue(rs.next());
     assertEquals(Timestamp.from(Instant.ofEpochSecond(10, 654000)), rs.getTimestamp(2));
     assertTrue(rs.next());
