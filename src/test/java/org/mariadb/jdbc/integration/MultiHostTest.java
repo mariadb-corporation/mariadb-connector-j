@@ -47,12 +47,7 @@ public class MultiHostTest extends Common {
   @Test
   public void ensureReadOnlyOnReplica() throws Exception {
     // mariadb1.example.com, mariadb2.example.com and mariadb3.example.com DNS alias must be defined
-    Assumptions.assumeTrue(
-        !isWindows()
-            && !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
+    Assumptions.assumeFalse("maxscale".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -74,7 +69,7 @@ public class MultiHostTest extends Common {
             (Connection)
                 DriverManager.getConnection(
                     url + "&waitReconnectTimeout=30&deniedListTimeout=300")) {
-          assertTrue(con.__test_host().contains("primary"));
+          assertFalse(con.__test_host().contains("replica"));
           con.setReadOnly(true);
           assertTrue(con.__test_host().contains("replica"));
           if (con.__test_host().contains("mariadb2")) {
