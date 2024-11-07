@@ -508,6 +508,7 @@ public class LocalInfileTest extends Common {
     try (Connection connection = createCon("allowLocalInfile")) {
       Statement stmt = connection.createStatement();
       stmt.execute("truncate `infile`");
+      stmt.execute("START TRANSACTION");
       File file = createTmpData(recordNumber);
       int insertNumber =
           stmt.executeUpdate(
@@ -528,6 +529,7 @@ public class LocalInfileTest extends Common {
         }
         assertFalse(rs.next());
       }
+      connection.rollback();
     }
   }
 
