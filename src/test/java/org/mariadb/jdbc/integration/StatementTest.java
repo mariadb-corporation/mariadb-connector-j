@@ -13,6 +13,8 @@ import java.sql.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
@@ -1258,16 +1260,39 @@ public class StatementTest extends Common {
     assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier(""));
   }
 
+  @ParameterizedTest(name = "{0} - enquote identifier validation")
+  @CsvSource({
+    // Standard valid cases
+    "good_$one, false, good_$one",
+    "good_$one, true, `good_$one`",
+    "`good_$one`, true, `good_$one`",
+    "🌟s, true, `🌟s`",
+    "🌟s, false, `🌟s`",
+    "🌟`s, false, `🌟``s`",
+    "9999, true, `9999`",
+    "9999, false, `9999`",
+  })
+  public void validEnquoteIdentifier(String identifier, boolean alwaysQuote, String expected)
+      throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    assertEquals(expected, stmt.enquoteIdentifier(identifier, alwaysQuote));
+  }
+
+  @ParameterizedTest(name = "{0} - enquote identifier error")
+  @CsvSource({
+    // Standard valid cases
+    "s\u0000ff, false, Invalid name - containing u0000",
+    "s\u0000ff, true, Invalid name - containing u0000",
+  })
+  public void errorEnquoteIdentifier(String identifier, boolean alwaysQuote, String expectedError) {
+    Statement stmt = sharedConn.createStatement();
+    assertThrowsContains(
+        SQLException.class, () -> stmt.enquoteIdentifier(identifier, alwaysQuote), expectedError);
+  }
+
   @Test
   public void statementEnquoteIdentifier() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-
-    assertEquals("good_$one", stmt.enquoteIdentifier("good_$one", false));
-    assertEquals("`good_$one`", stmt.enquoteIdentifier("good_$one", true));
-    assertEquals("`good_$one`", stmt.enquoteIdentifier("`good_$one`", true));
-    assertEquals("`🌟s`", stmt.enquoteIdentifier("🌟s", false));
-    assertEquals("`🌟s`", stmt.enquoteIdentifier("`🌟s`", false));
-    assertEquals("`good_``è``one`", stmt.enquoteIdentifier("good_`è`one", false));
     try {
       stmt.enquoteIdentifier("\u0000ff", true);
       fail("must have thrown exception");

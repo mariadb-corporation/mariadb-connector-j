@@ -190,8 +190,22 @@ public final class Driver implements java.sql.Driver {
 
   public static String enquoteIdentifier(String identifier, boolean alwaysQuote)
       throws SQLException {
+    int len = identifier.length();
+
     if (isSimpleIdentifier(identifier)) {
-      return alwaysQuote ? "`" + identifier + "`" : identifier;
+      if (len < 1 || len > 64) {
+        throw new SQLException("Invalid identifier length");
+      }
+      if (alwaysQuote) return "`" + identifier + "`";
+
+      // Identifier names may begin with a numeral, but can't only contain numerals unless quoted.
+      for (int i = 0; i < identifier.length(); i++) {
+        if (!Character.isDigit(identifier.charAt(i))) {
+          return identifier;
+        }
+      }
+      // identifier containing only numerals must be quoted
+      return "`" + identifier + "`";
     } else {
       if (identifier.contains("\u0000")) {
         throw new SQLException("Invalid name - containing u0000 character", "42000");
@@ -199,6 +213,9 @@ public final class Driver implements java.sql.Driver {
 
       if (identifier.matches("^`.+`$")) {
         identifier = identifier.substring(1, identifier.length() - 1);
+      }
+      if (len < 1 || len > 64) {
+        throw new SQLException("Invalid identifier length");
       }
       return "`" + identifier.replace("`", "``") + "`";
     }
