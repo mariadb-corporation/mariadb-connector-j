@@ -245,11 +245,7 @@ public class HostAddress {
     }
 
     if (primary == null) {
-      if (haMode == HaMode.REPLICATION) {
-        primary = first;
-      } else {
-        primary = true;
-      }
+      primary = haMode != HaMode.REPLICATION || first;
     }
 
     return new HostAddress(

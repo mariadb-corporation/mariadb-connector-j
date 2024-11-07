@@ -1301,6 +1301,13 @@ public class Configuration {
     return null;
   }
 
+  public boolean havePrimaryHostOnly() {
+    for (HostAddress hostAddress : this.addresses) {
+      if (!hostAddress.primary) return false;
+    }
+    return true;
+  }
+
   /**
    * Connection default database
    *

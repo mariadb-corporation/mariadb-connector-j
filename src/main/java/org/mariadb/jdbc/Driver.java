@@ -19,6 +19,7 @@ import org.mariadb.jdbc.client.impl.MultiPrimaryReplicaClient;
 import org.mariadb.jdbc.client.impl.ReplayClient;
 import org.mariadb.jdbc.client.impl.StandardClient;
 import org.mariadb.jdbc.client.util.ClosableLock;
+import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.pool.Pools;
 import org.mariadb.jdbc.util.VersionFactory;
 
@@ -57,37 +58,31 @@ public final class Driver implements java.sql.Driver {
    */
   public static Connection connect(Configuration configuration) throws SQLException {
     ClosableLock lock = new ClosableLock();
-    Client client;
-    switch (configuration.haMode()) {
-      case LOADBALANCE:
-      case SEQUENTIAL:
-        client = new MultiPrimaryClient(configuration, lock);
-        break;
 
-      case REPLICATION:
-        // additional check
-        client = new MultiPrimaryReplicaClient(configuration, lock);
-        break;
+    if (configuration.haMode() == HaMode.NONE) {
+      ClientInstance<Configuration, HostAddress, ClosableLock, Boolean, Client> clientInstance =
+          (configuration.transactionReplay()) ? ReplayClient::new : StandardClient::new;
 
-      default:
-        ClientInstance<Configuration, HostAddress, ClosableLock, Boolean, Client> clientInstance =
-            (configuration.transactionReplay()) ? ReplayClient::new : StandardClient::new;
+      if (configuration.addresses().isEmpty())
+        throw new SQLException("host, pipe or local socket must be set to connect socket");
 
-        if (configuration.addresses().isEmpty())
-          throw new SQLException("host, pipe or local socket must be set to connect socket");
-
-        // loop until finding
-        SQLException lastException = null;
-        for (HostAddress host : configuration.addresses()) {
-          try {
-            client = clientInstance.apply(configuration, host, lock, false);
-            return new Connection(configuration, lock, client);
-          } catch (SQLException e) {
-            lastException = e;
-          }
+      // loop until finding
+      SQLException lastException = null;
+      for (HostAddress host : configuration.addresses()) {
+        try {
+          Client client = clientInstance.apply(configuration, host, lock, false);
+          return new Connection(configuration, lock, client);
+        } catch (SQLException e) {
+          lastException = e;
         }
-        throw lastException;
+      }
+      throw lastException;
     }
+
+    Client client =
+        configuration.havePrimaryHostOnly()
+            ? new MultiPrimaryClient(configuration, lock)
+            : new MultiPrimaryReplicaClient(configuration, lock);
     return new Connection(configuration, lock, client);
   }
 
