@@ -8,8 +8,6 @@ import static org.mariadb.jdbc.util.constants.Capabilities.LOCAL_FILES;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
@@ -27,22 +25,6 @@ import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
 
 /** Statement implementation */
 public class Statement implements java.sql.Statement {
-  private static final Pattern identifierPattern =
-      Pattern.compile("[0-9a-zA-Z$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE);
-  private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
-  private static final Map<String, String> mapper = new HashMap<>();
-
-  static {
-    mapper.put("\u0000", "\\0");
-    mapper.put("'", "\\\\'");
-    mapper.put("\"", "\\\\\"");
-    mapper.put("\b", "\\\\b");
-    mapper.put("\n", "\\\\n");
-    mapper.put("\r", "\\\\r");
-    mapper.put("\t", "\\\\t");
-    mapper.put("\u001A", "\\\\Z");
-    mapper.put("\\", "\\\\");
-  }
 
   /** result-set type */
   protected final int resultSetType;
@@ -1685,15 +1667,7 @@ public class Statement implements java.sql.Statement {
    */
   // @Override when not supporting java 8
   public String enquoteLiteral(String val) {
-    Matcher matcher = escapePattern.matcher(val);
-    StringBuffer escapedVal = new StringBuffer("'");
-
-    while (matcher.find()) {
-      matcher.appendReplacement(escapedVal, mapper.get(matcher.group()));
-    }
-    matcher.appendTail(escapedVal);
-    escapedVal.append("'");
-    return escapedVal.toString();
+    return Driver.enquoteLiteral(val);
   }
 
   /**
@@ -1707,34 +1681,7 @@ public class Statement implements java.sql.Statement {
    */
   // @Override when not supporting java 8
   public String enquoteIdentifier(String identifier, boolean alwaysQuote) throws SQLException {
-    if (isSimpleIdentifier(identifier)) {
-      return alwaysQuote ? "`" + identifier + "`" : identifier;
-    } else {
-      if (identifier.contains("\u0000")) {
-        throw exceptionFactory().create("Invalid name - containing u0000 character", "42000");
-      }
-
-      if (identifier.matches("^`.+`$")) {
-        identifier = identifier.substring(1, identifier.length() - 1);
-      }
-      return "`" + identifier.replace("`", "``") + "`";
-    }
-  }
-
-  /**
-   * Retrieves whether identifier is a simple SQL identifier. The first character is an alphabetic
-   * character from a through z, or from A through Z The string only contains alphanumeric
-   * characters or the characters "_" and "$"
-   *
-   * @param identifier identifier
-   * @return true if identifier doesn't have to be quoted
-   * @see <a href="https://mariadb.com/kb/en/library/identifier-names/">mariadb identifier name</a>
-   */
-  // @Override when not supporting java 8
-  public boolean isSimpleIdentifier(String identifier) {
-    return identifier != null
-        && !identifier.isEmpty()
-        && identifierPattern.matcher(identifier).matches();
+    return Driver.enquoteIdentifier(identifier, alwaysQuote);
   }
 
   public String getLastSql() {

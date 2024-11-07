@@ -1251,12 +1251,11 @@ public class StatementTest extends Common {
 
   @Test
   public void statementIdentifier() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
-    assertTrue(stmt.isSimpleIdentifier("good_$one"));
-    assertTrue(stmt.isSimpleIdentifier("anotherçone"));
-    assertFalse(stmt.isSimpleIdentifier("another'çone"));
-    assertFalse(stmt.isSimpleIdentifier(null));
-    assertFalse(stmt.isSimpleIdentifier(""));
+    assertTrue(org.mariadb.jdbc.Driver.isSimpleIdentifier("good_$one"));
+    assertTrue(org.mariadb.jdbc.Driver.isSimpleIdentifier("anotherçone"));
+    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier("another'çone"));
+    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier(null));
+    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier(""));
   }
 
   @Test
