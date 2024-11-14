@@ -206,7 +206,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
   }
 
   public String description() {
-    return command;
+    return "BULK: " +command;
   }
 
   public void setPrepareResult(PrepareResultPacket prepareResult) {
