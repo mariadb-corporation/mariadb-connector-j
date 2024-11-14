@@ -242,7 +242,7 @@ public class SslTest extends Common {
   @Test
   public void mandatoryEphemeralSslParsec() throws SQLException {
     Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
-    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 6, 1));
+    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 6, 1) && getJavaVersion() >= 15);
 
     Statement stmt = sharedConn.createStatement();
     try {

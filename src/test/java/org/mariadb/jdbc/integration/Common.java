@@ -289,6 +289,19 @@ public class Common {
     return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
+  public int getJavaVersion() {
+    String version = System.getProperty("java.version");
+    if (version.startsWith("1.")) {
+      version = version.substring(2, 3);
+    } else {
+      int dot = version.indexOf(".");
+      if (dot != -1) {
+        version = version.substring(0, dot);
+      }
+    }
+    return Integer.parseInt(version);
+  }
+
   public void cancelForVersion(int major, int minor) {
     String dbVersion = sharedConn.getMetaData().getDatabaseProductVersion();
     Assumptions.assumeFalse(dbVersion.startsWith(major + "." + minor));
