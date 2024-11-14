@@ -23,7 +23,7 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
   /** default instance */
   public static final FloatObjectArrayCodec INSTANCE = new FloatObjectArrayCodec();
 
-  private static Class floatArrayClass = Array.newInstance(Float.class, 0).getClass();
+  private static Class<?> floatArrayClass = Array.newInstance(Float.class, 0).getClass();
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.BLOB,
