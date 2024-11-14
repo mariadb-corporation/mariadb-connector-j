@@ -615,7 +615,7 @@ public class SslTest extends Common {
       if (caCertPath != null) {
         try (InputStream inStream2 = new File(caCertPath).toURI().toURL().openStream()) {
           CertificateFactory cf2 = CertificateFactory.getInstance("X.509");
-          Collection<? extends Certificate> caCertList = cf.generateCertificates(inStream);
+          Collection<? extends Certificate> caCertList = cf2.generateCertificates(inStream2);
           for (Iterator<? extends Certificate> iter = caCertList.iterator(); iter.hasNext(); ) {
             certs.add(iter.next());
           }

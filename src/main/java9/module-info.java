@@ -6,6 +6,7 @@ module org.mariadb.jdbc {
   requires transitive java.naming;
   requires transitive java.security.jgss;
   requires transitive jdk.net;
+
   requires static waffle.jna;
   requires static software.amazon.awssdk.services.rds;
   requires static software.amazon.awssdk.regions;
@@ -13,6 +14,7 @@ module org.mariadb.jdbc {
   requires static com.sun.jna;
   requires static com.sun.jna.platform;
   requires static org.slf4j;
+  requires static org.bouncycastle.pkix;
 
   exports org.mariadb.jdbc;
   exports org.mariadb.jdbc.client;

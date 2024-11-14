@@ -5,7 +5,6 @@ package org.mariadb.jdbc.plugin.tls.main;
 
 import java.io.*;
 import java.net.URI;
-import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;

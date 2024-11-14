@@ -337,8 +337,9 @@ public class StandardClient implements Client, AutoCloseable {
               throw context
                   .getExceptionFactory()
                   .create(
-                      "Self signed certificates. Either set sslMode=trust, use password with a MitM-Proof authentication plugin or"
-                          + " provide server certificate to client",
+                      "Self signed certificates. Either set sslMode=trust, use password with a"
+                          + " MitM-Proof authentication plugin or provide server certificate to"
+                          + " client",
                       "08000");
             }
           }
