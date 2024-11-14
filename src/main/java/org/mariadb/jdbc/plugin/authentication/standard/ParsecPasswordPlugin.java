@@ -5,46 +5,41 @@ package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.*;
 import java.sql.SQLException;
+import java.util.Arrays;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.Credential;
 
 /** Parsec password plugin */
 public class ParsecPasswordPlugin implements AuthenticationPlugin {
 
   private static byte[] pkcs8Ed25519header =
-      new byte[] {
-        0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04,
-        0x20
-      };
+          new byte[] {
+                  0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04,
+                  0x20
+          };
   private String authenticationData;
   private byte[] seed;
+  private byte[] salt;
+  private int iterations = 100;
 
-  @Override
-  public String type() {
-    return "parsec";
-  }
+  private byte[] hash;
 
   /**
    * Initialization.
    *
    * @param authenticationData authentication data (password/token)
    * @param seed server provided seed
-   * @param conf Connection string options
-   * @param hostAddress host information
    */
-  public void initialize(
-      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
+  public ParsecPasswordPlugin(String authenticationData, byte[] seed) {
     this.seed = seed;
     this.authenticationData = authenticationData;
   }
@@ -60,7 +55,7 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
    * @throws IOException if socket error
    */
   public ReadableByteBuf process(Writer out, Reader in, Context context)
-      throws SQLException, IOException {
+          throws SQLException, IOException {
 
     // request ext-salt
     out.writeEmptyPacket();
@@ -68,7 +63,6 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
     ReadableByteBuf buf = in.readReusablePacket();
 
     byte firstByte = 0;
-    int iterations = 100;
 
     if (buf.readableBytes() > 2) {
       firstByte = buf.readByte();
@@ -80,10 +74,10 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       throw new SQLException("Wrong parsec authentication format", "S1009");
     }
 
-    byte[] salt = new byte[buf.readableBytes()];
+    salt = new byte[buf.readableBytes()];
     buf.readBytes(salt);
     char[] password =
-        this.authenticationData == null ? new char[0] : this.authenticationData.toCharArray();
+            this.authenticationData == null ? new char[0] : this.authenticationData.toCharArray();
 
     KeyFactory ed25519KeyFactory;
     Signature ed25519Signature;
@@ -99,9 +93,9 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
         ed25519Signature = Signature.getInstance("Ed25519", "BC");
       } catch (NoSuchAlgorithmException | NoSuchProviderException ee) {
         throw new SQLException(
-            "Parsec authentication not available. Either use Java 15+ or add BouncyCastle"
-                + " dependency",
-            e);
+                "Parsec authentication not available. Either use Java 15+ or add BouncyCastle"
+                        + " dependency",
+                e);
       }
     }
 
@@ -113,8 +107,23 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
 
       // create a PKCS8 ED25519 private key with raw secret
       PKCS8EncodedKeySpec keySpec =
-          new PKCS8EncodedKeySpec(combineArray(pkcs8Ed25519header, derivedKey));
+              new PKCS8EncodedKeySpec(combineArray(pkcs8Ed25519header, derivedKey));
       PrivateKey privateKey = ed25519KeyFactory.generatePrivate(keySpec);
+
+      KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
+      keyPairGenerator.initialize(
+              new NamedParameterSpec("Ed25519"), new StaticSecureRandom(derivedKey));
+      byte[] spki =
+              keyPairGenerator
+                      .generateKeyPair()
+                      .getPublic()
+                      .getEncoded(); // public key in SPKI format; the last 32 bytes are the raw public key
+      byte[] rawPublicKey =
+              Arrays.copyOfRange(spki, spki.length - 32, spki.length); // 32 bytes raw public key
+
+      hash =
+              combineArray(
+                      combineArray(new byte[] {(byte) 'P', (byte) iterations}, salt), rawPublicKey);
 
       // generate client nonce
       byte[] clientScramble = new byte[32];
@@ -134,12 +143,39 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       return in.readReusablePacket();
 
     } catch (NoSuchAlgorithmException
-        | InvalidKeySpecException
-        | InvalidKeyException
-        | SignatureException e) {
+             | InvalidKeySpecException
+             | InvalidKeyException
+             | InvalidAlgorithmParameterException
+             | SignatureException e) {
       // not expected
       throw new SQLException("Error during parsec authentication", e);
     }
+  }
+
+  private class StaticSecureRandom extends SecureRandom {
+    private byte[] privateKey;
+
+    public StaticSecureRandom(byte[] privateKey) {
+      this.privateKey = privateKey;
+    }
+
+    public void nextBytes(byte[] bytes) {
+      System.arraycopy(privateKey, 0, bytes, 0, privateKey.length);
+    }
+  }
+
+  public boolean isMitMProof() {
+    return true;
+  }
+
+  /**
+   * Return Hash
+   *
+   * @param credential Credential
+   * @return hash
+   */
+  public byte[] hash(Credential credential) {
+    return hash;
   }
 
   private byte[] combineArray(byte[] arr1, byte[] arr2) {

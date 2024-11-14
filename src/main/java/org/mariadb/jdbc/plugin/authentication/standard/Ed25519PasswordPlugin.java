@@ -84,20 +84,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
     }
   }
 
-  @Override
-  public String type() {
-    return "client_ed25519";
-  }
-
-  /**
-   * Initialization.
-   *
-   * @param authenticationData authentication data (password/token)
-   * @param seed server provided seed
-   * @param conf Connection string options
-   * @param hostAddress host information
-   */
-  public void initialize(
+  public Ed25519PasswordPlugin(
       String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
     this.seed = seed;
     this.authenticationData = authenticationData;
@@ -146,7 +133,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       final byte[] sm = new byte[64 + mlen];
 
       byte[] az = hash.digest(bytePwd);
-      az[0] &= 248;
+      az[0] &= (byte) 248;
       az[31] &= 63;
       az[31] |= 64;
 

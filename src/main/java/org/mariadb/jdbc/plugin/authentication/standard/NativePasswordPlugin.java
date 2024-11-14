@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -19,9 +17,6 @@ import org.mariadb.jdbc.plugin.Credential;
 
 /** Native password implementation */
 public class NativePasswordPlugin implements AuthenticationPlugin {
-
-  /** plugin name */
-  public static final String TYPE = "mysql_native_password";
 
   private String authenticationData;
   private byte[] seed;
@@ -73,21 +68,13 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
     }
   }
 
-  @Override
-  public String type() {
-    return TYPE;
-  }
-
   /**
    * Initialized data.
    *
    * @param authenticationData authentication data (password/token)
    * @param seed server provided seed
-   * @param conf Connection string options
-   * @param hostAddress host information
    */
-  public void initialize(
-      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
+  public NativePasswordPlugin(String authenticationData, byte[] seed) {
     this.seed = seed;
     this.authenticationData = authenticationData;
   }

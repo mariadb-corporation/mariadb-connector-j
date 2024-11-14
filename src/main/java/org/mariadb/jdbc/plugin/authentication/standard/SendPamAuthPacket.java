@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -24,11 +23,6 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
   private Configuration conf;
   private int counter = 0;
 
-  @Override
-  public String type() {
-    return "dialog";
-  }
-
   /**
    * Initialization.
    *
@@ -37,8 +31,7 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    * @param conf Connection string options
    * @param hostAddress host information
    */
-  public void initialize(
-      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
+  public SendPamAuthPacket(String authenticationData, Configuration conf) {
     this.authenticationData = authenticationData;
     this.conf = conf;
   }

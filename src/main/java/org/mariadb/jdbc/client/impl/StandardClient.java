@@ -55,10 +55,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.*;
-import org.mariadb.jdbc.plugin.AuthenticationPlugin;
-import org.mariadb.jdbc.plugin.Credential;
-import org.mariadb.jdbc.plugin.CredentialPlugin;
-import org.mariadb.jdbc.plugin.TlsSocketPlugin;
+import org.mariadb.jdbc.plugin.*;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPlugin;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
@@ -220,8 +217,8 @@ public class StandardClient implements Client, AutoCloseable {
           .encode(writer, context);
       authPlugin =
           "mysql_clear_password".equals(authenticationPluginType)
-              ? new ClearPasswordPlugin()
-              : new NativePasswordPlugin();
+              ? new ClearPasswordPlugin(credential.getPassword())
+              : new NativePasswordPlugin(credential.getPassword(), handshake.getSeed());
       writer.flush();
 
       authenticationHandler(credential, hostAddress);
@@ -284,19 +281,21 @@ public class StandardClient implements Client, AutoCloseable {
           // https://mariadb.com/kb/en/library/connection/#authentication-switch-request
           // *************************************************************************************
           AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf);
-          authPlugin = AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
-          if (authPlugin.requireSsl() && !context.hasClientCapability(SSL)) {
+          AuthenticationPluginFactory authPluginFactory =
+              AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
+          if (authPluginFactory.requireSsl() && !context.hasClientCapability(SSL)) {
             throw context
                 .getExceptionFactory()
                 .create(
                     "Cannot use authentication plugin "
-                        + authPlugin.type()
+                        + authPluginFactory.type()
                         + " if SSL is not enabled.",
                     "08000");
           }
+          authPlugin =
+              authPluginFactory.initialize(
+                  credential.getPassword(), authSwitchPacket.getSeed(), conf, hostAddress);
 
-          authPlugin.initialize(
-              credential.getPassword(), authSwitchPacket.getSeed(), conf, hostAddress);
           buf = authPlugin.process(writer, reader, context);
           break;
 
@@ -338,7 +337,7 @@ public class StandardClient implements Client, AutoCloseable {
               throw context
                   .getExceptionFactory()
                   .create(
-                      "Self signed certificates. Either set sslMode=trust, set a password or"
+                      "Self signed certificates. Either set sslMode=trust, use password with a MitM-Proof authentication plugin or"
                           + " provide server certificate to client",
                       "08000");
             }

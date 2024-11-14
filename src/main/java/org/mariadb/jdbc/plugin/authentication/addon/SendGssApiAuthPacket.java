@@ -6,7 +6,6 @@ package org.mariadb.jdbc.plugin.authentication.addon;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
@@ -35,21 +34,13 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
   private byte[] seed;
   private String optionServicePrincipalName;
 
-  @Override
-  public String type() {
-    return "auth_gssapi_client";
-  }
-
   /**
    * Initialization.
    *
-   * @param authenticationData authentication data (password/token)
    * @param seed server provided seed
    * @param conf Connection string options
-   * @param hostAddress host information
    */
-  public void initialize(
-      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
+  public SendGssApiAuthPacket(byte[] seed, Configuration conf) {
     this.seed = seed;
     this.optionServicePrincipalName = conf.servicePrincipalName();
   }

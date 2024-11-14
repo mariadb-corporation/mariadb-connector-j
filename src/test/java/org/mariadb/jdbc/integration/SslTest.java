@@ -240,6 +240,42 @@ public class SslTest extends Common {
   }
 
   @Test
+  public void mandatoryEphemeralSslParsec() throws SQLException {
+    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 6, 1));
+
+    Statement stmt = sharedConn.createStatement();
+    try {
+      stmt.execute("INSTALL SONAME 'auth_parsec'");
+    } catch (SQLException sqle) {
+      Assumptions.assumeTrue(false, "server doesn't have auth_parsec plugin, cancelling test");
+    }
+    try {
+      stmt.execute("drop user if exists verificationParsecAuthPlugin@'%'");
+    } catch (SQLException e) {
+      // eat
+    }
+    stmt.execute(
+        "CREATE USER IF NOT EXISTS verificationParsecAuthPlugin@'%' IDENTIFIED "
+            + "VIA parsec USING PASSWORD('MySup8%rPassw@ord') REQUIRE SSL");
+    stmt.execute(
+        "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO verificationParsecAuthPlugin@'%' ");
+    try (Connection con =
+        createCon(
+            "user=verificationParsecAuthPlugin&password=MySup8%rPassw@ord&sslMode=verify-ca",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    try (Connection con =
+        createCon(
+            "user=verificationParsecAuthPlugin&password=MySup8%rPassw@ord&sslMode=trust",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    stmt.execute("drop user if exists verificationParsecAuthPlugin@'%'");
+  }
+
+  @Test
   void ensureUnixSocketSsl() throws SQLException {
     Assumptions.assumeTrue(
         System.getenv("local") != null
