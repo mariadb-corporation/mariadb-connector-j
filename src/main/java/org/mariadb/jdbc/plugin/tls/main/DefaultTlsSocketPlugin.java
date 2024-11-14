@@ -118,7 +118,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         if (conf.trustStore() != null) {
           InputStream inStream;
           try {
-            inStream = new URL(conf.trustStore()).openStream();
+            inStream = loadFromUrl(conf.trustStore());
           } catch (IOException ioexception) {
             try {
               inStream = new FileInputStream(conf.trustStore());

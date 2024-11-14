@@ -1,0 +1,7 @@
+org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPluginFactory
+org.mariadb.jdbc.plugin.authentication.addon.SendGssApiAuthPacketFactory
+org.mariadb.jdbc.plugin.authentication.standard.Ed25519PasswordPluginFactory
+org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPluginFactory
+org.mariadb.jdbc.plugin.authentication.standard.SendPamAuthPacketFactory
+org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPluginFactory
+org.mariadb.jdbc.plugin.authentication.standard.ParsecPasswordPluginFactory

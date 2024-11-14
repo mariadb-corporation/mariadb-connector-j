@@ -38,6 +38,14 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   private Configuration conf;
   private HostAddress hostAddress;
 
+  public CachingSha2PasswordPlugin(
+      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
+    this.authenticationData = authenticationData;
+    this.seed = seed;
+    this.conf = conf;
+    this.hostAddress = hostAddress;
+  }
+
   /**
    * Send an SHA-2 encrypted password. encryption XOR(SHA256(password), SHA256(seed,
    * SHA256(SHA256(password))))
@@ -148,11 +156,6 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       throw new SQLException(
           "Error encoding password with public key : " + ex.getMessage(), "S1009", ex);
     }
-  }
-
-  @Override
-  public String type() {
-    return TYPE;
   }
 
   /**

@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Driver;
-import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
 
 /** permit loading authentication plugins */
 public final class AuthenticationPluginLoader {
@@ -22,14 +22,15 @@ public final class AuthenticationPluginLoader {
    * @return Authentication plugin corresponding to type
    * @throws SQLException if no authentication plugin in classpath have indicated type
    */
-  public static AuthenticationPlugin get(String type, Configuration conf) throws SQLException {
+  public static AuthenticationPluginFactory get(String type, Configuration conf)
+      throws SQLException {
 
-    ServiceLoader<AuthenticationPlugin> loader =
-        ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
+    ServiceLoader<AuthenticationPluginFactory> loader =
+        ServiceLoader.load(AuthenticationPluginFactory.class, Driver.class.getClassLoader());
 
     String[] authList = (conf.restrictedAuth() != null) ? conf.restrictedAuth().split(",") : null;
 
-    for (AuthenticationPlugin implClass : loader) {
+    for (AuthenticationPluginFactory implClass : loader) {
       if (type.equals(implClass.type())) {
         if (authList == null || Arrays.stream(authList).anyMatch(type::contains)) {
           return implClass;

@@ -9,18 +9,18 @@ import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.integration.Common;
-import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
-import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
+import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPluginFactory;
 
 public class AuthenticationPluginLoaderTest extends Common {
 
   @Test
   public void authenticationPluginLoaderTest() throws SQLException {
     Configuration conf = Configuration.parse("jdbc:mariadb://localhost/");
-    AuthenticationPlugin authenticationPlugin =
+    AuthenticationPluginFactory authenticationPluginFactory =
         AuthenticationPluginLoader.get("mysql_native_password", conf);
-    assertTrue(authenticationPlugin instanceof NativePasswordPlugin);
+    assertTrue(authenticationPluginFactory instanceof NativePasswordPluginFactory);
     Common.assertThrowsContains(
         SQLException.class,
         () -> AuthenticationPluginLoader.get("UNKNOWN", conf),

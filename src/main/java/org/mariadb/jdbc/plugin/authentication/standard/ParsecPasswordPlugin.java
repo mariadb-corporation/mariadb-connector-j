@@ -30,21 +30,15 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
   private String authenticationData;
   private byte[] seed;
 
-  @Override
-  public String type() {
-    return "parsec";
-  }
+  private byte[] hash;
 
   /**
    * Initialization.
    *
    * @param authenticationData authentication data (password/token)
    * @param seed server provided seed
-   * @param conf Connection string options
-   * @param hostAddress host information
    */
-  public void initialize(
-      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
+  public ParsecPasswordPlugin(String authenticationData, byte[] seed) {
     this.seed = seed;
     this.authenticationData = authenticationData;
   }

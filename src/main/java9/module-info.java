@@ -35,18 +35,19 @@ module org.mariadb.jdbc {
   uses java.sql.Driver;
   uses org.mariadb.jdbc.plugin.CredentialPlugin;
   uses org.mariadb.jdbc.plugin.Codec;
-  uses org.mariadb.jdbc.plugin.AuthenticationPlugin;
+  uses org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
   uses org.mariadb.jdbc.plugin.TlsSocketPlugin;
 
   provides java.sql.Driver with
       org.mariadb.jdbc.Driver;
-  provides org.mariadb.jdbc.plugin.AuthenticationPlugin with
-      org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPlugin,
-      org.mariadb.jdbc.plugin.authentication.addon.SendGssApiAuthPacket,
-      org.mariadb.jdbc.plugin.authentication.standard.Ed25519PasswordPlugin,
-      org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin,
-      org.mariadb.jdbc.plugin.authentication.standard.SendPamAuthPacket,
-      org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin;
+  provides org.mariadb.jdbc.plugin.AuthenticationPluginFactory with
+      org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPluginFactory,
+      org.mariadb.jdbc.plugin.authentication.addon.SendGssApiAuthPacketFactory,
+      org.mariadb.jdbc.plugin.authentication.standard.Ed25519PasswordPluginFactory,
+      org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPluginFactory,
+      org.mariadb.jdbc.plugin.authentication.standard.SendPamAuthPacketFactory,
+      org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPluginFactory,
+      org.mariadb.jdbc.plugin.authentication.standard.ParsecPasswordPluginFactory;
   provides org.mariadb.jdbc.plugin.Codec with
       BigDecimalCodec,
       BigIntegerCodec,
@@ -59,7 +60,9 @@ module org.mariadb.jdbc {
       DateCodec,
       DoubleCodec,
       DurationCodec,
+      FloatArrayCodec,
       FloatCodec,
+      FloatObjectArrayCodec,
       GeometryCollectionCodec,
       IntCodec,
       LineStringCodec,
