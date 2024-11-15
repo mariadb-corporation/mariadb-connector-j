@@ -682,6 +682,22 @@
                                     <multiReleaseOutput>true</multiReleaseOutput>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>compile-java-15</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <configuration>
+                                    <release>15</release>
+                                    <source>15</source>
+                                    <target>15</target>
+                                    <compileSourceRoots>
+                                        <compileSourceRoot>${project.basedir}/src/main/java15</compileSourceRoot>
+                                    </compileSourceRoots>
+                                    <multiReleaseOutput>true</multiReleaseOutput>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
 
