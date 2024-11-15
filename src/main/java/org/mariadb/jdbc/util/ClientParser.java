@@ -193,8 +193,21 @@ public final class ClientParser implements PrepareResult {
       }
       lastChar = car;
     }
+
     // multi contains ";" not finishing statement.
     boolean isMulti = multiQueryIdx != -1 && multiQueryIdx < queryLength - 1;
+    if (isMulti) {
+      // ensure there is not only empty
+      boolean hasAdditionalPart = false;
+      for (int i = multiQueryIdx + 1; i < queryLength; i++) {
+        byte car = query[i];
+        if (car != (byte) ' ' && car != (byte) '\n' && car != (byte) '\r' && car != (byte) '\t') {
+          hasAdditionalPart = true;
+          break;
+        }
+      }
+      isMulti = hasAdditionalPart;
+    }
     return new ClientParser(
         queryString, query, paramPositions, isInsert, isInsertDupplicate, isMulti);
   }

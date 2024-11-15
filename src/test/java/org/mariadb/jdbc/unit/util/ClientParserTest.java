@@ -7,13 +7,19 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mariadb.jdbc.util.ClientParser;
 
 @SuppressWarnings("ConstantConditions")
 public class ClientParserTest {
 
   private void parse(
-      String sql, String[] expected, String[] expectedNoBackSlash, boolean isInsertDuplicate) {
+      String sql,
+      String[] expected,
+      String[] expectedNoBackSlash,
+      boolean isInsertDuplicate,
+      boolean isMulti) {
     ClientParser parser = ClientParser.parameterParts(sql, false);
     assertEquals(expected.length, parser.getParamCount() + 1, displayErr(parser, expected));
 
@@ -41,6 +47,7 @@ public class ClientParserTest {
         new String(parser.getQuery(), pos, paramPos - pos));
 
     assertEquals(isInsertDuplicate, parser.isInsertDuplicate());
+    assertEquals(isMulti, parser.isMultiQuery());
   }
 
   private String displayErr(ClientParser parser, String[] exp) {
@@ -70,32 +77,59 @@ public class ClientParserTest {
         "SELECT '\\\\test' /*test* #/ ;`*/",
         new String[] {"SELECT '\\\\test' /*test* #/ ;`*/"},
         new String[] {"SELECT '\\\\test' /*test* #/ ;`*/"},
+        false,
         false);
     parse(
         "DO '\\\"', \"\\'\"",
         new String[] {"DO '\\\"', \"\\'\""},
         new String[] {"DO '\\\"', \"\\'\""},
+        false,
         false);
     parse(
         "INSERT INTO TABLE(id,val) VALUES (1,2)",
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2)"},
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2)"},
+        false,
         false);
     parse(
         "INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE KEY UPDATE",
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE KEY UPDATE"},
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE KEY UPDATE"},
-        true);
+        true,
+        false);
     parse(
         "INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE",
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE"},
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ON DUPLICATE"},
+        false,
         false);
     parse(
         "INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE",
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE"},
         new String[] {"INSERT INTO TABLE(id,val) VALUES (1,2) ONDUPLICATE"},
+        false,
         false);
+  }
+
+  @ParameterizedTest()
+  @ValueSource(
+      strings = {
+        "DO 1; SELECT 1",
+        "DO 1;\nDO 2",
+      })
+  public void MultiQueryParser(String sql) {
+    assertTrue(ClientParser.parameterParts(sql, false).isMultiQuery());
+  }
+
+  @ParameterizedTest()
+  @ValueSource(
+      strings = {
+        "DO 1;   ",
+        "DO 1; \n ",
+        "DO 1;"
+      })
+  public void NonMultiQueryParser(String sql) {
+    assertFalse(ClientParser.parameterParts(sql, false).isMultiQuery());
   }
 
   @Test
