@@ -1,11 +1,28 @@
 # Change Log
 
+## [3.5.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.1) (Nov 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.0...3.5.1)
+
+#### Notable changes
+
+* CONJ-1193 Implement parsec authentication
+* CONJ-1207 New HaMode: sequential write, loadbalance read
+* CONJ-1208 permit bulk for INSERT ON DUPLICATE KEY UPDATE commands for 11.5.1+ servers
+
+#### Bugs Fixed
+
+* CONJ-1053 Mark waffle-jna dependency optional in module descriptor
+* CONJ-1196 setObject on java.util.Date was considered was a java.sql.Date and truncate hour/minutes/seconds/ms while it must be considered like a java.sql.Timestamp
+* CONJ-1211 jdbc 4.3 enquoteIdentifier missing validation
+* CONJ-1213 sql command ending with semicolon and trailing space are not using bulk
+
+
 ## [3.5.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.0) (Oct 2024)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.1...3.5.0)
 
 #### Notable changes
 
-* CONJ-1193 Parsec authentication implementation
+~~* CONJ-1193 Parsec authentication implementation~~ 
 * CONJ-1183 permit setting specific truststore
 
 #### Bugs Fixed
