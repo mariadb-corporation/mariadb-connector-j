@@ -250,8 +250,9 @@ public class OkPacket implements Completion {
   }
 
   /**
-   * Get ok packet info byte array.
-   * That is usually a string value, but for first Ok_Packet, containing fingerprint info.
+   * Get ok packet info byte array. That is usually a string value, but for first Ok_Packet,
+   * containing fingerprint info.
+   *
    * @return info
    */
   public byte[] getInfo() {

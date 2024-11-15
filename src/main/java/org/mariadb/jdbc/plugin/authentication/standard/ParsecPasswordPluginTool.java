@@ -14,6 +14,7 @@ public class ParsecPasswordPluginTool {
 
   /**
    * Bouncy Castle implementation to get raw public key from raw private key
+   *
    * @param rawPrivateKey raw ed25519 private key
    * @return raw public key
    * @throws SQLException exception

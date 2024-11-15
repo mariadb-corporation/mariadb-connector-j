@@ -3,9 +3,7 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.util.timeout;
 
-/**
- * Default no op query timeout.
- */
+/** Default no op query timeout. */
 public class NoOpQueryTimeoutHandler implements QueryTimeoutHandler {
   public static final NoOpQueryTimeoutHandler INSTANCE = new NoOpQueryTimeoutHandler();
 

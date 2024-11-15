@@ -3,9 +3,7 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.util.timeout;
 
-/**
- * Query Timeout handler for server that doesn't support query specific timeout
- */
+/** Query Timeout handler for server that doesn't support query specific timeout */
 public interface QueryTimeoutHandler extends AutoCloseable {
   QueryTimeoutHandler create(int queryTimeout);
 
