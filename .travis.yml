@@ -6,7 +6,7 @@ before_install:
   - |-
     case $TRAVIS_OS_NAME in
       windows)
-        choco install openjdk11 maven
+        choco install microsoft-openjdk17 maven
         export PATH=$(cmd.exe //c "refreshenv > nul & C:\Progra~1\Git\bin\bash -c 'echo \$PATH' ")
         ;;
     esac
