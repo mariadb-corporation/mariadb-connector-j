@@ -9,14 +9,20 @@ import java.security.spec.NamedParameterSpec;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-/** Parsec password plugin utility*/
+/** 
+ * Parsec password plugin utility
+ */
 public class ParsecPasswordPluginTool {
 
   public static byte[] process(byte[] rawPrivateKey)
           throws SQLException, IOException, InvalidAlgorithmParameterException, NoSuchAlgorithmException {
 
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
-    keyPairGenerator.initialize(NamedParameterSpec.ED25519, new StaticSecureRandom(rawPrivateKey));
+    keyPairGenerator.initialize(NamedParameterSpec.ED25519, new SecureRandom() {
+      public void nextBytes(byte[] bytes) {
+        System.arraycopy(rawPrivateKey, 0, bytes, 0, rawPrivateKey.length);
+      }
+    });
 
     // public key in SPKI format; the last 32 bytes are the raw public key
     byte[] spki =
@@ -27,17 +33,5 @@ public class ParsecPasswordPluginTool {
     byte[] rawPublicKey =
             Arrays.copyOfRange(spki, spki.length - 32, spki.length);
     return rawPublicKey;
-  }
-
-  private static class StaticSecureRandom extends SecureRandom {
-    private byte[] privateKey;
-
-    public StaticSecureRandom(byte[] privateKey) {
-      this.privateKey = privateKey;
-    }
-
-    public void nextBytes(byte[] bytes) {
-      System.arraycopy(privateKey, 0, bytes, 0, privateKey.length);
-    }
   }
 }

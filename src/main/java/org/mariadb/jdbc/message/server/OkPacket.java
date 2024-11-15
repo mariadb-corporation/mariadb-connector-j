@@ -141,6 +141,7 @@ public class OkPacket implements Completion {
    *
    * @param buf packet buffer
    * @param context connection context
+   * @return Ok_Packet object
    */
   public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) {
     buf.skip(); // ok header
@@ -248,6 +249,11 @@ public class OkPacket implements Completion {
     return lastInsertId;
   }
 
+  /**
+   * Get ok packet info byte array.
+   * That is usually a string value, but for first Ok_Packet, containing fingerprint info.
+   * @return info
+   */
   public byte[] getInfo() {
     return info;
   }

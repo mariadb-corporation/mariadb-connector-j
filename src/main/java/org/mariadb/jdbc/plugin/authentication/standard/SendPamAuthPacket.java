@@ -27,9 +27,7 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    * Initialization.
    *
    * @param authenticationData authentication data (password/token)
-   * @param seed server provided seed
    * @param conf Connection string options
-   * @param hostAddress host information
    */
   public SendPamAuthPacket(String authenticationData, Configuration conf) {
     this.authenticationData = authenticationData;

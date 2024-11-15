@@ -12,6 +12,15 @@ import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 /** Parsec password plugin utility */
 public class ParsecPasswordPluginTool {
 
+  /**
+   * Bouncy Castle implementation to get raw public key from raw private key
+   * @param rawPrivateKey raw ed25519 private key
+   * @return raw public key
+   * @throws SQLException exception
+   * @throws IOException exception
+   * @throws InvalidAlgorithmParameterException exception
+   * @throws NoSuchAlgorithmException exception
+   */
   public static byte[] process(byte[] rawPrivateKey)
       throws SQLException,
           IOException,
