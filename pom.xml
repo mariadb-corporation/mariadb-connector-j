@@ -281,18 +281,12 @@
             <version>2.0.3</version>
             <optional>true</optional>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.bouncycastle/bctls-jdk18on -->
+
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-jdk18on</artifactId>
             <version>1.78.1</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.bouncycastle</groupId>-->
-<!--            <artifactId>bcprov-jdk18on</artifactId>-->
-<!--            <version>1.79</version>-->
-<!--            <optional>true</optional>-->
-<!--        </dependency>-->
 
         <dependency>
             <groupId>org.osgi</groupId>
@@ -353,6 +347,114 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>java11</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.10.1</version>
+                        <configuration>
+                            <showWarnings>true</showWarnings>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options,-path,-processing</arg>
+                            </compilerArgs>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>compile-java-8</id>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>compile-java-9</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <configuration>
+                                    <release>9</release>
+                                    <source>9</source>
+                                    <target>9</target>
+                                    <compilerArgs>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                                    </compilerArgs>
+                                    <compileSourceRoots>
+                                        <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+                                    </compileSourceRoots>
+                                    <multiReleaseOutput>true</multiReleaseOutput>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>compile-java-11</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <configuration>
+                                    <release>11</release>
+                                    <source>11</source>
+                                    <target>11</target>
+                                    <compileSourceRoots>
+                                        <compileSourceRoot>${project.basedir}/src/main/java11</compileSourceRoot>
+                                    </compileSourceRoots>
+                                    <multiReleaseOutput>true</multiReleaseOutput>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>${jacoco.version}</version>
+                        <configuration>
+                            <excludes>
+                                <exclude>META-INF/**</exclude>
+                            </excludes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>jacoco-initialize</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <dependencies>
+
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>${logback.version}</version>
+                    <scope>test</scope>
+                </dependency>
+
+            </dependencies>
         </profile>
         <profile>
             <id>default</id>
