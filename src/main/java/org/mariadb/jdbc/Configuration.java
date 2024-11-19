@@ -1039,9 +1039,13 @@ public class Configuration {
     if (conf.nonMappedOptions.isEmpty()) {
       sbUnknownOpts.append("None");
     } else {
-      for (Map.Entry<Object, Object> entry : conf.nonMappedOptions.entrySet()) {
-        sbUnknownOpts.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue());
-      }
+      conf.nonMappedOptions.entrySet().stream()
+              .map(entry -> new AbstractMap.SimpleEntry<>(
+                      entry.getKey().toString(),
+                      entry.getValue() != null ? entry.getValue().toString() : ""
+              ))
+              .sorted(Map.Entry.comparingByKey())
+              .forEach(entry -> sbUnknownOpts.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue()));
     }
     sb.append("Configuration:")
         .append("\n * resulting Url : ")
