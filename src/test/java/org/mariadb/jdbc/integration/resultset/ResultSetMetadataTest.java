@@ -67,7 +67,7 @@ public class ResultSetMetadataTest extends Common {
     if (!isXpand()) {
       assertEquals(Types.CHAR, rsmd.getColumnType(4));
     }
-    assertEquals(Types.INTEGER, rsmd.getColumnType(5));
+    assertEquals(Types.SMALLINT, rsmd.getColumnType(5));
     assertFalse(rsmd.isReadOnly(1));
     assertFalse(rsmd.isReadOnly(2));
     assertTrue(rsmd.isWritable(1));

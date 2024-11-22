@@ -925,7 +925,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertEquals("java.lang.Integer", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
-    assertEquals(Types.INTEGER, meta.getColumnType(1));
+    assertEquals(Types.SMALLINT, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(5, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));

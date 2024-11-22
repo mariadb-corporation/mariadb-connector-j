@@ -941,7 +941,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     assertEquals("java.lang.Integer", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
-    assertEquals(Types.SMALLINT, meta.getColumnType(1));
+    assertEquals(Types.TINYINT, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(3, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
