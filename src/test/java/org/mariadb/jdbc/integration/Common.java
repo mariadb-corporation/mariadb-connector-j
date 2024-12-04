@@ -302,6 +302,29 @@ public class Common {
     return Integer.parseInt(version);
   }
 
+  public static int getMaxScaleVersion() throws SQLException {
+    int version = 0;
+    if ("maxscale".equals(System.getenv("srv"))) {
+      java.sql.Statement st = sharedConn.createStatement();
+      /**
+       * The test system must either create the maxscale_version() function
+       * that returns the MaxScale version as an integer or MaxScale must be
+       * configured  with a regexfilter that replaces the SQL with something
+       * that returns it as a constant.
+       *
+       * [InjectVersion]
+       * type=filter
+       * module=regexfilter
+       * match=SELECT maxscale_version()
+       * replace=SELECT 230800
+       */
+      ResultSet rs = st.executeQuery("SELECT maxscale_version()");
+      assertTrue(rs.next());
+      version = rs.getInt(1);
+    }
+    return version;
+  }
+
   public void cancelForVersion(int major, int minor) {
     String dbVersion = sharedConn.getMetaData().getDatabaseProductVersion();
     Assumptions.assumeFalse(dbVersion.startsWith(major + "." + minor));
