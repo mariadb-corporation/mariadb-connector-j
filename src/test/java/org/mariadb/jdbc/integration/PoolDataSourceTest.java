@@ -754,4 +754,26 @@ public class PoolDataSourceTest extends Common {
     new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool");
     Pools.close();
   }
+
+  @Test
+  public void ensureConnectionClose() throws Exception {
+    MariaDbPoolDataSource datasource = new MariaDbPoolDataSource(mDefUrl);
+
+    Connection c = datasource.getConnection();
+    assertFalse(c.isClosed());
+    c.close();
+    assertFalse(c.isClosed());
+
+    PooledConnection pc = datasource.getPooledConnection();
+    assertFalse(pc.getConnection().isClosed());
+    pc.getConnection().close();
+    assertFalse(pc.getConnection().isClosed());
+    pc.close();
+
+    XAConnection xac = datasource.getXAConnection();
+    assertFalse(xac.getConnection().isClosed());
+    xac.getConnection().close();
+    assertFalse(xac.getConnection().isClosed());
+    xac.close();
+  }
 }

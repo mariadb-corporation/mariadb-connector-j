@@ -211,4 +211,29 @@ public class DataSourceTest extends Common {
     ds.setLoginTimeout(60);
     assertEquals(60, ds.getLoginTimeout());
   }
+
+  @Test
+  public void ensureConnectionClose() throws Exception {
+    MariaDbDataSource datasource = new MariaDbDataSource(mDefUrl);
+
+    Connection c = datasource.getConnection();
+    assertFalse(c.isClosed());
+    c.close();
+    assertTrue(c.isClosed());
+
+    PooledConnection pc = datasource.getPooledConnection();
+    assertFalse(pc.getConnection().isClosed());
+    pc.getConnection().close();
+    assertFalse(pc.getConnection().isClosed());
+    pc.close();
+    assertTrue(pc.getConnection().isClosed());
+
+    XAConnection xac = datasource.getXAConnection();
+    assertFalse(xac.getConnection().isClosed());
+    xac.getConnection().close();
+    assertFalse(xac.getConnection().isClosed());
+    xac.close();
+    assertTrue(xac.getConnection().isClosed());
+  }
+
 }
