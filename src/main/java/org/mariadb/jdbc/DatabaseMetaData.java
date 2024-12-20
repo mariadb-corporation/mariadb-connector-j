@@ -1651,7 +1651,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getNumericFunctions() {
     return "DIV,ABS,ACOS,ASIN,ATAN,ATAN2,CEIL,CEILING,CONV,COS,COT,CRC32,DEGREES,EXP,FLOOR,GREATEST,LEAST,LN,LOG,"
-               + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
+        + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
   }
 
   /**
@@ -1662,11 +1662,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getStringFunctions() {
     return "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
-               + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,LOWER,LPAD,LTRIM,MAKE_SET,MATCH"
-               + " AGAINST,MID,NOT LIKE,NOT"
-               + " REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS"
-               + " LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
-               + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
+        + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,LOWER,LPAD,LTRIM,MAKE_SET,MATCH"
+        + " AGAINST,MID,NOT LIKE,NOT"
+        + " REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS"
+        + " LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
+        + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
   }
 
   /**
@@ -1687,11 +1687,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getTimeDateFunctions() {
     return "ADDDATE,ADDTIME,CONVERT_TZ,CURDATE,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURTIME,DATEDIFF,"
-               + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
-               + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
-               + "MINUTE,MONTH,MONTHNAME,NOW,PERIOD_ADD,PERIOD_DIFF,QUARTER,SECOND,SEC_TO_TIME,STR_TO_DATE,SUBDATE,"
-               + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
-               + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK";
+        + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
+        + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
+        + "MINUTE,MONTH,MONTHNAME,NOW,PERIOD_ADD,PERIOD_DIFF,QUARTER,SECOND,SEC_TO_TIME,STR_TO_DATE,SUBDATE,"
+        + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
+        + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK";
   }
 
   public String getSearchStringEscape() {
@@ -3017,13 +3017,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       DataType.INTEGER
     };
 
-    String[][] data = {
+    String[][] baseData = {
       {
         "BIT", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BIT", "0", "0", "0", "0", "10"
       },
       {
-        "BOOL", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BOOL", "0", "0", "0", "0",
-        "10"
+        "BOOLEAN", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BOOLEAN", "0", "0", "0",
+        "0", "10"
       },
       {
         "TINYINT",
@@ -3642,6 +3642,45 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       }
     };
+    String[][] data = baseData;
+    if (connection.getContext().getVersion().isMariaDBServer()
+        && connection.getContext().getVersion().versionGreaterOrEqual(10, 7, 0)) {
+      List datalist = new ArrayList<>(Arrays.asList(baseData));
+
+      datalist.add(
+          new String[] {
+            "UUID", "1111", "36", "'", "'", "", "1", "0", "3", "\1", "0", "0", "UUID", "0", "0",
+            "0", "0", "10"
+          });
+
+      if (connection.getContext().getVersion().isMariaDBServer()
+          && connection.getContext().getVersion().versionGreaterOrEqual(11, 7, 2)) {
+        datalist.add(
+            new String[] {
+              "VECTOR",
+              "-3",
+              "65532",
+              "_binary '",
+              "'",
+              "(M)",
+              "1",
+              "1",
+              "3",
+              "\0",
+              "0",
+              "0",
+              "VECTOR",
+              "0",
+              "0",
+              "0",
+              "0",
+              "10"
+            });
+      }
+      data = new String[datalist.size()][];
+      datalist.sort((Comparator<String[]>) (m1, m2) -> Integer.parseInt(m1[1]) - Integer.parseInt(m2[1]));
+      datalist.toArray(data);
+    }
 
     return CompleteResult.createResultSet(
         columnNames,
