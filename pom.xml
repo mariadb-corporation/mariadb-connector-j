@@ -630,6 +630,12 @@
                     <version>${logback.version}</version>
                     <scope>test</scope>
                 </dependency>
+                <dependency>
+                    <groupId>com.github.waffle</groupId>
+                    <artifactId>waffle-jna</artifactId>
+                    <version>${waffle-jna.version}</version>
+                    <scope>provided</scope>
+                </dependency>
             </dependencies>
             <build>
                 <plugins>
