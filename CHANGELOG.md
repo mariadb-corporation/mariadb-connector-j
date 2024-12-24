@@ -1,5 +1,15 @@
 # Change Log
 
+## [3.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.2) (Dec 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.1...3.5.2)
+
+#### Bugs Fixed
+
+* CONJ-1216 Performance degradation on latest version
+* CONJ-1218 Closing Connection closes associated XAConnection
+* CONJ-1217 trustCertificateKeyStorePassword alias doesn't work
+* CONJ-1221	DatabaseMetadata.getTypeInfo() missing UUID and VECTOR datatypes
+
 ## [3.5.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.1) (Nov 2024)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.0...3.5.1)
 
@@ -22,7 +32,7 @@
 
 #### Notable changes
 
-~~* CONJ-1193 Parsec authentication implementation~~ 
+~~* CONJ-1193 Parsec authentication implementation~~
 * CONJ-1183 permit setting specific truststore
 
 #### Bugs Fixed

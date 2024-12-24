@@ -122,12 +122,7 @@ public class ClientParserTest {
   }
 
   @ParameterizedTest()
-  @ValueSource(
-      strings = {
-        "DO 1;   ",
-        "DO 1; \n ",
-        "DO 1;"
-      })
+  @ValueSource(strings = {"DO 1;   ", "DO 1; \n ", "DO 1;"})
   public void NonMultiQueryParser(String sql) {
     assertFalse(ClientParser.parameterParts(sql, false).isMultiQuery());
   }

@@ -645,15 +645,6 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
-    try (Connection con =
-        createCon(
-            baseOptions
-                + "&sslMode=VERIFY_CA&trustStore="
-                + temptrustStoreFile
-                + "&trustStoreType=jks&trustStorePassword=myPwd0",
-            sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
     // with alias
     try (Connection con =
         createCon(
@@ -672,6 +663,16 @@ public class SslTest extends Common {
                     + "&sslMode=VERIFY_CA&trustStore="
                     + temptrustStoreFile
                     + "&trustStoreType=jks&trustStorePassword=wrongPwd",
+                sslPort),
+        "Failed load keyStore");
+    assertThrowsContains(
+        SQLException.class,
+        () ->
+            createCon(
+                baseOptions
+                    + "&sslMode=VERIFY_CA&trustCertificateKeystoreUrl="
+                    + temptrustStoreFile
+                    + "&trustCertificateKeyStoretype=jks&trustCertificateKeystorePassword=wrongPwd",
                 sslPort),
         "Failed load keyStore");
     try (Connection con =

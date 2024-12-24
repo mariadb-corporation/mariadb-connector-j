@@ -3017,13 +3017,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       DataType.INTEGER
     };
 
-    String[][] data = {
+    String[][] baseData = {
       {
         "BIT", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BIT", "0", "0", "0", "0", "10"
       },
       {
-        "BOOL", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BOOL", "0", "0", "0", "0",
-        "10"
+        "BOOLEAN", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BOOLEAN", "0", "0", "0",
+        "0", "10"
       },
       {
         "TINYINT",
@@ -3642,6 +3642,46 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       }
     };
+    String[][] data = baseData;
+    if (connection.getContext().getVersion().isMariaDBServer()
+        && connection.getContext().getVersion().versionGreaterOrEqual(10, 7, 0)) {
+      List datalist = new ArrayList<>(Arrays.asList(baseData));
+
+      datalist.add(
+          new String[] {
+            "UUID", "1111", "36", "'", "'", "", "1", "0", "3", "\1", "0", "0", "UUID", "0", "0",
+            "0", "0", "10"
+          });
+
+      if (connection.getContext().getVersion().isMariaDBServer()
+          && connection.getContext().getVersion().versionGreaterOrEqual(11, 7, 2)) {
+        datalist.add(
+            new String[] {
+              "VECTOR",
+              "-3",
+              "65532",
+              "_binary '",
+              "'",
+              "(M)",
+              "1",
+              "1",
+              "3",
+              "\0",
+              "0",
+              "0",
+              "VECTOR",
+              "0",
+              "0",
+              "0",
+              "0",
+              "10"
+            });
+      }
+      data = new String[datalist.size()][];
+      datalist.sort(
+          (Comparator<String[]>) (m1, m2) -> Integer.parseInt(m1[1]) - Integer.parseInt(m2[1]));
+      datalist.toArray(data);
+    }
 
     return CompleteResult.createResultSet(
         columnNames,

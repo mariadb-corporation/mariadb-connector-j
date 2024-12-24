@@ -75,7 +75,10 @@ public class DatabaseMetadataTest extends Common {
             + " `varbinary_col` varbinary(10) DEFAULT NULL,  `tinyblob_col` tinyblob,  `blob_col`"
             + " blob,  `mediumblob_col` mediumblob,  `longblob_col` longblob,  `tinytext_col`"
             + " tinytext,  `text_col` text,  `mediumtext_col` mediumtext,  `longtext_col`"
-            + " longtext)");
+            + " longtext"
+            + (isMariaDBServer() && minVersion(10, 7, 0) ? ", `uuid_col` UUID" : "")
+            + (isMariaDBServer() && minVersion(11, 7, 2) ? ", `vector_col` VECTOR" : "")
+            + ")");
     stmt.execute("CREATE TABLE IF NOT EXISTS ytab(y year)");
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS maxcharlength(maxcharlength char(1)) character set utf8");
@@ -129,10 +132,14 @@ public class DatabaseMetadataTest extends Common {
     ResultSet typeInfo = sharedConn.getMetaData().getTypeInfo();
     ResultSetMetaData rsmd = typeInfo.getMetaData();
     assertEquals(Types.BOOLEAN, rsmd.getColumnType(typeInfo.findColumn("UNSIGNED_ATTRIBUTE")));
+    int lastDataType = Integer.MIN_VALUE;
     while (typeInfo.next()) {
       Assertions.assertEquals(
-          typeInfo.getString("TYPE_NAME").contains("UNSIGNED"),
+          typeInfo.getString("TYPE_NAME").contains("UNSIGNED")
+              || typeInfo.getString("TYPE_NAME").equals("UUID"),
           typeInfo.getBoolean("UNSIGNED_ATTRIBUTE"));
+      assertTrue(lastDataType <= typeInfo.getInt("DATA_TYPE"));
+      lastDataType = typeInfo.getInt("DATA_TYPE");
     }
   }
 
@@ -2092,6 +2099,14 @@ public class DatabaseMetadataTest extends Common {
       checkType(columnName, type, "text_col", Types.LONGVARCHAR);
       checkType(columnName, type, "mediumtext_col", Types.LONGVARCHAR);
       checkType(columnName, type, "longtext_col", Types.LONGVARCHAR);
+      if (isMariaDBServer()) {
+        if (minVersion(10, 7, 0)) {
+          checkType(columnName, type, "uuid_col", Types.OTHER);
+          if (minVersion(11, 7, 2)) {
+            checkType(columnName, type, "vector_col", Types.LONGVARBINARY);
+          }
+        }
+      }
     }
   }
 
