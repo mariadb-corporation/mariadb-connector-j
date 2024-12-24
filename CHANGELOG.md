@@ -22,7 +22,7 @@
 
 #### Notable changes
 
-~~* CONJ-1193 Parsec authentication implementation~~ 
+~~* CONJ-1193 Parsec authentication implementation~~
 * CONJ-1183 permit setting specific truststore
 
 #### Bugs Fixed

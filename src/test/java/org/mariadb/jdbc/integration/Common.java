@@ -307,16 +307,15 @@ public class Common {
     if ("maxscale".equals(System.getenv("srv"))) {
       java.sql.Statement st = sharedConn.createStatement();
       /**
-       * The test system must either create the maxscale_version() function
-       * that returns the MaxScale version as an integer or MaxScale must be
-       * configured  with a regexfilter that replaces the SQL with something
-       * that returns it as a constant.
+       * The test system must either create the maxscale_version() function that returns the
+       * MaxScale version as an integer or MaxScale must be configured with a regexfilter that
+       * replaces the SQL with something that returns it as a constant.
        *
-       * [InjectVersion]
+       * <pre>[InjectVersion]
        * type=filter
        * module=regexfilter
        * match=SELECT maxscale_version()
-       * replace=SELECT 230800
+       * replace=SELECT 230800</pre>
        */
       ResultSet rs = st.executeQuery("SELECT maxscale_version()");
       assertTrue(rs.next());

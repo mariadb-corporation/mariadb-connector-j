@@ -235,5 +235,4 @@ public class DataSourceTest extends Common {
     xac.close();
     assertTrue(xac.getConnection().isClosed());
   }
-
 }

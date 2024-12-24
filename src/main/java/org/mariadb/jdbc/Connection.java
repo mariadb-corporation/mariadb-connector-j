@@ -246,7 +246,8 @@ public class Connection implements java.sql.Connection {
   public void close() throws SQLException {
     if (poolConnection != null) {
       // pool connection must only be closed when pooledConnection.close method is called.
-      // see https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/javax/sql/PooledConnection.html
+      // see
+      // https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/javax/sql/PooledConnection.html
 
       if (poolConnection instanceof MariaDbInnerPoolConnection) {
         // specific case, when using mariadb pool

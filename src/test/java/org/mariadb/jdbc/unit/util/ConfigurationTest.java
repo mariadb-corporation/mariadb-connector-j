@@ -11,7 +11,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.*;
@@ -92,7 +91,8 @@ public class ConfigurationTest {
             + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
     assertEquals(
         normalizeConnectionString(Configuration.parse(allOptionSet).toString()),
-        normalizeConnectionString(Configuration.parse(allOptionSet).toBuilder().build().toString()));
+        normalizeConnectionString(
+            Configuration.parse(allOptionSet).toBuilder().build().toString()));
   }
 
   @Test
@@ -956,8 +956,9 @@ public class ConfigurationTest {
             .trustStoreType("jks")
             .build();
     String expected =
-        normalizeConnectionString("jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&connectionCollation=utf8mb4_vietnamese_ci&connectionTimeZone=SERVER&forceConnectionTimeZoneToSession=false&preserveInstants=true&autocommit=false&nullDatabaseMeansCurrent=true&useCatalogTerm=SCHEMA&createDatabaseIfNotExist=true&useLocalSessionState=true&returnMultiValuesGeneratedIds=true&permitRedirect=false&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
-            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&trustStore=/tmp/file&keyStorePassword=***&trustStorePassword=***&keyStoreType=JKS&trustStoreType=jks&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&fallbackToSystemKeyStore=false&fallbackToSystemTrustStore=false&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&useBulkStmts=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true");
+        normalizeConnectionString(
+            "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&connectionCollation=utf8mb4_vietnamese_ci&connectionTimeZone=SERVER&forceConnectionTimeZoneToSession=false&preserveInstants=true&autocommit=false&nullDatabaseMeansCurrent=true&useCatalogTerm=SCHEMA&createDatabaseIfNotExist=true&useLocalSessionState=true&returnMultiValuesGeneratedIds=true&permitRedirect=false&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
+                + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&trustStore=/tmp/file&keyStorePassword=***&trustStorePassword=***&keyStoreType=JKS&trustStoreType=jks&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&fallbackToSystemKeyStore=false&fallbackToSystemTrustStore=false&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&useBulkStmts=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true");
     assertEquals(expected, normalizeConnectionString(conf.toString()));
     assertEquals(expected, normalizeConnectionString(conf.toBuilder().build().toString()));
   }
@@ -1030,12 +1031,16 @@ public class ConfigurationTest {
                     + "\n"
                     + "default options :"));
     assertTrue(
-        normalizeConfigurationString(Configuration.toConf(
-                "jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?nonExisting&nonExistingWithValue=tt&user=me&password=***&autocommit=false&createDatabaseIfNotExist=true&"))
+        normalizeConfigurationString(
+                Configuration.toConf(
+                    "jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?nonExisting&nonExistingWithValue=tt&user=me&password=***&autocommit=false&createDatabaseIfNotExist=true&"))
             .startsWith(
                 "Configuration:\n"
                     + " * resulting Url :"
-                    + " " + normalizeConnectionString("jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&autocommit=false&createDatabaseIfNotExist=true") + "\n"
+                    + " "
+                    + normalizeConnectionString(
+                        "jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&autocommit=false&createDatabaseIfNotExist=true")
+                    + "\n"
                     + "Unknown options : \n"
                     + " * nonExisting : \n"
                     + " * nonExistingWithValue : tt\n"
@@ -1055,12 +1060,16 @@ public class ConfigurationTest {
                     + " * allowPublicKeyRetrieval : false"));
 
     assertTrue(
-        normalizeConfigurationString(Configuration.toConf(
-                "jdbc:mariadb://localhost/test?user=root&sslMode=verify-ca&serverSslCert=/tmp/t.pem&trustStoreType=JKS&keyStore=/tmp/keystore&keyStorePassword=kspass"))
+        normalizeConfigurationString(
+                Configuration.toConf(
+                    "jdbc:mariadb://localhost/test?user=root&sslMode=verify-ca&serverSslCert=/tmp/t.pem&trustStoreType=JKS&keyStore=/tmp/keystore&keyStorePassword=kspass"))
             .startsWith(
                 "Configuration:\n"
                     + " * resulting Url :"
-                    + " " + normalizeConnectionString("jdbc:mariadb://localhost/test?user=root&sslMode=VERIFY_CA&serverSslCert=/tmp/t.pem&keyStore=/tmp/keystore&keyStorePassword=***&trustStoreType=JKS") + "\n"
+                    + " "
+                    + normalizeConnectionString(
+                        "jdbc:mariadb://localhost/test?user=root&sslMode=VERIFY_CA&serverSslCert=/tmp/t.pem&keyStore=/tmp/keystore&keyStorePassword=***&trustStoreType=JKS")
+                    + "\n"
                     + "Unknown options : None\n"
                     + "\n"
                     + "Non default options : \n"
@@ -1097,7 +1106,8 @@ public class ConfigurationTest {
       return connectionString;
     }
     List<String> paramList = Arrays.asList(parts[1].split("&"));
-    String sortedParams = paramList.stream()
+    String sortedParams =
+        paramList.stream()
             .map(param -> param.contains("=") ? param : param + "=")
             .sorted()
             .collect(Collectors.joining("&"));

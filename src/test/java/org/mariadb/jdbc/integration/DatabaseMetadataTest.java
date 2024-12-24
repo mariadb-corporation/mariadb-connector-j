@@ -135,7 +135,8 @@ public class DatabaseMetadataTest extends Common {
     int lastDataType = Integer.MIN_VALUE;
     while (typeInfo.next()) {
       Assertions.assertEquals(
-          typeInfo.getString("TYPE_NAME").contains("UNSIGNED") || typeInfo.getString("TYPE_NAME").equals("UUID"),
+          typeInfo.getString("TYPE_NAME").contains("UNSIGNED")
+              || typeInfo.getString("TYPE_NAME").equals("UUID"),
           typeInfo.getBoolean("UNSIGNED_ATTRIBUTE"));
       assertTrue(lastDataType <= typeInfo.getInt("DATA_TYPE"));
       lastDataType = typeInfo.getInt("DATA_TYPE");

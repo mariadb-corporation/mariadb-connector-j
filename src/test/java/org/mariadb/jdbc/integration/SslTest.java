@@ -666,15 +666,15 @@ public class SslTest extends Common {
                 sslPort),
         "Failed load keyStore");
     assertThrowsContains(
-            SQLException.class,
-            () ->
-                    createCon(
-                            baseOptions
-                                    + "&sslMode=VERIFY_CA&trustCertificateKeystoreUrl="
-                                    + temptrustStoreFile
-                                    + "&trustCertificateKeyStoretype=jks&trustCertificateKeystorePassword=wrongPwd",
-                            sslPort),
-            "Failed load keyStore");
+        SQLException.class,
+        () ->
+            createCon(
+                baseOptions
+                    + "&sslMode=VERIFY_CA&trustCertificateKeystoreUrl="
+                    + temptrustStoreFile
+                    + "&trustCertificateKeyStoretype=jks&trustCertificateKeystorePassword=wrongPwd",
+                sslPort),
+        "Failed load keyStore");
     try (Connection con =
         createCon(
             baseOptions

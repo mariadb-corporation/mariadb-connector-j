@@ -60,33 +60,16 @@ Additional tests , like javadoc formatting, code style validation will be done :
 
 If operation succeed, a new mariadb-java-client jar will be on the target folder.
 
+# Ensure code style
+
+```script
+		mvn spotless:apply
+```
+
 # Run travis test
 
 You can activate travis to validate your repository.
-The advantage of travis compare to running test locally is that it will launch tests for a combination of those
-parameters :
-
-jdk:
-
-* oraclejdk8
-	and if your work is on develop-jre6 branch
-* openjdk6
-* openjdk7
-
-server :
-
-* MariaDB 5.5
-* MariaDB 10.0
-* MariaDB 10.1
-* MariaDB 10.2
-* MySQL 5.6
-* MySQL 5.7
-
-max_allowed_packet : (this permit to check multipacket send)
-
-* 8M
-* 20M
-* 40M
+The advantage of travis compare to running test locally is that it will launch tests for a combination of servers
 
 For that, you have to go on [travis website](https://travis-ci.org), connect with your github account, and activate your
 mariadb-connector-j repository.

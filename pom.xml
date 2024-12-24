@@ -185,17 +185,12 @@
                 <artifactId>spotless-maven-plugin</artifactId>
                 <version>${spotless.version}</version>
                 <configuration>
-                    <!-- optional: limit format enforcement to just the files changed by this feature branch -->
-                    <!--                    <ratchetFrom>origin/src</ratchetFrom>-->
                     <formats>
-                        <!-- you can define as many formats as you want, each is independent -->
                         <format>
-                            <!-- define the files to apply to -->
                             <includes>
                                 <include>*.md</include>
                                 <include>.gitignore</include>
                             </includes>
-                            <!-- define the steps to apply to those files -->
                             <trimTrailingWhitespace/>
                             <endWithNewline/>
                             <indent>
