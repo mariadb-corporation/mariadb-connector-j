@@ -52,6 +52,37 @@ import org.mariadb.jdbc.util.options.OptionAliases;
 public class Configuration {
   private static final Logger logger = Loggers.getLogger(Configuration.class);
 
+  private static final Set<String> EXCLUDED_FIELDS;
+  private static final Set<String> SECURE_FIELDS;
+  private static final Set<String> PROPERTIES_TO_SKIP;
+  private static final Set<String> SENSITIVE_FIELDS;
+
+
+  static {
+    EXCLUDED_FIELDS = new HashSet<>();
+    EXCLUDED_FIELDS.add("database");
+    EXCLUDED_FIELDS.add("haMode");
+    EXCLUDED_FIELDS.add("$jacocoData");
+    EXCLUDED_FIELDS.add("addresses");
+
+    SECURE_FIELDS = new HashSet<>();
+    SECURE_FIELDS.add("password");
+    SECURE_FIELDS.add("keyStorePassword");
+    SECURE_FIELDS.add("trustStorePassword");
+
+    PROPERTIES_TO_SKIP = new HashSet<>();
+    PROPERTIES_TO_SKIP.add("initialUrl");
+    PROPERTIES_TO_SKIP.add("logger");
+    PROPERTIES_TO_SKIP.add("codecs");
+    PROPERTIES_TO_SKIP.add("$jacocoData");
+
+    SENSITIVE_FIELDS = new HashSet<>();
+    SENSITIVE_FIELDS.add("password");
+    SENSITIVE_FIELDS.add("keyStorePassword");
+    SENSITIVE_FIELDS.add("trustStorePassword");
+
+  }
+
   // standard options
   private String user = null;
   private String password = null;
@@ -1031,260 +1062,343 @@ public class Configuration {
    */
   public static String toConf(String url) throws SQLException {
     Configuration conf = Configuration.parseInternal(url, new Properties());
-    StringBuilder sb = new StringBuilder();
-    StringBuilder sbUnknownOpts = new StringBuilder();
-
-    if (conf.nonMappedOptions.isEmpty()) {
-      sbUnknownOpts.append("None");
-    } else {
-      conf.nonMappedOptions.entrySet().stream()
-          .map(
-              entry ->
-                  new AbstractMap.SimpleEntry<>(
-                      entry.getKey().toString(),
-                      entry.getValue() != null ? entry.getValue().toString() : ""))
-          .sorted(Map.Entry.comparingByKey())
-          .forEach(
-              entry ->
-                  sbUnknownOpts
-                      .append("\n * ")
-                      .append(entry.getKey())
-                      .append(" : ")
-                      .append(entry.getValue()));
-    }
-    sb.append("Configuration:")
-        .append("\n * resulting Url : ")
-        .append(conf.initialUrl)
-        .append("\nUnknown options : ")
-        .append(sbUnknownOpts)
-        .append("\n")
-        .append("\nNon default options : ");
-
     Configuration defaultConf = Configuration.parse("jdbc:mariadb://localhost/");
-    StringBuilder sbDefaultOpts = new StringBuilder();
-    StringBuilder sbDifferentOpts = new StringBuilder();
-    try {
-      List<String> propertyToSkip = Arrays.asList("initialUrl", "logger", "codecs", "$jacocoData");
-      Field[] fields = Configuration.class.getDeclaredFields();
-      Arrays.sort(fields, Comparator.comparing(Field::getName));
 
-      for (Field field : fields) {
-        if (!propertyToSkip.contains(field.getName())) {
-          Object fieldValue = field.get(conf);
-          if (fieldValue == null) {
-            (field.get(defaultConf) == null ? sbDefaultOpts : sbDifferentOpts)
-                .append("\n * ")
-                .append(field.getName())
-                .append(" : null");
-          } else {
-            if (field.getName().equals("haMode")) {
-              (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
-                  .append("\n * ")
-                  .append(field.getName())
-                  .append(" : ")
-                  .append(fieldValue);
-              continue;
-            }
-            switch (fieldValue.getClass().getSimpleName()) {
-              case "String":
-              case "Boolean":
-              case "HaMode":
-              case "TransactionIsolation":
-              case "Integer":
-              case "SslMode":
-              case "CatalogTerm":
-                StringBuilder sbb =
-                    (Objects.equals(fieldValue, field.get(defaultConf))
-                        ? sbDefaultOpts
-                        : sbDifferentOpts);
+    StringBuilder result = new StringBuilder();
+    appendBasicConfiguration(result, conf);
+    appendUnknownOptions(result, conf);
+    appendNonDefaultOptions(result, conf, defaultConf);
+    appendDefaultOptions(result, conf, defaultConf);
 
-                sbb.append("\n * ").append(field.getName()).append(" : ");
-                if ("password".equals(field.getName())
-                    || "keyStorePassword".equals(field.getName())
-                    || "trustStorePassword".equals(field.getName())) {
-                  sbb.append("***");
-                } else sbb.append(fieldValue);
+    return result.toString();
+  }
 
-                break;
-              case "ArrayList":
-                (Objects.equals(fieldValue.toString(), field.get(defaultConf).toString())
-                        ? sbDefaultOpts
-                        : sbDifferentOpts)
-                    .append("\n * ")
-                    .append(field.getName())
+  private static void appendBasicConfiguration(StringBuilder sb, Configuration conf) {
+    sb.append("Configuration:")
+            .append("\n * resulting Url : ")
+            .append(conf.initialUrl);
+  }
+
+  private static void appendUnknownOptions(StringBuilder sb, Configuration conf) {
+    sb.append("\nUnknown options : ");
+    if (conf.nonMappedOptions.isEmpty()) {
+      sb.append("None\n");
+      return;
+    }
+
+    conf.nonMappedOptions.entrySet().stream()
+            .map(entry -> new AbstractMap.SimpleEntry<>(
+                    entry.getKey().toString(),
+                    entry.getValue() != null ? entry.getValue().toString() : ""))
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> sb.append("\n * ")
+                    .append(entry.getKey())
                     .append(" : ")
-                    .append(fieldValue);
-                break;
-              case "Properties":
-                break;
-              default:
-                throw new IllegalArgumentException(
-                    "field type not expected for fields " + field.getName());
-            }
-          }
-        }
-      }
+                    .append(entry.getValue()));
+    sb.append("\n");
+  }
 
-      String diff = sbDifferentOpts.toString();
-      if (diff.isEmpty()) {
+  private static void appendNonDefaultOptions(StringBuilder sb, Configuration conf, Configuration defaultConf) {
+    try {
+      StringBuilder diffOpts = new StringBuilder();
+      processFields(conf, defaultConf, new StringBuilder(), diffOpts);
+
+      sb.append("\nNon default options : ");
+      if (diffOpts.length() == 0) {
         sb.append("None\n");
       } else {
-        sb.append(diff);
+        sb.append(diffOpts);
       }
+    } catch (IllegalAccessException e) {
+      throw new IllegalArgumentException("Error processing non-default options", e);
+    }
+  }
+
+  private static void appendDefaultOptions(StringBuilder sb, Configuration conf, Configuration defaultConf) {
+    try {
+      StringBuilder defaultOpts = new StringBuilder();
+      processFields(conf, defaultConf, defaultOpts, new StringBuilder());
 
       sb.append("\n\ndefault options :");
-      String same = sbDefaultOpts.toString();
-      if (same.isEmpty()) {
+      if (defaultOpts.length() == 0) {
         sb.append("None\n");
       } else {
-        sb.append(same);
+        sb.append(defaultOpts);
+      }
+    } catch (IllegalAccessException e) {
+      throw new IllegalArgumentException("Error processing default options", e);
+    }
+  }
+
+  private static void processFields(Configuration conf, Configuration defaultConf,
+                                    StringBuilder defaultOpts, StringBuilder diffOpts)
+          throws IllegalAccessException {
+    Field[] fields = Configuration.class.getDeclaredFields();
+    Arrays.sort(fields, Comparator.comparing(Field::getName));
+
+    for (Field field : fields) {
+      if (PROPERTIES_TO_SKIP.contains(field.getName())) {
+        continue;
       }
 
-    } catch (IllegalArgumentException | IllegalAccessException e) {
-      throw new IllegalArgumentException("Wrong parsing", e);
+      Object fieldValue = field.get(conf);
+      Object defaultValue = field.get(defaultConf);
+      processField(field, fieldValue, defaultValue, defaultOpts, diffOpts);
     }
-    return sb.toString();
+  }
+
+  private static void processField(Field field, Object fieldValue, Object defaultValue,
+                                   StringBuilder defaultOpts, StringBuilder diffOpts) {
+    if (fieldValue == null) {
+      appendNullField(field, defaultValue, defaultOpts, diffOpts);
+      return;
+    }
+
+    if (field.getName().equals("haMode")) {
+      appendHaModeField(field, fieldValue, defaultValue, defaultOpts, diffOpts);
+      return;
+    }
+
+    String typeName = fieldValue.getClass().getSimpleName();
+    switch (typeName) {
+      case "String":
+      case "Boolean":
+      case "HaMode":
+      case "TransactionIsolation":
+      case "Integer":
+      case "SslMode":
+      case "CatalogTerm":
+        appendSimpleField(field, fieldValue, defaultValue, defaultOpts, diffOpts);
+        break;
+      case "ArrayList":
+        appendListField(field, fieldValue, defaultValue, defaultOpts, diffOpts);
+        break;
+      case "Properties":
+      case "HashSet":
+        break;
+      default:
+        throw new IllegalArgumentException("Unexpected field type for: " + field.getName());
+    }
+  }
+
+  private static void appendNullField(Field field, Object defaultValue,
+                                      StringBuilder defaultOpts, StringBuilder diffOpts) {
+    StringBuilder target = defaultValue == null ? defaultOpts : diffOpts;
+    target.append("\n * ").append(field.getName()).append(" : null");
+  }
+
+  private static void appendHaModeField(Field field, Object fieldValue, Object defaultValue,
+                                        StringBuilder defaultOpts, StringBuilder diffOpts) {
+    StringBuilder target = Objects.equals(fieldValue, defaultValue) ? defaultOpts : diffOpts;
+    target.append("\n * ").append(field.getName()).append(" : ").append(fieldValue);
+  }
+
+  private static void appendSimpleField(Field field, Object fieldValue, Object defaultValue,
+                                        StringBuilder defaultOpts, StringBuilder diffOpts) {
+    StringBuilder target = Objects.equals(fieldValue, defaultValue) ? defaultOpts : diffOpts;
+    target.append("\n * ").append(field.getName()).append(" : ");
+
+    if (SENSITIVE_FIELDS.contains(field.getName())) {
+      target.append("***");
+    } else {
+      target.append(fieldValue);
+    }
+  }
+
+  private static void appendListField(Field field, Object fieldValue, Object defaultValue,
+                                      StringBuilder defaultOpts, StringBuilder diffOpts) {
+    StringBuilder target = Objects.equals(fieldValue.toString(), defaultValue.toString())
+            ? defaultOpts : diffOpts;
+    target.append("\n * ").append(field.getName()).append(" : ").append(fieldValue);
   }
 
   /**
-   * Generate initialURL property
+   * Builds a JDBC URL from the provided configuration.
    *
-   * @param conf current configuration
-   * @return initialUrl value.
+   * @param conf Current configuration
+   * @return Complete JDBC URL string
    */
   protected static String buildUrl(Configuration conf) {
-    Configuration defaultConf = new Configuration();
-    StringBuilder sb = new StringBuilder();
-    sb.append("jdbc:mariadb:");
-    if (conf.haMode != HaMode.NONE) {
-      sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT).replace("_", "-")).append(":");
+    try {
+      StringBuilder urlBuilder = new StringBuilder("jdbc:mariadb:");
+      appendHaModeIfPresent(urlBuilder, conf);
+      appendHostAddresses(urlBuilder, conf);
+      appendDatabase(urlBuilder, conf);
+      appendConfigurationParameters(urlBuilder, conf);
+
+      conf.loadCodecs();
+      return urlBuilder.toString();
+    } catch (SecurityException s) {
+      throw new IllegalArgumentException("Security too restrictive: " + s.getMessage());
     }
+  }
+
+  private static void appendHostAddresses(StringBuilder sb, Configuration conf) {
     sb.append("//");
     for (int i = 0; i < conf.addresses.size(); i++) {
-      HostAddress hostAddress = conf.addresses.get(i);
-      if (i > 0) {
-        sb.append(",");
-      }
-      if ((conf.haMode == HaMode.NONE && hostAddress.primary)
-          || (conf.haMode == HaMode.REPLICATION
-              && ((i == 0 && hostAddress.primary) || (i != 0 && !hostAddress.primary)))) {
-        sb.append(hostAddress.host);
-        if (hostAddress.port != 3306) sb.append(":").append(hostAddress.port);
-      } else {
-        sb.append(hostAddress);
-      }
+      if (i > 0) sb.append(",");
+      appendHostAddress(sb, conf, conf.addresses.get(i), i);
     }
-
     sb.append("/");
+  }
+
+  private static void appendHostAddress(
+      StringBuilder sb, Configuration conf, HostAddress hostAddress, int index) {
+    boolean useSimpleFormat = shouldUseSimpleHostFormat(conf, hostAddress, index);
+
+    if (useSimpleFormat) {
+      sb.append(hostAddress.host);
+      if (hostAddress.port != 3306) {
+        sb.append(":").append(hostAddress.port);
+      }
+    } else {
+      sb.append(hostAddress);
+    }
+  }
+
+  private static boolean shouldUseSimpleHostFormat(
+      Configuration conf, HostAddress hostAddress, int index) {
+    return (conf.haMode == HaMode.NONE && hostAddress.primary)
+        || (conf.haMode == HaMode.REPLICATION
+            && ((index == 0 && hostAddress.primary) || (index != 0 && !hostAddress.primary)));
+  }
+
+  private static void appendDatabase(StringBuilder sb, Configuration conf) {
     if (conf.database != null) {
       sb.append(conf.database);
     }
+  }
 
+  private static void appendHaModeIfPresent(StringBuilder sb, Configuration conf) {
+    if (conf.haMode != HaMode.NONE) {
+      sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT).replace("_", "-")).append(":");
+    }
+  }
+
+  private static void appendConfigurationParameters(StringBuilder sb, Configuration conf) {
     try {
-      // Option object is already initialized to default values.
-      // loop on properties,
-      // - check DefaultOption to check that property value correspond to type (and range)
-      // - set values
-      boolean first = true;
+      Configuration defaultConf = new Configuration();
+      ParameterAppender paramAppender = new ParameterAppender(sb);
 
-      Field[] fields = Configuration.class.getDeclaredFields();
-      for (Field field : fields) {
-        if ("database".equals(field.getName())
-            || "haMode".equals(field.getName())
-            || "$jacocoData".equals(field.getName())
-            || "addresses".equals(field.getName())) {
+      for (Field field : Configuration.class.getDeclaredFields()) {
+        if (EXCLUDED_FIELDS.contains(field.getName())) {
           continue;
         }
-        Object obj = field.get(conf);
 
-        if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
-
-          if ("password".equals(field.getName())
-              || "keyStorePassword".equals(field.getName())
-              || "trustStorePassword".equals(field.getName())) {
-            sb.append(first ? '?' : '&');
-            first = false;
-            sb.append(field.getName()).append('=');
-            sb.append("***");
-            continue;
-          }
-
-          if (field.getType().equals(String.class)) {
-            String defaultValue = (String) field.get(defaultConf);
-            if (!obj.equals(defaultValue)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append('=');
-              sb.append((String) obj);
-            }
-          } else if (field.getType().equals(boolean.class)) {
-            boolean defaultValue = field.getBoolean(defaultConf);
-            if (!obj.equals(defaultValue)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append('=');
-              sb.append(obj);
-            }
-          } else if (field.getType().equals(int.class)) {
-            try {
-              int defaultValue = field.getInt(defaultConf);
-              if (!obj.equals(defaultValue)) {
-                sb.append(first ? '?' : '&');
-                sb.append(field.getName()).append('=').append(obj);
-                first = false;
-              }
-            } catch (IllegalAccessException n) {
-              // eat
-            }
-          } else if (field.getType().equals(Properties.class)) {
-            sb.append(first ? '?' : '&');
-            first = false;
-            boolean firstProp = true;
-            Properties properties = (Properties) obj;
-            for (Object key : properties.keySet()) {
-              if (firstProp) {
-                firstProp = false;
-              } else {
-                sb.append('&');
-              }
-              sb.append(key).append('=');
-              sb.append(properties.get(key));
-            }
-          } else if (field.getType().equals(CatalogTerm.class)) {
-            Object defaultValue = field.get(defaultConf);
-            if (!obj.equals(defaultValue)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append("=SCHEMA");
-            }
-          } else if (field.getType().equals(CredentialPlugin.class)) {
-            Object defaultValue = field.get(defaultConf);
-            if (!obj.equals(defaultValue)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append('=');
-              sb.append(((CredentialPlugin) obj).type());
-            }
-          } else {
-            Object defaultValue = field.get(defaultConf);
-            if (!obj.equals(defaultValue)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append('=');
-              sb.append(obj);
-            }
-          }
+        Object value = field.get(conf);
+        if (value == null || (value instanceof Properties && ((Properties) value).isEmpty())) {
+          continue;
         }
-      }
 
-    } catch (IllegalAccessException n) {
-      n.printStackTrace();
-    } catch (SecurityException s) {
-      // only for jws, so never thrown
-      throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
+        appendFieldParameter(paramAppender, field, value, defaultConf);
+      }
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
     }
-    conf.loadCodecs();
-    return sb.toString();
+  }
+
+  private static void appendFieldParameter(
+      ParameterAppender appender, Field field, Object value, Configuration defaultConf)
+      throws IllegalAccessException {
+
+    if (SECURE_FIELDS.contains(field.getName())) {
+      appender.appendParameter(field.getName(), "***");
+      return;
+    }
+
+    Class<?> fieldType = field.getType();
+    if (fieldType.equals(String.class)) {
+      appendStringParameter(appender, field, value, defaultConf);
+    } else if (fieldType.equals(boolean.class)) {
+      appendBooleanParameter(appender, field, value, defaultConf);
+    } else if (fieldType.equals(int.class)) {
+      appendIntParameter(appender, field, value, defaultConf);
+    } else if (fieldType.equals(Properties.class)) {
+      appendPropertiesParameter(appender, (Properties) value);
+    } else if (fieldType.equals(CatalogTerm.class)) {
+      appendCatalogTermParameter(appender, field, value, defaultConf);
+    } else if (fieldType.equals(CredentialPlugin.class)) {
+      appendCredentialPluginParameter(appender, field, value, defaultConf);
+    } else {
+      appendDefaultParameter(appender, field, value, defaultConf);
+    }
+  }
+
+  private static void appendStringParameter(
+      ParameterAppender appender, Field field, Object value, Configuration defaultConf)
+      throws IllegalAccessException {
+    String defaultValue = (String) field.get(defaultConf);
+    if (!value.equals(defaultValue)) {
+      appender.appendParameter(field.getName(), (String) value);
+    }
+  }
+
+  private static void appendBooleanParameter(
+      ParameterAppender appender, Field field, Object value, Configuration defaultConf)
+      throws IllegalAccessException {
+    boolean defaultValue = field.getBoolean(defaultConf);
+    if (!value.equals(defaultValue)) {
+      appender.appendParameter(field.getName(), value.toString());
+    }
+  }
+
+  private static void appendIntParameter(
+      ParameterAppender appender, Field field, Object value, Configuration defaultConf) {
+    try {
+      int defaultValue = field.getInt(defaultConf);
+      if (!value.equals(defaultValue)) {
+        appender.appendParameter(field.getName(), value.toString());
+      }
+    } catch (IllegalAccessException e) {
+      // Ignore access errors for int fields
+    }
+  }
+
+  private static void appendPropertiesParameter(ParameterAppender appender, Properties props) {
+    for (Object key : props.keySet()) {
+      appender.appendParameter(key.toString(), props.get(key).toString());
+    }
+  }
+
+  private static void appendCatalogTermParameter(
+      ParameterAppender appender, Field field, Object value, Configuration defaultConf)
+      throws IllegalAccessException {
+    Object defaultValue = field.get(defaultConf);
+    if (!value.equals(defaultValue)) {
+      appender.appendParameter(field.getName(), "SCHEMA");
+    }
+  }
+
+  private static void appendCredentialPluginParameter(
+      ParameterAppender appender, Field field, Object value, Configuration defaultConf)
+      throws IllegalAccessException {
+    Object defaultValue = field.get(defaultConf);
+    if (!value.equals(defaultValue)) {
+      appender.appendParameter(field.getName(), ((CredentialPlugin) value).type());
+    }
+  }
+
+  private static void appendDefaultParameter(
+      ParameterAppender appender, Field field, Object value, Configuration defaultConf)
+      throws IllegalAccessException {
+    Object defaultValue = field.get(defaultConf);
+    if (!value.equals(defaultValue)) {
+      appender.appendParameter(field.getName(), value.toString());
+    }
+  }
+
+  private static class ParameterAppender {
+    private final StringBuilder sb;
+    private boolean first = true;
+
+    ParameterAppender(StringBuilder sb) {
+      this.sb = sb;
+    }
+
+    void appendParameter(String name, String value) {
+      sb.append(first ? '?' : '&').append(name).append('=').append(value);
+      first = false;
+    }
   }
 
   private static String nullOrEmpty(String val) {

@@ -329,8 +329,8 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   }
 
   private LocalDateTime parseText(final ReadableByteBuf buf, final MutableInt length) {
-    int[] parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length.get()));
-    if (parts == null) {
+    int[] parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+    if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
       length.set(NULL_LENGTH);
       return null;
     }

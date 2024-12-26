@@ -163,6 +163,7 @@ public class MariaDbBlob implements Blob, Serializable {
    * @return the position at which the pattern appears, else -1
    */
   public long position(final byte[] pattern, final long start) throws SQLException {
+    validateInputs(start);
     if (pattern.length == 0) {
       return 0;
     }
@@ -173,17 +174,41 @@ public class MariaDbBlob implements Blob, Serializable {
     if (start > this.length) {
       throw new SQLException("Out of range (start > stream size)");
     }
+    return searchPattern(pattern, start);
+  }
 
-    outer:
-    for (int i = (int) (offset + start - 1); i <= offset + this.length - pattern.length; i++) {
-      for (int j = 0; j < pattern.length; j++) {
-        if (data[i + j] != pattern[j]) {
-          continue outer;
-        }
+  /** Performs the actual pattern search in the data stream. */
+  private long searchPattern(byte[] pattern, long start) {
+    int searchStart = (int) (offset + start - 1);
+    int searchEnd = offset + this.length - pattern.length;
+
+    for (int i = searchStart; i <= searchEnd; i++) {
+      if (isPatternMatch(pattern, i)) {
+        return i + 1 - offset;
       }
-      return i + 1 - offset;
     }
     return -1;
+  }
+
+  /** Checks if the pattern matches at the given position. */
+  private boolean isPatternMatch(byte[] pattern, int position) {
+    for (int j = 0; j < pattern.length; j++) {
+      if (data[position + j] != pattern[j]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Validates the input parameters for the search. */
+  private void validateInputs(long start) throws SQLException {
+    if (start < 1) {
+      throw new SQLException(
+          String.format("Out of range (position should be > 0, but is %s)", start));
+    }
+    if (start > this.length) {
+      throw new SQLException("Out of range (start > stream size)");
+    }
   }
 
   /**

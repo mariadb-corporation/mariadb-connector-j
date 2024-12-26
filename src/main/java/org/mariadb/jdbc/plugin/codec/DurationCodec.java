@@ -60,8 +60,8 @@ public class DurationCodec implements Codec<Duration> {
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length.get()));
-        if (parts == null) {
+        parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+        if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
           length.set(NULL_LENGTH);
           return null;
         }

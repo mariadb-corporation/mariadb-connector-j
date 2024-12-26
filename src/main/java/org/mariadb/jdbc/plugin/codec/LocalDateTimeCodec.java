@@ -59,49 +59,59 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
             .toFormatter();
   }
 
-  /**
-   * Parse timestamp to date/month/year int array
-   *
-   * @param raw string data
-   * @return date/month/year int array
-   * @throws DateTimeException if wrong format
-   */
-  public static int[] parseTimestamp(String raw) throws DateTimeException {
-    int nanoLen = -1;
-    int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
+  public static int[] parseTextTimestamp(ReadableByteBuf buf, MutableInt length) {
+    int pos = buf.pos();
+    int nanoBegin = -1;
+    int[] parts = new int[7];
     int partIdx = 0;
-    for (int idx = 0; idx < raw.length(); idx++) {
-      char b = raw.charAt(idx);
-      if (b == '-' || b == ' ' || b == ':') {
+
+    for (int begin = 0; begin < length.get(); begin++) {
+      byte b = buf.readByte();
+
+      if (isDelimiter(b)) {
         partIdx++;
+        if (b == '.') nanoBegin = begin;
         continue;
       }
-      if (b == '.') {
-        partIdx++;
-        nanoLen = 0;
-        continue;
+
+      if (!isDigit(b)) {
+        buf.pos(pos);
+        throw new IllegalArgumentException("Invalid character in timestamp");
       }
-      if (nanoLen >= 0) nanoLen++;
-      timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
-    }
-    if (partIdx < 2) throw new DateTimeException("Wrong timestamp format");
-    if (timestampsPart[0] == 0 && timestampsPart[1] == 0 && timestampsPart[2] == 0) {
-      if (timestampsPart[3] == 0
-          && timestampsPart[4] == 0
-          && timestampsPart[5] == 0
-          && timestampsPart[6] == 0) return null;
-      timestampsPart[1] = 1;
-      timestampsPart[2] = 1;
+
+      parts[partIdx] = parts[partIdx] * 10 + (b - '0');
     }
 
-    // fix non-leading tray for nanoseconds
-    if (nanoLen >= 0) {
-      for (int begin = 0; begin < 6 - nanoLen; begin++) {
-        timestampsPart[6] = timestampsPart[6] * 10;
-      }
-      timestampsPart[6] = timestampsPart[6] * 1000;
+    // Adjust nanoseconds precision
+    if (nanoBegin > 0) {
+      adjustNanoPrecision(parts, length.get() - nanoBegin - 1);
     }
-    return timestampsPart;
+    if (partIdx < 2) {
+      buf.pos(pos);
+      throw new IllegalArgumentException("Wrong timestamp format");
+    }
+    return parts;
+  }
+
+  private static boolean isDelimiter(byte b) {
+    return b == '-' || b == ' ' || b == ':' || b == '.';
+  }
+
+  private static boolean isDigit(byte b) {
+    return b >= '0' && b <= '9';
+  }
+
+  private static void adjustNanoPrecision(int[] parts, int nanoLength) {
+    for (int i = 0; i < 9 - nanoLength; i++) {
+      parts[6] *= 10;
+    }
+  }
+
+  public static boolean isZeroTimestamp(int[] parts) {
+    for (int part : parts) {
+      if (part != 0) return false;
+    }
+    return true;
   }
 
   public String className() {

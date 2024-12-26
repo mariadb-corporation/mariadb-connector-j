@@ -121,8 +121,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readString(length.get()));
-        if (parts == null) {
+        parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+        if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
           length.set(NULL_LENGTH);
           return null;
         }

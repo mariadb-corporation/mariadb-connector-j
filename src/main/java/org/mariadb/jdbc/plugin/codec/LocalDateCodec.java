@@ -109,7 +109,11 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
       case TIMESTAMP:
       case DATETIME:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length.get()));
+        parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+        if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
+          length.set(NULL_LENGTH);
+          return null;
+        }
         break;
 
       case BLOB:

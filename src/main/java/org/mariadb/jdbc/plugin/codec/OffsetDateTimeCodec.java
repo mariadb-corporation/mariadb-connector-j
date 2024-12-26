@@ -71,10 +71,9 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        String val = buf.readString(length.get());
         try {
-          int[] parts = LocalDateTimeCodec.parseTimestamp(val);
-          if (parts == null) {
+          int[] parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+          if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
             length.set(NULL_LENGTH);
             return null;
           }
@@ -85,15 +84,17 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
                   context)
               .toOffsetDateTime();
         } catch (Throwable e) {
+          String val = buf.readString(length.get());
           try {
             return OffsetDateTime.parse(val);
           } catch (Throwable ee) {
             // eat
           }
+          throw new SQLDataException(
+                  String.format(
+                          "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
         }
-        throw new SQLDataException(
-            String.format(
-                "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
+
       default:
         buf.skip(length.get());
         throw new SQLDataException(
@@ -121,10 +122,9 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        String val = buf.readString(length.get());
         try {
-          int[] parts = LocalDateTimeCodec.parseTimestamp(val);
-          if (parts == null) {
+          int[] parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+          if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
             length.set(NULL_LENGTH);
             return null;
           }
@@ -135,15 +135,16 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
                   context)
               .toOffsetDateTime();
         } catch (Throwable e) {
+          String val = buf.readString(length.get());
           try {
             return OffsetDateTime.parse(val);
           } catch (Throwable ee) {
             // eat
           }
+          throw new SQLDataException(
+                  String.format(
+                          "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
         }
-        throw new SQLDataException(
-            String.format(
-                "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
 
       default:
         buf.skip(length.get());

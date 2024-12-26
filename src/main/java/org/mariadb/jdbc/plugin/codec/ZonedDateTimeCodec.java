@@ -79,10 +79,9 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        String val = buf.readString(length.get());
         try {
-          parts = LocalDateTimeCodec.parseTimestamp(val);
-          if (parts == null) {
+          parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+          if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
             length.set(NULL_LENGTH);
             return null;
           }
@@ -91,7 +90,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
                   .plusNanos(parts[6]),
               calParam,
               context);
-        } catch (DateTimeException dte) {
+        } catch (Throwable dte) {
+          String val = buf.readString(length.get());
           throw new SQLDataException(
               String.format(
                   "value '%s' (%s) cannot be decoded as ZoneDateTime", val, column.getType()));
@@ -108,8 +108,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
 
       case DATETIME:
       case TIMESTAMP:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length.get()));
-        if (parts == null) {
+        parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+        if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
           length.set(NULL_LENGTH);
           return null;
         }
@@ -205,10 +205,9 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        String val = buf.readString(length.get());
         try {
-          int[] parts = LocalDateTimeCodec.parseTimestamp(val);
-          if (parts == null) {
+          int[] parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+          if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
             length.set(NULL_LENGTH);
             return null;
           }
@@ -217,7 +216,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
                   .plusNanos(parts[6]),
               calParam,
               context);
-        } catch (DateTimeException dte) {
+        } catch (Throwable dte) {
+          String val = buf.readString(length.get());
           throw new SQLDataException(
               String.format(
                   "value '%s' (%s) cannot be decoded as ZoneDateTime", val, column.getType()));

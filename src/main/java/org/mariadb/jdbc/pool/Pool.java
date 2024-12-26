@@ -290,45 +290,41 @@ public class Pool implements AutoCloseable, PoolMBean {
               ? idleConnections.pollFirst()
               : idleConnections.pollFirst(timeout, timeUnit);
 
-      if (item != null) {
-        try {
-          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - item.getLastUsed().get())
-              > conf.poolValidMinDelay()) {
+      if (item == null) return null;
+      try {
+        if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - item.getLastUsed().get())
+            > conf.poolValidMinDelay()) {
 
-            // validate connection
-            if (item.getConnection().isValid(10)) { // 10 seconds timeout
-              item.lastUsedToNow();
-              return item;
-            }
-
-          } else {
-
-            // connection has been retrieved recently -> skip connection validation
+          // validate connection
+          if (item.getConnection().isValid(10)) { // 10 seconds timeout
             item.lastUsedToNow();
             return item;
           }
 
-        } catch (SQLException sqle) {
-          // eat
+        } else {
+
+          // connection has been retrieved recently -> skip connection validation
+          item.lastUsedToNow();
+          return item;
         }
 
-        // validation failed
-        silentAbortConnection(item.getConnection());
-        addConnectionRequest();
-        if (logger.isDebugEnabled()) {
-          logger.debug(
-              "pool {} connection {} removed from pool due to failed validation (total:{},"
-                  + " active:{}, pending:{})",
-              poolTag,
-              item.getConnection().getThreadId(),
-              totalConnection.get(),
-              getActiveConnections(),
-              pendingRequestNumber.get());
-        }
-        continue;
+      } catch (SQLException sqle) {
+        // eat
       }
 
-      return null;
+      // validation failed
+      silentAbortConnection(item.getConnection());
+      addConnectionRequest();
+      if (logger.isDebugEnabled()) {
+        logger.debug(
+            "pool {} connection {} removed from pool due to failed validation (total:{},"
+                + " active:{}, pending:{})",
+            poolTag,
+            item.getConnection().getThreadId(),
+            totalConnection.get(),
+            getActiveConnections(),
+            pendingRequestNumber.get());
+      }
     }
   }
 

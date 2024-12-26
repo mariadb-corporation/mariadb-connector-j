@@ -24,6 +24,7 @@ import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
 public class StringColumn extends ColumnDefinitionPacket implements ColumnDecoder {
+  private static final int NULL_LENGTH = -1;
 
   /**
    * VARCHAR/STRING/VARSTRING metadata type decoder
@@ -414,114 +415,54 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
       throws SQLDataException {
-    int pos = buf.pos();
-    int nanoBegin = -1;
-    int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
-    int partIdx = 0;
-    for (int begin = 0; begin < length.get(); begin++) {
-      byte b = buf.readByte();
-      if (b == '-' || b == ' ' || b == ':') {
-        partIdx++;
-        continue;
+    try {
+      int[] parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+      if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
+        length.set(NULL_LENGTH);
+        return null;
       }
-      if (b == '.') {
-        partIdx++;
-        nanoBegin = begin;
-        continue;
-      }
-      if (b < '0' || b > '9') {
-        buf.pos(pos);
-        throw new SQLDataException(
-            String.format(
-                "value '%s' (%s) cannot be decoded as Timestamp",
-                buf.readString(length.get()), dataType));
-      }
-
-      timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
+      return createTimestamp(parts, calParam);
+    } catch (IllegalArgumentException e) {
+      throw new SQLDataException(
+          String.format(
+              "value '%s' (%s) cannot be decoded as Timestamp",
+              buf.readString(length.get()), dataType));
     }
-    if (timestampsPart[0] == 0
-        && timestampsPart[1] == 0
-        && timestampsPart[2] == 0
-        && timestampsPart[3] == 0
-        && timestampsPart[4] == 0
-        && timestampsPart[5] == 0
-        && timestampsPart[6] == 0) {
-      length.set(NULL_LENGTH);
-      return null;
-    }
-
-    // fix non-leading tray for nanoseconds
-    if (nanoBegin > 0) {
-      for (int begin = 0; begin < 6 - (length.get() - nanoBegin - 1); begin++) {
-        timestampsPart[6] = timestampsPart[6] * 10;
-      }
-    }
-
-    Timestamp timestamp;
-    if (calParam == null) {
-      Calendar c = Calendar.getInstance();
-      c.set(
-          timestampsPart[0],
-          timestampsPart[1] - 1,
-          timestampsPart[2],
-          timestampsPart[3],
-          timestampsPart[4],
-          timestampsPart[5]);
-      timestamp = new Timestamp(c.getTime().getTime());
-    } else {
-      synchronized (calParam) {
-        calParam.clear();
-        calParam.set(
-            timestampsPart[0],
-            timestampsPart[1] - 1,
-            timestampsPart[2],
-            timestampsPart[3],
-            timestampsPart[4],
-            timestampsPart[5]);
-        timestamp = new Timestamp(calParam.getTime().getTime());
-      }
-    }
-    timestamp.setNanos(timestampsPart[6] * 1000);
-    return timestamp;
   }
 
   @Override
   public Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
       throws SQLDataException {
-    String val = buf.readString(length.get());
-    try {
-      int[] parts = LocalDateTimeCodec.parseTimestamp(val);
-      if (parts == null) {
-        length.set(NULL_LENGTH);
-        return null;
-      }
-      int year = parts[0];
-      int month = parts[1];
-      int dayOfMonth = parts[2];
-      int hour = parts[3];
-      int minutes = parts[4];
-      int seconds = parts[5];
-      int microseconds = parts[6] / 1000;
-      Timestamp timestamp;
-      if (calParam == null) {
-        Calendar cal = Calendar.getInstance();
-        cal.clear();
-        cal.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
-        timestamp = new Timestamp(cal.getTimeInMillis());
-      } else {
-        synchronized (calParam) {
-          calParam.clear();
-          calParam.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
-          timestamp = new Timestamp(calParam.getTimeInMillis());
-        }
-      }
-      timestamp.setNanos(microseconds * 1000);
-      return timestamp;
+    return decodeTimestampText(buf, length, calParam, context);
+  }
 
-    } catch (DateTimeException dte) {
-      throw new SQLDataException(
-          String.format("value '%s' (%s) cannot be decoded as Timestamp", val, dataType));
+  private Timestamp createTimestamp(int[] parts, Calendar calParam) {
+    Calendar calendar = calParam != null ? calParam : Calendar.getInstance();
+    Timestamp timestamp;
+
+    if (calParam != null) {
+      synchronized (calParam) {
+        timestamp = createTimestampWithCalendar(parts, calendar);
+      }
+    } else {
+      timestamp = createTimestampWithCalendar(parts, calendar);
     }
+
+    timestamp.setNanos(parts[6]);
+    return timestamp;
+  }
+
+  private Timestamp createTimestampWithCalendar(int[] parts, Calendar calendar) {
+    calendar.clear();
+    calendar.set(
+        parts[0], // year
+        parts[1] - 1, // month (0-based)
+        parts[2], // day
+        parts[3], // hour
+        parts[4], // minute
+        parts[5] // second
+        );
+    return new Timestamp(calendar.getTime().getTime());
   }
 }

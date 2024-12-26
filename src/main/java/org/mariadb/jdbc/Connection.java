@@ -539,13 +539,7 @@ public class Connection implements java.sql.Connection {
           resultSetConcurrency);
     } else {
       return new ProcedureStatement(
-          this,
-          query,
-          database,
-          procedureName,
-          lock,
-          resultSetType,
-          resultSetConcurrency);
+          this, query, database, procedureName, lock, resultSetType, resultSetConcurrency);
     }
   }
 

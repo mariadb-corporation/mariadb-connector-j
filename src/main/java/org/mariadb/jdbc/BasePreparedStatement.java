@@ -1109,166 +1109,216 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     }
 
     if (targetSqlType != null) {
-      // target type is defined.
-      // in case of not corresponding data type, converting
-      switch (targetSqlType) {
-        case Types.ARRAY:
-          if (obj instanceof float[]) {
-            parameters.set(
-                parameterIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) obj));
-            return;
-          } else if (obj instanceof Float[]) {
-            parameters.set(
-                parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, (Float[]) obj));
-            return;
-          } else if (obj instanceof FloatArray) {
-            parameters.set(
-                parameterIndex - 1,
-                new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) ((FloatArray) obj).getArray()));
-            return;
-          }
-          throw exceptionFactory()
-              .notSupported(
-                  String.format("ARRAY Type not supported for %s", obj.getClass().getName()));
-        case Types.DATALINK:
-        case Types.JAVA_OBJECT:
-        case Types.REF:
-        case Types.ROWID:
-        case Types.SQLXML:
-        case Types.STRUCT:
-          throw exceptionFactory().notSupported("Type not supported");
-        default:
-          break;
-      }
-
-      if (obj instanceof String || obj instanceof Character) {
-        if (targetSqlType == Types.BLOB) {
-          throw exceptionFactory()
-              .create(
-                  String.format(
-                      "Cannot convert a %s to a Blob",
-                      obj instanceof String ? "string" : "character"));
-        }
-        String str = obj instanceof String ? (String) obj : ((Character) obj).toString();
-        try {
-          switch (targetSqlType) {
-            case Types.BIT:
-            case Types.BOOLEAN:
-              setBoolean(parameterIndex, !("false".equalsIgnoreCase(str) || "0".equals(str)));
-              return;
-            case Types.TINYINT:
-              setByte(parameterIndex, Byte.parseByte(str));
-              return;
-            case Types.SMALLINT:
-              setShort(parameterIndex, Short.parseShort(str));
-              return;
-            case Types.INTEGER:
-              setInt(parameterIndex, Integer.parseInt(str));
-              return;
-            case Types.DOUBLE:
-            case Types.FLOAT:
-              setDouble(parameterIndex, Double.parseDouble(str));
-              return;
-            case Types.REAL:
-              setFloat(parameterIndex, Float.parseFloat(str));
-              return;
-            case Types.BIGINT:
-              setLong(parameterIndex, Long.parseLong(str));
-              return;
-            case Types.DECIMAL:
-            case Types.NUMERIC:
-              setBigDecimal(parameterIndex, new BigDecimal(str));
-              return;
-            case Types.CLOB:
-            case Types.NCLOB:
-            case Types.CHAR:
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:
-            case Types.NCHAR:
-            case Types.NVARCHAR:
-            case Types.LONGNVARCHAR:
-              setString(parameterIndex, str);
-              return;
-            case Types.TIMESTAMP:
-              if (str.startsWith("0000-00-00")) {
-                setTimestamp(parameterIndex, null);
-              } else {
-                setTimestamp(parameterIndex, Timestamp.valueOf(str));
-              }
-              return;
-            case Types.TIME:
-              setTime(parameterIndex, Time.valueOf(str));
-              return;
-            default:
-              throw exceptionFactory()
-                  .create(String.format("Could not convert [%s] to %s", str, targetSqlType));
-          }
-        } catch (IllegalArgumentException e) {
-          throw exceptionFactory()
-              .create(
-                  String.format("Could not convert [%s] to java.sql.Type %s", str, targetSqlType),
-                  "HY000",
-                  e);
-        }
-      } else if (obj instanceof Number) {
-        Number bd = (Number) obj;
-        switch (targetSqlType) {
-          case Types.TINYINT:
-            setByte(parameterIndex, bd.byteValue());
-            return;
-          case Types.SMALLINT:
-            setShort(parameterIndex, bd.shortValue());
-            return;
-          case Types.INTEGER:
-            setInt(parameterIndex, bd.intValue());
-            return;
-          case Types.BIGINT:
-            setLong(parameterIndex, bd.longValue());
-            return;
-          case Types.FLOAT:
-          case Types.DOUBLE:
-            setDouble(parameterIndex, bd.doubleValue());
-            return;
-          case Types.REAL:
-            setFloat(parameterIndex, bd.floatValue());
-            return;
-          case Types.DECIMAL:
-          case Types.NUMERIC:
-            if (obj instanceof BigDecimal) {
-              setBigDecimal(parameterIndex, (BigDecimal) obj);
-            } else if (obj instanceof Double || obj instanceof Float) {
-              setDouble(parameterIndex, bd.doubleValue());
-            } else {
-              setLong(parameterIndex, bd.longValue());
-            }
-            return;
-          case Types.BIT:
-            setBoolean(parameterIndex, bd.shortValue() != 0);
-            return;
-          case Types.CHAR:
-          case Types.VARCHAR:
-            setString(parameterIndex, bd.toString());
-            return;
-          default:
-            throw exceptionFactory()
-                .create(String.format("Could not convert [%s] to %s", bd, targetSqlType));
-        }
-      } else if (obj instanceof byte[]) {
-        if (targetSqlType == Types.BINARY
-            || targetSqlType == Types.VARBINARY
-            || targetSqlType == Types.LONGVARBINARY) {
-          setBytes(parameterIndex, (byte[]) obj);
-          return;
-        } else if (targetSqlType == Types.BLOB) {
-          setBlob(parameterIndex, new MariaDbBlob((byte[]) obj));
-        } else {
-          throw exceptionFactory()
-              .create("Can only convert a byte[] to BINARY, VARBINARY, LONGVARBINARY or BLOB type");
-        }
-      }
+      if (trySetArrayType(parameterIndex, obj, targetSqlType)) return;
+      checkUnsupportedTypes(targetSqlType);
+      if (trySetStringOrCharacter(parameterIndex, obj, targetSqlType)) return;
+      if (trySetNumber(parameterIndex, obj, targetSqlType)) return;
+      if (trySetByteArray(parameterIndex, obj, targetSqlType, scaleOrLength)) return;
     }
 
     // in case parameter still not set, defaulting to object type
+    trySetWithCodec(parameterIndex, obj, scaleOrLength);
+  }
+
+  private boolean trySetArrayType(int parameterIndex, Object obj, Integer targetSqlType)
+      throws SQLException {
+    if (targetSqlType != Types.ARRAY) return false;
+
+    if (obj instanceof float[]) {
+      parameters.set(parameterIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) obj));
+      return true;
+    }
+    if (obj instanceof Float[]) {
+      parameters.set(
+          parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, (Float[]) obj));
+      return true;
+    }
+    if (obj instanceof FloatArray) {
+      parameters.set(
+          parameterIndex - 1,
+          new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) ((FloatArray) obj).getArray()));
+      return true;
+    }
+
+    throw exceptionFactory()
+        .notSupported(String.format("ARRAY Type not supported for %s", obj.getClass().getName()));
+  }
+
+  private void checkUnsupportedTypes(Integer targetSqlType) throws SQLException {
+    switch (targetSqlType) {
+      case Types.DATALINK:
+      case Types.JAVA_OBJECT:
+      case Types.REF:
+      case Types.ROWID:
+      case Types.SQLXML:
+      case Types.STRUCT:
+        throw exceptionFactory().notSupported("Type not supported");
+    }
+  }
+
+  private boolean trySetStringOrCharacter(int parameterIndex, Object obj, Integer targetSqlType)
+      throws SQLException {
+    if (!(obj instanceof String || obj instanceof Character)) return false;
+
+    if (targetSqlType == Types.BLOB) {
+      throw exceptionFactory()
+          .create(
+              String.format(
+                  "Cannot convert a %s to a Blob", obj instanceof String ? "string" : "character"));
+    }
+
+    String str = obj instanceof String ? (String) obj : ((Character) obj).toString();
+    return handleStringConversion(parameterIndex, str, targetSqlType);
+  }
+
+  private boolean handleStringConversion(int parameterIndex, String str, Integer targetSqlType)
+      throws SQLException {
+    try {
+      switch (targetSqlType) {
+        case Types.BIT:
+        case Types.BOOLEAN:
+          setBoolean(parameterIndex, !("false".equalsIgnoreCase(str) || "0".equals(str)));
+          return true;
+        case Types.TINYINT:
+          setByte(parameterIndex, Byte.parseByte(str));
+          return true;
+        case Types.SMALLINT:
+          setShort(parameterIndex, Short.parseShort(str));
+          return true;
+        case Types.INTEGER:
+          setInt(parameterIndex, Integer.parseInt(str));
+          return true;
+        case Types.DOUBLE:
+        case Types.FLOAT:
+          setDouble(parameterIndex, Double.parseDouble(str));
+          return true;
+        case Types.REAL:
+          setFloat(parameterIndex, Float.parseFloat(str));
+          return true;
+        case Types.BIGINT:
+          setLong(parameterIndex, Long.parseLong(str));
+          return true;
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+          setBigDecimal(parameterIndex, new BigDecimal(str));
+          return true;
+        case Types.CLOB:
+        case Types.NCLOB:
+        case Types.CHAR:
+        case Types.VARCHAR:
+        case Types.LONGVARCHAR:
+        case Types.NCHAR:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
+          setString(parameterIndex, str);
+          return true;
+        case Types.TIMESTAMP:
+          handleTimestampString(parameterIndex, str);
+          return true;
+        case Types.TIME:
+          setTime(parameterIndex, Time.valueOf(str));
+          return true;
+      }
+    } catch (IllegalArgumentException e) {
+      throw exceptionFactory()
+          .create(
+              String.format("Could not convert [%s] to java.sql.Type %s", str, targetSqlType),
+              "HY000",
+              e);
+    }
+    throw exceptionFactory()
+        .create(String.format("Could not convert [%s] to %s", str, targetSqlType));
+  }
+
+  private void handleTimestampString(int parameterIndex, String str) throws SQLException {
+    if (str.startsWith("0000-00-00")) {
+      setTimestamp(parameterIndex, null);
+    } else {
+      setTimestamp(parameterIndex, Timestamp.valueOf(str));
+    }
+  }
+
+  private boolean trySetNumber(int parameterIndex, Object obj, Integer targetSqlType)
+      throws SQLException {
+    if (!(obj instanceof Number)) return false;
+
+    Number bd = (Number) obj;
+    switch (targetSqlType) {
+      case Types.TINYINT:
+        setByte(parameterIndex, bd.byteValue());
+        return true;
+      case Types.SMALLINT:
+        setShort(parameterIndex, bd.shortValue());
+        return true;
+      case Types.INTEGER:
+        setInt(parameterIndex, bd.intValue());
+        return true;
+      case Types.BIGINT:
+        setLong(parameterIndex, bd.longValue());
+        return true;
+      case Types.FLOAT:
+      case Types.DOUBLE:
+        setDouble(parameterIndex, bd.doubleValue());
+        return true;
+      case Types.REAL:
+        setFloat(parameterIndex, bd.floatValue());
+        return true;
+      case Types.DECIMAL:
+      case Types.NUMERIC:
+        handleNumericType(parameterIndex, obj, bd);
+        return true;
+      case Types.BIT:
+        setBoolean(parameterIndex, bd.shortValue() != 0);
+        return true;
+      case Types.CHAR:
+      case Types.VARCHAR:
+        setString(parameterIndex, bd.toString());
+        return true;
+    }
+    throw exceptionFactory()
+        .create(String.format("Could not convert [%s] to %s", bd, targetSqlType));
+  }
+
+  private void handleNumericType(int parameterIndex, Object obj, Number bd) throws SQLException {
+    if (obj instanceof BigDecimal) {
+      setBigDecimal(parameterIndex, (BigDecimal) obj);
+    } else if (obj instanceof Double || obj instanceof Float) {
+      setDouble(parameterIndex, bd.doubleValue());
+    } else {
+      setLong(parameterIndex, bd.longValue());
+    }
+  }
+
+  private boolean trySetByteArray(int parameterIndex, Object obj, Integer targetSqlType, Long scaleOrLength)
+      throws SQLException {
+    if (!(obj instanceof byte[])) return false;
+
+    byte[] bytes = (byte[]) obj;
+    switch (targetSqlType) {
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        if (scaleOrLength != null) {
+          setBytes(parameterIndex, Arrays.copyOfRange(bytes, 0, scaleOrLength.intValue()));
+        } else {
+          setBytes(parameterIndex, bytes);
+        }
+        return true;
+      case Types.BLOB:
+        if (scaleOrLength != null) {
+          setBlob(parameterIndex, new MariaDbBlob(bytes, 0, scaleOrLength.intValue()));
+        } else {
+          setBlob(parameterIndex, new MariaDbBlob(bytes));
+        }
+        return true;
+      default:
+        throw exceptionFactory()
+            .create("Can only convert a byte[] to BINARY, VARBINARY, LONGVARBINARY or BLOB type");
+    }
+  }
+
+  private void trySetWithCodec(int parameterIndex, Object obj, Long scaleOrLength)
+      throws SQLException {
     for (Codec<?> codec : con.getContext().getConf().codecs()) {
       if (codec.canEncode(obj)) {
         Parameter p = new Parameter(codec, obj, scaleOrLength);
@@ -1620,136 +1670,233 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @SuppressWarnings("try")
   public int[] executeBatch() throws SQLException {
     checkNotClosed();
-    if (batchParameters == null || batchParameters.isEmpty()) return new int[0];
+    if (isBatchEmpty()) {
+      return new int[0];
+    }
+
     try (ClosableLock ignore = lock.closeableLock();
-        QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
-      boolean wasBulk = executeInternalPreparedBatch();
-
-      int[] updates = new int[batchParameters.size()];
-
-      // server 11.5 return a result-set with all unitary results
-      if (wasBulk && con.getContext().hasClientCapability(BULK_UNIT_RESULTS)) {
-        int updateIdx = 0;
-        Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
-        for (Completion completion : results) {
-          if (completion instanceof CompleteResult
-              && ((CompleteResult) completion).isBulkResult()) {
-            Result unitaryResults = ((CompleteResult) completion);
-            if (unitaryResults.isBulkResult()) {
-              unitaryResults.beforeFirst();
-              while (unitaryResults.next()) {
-                updates[updateIdx++] = unitaryResults.getInt(2);
-              }
-            }
-          }
-        }
-        currResult = results.remove(0);
-        return updates;
-      }
-
-      // specific case for BULK INSERT
-      // return not Statement.SUCCESS_NO_INFO, but 1
-      if (wasBulk && clientParser.isInsert() && !clientParser.isInsertDuplicate()) {
-        int numberOfResult = 0;
-        for (int i = 0; i < results.size(); i++) {
-          numberOfResult += (int) ((OkPacket) results.get(i)).getAffectedRows();
-        }
-        if (numberOfResult == updates.length) {
-          Arrays.fill(updates, 1);
-          currResult = results.remove(0);
-          return updates;
-        }
-      }
-
-      if (results.size() != updates.length) {
-        Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
-      } else {
-        for (int i = 0; i < updates.length; i++) {
-          if (results.get(i) instanceof OkPacket) {
-            updates[i] = (int) ((OkPacket) results.get(i)).getAffectedRows();
-          } else {
-            updates[i] = org.mariadb.jdbc.Statement.SUCCESS_NO_INFO;
-          }
-        }
-      }
-      currResult = results.remove(0);
-      return updates;
-
+        QueryTimeoutHandler ignore2 = con.handleTimeout(queryTimeout)) {
+      return executeBatchInternal();
     } catch (SQLException e) {
-      results = null;
-      currResult = null;
+      handleExecutionError(e);
       throw e;
     } finally {
-      localInfileInputStream = null;
-      batchParameters.clear();
+      cleanupResources();
     }
+  }
+
+  private boolean isBatchEmpty() {
+    return batchParameters == null || batchParameters.isEmpty();
+  }
+
+  private int[] executeBatchInternal() throws SQLException {
+    boolean wasBulk = executeInternalPreparedBatch();
+    int[] updates = new int[batchParameters.size()];
+
+    if (shouldHandleBulkUnitResults(wasBulk)) {
+      return handleBulkUnitResults(updates);
+    }
+
+    if (shouldHandleBulkInsert(wasBulk)) {
+      int[] bulkInsertUpdates = handleBulkInsert(updates);
+      if (bulkInsertUpdates != null) {
+        return bulkInsertUpdates;
+      }
+    }
+
+    return handleStandardResults(updates);
+  }
+
+  private boolean shouldHandleBulkUnitResults(boolean wasBulk) {
+    return wasBulk && con.getContext().hasClientCapability(BULK_UNIT_RESULTS);
+  }
+
+  private int[] handleBulkUnitResults(int[] updates) throws SQLException {
+    int updateIdx = 0;
+    Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
+
+    for (Completion completion : results) {
+      if (!(completion instanceof CompleteResult)) {
+        continue;
+      }
+
+      CompleteResult completeResult = (CompleteResult) completion;
+      if (!completeResult.isBulkResult()) {
+        continue;
+      }
+
+      updateIdx = processBulkResult(updates, updateIdx, completeResult);
+    }
+
+    currResult = results.remove(0);
+    return updates;
+  }
+
+  private long[] handleLongBulkUnitResults(long[] updates) throws SQLException {
+    int updateIdx = 0;
+    Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
+
+    for (Completion completion : results) {
+      if (!(completion instanceof CompleteResult)) {
+        continue;
+      }
+
+      CompleteResult completeResult = (CompleteResult) completion;
+      if (!completeResult.isBulkResult()) {
+        continue;
+      }
+
+      updateIdx = processLongBulkResult(updates, updateIdx, completeResult);
+    }
+
+    currResult = results.remove(0);
+    return updates;
+  }
+
+  private int processBulkResult(int[] updates, int updateIdx, Result unitaryResults)
+      throws SQLException {
+    if (!unitaryResults.isBulkResult()) {
+      return updateIdx;
+    }
+
+    unitaryResults.beforeFirst();
+    while (unitaryResults.next()) {
+      updates[updateIdx++] = unitaryResults.getInt(2);
+    }
+    return updateIdx;
+  }
+
+  private int processLongBulkResult(long[] updates, int updateIdx, Result unitaryResults)
+      throws SQLException {
+    if (!unitaryResults.isBulkResult()) {
+      return updateIdx;
+    }
+
+    unitaryResults.beforeFirst();
+    while (unitaryResults.next()) {
+      updates[updateIdx++] = unitaryResults.getInt(2);
+    }
+    return updateIdx;
+  }
+
+  private boolean shouldHandleBulkInsert(boolean wasBulk) {
+    return wasBulk && clientParser.isInsert() && !clientParser.isInsertDuplicate();
+  }
+
+  private int[] handleBulkInsert(int[] updates) {
+    int totalAffectedRows = calculateTotalAffectedRows();
+
+    if (totalAffectedRows == updates.length) {
+      Arrays.fill(updates, 1);
+      currResult = results.remove(0);
+      return updates;
+    }
+
+    return null;
+  }
+
+  private long[] handleLongBulkInsert(long[] updates) {
+    int totalAffectedRows = calculateTotalAffectedRows();
+
+    if (totalAffectedRows == updates.length) {
+      Arrays.fill(updates, 1);
+      currResult = results.remove(0);
+      return updates;
+    }
+
+    return null;
+  }
+
+  private int calculateTotalAffectedRows() {
+    return results.stream().mapToInt(result -> (int) ((OkPacket) result).getAffectedRows()).sum();
+  }
+
+  private int[] handleStandardResults(int[] updates) {
+    if (results.size() != updates.length) {
+      Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
+    } else {
+      processIndividualResults(updates);
+    }
+
+    currResult = results.remove(0);
+    return updates;
+  }
+
+  private long[] handleStandardLongResults(long[] updates) {
+    if (results.size() != updates.length) {
+      Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
+    } else {
+      processIndividualLongResults(updates);
+    }
+
+    currResult = results.remove(0);
+    return updates;
+  }
+
+  private void processIndividualResults(int[] updates) {
+    for (int i = 0; i < updates.length; i++) {
+      updates[i] =
+          results.get(i) instanceof OkPacket
+              ? (int) ((OkPacket) results.get(i)).getAffectedRows()
+              : Statement.SUCCESS_NO_INFO;
+    }
+  }
+
+  private void processIndividualLongResults(long[] updates) {
+    for (int i = 0; i < updates.length; i++) {
+      updates[i] =
+          results.get(i) instanceof OkPacket
+              ? (int) ((OkPacket) results.get(i)).getAffectedRows()
+              : Statement.SUCCESS_NO_INFO;
+    }
+  }
+
+  private void handleExecutionError(SQLException e) {
+    results = null;
+    currResult = null;
+  }
+
+  private void cleanupResources() {
+    localInfileInputStream = null;
+    batchParameters.clear();
+  }
+
+  private long[] executeLongBatchInternal() throws SQLException {
+    boolean wasBulk = executeInternalPreparedBatch();
+    long[] updates = new long[batchParameters.size()];
+
+    if (shouldHandleBulkUnitResults(wasBulk)) {
+      return handleLongBulkUnitResults(updates);
+    }
+
+    if (shouldHandleBulkInsert(wasBulk)) {
+      long[] bulkInsertUpdates = handleLongBulkInsert(updates);
+      if (bulkInsertUpdates != null) {
+        return bulkInsertUpdates;
+      }
+    }
+
+    return handleStandardLongResults(updates);
   }
 
   @Override
   @SuppressWarnings("try")
   public long[] executeLargeBatch() throws SQLException {
     checkNotClosed();
-    if (batchParameters == null || batchParameters.isEmpty()) return new long[0];
+    if (isBatchEmpty()) {
+      return new long[0];
+    }
+
     try (ClosableLock ignore = lock.closeableLock();
-        QueryTimeoutHandler ignore2 = this.con.handleTimeout(queryTimeout)) {
-      boolean wasBulk = executeInternalPreparedBatch();
+        QueryTimeoutHandler timeoutHandler = con.handleTimeout(queryTimeout)) {
 
-      long[] updates = new long[batchParameters.size()];
-
-      // server 11.5 return a result-set with all unitary results
-      if (wasBulk && con.getContext().hasClientCapability(BULK_UNIT_RESULTS)) {
-        int updateIdx = 0;
-        Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
-        for (Completion completion : results) {
-          if (completion instanceof CompleteResult
-              && ((CompleteResult) completion).isBulkResult()) {
-            Result unitaryResults = ((CompleteResult) completion);
-            if (unitaryResults.isBulkResult()) {
-              unitaryResults.beforeFirst();
-              while (unitaryResults.next()) {
-                updates[updateIdx++] = unitaryResults.getLong(2);
-              }
-            }
-          }
-        }
-        currResult = results.remove(0);
-        return updates;
-      }
-
-      // specific case for BULK INSERT
-      // return not Statement.SUCCESS_NO_INFO, but 1
-      if (wasBulk && clientParser.isInsert() && !clientParser.isInsertDuplicate()) {
-        long numberOfResult = 0;
-        for (int i = 0; i < results.size(); i++) {
-          numberOfResult += ((OkPacket) results.get(i)).getAffectedRows();
-        }
-        if (numberOfResult == updates.length) {
-          Arrays.fill(updates, 1);
-          currResult = results.remove(0);
-          return updates;
-        }
-      }
-
-      if (results.size() != updates.length) {
-        Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
-      } else {
-        for (int i = 0; i < updates.length; i++) {
-          if (results.get(i) instanceof OkPacket) {
-            updates[i] = ((OkPacket) results.get(i)).getAffectedRows();
-          } else {
-            updates[i] = org.mariadb.jdbc.Statement.SUCCESS_NO_INFO;
-          }
-        }
-      }
-      currResult = results.remove(0);
-      return updates;
+      return executeLongBatchInternal();
 
     } catch (SQLException e) {
-      results = null;
-      currResult = null;
+      handleExecutionError(e);
       throw e;
     } finally {
-      batchParameters.clear();
+      cleanupResources();
     }
   }
 

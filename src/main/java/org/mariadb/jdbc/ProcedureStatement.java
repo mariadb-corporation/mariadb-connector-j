@@ -33,15 +33,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
       int resultSetType,
       int resultSetConcurrency)
       throws SQLException {
-    super(
-        sql,
-        con,
-        lock,
-        databaseName,
-        procedureName,
-        resultSetType,
-        resultSetConcurrency,
-        0);
+    super(sql, con, lock, databaseName, procedureName, resultSetType, resultSetConcurrency, 0);
   }
 
   @Override
