@@ -663,19 +663,17 @@ public class PacketWriter implements Writer {
       newCapacity = maxPacketLength;
     }
 
-    if (len + pos > newCapacity) {
-      if (mark != -1) {
-        // buf is > 16M with mark.
-        // flush until mark, reset pos at beginning
-        flushBufferStopAtMark();
+    if (len + pos > newCapacity && mark != -1) {
+      // buf is > 16M with mark.
+      // flush until mark, reset pos at beginning
+      flushBufferStopAtMark();
 
-        if (len + pos <= bufLength) {
-          return;
-        }
-
-        growBuffer(len);
+      if (len + pos <= bufLength) {
         return;
       }
+
+      growBuffer(len);
+      return;
     }
 
     byte[] newBuf = new byte[newCapacity];
@@ -745,17 +743,15 @@ public class PacketWriter implements Writer {
    * @throws MaxAllowedPacketException if query has not to be sent.
    */
   private void checkMaxAllowedLength(int length) throws MaxAllowedPacketException {
-    if (maxAllowedPacket != null) {
-      if (cmdLength + length >= maxAllowedPacket) {
-        // launch exception only if no packet has been sent.
-        throw new MaxAllowedPacketException(
-            "query size ("
-                + (cmdLength + length)
-                + ") is >= to max_allowed_packet ("
-                + maxAllowedPacket
-                + ")",
-            cmdLength != 0);
-      }
+    if (maxAllowedPacket != null && cmdLength + length >= maxAllowedPacket) {
+      // launch exception only if no packet has been sent.
+      throw new MaxAllowedPacketException(
+          "query size ("
+              + (cmdLength + length)
+              + ") is >= to max_allowed_packet ("
+              + maxAllowedPacket
+              + ")",
+          cmdLength != 0);
     }
   }
 

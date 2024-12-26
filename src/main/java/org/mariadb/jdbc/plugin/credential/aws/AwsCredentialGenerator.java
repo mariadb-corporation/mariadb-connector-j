@@ -54,13 +54,12 @@ public class AwsCredentialGenerator {
 
     this.authenticationToken =
         utilities.generateAuthenticationToken(
-            builder -> {
-              builder
-                  .username(userName)
-                  .hostname(hostAddress.host)
-                  .port(hostAddress.port)
-                  .credentialsProvider(awsCredentialsProvider);
-            });
+            builder ->
+                builder
+                    .username(userName)
+                    .hostname(hostAddress.host)
+                    .port(hostAddress.port)
+                    .credentialsProvider(awsCredentialsProvider));
   }
 
   /**

@@ -25,9 +25,10 @@ public class DriverTest extends Common {
 
     // check that description is present
     for (Field field : Configuration.Builder.class.getDeclaredFields()) {
-      if (!field.getName().startsWith("_")) {
-        if (descr.get(field.getName()) == null && !"$jacocoData".equals(field.getName()))
-          throw new Exception(String.format("Missing %s description", field.getName()));
+      if (!field.getName().startsWith("_")
+          && descr.get(field.getName()) == null
+          && !"$jacocoData".equals(field.getName())) {
+        throw new Exception(String.format("Missing %s description", field.getName()));
       }
     }
 

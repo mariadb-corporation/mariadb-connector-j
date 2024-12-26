@@ -79,17 +79,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getObject() throws Exception {
+  void getObject() throws Exception {
     getObject(get());
   }
 
   @Test
-  public void getObjectPrepare() throws Exception {
+  void getObjectPrepare() throws Exception {
     getObject(getPrepare(sharedConn));
     getObject(getPrepare(sharedConnBinary));
   }
 
-  public void getObject(ResultSet rs) throws Exception {
+  void getObject(ResultSet rs) throws Exception {
     assertStreamEquals(new MariaDbBlob("0".getBytes()), (Blob) rs.getObject(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new MariaDbBlob("1".getBytes()), (Blob) rs.getObject(2));
@@ -103,17 +103,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getObjectType() throws Exception {
+  void getObjectType() throws Exception {
     getObjectType(get());
   }
 
   @Test
-  public void getObjectTypePrepare() throws Exception {
+  void getObjectTypePrepare() throws Exception {
     getObjectType(getPrepare(sharedConn));
     getObjectType(getPrepare(sharedConnBinary));
   }
 
-  public void getObjectType(ResultSet rs) throws Exception {
+  void getObjectType(ResultSet rs) throws Exception {
     testErrObject(rs, Integer.class);
     testObject(rs, String.class, "0");
     testErrObject(rs, Long.class);
@@ -143,17 +143,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getString() throws SQLException {
+  void getString() throws SQLException {
     getString(get());
   }
 
   @Test
-  public void getStringPrepare() throws SQLException {
+  void getStringPrepare() throws SQLException {
     getString(getPrepare(sharedConn));
     getString(getPrepare(sharedConnBinary));
   }
 
-  public void getString(ResultSet rs) throws SQLException {
+  void getString(ResultSet rs) throws SQLException {
     assertEquals("0", rs.getString(1));
     assertFalse(rs.wasNull());
     assertEquals("1", rs.getString(2));
@@ -166,40 +166,40 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getNString() throws SQLException {
+  void getNString() throws SQLException {
     getNString(get());
   }
 
   @Test
-  public void getNStringPrepare() throws SQLException {
+  void getNStringPrepare() throws SQLException {
     getNString(getPrepare(sharedConn));
     getNString(getPrepare(sharedConnBinary));
   }
 
-  public void getNString(ResultSet rs) throws SQLException {
-    assertEquals("0", rs.getString(1));
+  void getNString(ResultSet rs) throws SQLException {
+    assertEquals("0", rs.getNString(1));
     assertFalse(rs.wasNull());
-    assertEquals("1", rs.getString(2));
-    assertEquals("1", rs.getString("t2alias"));
+    assertEquals("1", rs.getNString(2));
+    assertEquals("1", rs.getNString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getString(3));
+    assertEquals("some🌟", rs.getNString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
   }
 
   @Test
-  public void getBoolean() throws SQLException {
+  void getBoolean() throws SQLException {
     getBoolean(get());
   }
 
   @Test
-  public void getBooleanPrepare() throws SQLException {
+  void getBooleanPrepare() throws SQLException {
     getBoolean(getPrepare(sharedConn));
     getBoolean(getPrepare(sharedConnBinary));
   }
 
-  public void getBoolean(ResultSet rs) throws SQLException {
+  void getBoolean(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBoolean(1),
@@ -208,17 +208,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getByte() throws SQLException {
+  void getByte() throws SQLException {
     getByte(get());
   }
 
   @Test
-  public void getBytePrepare() throws SQLException {
+  void getBytePrepare() throws SQLException {
     getByte(getPrepare(sharedConn));
     getByte(getPrepare(sharedConnBinary));
   }
 
-  public void getByte(ResultSet rs) throws SQLException {
+  void getByte(ResultSet rs) throws SQLException {
     assertEquals((byte) 48, rs.getByte(1));
     assertFalse(rs.wasNull());
     assertEquals((byte) 49, rs.getByte(2));
@@ -237,85 +237,85 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getShort() throws SQLException {
+  void getShort() throws SQLException {
     getShort(get());
   }
 
   @Test
-  public void getShortPrepare() throws SQLException {
+  void getShortPrepare() throws SQLException {
     getShort(getPrepare(sharedConn));
     getShort(getPrepare(sharedConnBinary));
   }
 
-  public void getShort(ResultSet rs) throws SQLException {
+  void getShort(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getShort(1), "Data type BLOB cannot be decoded as Short");
     assertFalse(rs.wasNull());
   }
 
   @Test
-  public void getInt() throws SQLException {
+  void getInt() throws SQLException {
     getInt(get());
   }
 
   @Test
-  public void getIntPrepare() throws SQLException {
+  void getIntPrepare() throws SQLException {
     getInt(getPrepare(sharedConn));
     getInt(getPrepare(sharedConnBinary));
   }
 
-  public void getInt(ResultSet rs) throws SQLException {
+  void getInt(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getInt(1), "Data type BLOB cannot be decoded as Integer");
     assertFalse(rs.wasNull());
   }
 
   @Test
-  public void getLong() throws SQLException {
+  void getLong() throws SQLException {
     getLong(get());
   }
 
   @Test
-  public void getLongPrepare() throws SQLException {
+  void getLongPrepare() throws SQLException {
     getLong(getPrepare(sharedConn));
     getLong(getPrepare(sharedConnBinary));
   }
 
-  public void getLong(ResultSet rs) throws SQLException {
+  void getLong(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getLong(1), "Data type BLOB cannot be decoded as Long");
     assertFalse(rs.wasNull());
   }
 
   @Test
-  public void getFloat() throws SQLException {
+  void getFloat() throws SQLException {
     getFloat(get());
   }
 
   @Test
-  public void getFloatPrepare() throws SQLException {
+  void getFloatPrepare() throws SQLException {
     getFloat(getPrepare(sharedConn));
     getFloat(getPrepare(sharedConnBinary));
   }
 
-  public void getFloat(ResultSet rs) throws SQLException {
+  void getFloat(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getFloat(1), "Data type BLOB cannot be decoded as Float");
     assertFalse(rs.wasNull());
   }
 
   @Test
-  public void getDouble() throws SQLException {
+  void getDouble() throws SQLException {
     getDouble(get());
   }
 
   @Test
-  public void getDoublePrepare() throws SQLException {
+  void getDoublePrepare() throws SQLException {
     getDouble(getPrepare(sharedConn));
     getDouble(getPrepare(sharedConnBinary));
   }
 
-  public void getDouble(ResultSet rs) throws SQLException {
+  void getDouble(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDouble(1),
@@ -324,17 +324,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getBigDecimal() throws SQLException {
+  void getBigDecimal() throws SQLException {
     getBigDecimal(get());
   }
 
   @Test
-  public void getBigDecimalPrepare() throws SQLException {
+  void getBigDecimalPrepare() throws SQLException {
     getBigDecimal(getPrepare(sharedConn));
     getBigDecimal(getPrepare(sharedConnBinary));
   }
 
-  public void getBigDecimal(ResultSet rs) throws SQLException {
+  void getBigDecimal(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigDecimal(1),
@@ -343,12 +343,12 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getBigIntegerPrepare() throws SQLException {
+  void getBigIntegerPrepare() throws SQLException {
     getBigInteger(getPrepare(sharedConn));
     getBigInteger(getPrepare(sharedConnBinary));
   }
 
-  public void getBigInteger(CompleteResult rs) {
+  void getBigInteger(CompleteResult rs) {
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigInteger(1),
@@ -357,17 +357,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getDuration() throws SQLException {
+  void getDuration() throws SQLException {
     getDuration(get());
   }
 
   @Test
-  public void getDurationPrepare() throws SQLException {
+  void getDurationPrepare() throws SQLException {
     getDuration(getPrepare(sharedConn));
     getDuration(getPrepare(sharedConnBinary));
   }
 
-  public void getDuration(ResultSet rs) {
+  void getDuration(ResultSet rs) {
     Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, Duration.class),
@@ -375,51 +375,51 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getDate() throws SQLException {
+  void getDate() throws SQLException {
     getDate(get());
   }
 
   @Test
-  public void getDatePrepare() throws SQLException {
+  void getDatePrepare() throws SQLException {
     getDate(getPrepare(sharedConn));
     getDate(getPrepare(sharedConnBinary));
   }
 
-  public void getDate(ResultSet rs) throws SQLException {
+  void getDate(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getDate(1), "Data type BLOB cannot be decoded as Date");
     assertFalse(rs.wasNull());
   }
 
   @Test
-  public void getTime() throws SQLException {
+  void getTime() throws SQLException {
     getTime(get());
   }
 
   @Test
-  public void getTimePrepare() throws SQLException {
+  void getTimePrepare() throws SQLException {
     getTime(getPrepare(sharedConn));
     getTime(getPrepare(sharedConnBinary));
   }
 
-  public void getTime(ResultSet rs) throws SQLException {
+  void getTime(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getTime(1), "Data type BLOB cannot be decoded as Time");
     assertFalse(rs.wasNull());
   }
 
   @Test
-  public void getTimestamp() throws SQLException {
+  void getTimestamp() throws SQLException {
     getTimestamp(get());
   }
 
   @Test
-  public void getTimestampPrepare() throws SQLException {
+  void getTimestampPrepare() throws SQLException {
     getTimestamp(getPrepare(sharedConn));
     getTimestamp(getPrepare(sharedConnBinary));
   }
 
-  public void getTimestamp(ResultSet rs) throws SQLException {
+  void getTimestamp(ResultSet rs) throws SQLException {
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
@@ -428,17 +428,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getOffsetDateTime() throws SQLException {
+  void getOffsetDateTime() throws SQLException {
     getOffsetDateTime(get());
   }
 
   @Test
-  public void getOffsetDateTimePrepare() throws SQLException {
+  void getOffsetDateTimePrepare() throws SQLException {
     getOffsetDateTime(getPrepare(sharedConn));
     getOffsetDateTime(getPrepare(sharedConnBinary));
   }
 
-  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+  void getOffsetDateTime(ResultSet rs) {
     Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, OffsetDateTime.class),
@@ -446,17 +446,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getAsciiStream() throws Exception {
+  void getAsciiStream() throws Exception {
     getAsciiStream(get());
   }
 
   @Test
-  public void getAsciiStreamPrepare() throws Exception {
+  void getAsciiStreamPrepare() throws Exception {
     getAsciiStream(getPrepare(sharedConn));
     getAsciiStream(getPrepare(sharedConnBinary));
   }
 
-  public void getAsciiStream(ResultSet rs) throws Exception {
+  void getAsciiStream(ResultSet rs) throws Exception {
     assertStreamEquals(new ByteArrayInputStream("0".getBytes()), rs.getAsciiStream(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getAsciiStream(2));
@@ -470,18 +470,18 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getUnicodeStream() throws Exception {
+  void getUnicodeStream() throws Exception {
     getUnicodeStream(get());
   }
 
   @Test
-  public void getUnicodeStreamPrepare() throws Exception {
+  void getUnicodeStreamPrepare() throws Exception {
     getUnicodeStream(getPrepare(sharedConn));
     getUnicodeStream(getPrepare(sharedConnBinary));
   }
 
   @SuppressWarnings("deprecation")
-  public void getUnicodeStream(ResultSet rs) throws Exception {
+  void getUnicodeStream(ResultSet rs) throws Exception {
     assertStreamEquals(new ByteArrayInputStream("0".getBytes()), rs.getUnicodeStream(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getUnicodeStream(2));
@@ -496,17 +496,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getBinaryStream() throws Exception {
+  void getBinaryStream() throws Exception {
     getBinaryStream(get());
   }
 
   @Test
-  public void getBinaryStreamPrepare() throws Exception {
+  void getBinaryStreamPrepare() throws Exception {
     getBinaryStream(getPrepare(sharedConn));
     getBinaryStream(getPrepare(sharedConnBinary));
   }
 
-  public void getBinaryStream(ResultSet rs) throws Exception {
+  void getBinaryStream(ResultSet rs) throws Exception {
     assertStreamEquals(new ByteArrayInputStream("0".getBytes()), rs.getBinaryStream(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getBinaryStream(2));
@@ -520,17 +520,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getBytes() throws Exception {
+  void getBytes() throws Exception {
     getBytes(get());
   }
 
   @Test
-  public void getBytesPrepare() throws Exception {
+  void getBytesPrepare() throws Exception {
     getBytes(getPrepare(sharedConn));
     getBytes(getPrepare(sharedConnBinary));
   }
 
-  public void getBytes(ResultSet rs) throws Exception {
+  void getBytes(ResultSet rs) throws Exception {
     assertArrayEquals("0".getBytes(), rs.getBytes(1));
     assertFalse(rs.wasNull());
     assertArrayEquals("1".getBytes(), rs.getBytes(2));
@@ -543,17 +543,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getCharacterStream() throws Exception {
+  void getCharacterStream() throws Exception {
     getCharacterStream(get());
   }
 
   @Test
-  public void getCharacterStreamPrepare() throws Exception {
+  void getCharacterStreamPrepare() throws Exception {
     getCharacterStream(getPrepare(sharedConn));
     getCharacterStream(getPrepare(sharedConnBinary));
   }
 
-  public void getCharacterStream(ResultSet rs) throws Exception {
+  void getCharacterStream(ResultSet rs) throws Exception {
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
@@ -562,17 +562,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getNCharacterStream() throws Exception {
+  void getNCharacterStream() throws Exception {
     getNCharacterStream(get());
   }
 
   @Test
-  public void getNCharacterStreamPrepare() throws Exception {
+  void getNCharacterStreamPrepare() throws Exception {
     getNCharacterStream(getPrepare(sharedConn));
     getNCharacterStream(getPrepare(sharedConnBinary));
   }
 
-  public void getNCharacterStream(ResultSet rs) throws Exception {
+  void getNCharacterStream(ResultSet rs) throws Exception {
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
@@ -581,17 +581,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getBlob() throws Exception {
+  void getBlob() throws Exception {
     getBlob(get());
   }
 
   @Test
-  public void getBlobPrepare() throws Exception {
+  void getBlobPrepare() throws Exception {
     getBlob(getPrepare(sharedConn));
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) throws Exception {
+  void getBlob(ResultSet rs) throws Exception {
     assertStreamEquals(new MariaDbBlob("0".getBytes()), rs.getBlob(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob(2));
@@ -604,41 +604,41 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getClob() throws Exception {
+  void getClob() throws Exception {
     getClob(get());
   }
 
   @Test
-  public void getClobPrepare() throws Exception {
+  void getClobPrepare() throws Exception {
     getClob(getPrepare(sharedConn));
     getClob(getPrepare(sharedConnBinary));
   }
 
-  public void getClob(ResultSet rs) throws Exception {
+  void getClob(ResultSet rs) throws Exception {
     Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getClob(1), "Data type BLOB cannot be decoded as Clob");
     assertFalse(rs.wasNull());
   }
 
   @Test
-  public void getNClob() throws Exception {
+  void getNClob() throws Exception {
     getNClob(get());
   }
 
   @Test
-  public void getNClobPrepare() throws Exception {
+  void getNClobPrepare() throws Exception {
     getNClob(getPrepare(sharedConn));
     getNClob(getPrepare(sharedConnBinary));
   }
 
-  public void getNClob(ResultSet rs) throws Exception {
+  void getNClob(ResultSet rs) throws Exception {
     Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getNClob(1), "Data type BLOB cannot be decoded as Clob");
     assertFalse(rs.wasNull());
   }
 
   @Test
-  public void getMetaData() throws SQLException {
+  void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("TINYBLOB", meta.getColumnTypeName(1));
@@ -655,7 +655,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void sendParam() throws Exception {
+  void sendParam() throws Exception {
     sendParam(sharedConn);
     sendParam(sharedConnBinary);
 
@@ -1057,10 +1057,14 @@ public class BlobCodecTest extends CommonCodecTest {
     }
 
     @Override
-    public void truncate(long l) {}
+    public void truncate(long l) {
+      throw new UnsupportedOperationException("notImplemented()");
+    }
 
     @Override
-    public void free() {}
+    public void free() {
+      throw new UnsupportedOperationException("notImplemented()");
+    }
 
     @Override
     public InputStream getBinaryStream(long l, long l1) {

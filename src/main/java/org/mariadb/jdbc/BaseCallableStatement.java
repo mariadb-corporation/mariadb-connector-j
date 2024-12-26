@@ -14,7 +14,6 @@ import java.util.*;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.codec.Parameter;
-import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.util.ParameterList;
 
 /** Common methods for function/stored procedure */
@@ -44,23 +43,17 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * @param lock thread safe lock
    * @param databaseName database name
    * @param procedureName procedure name
-   * @param canUseServerTimeout indicate if server support server timeout
-   * @param canUseServerMaxRows indicate if server support server max rows
-   * @param canCachePrepStmts can cache server prepared result
    * @param resultSetType resultset type
    * @param resultSetConcurrency resultset concurrency
    * @param defaultFetchSize default fetch size
    * @throws SQLException if prepare fails
    */
-  public BaseCallableStatement(
+  protected BaseCallableStatement(
       String sql,
       Connection con,
       ClosableLock lock,
       String databaseName,
       String procedureName,
-      boolean canUseServerTimeout,
-      boolean canUseServerMaxRows,
-      boolean canCachePrepStmts,
       int resultSetType,
       int resultSetConcurrency,
       int defaultFetchSize)
@@ -69,9 +62,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         sql,
         con,
         lock,
-        canUseServerTimeout,
-        canUseServerMaxRows,
-        canCachePrepStmts,
         Statement.RETURN_GENERATED_KEYS,
         resultSetType,
         resultSetConcurrency,
@@ -2083,10 +2073,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     throw exceptionFactory().notSupported("SQLXML are not supported");
   }
 
-  private ExceptionFactory exceptionFactory() {
-    return con.getExceptionFactory().of(this);
-  }
-
   /**
    * Retrieves the value of the designated <code>NCHAR</code>, <code>NVARCHAR</code> or <code>
    * LONGNVARCHAR</code> parameter as a <code>String</code> in the Java programming language.
@@ -2816,8 +2802,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
                 + "ORDER BY ORDINAL_POSITION",
             con,
             lock,
-            false,
-            false,
             Statement.NO_GENERATED_KEYS,
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY,

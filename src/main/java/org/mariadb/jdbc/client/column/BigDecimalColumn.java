@@ -82,6 +82,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
     return "DECIMAL UNSIGNED";
   }
 
+  @Override
   public int getPrecision() {
     // DECIMAL and OLDDECIMAL are  "exact" fixed-point number.
     // so :

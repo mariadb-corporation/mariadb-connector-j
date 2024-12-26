@@ -138,14 +138,14 @@ public class BigIntegerCodec implements Codec<BigInteger> {
         if (!column.isSigned()) {
           return BigInteger.valueOf(buf.readUnsignedByte());
         }
-        return BigInteger.valueOf((int) buf.readByte());
+        return BigInteger.valueOf(buf.readByte());
 
       case YEAR:
       case SMALLINT:
         if (!column.isSigned()) {
           return BigInteger.valueOf(buf.readUnsignedShort());
         }
-        return BigInteger.valueOf((int) buf.readShort());
+        return BigInteger.valueOf(buf.readShort());
 
       case MEDIUMINT:
         if (!column.isSigned()) {

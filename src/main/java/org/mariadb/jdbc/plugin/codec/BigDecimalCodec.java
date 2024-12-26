@@ -144,14 +144,14 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         if (!column.isSigned()) {
           return BigDecimal.valueOf(buf.readUnsignedByte());
         }
-        return BigDecimal.valueOf((int) buf.readByte());
+        return BigDecimal.valueOf(buf.readByte());
 
       case YEAR:
       case SMALLINT:
         if (!column.isSigned()) {
           return BigDecimal.valueOf(buf.readUnsignedShort());
         }
-        return BigDecimal.valueOf((int) buf.readShort());
+        return BigDecimal.valueOf(buf.readShort());
 
       case MEDIUMINT:
         if (!column.isSigned()) {

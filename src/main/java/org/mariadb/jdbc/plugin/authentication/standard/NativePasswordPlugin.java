@@ -64,7 +64,7 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
       return returnBytes;
 
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("Could not use SHA-1, failing", e);
+      throw new IllegalStateException("Could not use SHA-1, failing", e);
     }
   }
 
@@ -121,7 +121,7 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
       messageDigestSHA1.reset();
       return stage2;
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("Could not use SHA-1, failing", e);
+      throw new IllegalStateException("Could not use SHA-1, failing", e);
     }
   }
 }

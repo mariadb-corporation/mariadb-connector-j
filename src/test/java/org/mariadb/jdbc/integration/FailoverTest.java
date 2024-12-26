@@ -289,11 +289,12 @@ public class FailoverTest extends Common {
         try {
           p.executeBatch();
           Assertions.fail();
-        } catch (SQLException e) {
-          SQLException ee = (SQLException) ((e instanceof BatchUpdateException) ? e.getCause() : e);
-          assertEquals(ee.getMessage(), e.getMessage());
-          assertEquals(ee.getSQLState(), e.getSQLState());
-          assertEquals(ee.getErrorCode(), e.getErrorCode());
+        } catch (BatchUpdateException e) {
+          assertEquals(e.getCause().getMessage(), e.getMessage());
+          assertEquals(((SQLException) e.getCause()).getSQLState(), e.getSQLState());
+          assertEquals(((SQLException) e.getCause()).getErrorCode(), e.getErrorCode());
+          assertTrue(e.getCause().getMessage().contains("In progress transaction was lost"));
+        } catch (SQLException ee) {
           assertTrue(ee.getMessage().contains("In progress transaction was lost"));
         }
       }
@@ -331,9 +332,10 @@ public class FailoverTest extends Common {
         try {
           p.executeBatch();
           Assertions.fail();
+        } catch (BatchUpdateException be) {
+          assertTrue(be.getCause().getMessage().contains("In progress transaction was lost"));
         } catch (SQLException e) {
-          Throwable ee = (e instanceof BatchUpdateException) ? e.getCause() : e;
-          assertTrue(ee.getMessage().contains("In progress transaction was lost"));
+          assertTrue(e.getMessage().contains("In progress transaction was lost"));
         }
       }
     }

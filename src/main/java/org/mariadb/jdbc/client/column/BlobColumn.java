@@ -54,6 +54,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
     super(prev);
   }
 
+  @Override
   public int getDisplaySize() {
     if (charset != 63) {
       Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
@@ -68,10 +69,12 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
     return new BlobColumn(this);
   }
 
+  @Override
   public String defaultClassname(final Configuration conf) {
     return isBinary() ? Blob.class.getName() : String.class.getName();
   }
 
+  @Override
   public int getColumnType(final Configuration conf) {
     if (columnLength <= 0 || getDisplaySize() > 16777215) {
       return isBinary() ? Types.LONGVARBINARY : Types.LONGVARCHAR;
@@ -83,6 +86,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
     }
   }
 
+  @Override
   public String getColumnTypeName(final Configuration conf) {
     /*
      map to different blob types based on datatype length
@@ -118,6 +122,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
     }
   }
 
+  @Override
   public int getPrecision() {
     if (!isBinary()) {
       Integer maxWidth2 = CharsetEncodingLength.maxCharlen.get(charset);
@@ -287,12 +292,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   @Override
   public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-    if (isBinary()) {
-      buf.skip(length.get());
-      throw new SQLDataException(
-          String.format("Data type %s cannot be decoded as Float", dataType));
-    }
-    return super.decodeFloatText(buf, length);
+    return this.decodeFloatText(buf, length);
   }
 
   @Override

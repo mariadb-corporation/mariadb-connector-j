@@ -2099,12 +2099,10 @@ public class DatabaseMetadataTest extends Common {
       checkType(columnName, type, "text_col", Types.LONGVARCHAR);
       checkType(columnName, type, "mediumtext_col", Types.LONGVARCHAR);
       checkType(columnName, type, "longtext_col", Types.LONGVARCHAR);
-      if (isMariaDBServer()) {
-        if (minVersion(10, 7, 0)) {
-          checkType(columnName, type, "uuid_col", Types.OTHER);
-          if (minVersion(11, 7, 2)) {
-            checkType(columnName, type, "vector_col", Types.LONGVARBINARY);
-          }
+      if (isMariaDBServer() && minVersion(10, 7, 0)) {
+        checkType(columnName, type, "uuid_col", Types.OTHER);
+        if (minVersion(11, 7, 2)) {
+          checkType(columnName, type, "vector_col", Types.LONGVARBINARY);
         }
       }
     }

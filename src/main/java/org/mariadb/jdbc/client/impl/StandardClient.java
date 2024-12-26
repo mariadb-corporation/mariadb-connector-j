@@ -384,7 +384,7 @@ public class StandardClient implements Client, AutoCloseable {
       return hashHex.equals(serverValidationHex);
 
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("SHA-256 MessageDigest expected to be not available", e);
+      throw new IllegalStateException("SHA-256 MessageDigest expected to be not available", e);
     }
   }
 
@@ -857,22 +857,21 @@ public class StandardClient implements Client, AutoCloseable {
         logger.debug("execute query: {}", message.description());
       }
       return message.encode(writer, context);
-    } catch (IOException ioException) {
-      if (ioException instanceof MaxAllowedPacketException) {
-        if (((MaxAllowedPacketException) ioException).isMustReconnect()) {
-          destroySocket();
-          throw exceptionFactory
-              .withSql(message.description())
-              .create(
-                  "Packet too big for current server max_allowed_packet value",
-                  "08000",
-                  ioException);
-        }
+    } catch (MaxAllowedPacketException maxException) {
+      if (maxException.isMustReconnect()) {
+        destroySocket();
         throw exceptionFactory
             .withSql(message.description())
             .create(
-                "Packet too big for current server max_allowed_packet value", "HZ000", ioException);
+                "Packet too big for current server max_allowed_packet value",
+                "08000",
+                maxException);
       }
+      throw exceptionFactory
+          .withSql(message.description())
+          .create(
+              "Packet too big for current server max_allowed_packet value", "HZ000", maxException);
+    } catch (IOException ioException) {
       destroySocket();
       throw exceptionFactory
           .withSql(message.description())
@@ -1263,16 +1262,16 @@ public class StandardClient implements Client, AutoCloseable {
         streamMsg = message;
       }
       return completion;
+    } catch (SocketTimeoutException ste) {
+      destroySocket();
+      throw exceptionFactory
+          .withSql(message.description())
+          .create("Socket timout error", "08000", ste);
     } catch (IOException ioException) {
       destroySocket();
       throw exceptionFactory
           .withSql(message.description())
-          .create(
-              ioException instanceof SocketTimeoutException
-                  ? "Socket timout error"
-                  : "Socket error",
-              "08000",
-              ioException);
+          .create("Socket error", "08000", ioException);
     }
   }
 

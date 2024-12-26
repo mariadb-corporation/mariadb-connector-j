@@ -245,16 +245,15 @@ public class MultiPrimaryClient implements Client {
   public void syncNewState(Client oldCli) throws SQLException {
     Context oldCtx = oldCli.getContext();
     currentClient.getExceptionFactory().setConnection(oldCli.getExceptionFactory());
-    if ((oldCtx.getStateFlag() & ConnectionState.STATE_AUTOCOMMIT) > 0) {
-      if ((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT)
-          != (currentClient.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT)) {
-        currentClient.getContext().addStateFlag(ConnectionState.STATE_AUTOCOMMIT);
-        currentClient.execute(
-            new QueryPacket(
-                "set autocommit="
-                    + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0")),
-            true);
-      }
+    if ((oldCtx.getStateFlag() & ConnectionState.STATE_AUTOCOMMIT) > 0
+        && (oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT)
+            != (currentClient.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT)) {
+      currentClient.getContext().addStateFlag(ConnectionState.STATE_AUTOCOMMIT);
+      currentClient.execute(
+          new QueryPacket(
+              "set autocommit="
+                  + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0")),
+          true);
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_DATABASE) > 0

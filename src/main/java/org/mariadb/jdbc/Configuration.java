@@ -616,15 +616,13 @@ public class Configuration {
     // *************************************************************
     // timezone verification
     // *************************************************************
-    if (this.timezone != null) {
-      if (this.connectionTimeZone == null) {
-        if ("disable".equalsIgnoreCase(this.timezone)) {
-          this.forceConnectionTimeZoneToSession = false;
-        } else {
-          this.forceConnectionTimeZoneToSession = true;
-          if (!"auto".equalsIgnoreCase(this.timezone)) {
-            this.connectionTimeZone = this.timezone;
-          }
+    if (this.timezone != null && this.connectionTimeZone == null) {
+      if ("disable".equalsIgnoreCase(this.timezone)) {
+        this.forceConnectionTimeZoneToSession = false;
+      } else {
+        this.forceConnectionTimeZoneToSession = true;
+        if (!"auto".equalsIgnoreCase(this.timezone)) {
+          this.connectionTimeZone = this.timezone;
         }
       }
     }

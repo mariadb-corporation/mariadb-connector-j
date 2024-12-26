@@ -79,6 +79,7 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
     return "BIT";
   }
 
+  @Override
   public int getPrecision() {
     return (int) columnLength;
   }

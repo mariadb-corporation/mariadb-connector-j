@@ -77,7 +77,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       }
       return returnBytes;
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("Could not use SHA-256, failing", e);
+      throw new IllegalStateException("Could not use SHA-256, failing", e);
     }
   }
 

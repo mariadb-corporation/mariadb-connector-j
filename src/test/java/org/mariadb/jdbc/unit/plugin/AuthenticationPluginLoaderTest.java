@@ -13,10 +13,10 @@ import org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPluginFactory;
 
-public class AuthenticationPluginLoaderTest extends Common {
+class AuthenticationPluginLoaderTest extends Common {
 
   @Test
-  public void authenticationPluginLoaderTest() throws SQLException {
+  void authenticationPluginLoaderTest() throws SQLException {
     Configuration conf = Configuration.parse("jdbc:mariadb://localhost/");
     AuthenticationPluginFactory authenticationPluginFactory =
         AuthenticationPluginLoader.get("mysql_native_password", conf);

@@ -113,17 +113,15 @@ public final class NativeSql {
           break;
 
         case '}':
-          if (state == ClientParser.LexState.Normal) {
-            if (inEscape) {
-              escapeIdx--;
+          if (state == ClientParser.LexState.Normal && inEscape) {
+            escapeIdx--;
 
-              if (escapeIdx == 0) {
-                String str = sql.substring(lastEscapePart, idx + 1);
-                String escapedSeq = resolveEscapes(str, context);
-                sb.append(escapedSeq);
-                inEscape = false;
-                continue;
-              }
+            if (escapeIdx == 0) {
+              String str = sql.substring(lastEscapePart, idx + 1);
+              String escapedSeq = resolveEscapes(str, context);
+              sb.append(escapedSeq);
+              inEscape = false;
+              continue;
             }
           }
           break;

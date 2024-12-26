@@ -14,7 +14,6 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.impl.ConnectionHelper;
 import org.mariadb.jdbc.client.socket.impl.SocketUtility;
 import org.mariadb.jdbc.export.HaMode;
-import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.pool.Pools;
@@ -40,7 +39,6 @@ public class HaModeTest {
     new Security();
     new OptionAliases();
     new CredentialPluginLoader();
-    new AuthenticationPluginLoader();
     new TlsSocketPluginLoader();
     new LoggerHelper();
     new ConnectionHelper();

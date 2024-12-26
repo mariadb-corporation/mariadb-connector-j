@@ -45,22 +45,17 @@ public class ReplayClient extends StandardClient {
       if (message instanceof RedoableClientMessage)
         ((RedoableClientMessage) message).ensureReplayable(context);
       return message.encode(writer, context);
-    } catch (IOException ioException) {
-      if (ioException instanceof MaxAllowedPacketException) {
-        if (((MaxAllowedPacketException) ioException).isMustReconnect()) {
-          destroySocket();
-          throw exceptionFactory
-              .withSql(message.description())
-              .create(
-                  "Packet too big for current server max_allowed_packet value",
-                  "08000",
-                  ioException);
-        }
+    } catch (MaxAllowedPacketException maxE) {
+      if (maxE.isMustReconnect()) {
+        destroySocket();
         throw exceptionFactory
             .withSql(message.description())
-            .create(
-                "Packet too big for current server max_allowed_packet value", "HZ000", ioException);
+            .create("Packet too big for current server max_allowed_packet value", "08000", maxE);
       }
+      throw exceptionFactory
+          .withSql(message.description())
+          .create("Packet too big for current server max_allowed_packet value", "HZ000", maxE);
+    } catch (IOException ioException) {
       destroySocket();
       throw exceptionFactory
           .withSql(message.description())

@@ -151,7 +151,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       return elementAarray;
 
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("Could not use SHA-512, failing", e);
+      throw new IllegalStateException("Could not use SHA-512, failing", e);
     }
   }
 }

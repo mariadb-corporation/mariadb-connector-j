@@ -12,6 +12,7 @@ import org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
 
 /** permit loading authentication plugins */
 public final class AuthenticationPluginLoader {
+  private AuthenticationPluginLoader() {}
 
   /**
    * Get authentication plugin from type String. Customs authentication plugin can be added

@@ -59,7 +59,7 @@ public class Common {
           className = "org.mariadb.jdbc.Driver";
           break;
         default:
-          throw new RuntimeException("wrong param");
+          throw new Exception("wrong param");
       }
       try {
         String jdbcBase =
@@ -127,7 +127,7 @@ public class Common {
                 .connect(jdbcUrlBinaryNoCacheNoPipeline, new Properties());
       } catch (SQLException e) {
         e.printStackTrace();
-        throw new RuntimeException(e);
+        throw new Exception(e);
       }
     }
 

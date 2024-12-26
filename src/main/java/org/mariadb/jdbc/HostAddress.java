@@ -256,8 +256,7 @@ public class HostAddress {
   public String toString() {
     if (pipe != null) return String.format("address=(pipe=%s)", pipe);
     if (localSocket != null) return String.format("address=(localSocket=%s)", localSocket);
-    if (sslMode == null && sslMode == null && primary != Boolean.FALSE)
-      return port != 3306 ? host + ":" + port : host;
+    if (sslMode == null && primary != Boolean.FALSE) return port != 3306 ? host + ":" + port : host;
     return String.format(
         "address=(host=%s)%s%s%s",
         host,
