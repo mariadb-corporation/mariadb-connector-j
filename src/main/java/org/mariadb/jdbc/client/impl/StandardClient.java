@@ -29,7 +29,6 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
@@ -778,110 +777,159 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   /**
-   * Create session variable if configuration requires additional commands.
+   * Creates a query string for setting session variables based on context and configuration.
    *
-   * @param context context
-   * @return sql setting session command
+   * @param context the connection context
+   * @return query string for setting session variables, or null if no variables need to be set
    */
   public String createSessionVariableQuery(Context context) {
     List<String> sessionCommands = new ArrayList<>();
 
-    // In JDBC, connection must start in autocommit mode
-    boolean canRelyOnConnectionFlag =
-        context.getVersion().isMariaDBServer()
-            && (context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 4, 33)
-                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 5, 24)
-                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 6, 17)
-                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 11, 7)
-                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 0, 5)
-                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 1, 4)
-                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 2, 3));
-    if ((conf.autocommit() == null && (context.getServerStatus() & ServerStatus.AUTOCOMMIT) == 0)
+    addAutoCommitCommand(context, sessionCommands);
+    addTruncationCommand(sessionCommands);
+    addSessionTrackingCommand(context, sessionCommands);
+    addTimeZoneCommand(context, sessionCommands);
+    addTransactionIsolationCommand(context, sessionCommands);
+    addReadOnlyCommand(context, sessionCommands);
+    addCharsetCommand(context, sessionCommands);
+    addCustomSessionVariables(sessionCommands);
+
+    return buildFinalQuery(sessionCommands);
+  }
+
+  private void addAutoCommitCommand(Context context, List<String> commands) {
+    boolean canRelyOnConnectionFlag = isReliableConnectionFlag(context);
+
+    if (isAutoCommitUpdateRequired(context, canRelyOnConnectionFlag)) {
+      boolean autoCommitValue = conf.autocommit() == null || conf.autocommit();
+      commands.add("autocommit=" + (autoCommitValue ? "1" : "0"));
+    }
+  }
+
+  private boolean isReliableConnectionFlag(Context context) {
+    return context.getVersion().isMariaDBServer()
+        && (context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 4, 33)
+            || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 5, 24)
+            || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 6, 17)
+            || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 11, 7)
+            || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 0, 5)
+            || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 1, 4)
+            || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 2, 3));
+  }
+
+  private boolean isAutoCommitUpdateRequired(Context context, boolean canRelyOnConnectionFlag) {
+    return (conf.autocommit() == null && (context.getServerStatus() & ServerStatus.AUTOCOMMIT) == 0)
         || (conf.autocommit() != null && !canRelyOnConnectionFlag)
         || (conf.autocommit() != null
             && canRelyOnConnectionFlag
-            && ((context.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) != conf.autocommit())) {
-      sessionCommands.add(
-          "autocommit=" + ((conf.autocommit() == null || conf.autocommit()) ? "1" : "0"));
-    }
+            && ((context.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) != conf.autocommit());
+  }
 
+  private void addTruncationCommand(List<String> commands) {
     if (conf.jdbcCompliantTruncation()) {
-      sessionCommands.add("sql_mode=CONCAT(@@sql_mode,',STRICT_TRANS_TABLES')");
+      commands.add("sql_mode=CONCAT(@@sql_mode,',STRICT_TRANS_TABLES')");
+    }
+  }
+
+  private void addSessionTrackingCommand(Context context, List<String> commands) {
+    if (!isSessionTrackingSupported(context)) {
+      return;
     }
 
-    if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
+    StringBuilder concatValues =
+        new StringBuilder(",")
+            .append(
+                context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
+
+    if (conf.returnMultiValuesGeneratedIds()) {
+      concatValues.append(",auto_increment_increment");
+    }
+
+    commands.add(
+        "session_track_system_variables = CONCAT(@@global.session_track_system_variables,'"
+            + concatValues
+            + "')");
+  }
+
+  private boolean isSessionTrackingSupported(Context context) {
+    return context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
         && ((context.getVersion().isMariaDBServer()
                 && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
-            || context.getVersion().versionGreaterOrEqual(5, 7, 0))) {
-      String concatValues =
-          "," + (context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
-      if (conf.returnMultiValuesGeneratedIds()) concatValues += ",auto_increment_increment";
-      sessionCommands.add(
-          "session_track_system_variables ="
-              + " CONCAT(@@global.session_track_system_variables,'"
-              + concatValues
-              + "')");
+            || context.getVersion().versionGreaterOrEqual(5, 7, 0));
+  }
+
+  private void addTimeZoneCommand(Context context, List<String> commands) {
+    if (!Boolean.TRUE.equals(conf.forceConnectionTimeZoneToSession())) {
+      return;
     }
 
-    // force client timezone to connection to ensure result of now(), ...
-    if (Boolean.TRUE.equals(conf.forceConnectionTimeZoneToSession())) {
-      TimeZone connectionTz = context.getConnectionTimeZone();
-      ZoneId connectionZoneId = connectionTz.toZoneId();
+    TimeZone connectionTz = context.getConnectionTimeZone();
+    ZoneId connectionZoneId = connectionTz.toZoneId();
 
-      // try to avoid timezone consideration if server use the same one
-      if (!connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
-        if (connectionZoneId.getRules().isFixedOffset()) {
-          ZoneOffset zoneOffset = connectionZoneId.getRules().getOffset(Instant.now());
-          if (zoneOffset.getTotalSeconds() == 0) {
-            // specific for UTC timezone, server permitting only SYSTEM/UTC offset or named time
-            // zone
-            // not 'UTC'/'Z'
-            sessionCommands.add("time_zone='+00:00'");
-          } else {
-            sessionCommands.add("time_zone='" + zoneOffset.getId() + "'");
-          }
-        } else {
-          sessionCommands.add("time_zone='" + connectionZoneId.normalized() + "'");
-        }
-      }
+    if (connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
+      return;
     }
 
+    if (connectionZoneId.getRules().isFixedOffset()) {
+      addFixedOffsetTimeZone(connectionZoneId, commands);
+    } else {
+      commands.add("time_zone='" + connectionZoneId.normalized() + "'");
+    }
+  }
+
+  private void addFixedOffsetTimeZone(ZoneId connectionZoneId, List<String> commands) {
+    ZoneOffset zoneOffset = connectionZoneId.getRules().getOffset(Instant.now());
+    if (zoneOffset.getTotalSeconds() == 0) {
+      commands.add("time_zone='+00:00'");
+    } else {
+      commands.add("time_zone='" + zoneOffset.getId() + "'");
+    }
+  }
+
+  private void addTransactionIsolationCommand(Context context, List<String> commands) {
     if (conf.transactionIsolation() != null) {
-      sessionCommands.add(
+      String isolationVariable =
+          context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation";
+      commands.add(
           String.format(
-              "@@session.%s='%s'",
-              context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation",
-              conf.transactionIsolation().getValue()));
+              "@@session.%s='%s'", isolationVariable, conf.transactionIsolation().getValue()));
     }
+  }
 
+  private void addReadOnlyCommand(Context context, List<String> commands) {
     if (hostAddress != null
         && !hostAddress.primary
         && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      sessionCommands.add(
-          String.format(
-              "@@session.%s=1",
-              context.canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only"));
+      String readOnlyVariable =
+          context.canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only";
+      commands.add(String.format("@@session.%s=1", readOnlyVariable));
     }
+  }
 
-    if (context.getCharset() == null
-        || !"utf8mb4".equals(context.getCharset())
-        || conf.connectionCollation() != null) {
-      String defaultCharsetSet = "NAMES utf8mb4";
+  private void addCharsetCommand(Context context, List<String> commands) {
+    if (!isDefaultCharsetSufficient(context)) {
+      StringBuilder charsetCommand = new StringBuilder("NAMES utf8mb4");
       if (conf.connectionCollation() != null) {
-        defaultCharsetSet += " COLLATE " + conf.connectionCollation();
+        charsetCommand.append(" COLLATE ").append(conf.connectionCollation());
       }
-      sessionCommands.add(defaultCharsetSet);
+      commands.add(charsetCommand.toString());
     }
+  }
 
-    // add configured session variable if configured
+  private boolean isDefaultCharsetSufficient(Context context) {
+    return context.getCharset() != null
+        && "utf8mb4".equals(context.getCharset())
+        && conf.connectionCollation() == null;
+  }
+
+  private void addCustomSessionVariables(List<String> commands) {
     if (conf.sessionVariables() != null) {
-      sessionCommands.add(Security.parseSessionVariables(conf.sessionVariables()));
+      commands.add(Security.parseSessionVariables(conf.sessionVariables()));
     }
+  }
 
-    if (!sessionCommands.isEmpty()) {
-      return "set " + sessionCommands.stream().collect(Collectors.joining(","));
-    }
-    return null;
+  private String buildFinalQuery(List<String> commands) {
+    return commands.isEmpty() ? null : "set " + String.join(",", commands);
   }
 
   public void setReadOnly(boolean readOnly) throws SQLException {

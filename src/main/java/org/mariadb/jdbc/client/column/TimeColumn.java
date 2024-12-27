@@ -167,57 +167,69 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
   public String decodeStringBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
-    long tDays = 0;
-    int tHours = 0;
-    int tMinutes = 0;
-    int tSeconds = 0;
-    long tMicroseconds = 0;
+
     if (length.get() == 0) {
-      StringBuilder zeroValue = new StringBuilder("00:00:00");
-      if (getDecimals() > 0) {
-        zeroValue.append(".");
-        for (int i = 0; i < getDecimals(); i++) zeroValue.append("0");
-      }
-      return zeroValue.toString();
+      return createZeroTimeString();
     }
+
     boolean negate = buf.readByte() == 0x01;
+    long days = 0;
+    int hours = 0;
+    int minutes = 0;
+    int seconds = 0;
+    long microseconds = 0;
+
     if (length.get() > 4) {
-      tDays = buf.readUnsignedInt();
+      days = buf.readUnsignedInt();
       if (length.get() > 7) {
-        tHours = buf.readByte();
-        tMinutes = buf.readByte();
-        tSeconds = buf.readByte();
+        hours = buf.readByte();
+        minutes = buf.readByte();
+        seconds = buf.readByte();
         if (length.get() > 8) {
-          tMicroseconds = buf.readInt();
+          microseconds = buf.readInt();
         }
       }
     }
-    int totalHour = (int) (tDays * 24 + tHours);
-    String stTime =
-        (negate ? "-" : "")
-            + (totalHour < 10 ? "0" : "")
-            + totalHour
-            + ":"
-            + (tMinutes < 10 ? "0" : "")
-            + tMinutes
-            + ":"
-            + (tSeconds < 10 ? "0" : "")
-            + tSeconds;
+
+    String timeString = formatBasicTimeString(negate, days, hours, minutes, seconds);
+
+    return formatWithMicroseconds(timeString, microseconds);
+  }
+
+  private String createZeroTimeString() {
+    StringBuilder zeroValue = new StringBuilder("00:00:00");
+    if (getDecimals() > 0) {
+      zeroValue.append(".").append("0".repeat(getDecimals()));
+    }
+    return zeroValue.toString();
+  }
+
+  private String formatBasicTimeString(
+      boolean negate, long days, int hours, int minutes, int seconds) {
+    int totalHours = (int) (days * 24 + hours);
+
+    return String.format("%s%02d:%02d:%02d", negate ? "-" : "", totalHours, minutes, seconds);
+  }
+
+  private String formatWithMicroseconds(String timeString, long microseconds) {
     if (getDecimals() == 0) {
-      if (tMicroseconds == 0) return stTime;
-      // possible for Xpand that doesn't send some metadata
-      // https://jira.mariadb.org/browse/XPT-273
-      StringBuilder stMicro = new StringBuilder(String.valueOf(tMicroseconds));
-      while (stMicro.length() < 6) {
-        stMicro.insert(0, "0");
+      if (microseconds == 0) {
+        return timeString;
       }
-      return stTime + "." + stMicro;
+      // Handle Xpand case that doesn't send some metadata
+      // https://jira.mariadb.org/browse/XPT-273
+      return timeString + "." + padZeros(microseconds, 6);
     }
-    StringBuilder stMicro = new StringBuilder(String.valueOf(tMicroseconds));
-    while (stMicro.length() < getDecimals()) {
-      stMicro.insert(0, "0");
+
+    return timeString + "." + padZeros(microseconds, getDecimals());
+  }
+
+  private String padZeros(long number, int targetLength) {
+    StringBuilder result = new StringBuilder(String.valueOf(number));
+    while (result.length() < targetLength) {
+      result.insert(0, "0");
     }
-    return stTime + "." + stMicro;
+    return result.toString();
   }
 
   @Override

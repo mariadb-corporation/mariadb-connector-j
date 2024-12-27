@@ -154,7 +154,8 @@ public class ErrorTest extends Common {
   public void connectionErrorFormat() throws SQLException {
     try {
       // Port 32760 should hopefully not have a MariaDB instance running on it.
-      DriverManager.getConnection("jdbc:mariadb://localhost:32760/db");
+      DriverManager.getConnection(
+          "jdbc:mariadb://localhost:32760/db", "user", System.getenv("somePwd"));
       fail("Must have thrown an error");
     } catch (SQLException e) {
       e.printStackTrace();

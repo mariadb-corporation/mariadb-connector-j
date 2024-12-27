@@ -83,74 +83,125 @@ public class MultiPrimaryClient implements Client {
    * @throws SQLException if not succeed to create a connection.
    */
   protected Client connectHost(boolean readOnly, boolean failFast) throws SQLException {
-
-    Optional<HostAddress> host;
-    SQLNonTransientConnectionException lastSqle = null;
     int maxRetries = conf.retriesAllDown();
 
-    while ((host = conf.haMode().getAvailableHost(conf.addresses(), denyList, !readOnly))
-            .isPresent()
-        && maxRetries > 0) {
-
-      try {
-        return conf.transactionReplay()
-            ? new ReplayClient(conf, host.get(), lock, false)
-            : new StandardClient(conf, host.get(), lock, false);
-      } catch (SQLNonTransientConnectionException sqle) {
-        lastSqle = sqle;
-        denyList.putIfAbsent(host.get(), System.currentTimeMillis() + deniedListTimeout);
-        maxRetries--;
+    // First try to connect to available hosts
+    try {
+      Client client = tryConnectToAvailableHost(readOnly, maxRetries);
+      if (client != null) {
+        return client;
+      }
+    } catch (SQLNonTransientConnectionException lastException) {
+      // Handle fail-fast scenario
+      if (failFast) {
+        throwFailFastException(lastException);
       }
     }
 
     if (failFast) {
-      throw (lastSqle != null)
-          ? lastSqle
-          : new SQLNonTransientConnectionException("all hosts are blacklisted");
+      throw new SQLNonTransientConnectionException("all hosts are blacklisted");
     }
 
-    // All server corresponding to type are in deny list
-    // return the one with lower denylist timeout
-    // (check that server is in conf, because denyList is shared for all instances)
-    if (denyList.entrySet().stream()
-        .noneMatch(e -> conf.addresses().contains(e.getKey()) && e.getKey().primary != readOnly))
-      throw new SQLNonTransientConnectionException(
-          String.format("No %s host defined", readOnly ? "replica" : "primary"));
-    while (maxRetries > 0) {
+    // Verify valid host configuration exists
+    validateHostConfiguration(readOnly);
+
+    // Try connecting to denied hosts as last resort
+    return tryConnectToDeniedHost(readOnly, maxRetries);
+  }
+
+  private Client tryConnectToAvailableHost(boolean readOnly, int retriesLeft) throws SQLException {
+    SQLNonTransientConnectionException lastException = null;
+    while (retriesLeft > 0) {
+      Optional<HostAddress> host =
+          conf.haMode().getAvailableHost(conf.addresses(), denyList, !readOnly);
+      if (!host.isPresent()) {
+        break;
+      }
+
       try {
-        host =
-            denyList.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue())
-                .filter(
-                    e -> conf.addresses().contains(e.getKey()) && e.getKey().primary != readOnly)
-                .findFirst()
-                .map(Map.Entry::getKey);
-        if (host.isPresent()) {
-          Client client =
-              conf.transactionReplay()
-                  ? new ReplayClient(conf, host.get(), lock, false)
-                  : new StandardClient(conf, host.get(), lock, false);
-          denyList.remove(host.get());
-          return client;
-        }
-        maxRetries--;
-      } catch (SQLNonTransientConnectionException sqle) {
-        lastSqle = sqle;
-        host.ifPresent(
-            hostAddress ->
-                denyList.putIfAbsent(hostAddress, System.currentTimeMillis() + deniedListTimeout));
-        maxRetries--;
-        if (maxRetries > 0) {
-          try {
-            // wait 250ms before looping through
-            Thread.sleep(250);
-          } catch (InterruptedException interrupted) {
-            // interrupted, continue
-          }
+        return createClient(host.get());
+      } catch (SQLNonTransientConnectionException e) {
+        lastException = e;
+        addToDenyList(host.get());
+        retriesLeft--;
+      }
+    }
+    if (lastException != null) throw lastException;
+    return null;
+  }
+
+  private Client tryConnectToDeniedHost(boolean readOnly, int retriesLeft) throws SQLException {
+    SQLNonTransientConnectionException lastException = null;
+
+    while (retriesLeft > 0) {
+      Optional<HostAddress> host = findHostWithLowestDenyTimeout(readOnly);
+      if (!host.isPresent()) {
+        retriesLeft--;
+        continue;
+      }
+
+      try {
+        Client client = createClient(host.get());
+        denyList.remove(host.get());
+        return client;
+      } catch (SQLNonTransientConnectionException e) {
+        lastException = e;
+        host.ifPresent(this::addToDenyList);
+        retriesLeft--;
+        if (retriesLeft > 0) {
+          sleepBeforeRetry();
         }
       }
     }
-    throw (lastSqle != null) ? lastSqle : new SQLNonTransientConnectionException("No host");
+
+    throw (lastException != null)
+        ? lastException
+        : new SQLNonTransientConnectionException("No host");
+  }
+
+  private Optional<HostAddress> findHostWithLowestDenyTimeout(boolean readOnly) {
+    return denyList.entrySet().stream()
+        .sorted(Map.Entry.comparingByValue())
+        .filter(e -> conf.addresses().contains(e.getKey()) && e.getKey().primary != readOnly)
+        .findFirst()
+        .map(Map.Entry::getKey);
+  }
+
+  private void validateHostConfiguration(boolean readOnly)
+      throws SQLNonTransientConnectionException {
+    boolean hasValidHost =
+        denyList.entrySet().stream()
+            .anyMatch(e -> conf.addresses().contains(e.getKey()) && e.getKey().primary != readOnly);
+
+    if (!hasValidHost) {
+      throw new SQLNonTransientConnectionException(
+          String.format("No %s host defined", readOnly ? "replica" : "primary"));
+    }
+  }
+
+  private void throwFailFastException(SQLNonTransientConnectionException lastException)
+      throws SQLException {
+    throw (lastException != null)
+        ? lastException
+        : new SQLNonTransientConnectionException("all hosts are blacklisted");
+  }
+
+  private Client createClient(HostAddress host) throws SQLException {
+    return conf.transactionReplay()
+        ? new ReplayClient(conf, host, lock, false)
+        : new StandardClient(conf, host, lock, false);
+  }
+
+  private void addToDenyList(HostAddress host) {
+    denyList.putIfAbsent(host, System.currentTimeMillis() + deniedListTimeout);
+  }
+
+  private void sleepBeforeRetry() {
+    try {
+      Thread.sleep(250);
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   /**
@@ -242,62 +293,108 @@ public class MultiPrimaryClient implements Client {
    * @param oldCli previous client
    * @throws SQLException if error occurs
    */
+  /**
+   * Synchronizes client states between previous and new clients.
+   *
+   * @param oldCli previous client instance
+   * @throws SQLException if synchronization error occurs
+   */
   public void syncNewState(Client oldCli) throws SQLException {
     Context oldCtx = oldCli.getContext();
+    syncExceptionFactory(oldCli);
+    syncAutoCommit(oldCtx);
+    syncDatabase(oldCtx);
+    syncNetworkTimeout(oldCtx, oldCli);
+    syncReadOnlyState(oldCtx);
+    syncTransactionIsolation(oldCtx);
+  }
+
+  private void syncExceptionFactory(Client oldCli) {
     currentClient.getExceptionFactory().setConnection(oldCli.getExceptionFactory());
-    if ((oldCtx.getStateFlag() & ConnectionState.STATE_AUTOCOMMIT) > 0
+  }
+
+  private void syncAutoCommit(Context oldCtx) throws SQLException {
+    if (!isAutoCommitSyncRequired(oldCtx)) {
+      return;
+    }
+
+    currentClient.getContext().addStateFlag(ConnectionState.STATE_AUTOCOMMIT);
+    String autoCommitValue = ((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0";
+    currentClient.execute(new QueryPacket("set autocommit=" + autoCommitValue), true);
+  }
+
+  private boolean isAutoCommitSyncRequired(Context oldCtx) {
+    return (oldCtx.getStateFlag() & ConnectionState.STATE_AUTOCOMMIT) > 0
         && (oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT)
-            != (currentClient.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT)) {
-      currentClient.getContext().addStateFlag(ConnectionState.STATE_AUTOCOMMIT);
-      currentClient.execute(
-          new QueryPacket(
-              "set autocommit="
-                  + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0")),
-          true);
+            != (currentClient.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT);
+  }
+
+  private void syncDatabase(Context oldCtx) throws SQLException {
+    if (!isDatabaseSyncRequired(oldCtx)) {
+      return;
     }
 
-    if ((oldCtx.getStateFlag() & ConnectionState.STATE_DATABASE) > 0
-        && !Objects.equals(currentClient.getContext().getDatabase(), oldCtx.getDatabase())) {
-      currentClient.getContext().addStateFlag(ConnectionState.STATE_DATABASE);
-      if (oldCtx.getDatabase() != null) {
-        currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()), true);
-      }
-      currentClient.getContext().setDatabase(oldCtx.getDatabase());
+    currentClient.getContext().addStateFlag(ConnectionState.STATE_DATABASE);
+    if (oldCtx.getDatabase() != null) {
+      currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()), true);
     }
+    currentClient.getContext().setDatabase(oldCtx.getDatabase());
+  }
 
+  private boolean isDatabaseSyncRequired(Context oldCtx) {
+    return (oldCtx.getStateFlag() & ConnectionState.STATE_DATABASE) > 0
+        && !Objects.equals(currentClient.getContext().getDatabase(), oldCtx.getDatabase());
+  }
+
+  private void syncNetworkTimeout(Context oldCtx, Client oldCli) throws SQLException {
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_NETWORK_TIMEOUT) > 0) {
       currentClient.setSocketTimeout(oldCli.getSocketTimeout());
     }
+  }
 
-    if ((oldCtx.getStateFlag() & ConnectionState.STATE_READ_ONLY) > 0
+  private void syncReadOnlyState(Context oldCtx) throws SQLException {
+    if (!isReadOnlySyncRequired(oldCtx)) {
+      return;
+    }
+    currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"), true);
+  }
+
+  private boolean isReadOnlySyncRequired(Context oldCtx) {
+    return (oldCtx.getStateFlag() & ConnectionState.STATE_READ_ONLY) > 0
         && !currentClient.getHostAddress().primary
-        && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"), true);
+        && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5);
+  }
+
+  private void syncTransactionIsolation(Context oldCtx) throws SQLException {
+    if (!isTransactionIsolationSyncRequired(oldCtx)) {
+      return;
     }
 
-    if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
+    String query = buildTransactionIsolationQuery(oldCtx.getTransactionIsolationLevel());
+    currentClient.getContext().setTransactionIsolationLevel(oldCtx.getTransactionIsolationLevel());
+    currentClient.execute(new QueryPacket(query), true);
+  }
+
+  private boolean isTransactionIsolationSyncRequired(Context oldCtx) {
+    return (oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
         && !oldCtx
             .getTransactionIsolationLevel()
-            .equals(currentClient.getContext().getTransactionIsolationLevel())) {
-      String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
-      switch (oldCtx.getTransactionIsolationLevel()) {
-        case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
-          query += " READ UNCOMMITTED";
-          break;
-        case java.sql.Connection.TRANSACTION_READ_COMMITTED:
-          query += " READ COMMITTED";
-          break;
-        case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
-          query += " REPEATABLE READ";
-          break;
-        case java.sql.Connection.TRANSACTION_SERIALIZABLE:
-          query += " SERIALIZABLE";
-          break;
-      }
-      currentClient
-          .getContext()
-          .setTransactionIsolationLevel(oldCtx.getTransactionIsolationLevel());
-      currentClient.execute(new QueryPacket(query), true);
+            .equals(currentClient.getContext().getTransactionIsolationLevel());
+  }
+
+  private String buildTransactionIsolationQuery(int isolationLevel) {
+    String baseQuery = "SET SESSION TRANSACTION ISOLATION LEVEL";
+    switch (isolationLevel) {
+      case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
+        return baseQuery + " READ UNCOMMITTED";
+      case java.sql.Connection.TRANSACTION_READ_COMMITTED:
+        return baseQuery + " READ COMMITTED";
+      case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
+        return baseQuery + " REPEATABLE READ";
+      case java.sql.Connection.TRANSACTION_SERIALIZABLE:
+        return baseQuery + " SERIALIZABLE";
+      default:
+        throw new IllegalArgumentException("Unsupported isolation level: " + isolationLevel);
     }
   }
 

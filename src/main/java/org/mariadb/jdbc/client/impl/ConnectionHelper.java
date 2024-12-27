@@ -146,39 +146,42 @@ public final class ConnectionHelper {
       final Configuration configuration,
       final long serverCapabilities,
       final HostAddress hostAddress) {
-    long capabilities =
-        Capabilities.IGNORE_SPACE
-            | Capabilities.CLIENT_PROTOCOL_41
-            | Capabilities.TRANSACTIONS
-            | Capabilities.SECURE_CONNECTION
-            | Capabilities.MULTI_RESULTS
-            | Capabilities.PS_MULTI_RESULTS
-            | Capabilities.PLUGIN_AUTH
-            | Capabilities.CONNECT_ATTRS
-            | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-            | Capabilities.CLIENT_SESSION_TRACK;
 
-    if (Boolean.parseBoolean(
-        configuration.nonMappedOptions().getProperty("enableBulkUnitResult", "true"))) {
+    long capabilities = initializeBaseCapabilities();
+    capabilities = applyOptionalCapabilities(capabilities, configuration);
+    capabilities = applyTechnicalCapabilities(capabilities, configuration);
+    capabilities = applyConnectionCapabilities(capabilities, configuration, hostAddress);
+
+    return capabilities & serverCapabilities;
+  }
+
+  private static long initializeBaseCapabilities() {
+    return Capabilities.IGNORE_SPACE
+        | Capabilities.CLIENT_PROTOCOL_41
+        | Capabilities.TRANSACTIONS
+        | Capabilities.SECURE_CONNECTION
+        | Capabilities.MULTI_RESULTS
+        | Capabilities.PS_MULTI_RESULTS
+        | Capabilities.PLUGIN_AUTH
+        | Capabilities.CONNECT_ATTRS
+        | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
+        | Capabilities.CLIENT_SESSION_TRACK;
+  }
+
+  private static long applyOptionalCapabilities(long capabilities, Configuration configuration) {
+    if (getBooleanProperty(configuration, "enableBulkUnitResult", true)) {
       capabilities |= Capabilities.BULK_UNIT_RESULTS;
     }
 
-    if (Boolean.parseBoolean(
-        configuration.nonMappedOptions().getProperty("disableSessionTracking", "false"))) {
+    if (getBooleanProperty(configuration, "disableSessionTracking", false)) {
       capabilities &= ~Capabilities.CLIENT_SESSION_TRACK;
     }
 
-    // since skipping metadata is only available when using binary protocol,
-    // only set it when server permit it and using binary protocol
-    if (configuration.useServerPrepStmts()
-        && Boolean.parseBoolean(
-            configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
+    if (shouldEnableMetadataCache(configuration)) {
       capabilities |= Capabilities.CACHE_METADATA;
     }
 
-    // remains for compatibility
-    if (Boolean.parseBoolean(
-        configuration.nonMappedOptions().getProperty("interactiveClient", "false"))) {
+    if (getBooleanProperty(configuration, "interactiveClient", false)) {
       capabilities |= Capabilities.CLIENT_INTERACTIVE;
     }
 
@@ -198,18 +201,15 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.LOCAL_FILES;
     }
 
-    // extendedTypeInfo is a technical option
-    boolean extendedTypeInfo =
-        Boolean.parseBoolean(
-            configuration.nonMappedOptions().getProperty("extendedTypeInfo", "true"));
-    if (extendedTypeInfo) {
+    return capabilities;
+  }
+
+  private static long applyTechnicalCapabilities(long capabilities, Configuration configuration) {
+    if (getBooleanProperty(configuration, "extendedTypeInfo", true)) {
       capabilities |= Capabilities.EXTENDED_METADATA;
     }
 
-    // useEof is a technical option
-    boolean deprecateEof =
-        Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("deprecateEof", "true"));
-    if (deprecateEof) {
+    if (getBooleanProperty(configuration, "deprecateEof", true)) {
       capabilities |= Capabilities.CLIENT_DEPRECATE_EOF;
     }
 
@@ -217,19 +217,44 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.COMPRESS;
     }
 
-    // connect to database directly if not needed to be created, or if slave, since cannot be
-    // created
-    if (configuration.database() != null
-        && (!configuration.createDatabaseIfNotExist()
-            || (configuration.createDatabaseIfNotExist()
-                && (hostAddress != null && !hostAddress.primary)))) {
+    return capabilities;
+  }
+
+  private static long applyConnectionCapabilities(
+      long capabilities, Configuration configuration, HostAddress hostAddress) {
+
+    if (shouldConnectWithDb(configuration, hostAddress)) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
-    SslMode sslMode = hostAddress.sslMode == null ? configuration.sslMode() : hostAddress.sslMode;
-    if (sslMode != SslMode.DISABLE) {
+
+    if (shouldEnableSsl(configuration, hostAddress)) {
       capabilities |= Capabilities.SSL;
     }
-    return capabilities & serverCapabilities;
+
+    return capabilities;
+  }
+
+  private static boolean getBooleanProperty(
+      Configuration configuration, String propertyName, boolean defaultValue) {
+    return Boolean.parseBoolean(
+        configuration.nonMappedOptions().getProperty(propertyName, String.valueOf(defaultValue)));
+  }
+
+  private static boolean shouldEnableMetadataCache(Configuration configuration) {
+    return configuration.useServerPrepStmts()
+        && getBooleanProperty(configuration, "enableSkipMeta", true);
+  }
+
+  private static boolean shouldConnectWithDb(Configuration configuration, HostAddress hostAddress) {
+    return configuration.database() != null
+        && (!configuration.createDatabaseIfNotExist()
+            || (configuration.createDatabaseIfNotExist()
+                && (hostAddress != null && !hostAddress.primary)));
+  }
+
+  private static boolean shouldEnableSsl(Configuration configuration, HostAddress hostAddress) {
+    SslMode sslMode = hostAddress.sslMode == null ? configuration.sslMode() : hostAddress.sslMode;
+    return sslMode != SslMode.DISABLE;
   }
 
   /**
