@@ -122,141 +122,278 @@ public class StandardClient implements Client, AutoCloseable {
     this.hostAddress = hostAddress;
     this.exceptionFactory = new ExceptionFactory(conf, hostAddress);
     this.disablePipeline = conf.disablePipeline();
-
     this.socketTimeout = conf.socketTimeout();
     this.socket = ConnectionHelper.connectSocket(conf, hostAddress);
+    try {
+      setupConnection(skipPostCommands);
+    } catch (SQLException e) {
+      handleConnectionError(e);
+    } catch (SocketTimeoutException e) {
+      handleTimeoutError(e);
+    } catch (IOException e) {
+      handleIOError(e);
+    }
+  }
+
+  private void setupConnection(boolean skipPostCommands) throws SQLException, IOException {
+    OutputStream out = socket.getOutputStream();
+    InputStream in =
+        conf.useReadAheadInput()
+            ? new ReadAheadBufferedStream(socket.getInputStream())
+            : new BufferedInputStream(socket.getInputStream(), 16384);
+    assignStream(out, in, conf, null);
+    configureTimeout();
+
+    InitialHandshakePacket handshake = handleServerHandshake();
+    long clientCapabilities = setupClientCapabilities(handshake);
+
+    SSLSocket sslSocket = handleSSLConnection(handshake, clientCapabilities);
+    if (sslSocket != null) {
+      out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
+      in =
+          conf.useReadAheadInput()
+              ? new ReadAheadBufferedStream(sslSocket.getInputStream())
+              : new BufferedInputStream(sslSocket.getInputStream(), 16384);
+      assignStream(out, in, conf, handshake.getThreadId());
+    }
+
+    handleAuthentication(handshake, clientCapabilities);
+    setupCompression(in, out, clientCapabilities, handshake.getThreadId());
+
+    if (!skipPostCommands) {
+      postConnectionQueries();
+    }
+    setSocketTimeout(conf.socketTimeout());
+  }
+
+  private void setupCompression(
+      InputStream in, OutputStream out, long clientCapabilities, long threadId) {
+    if ((clientCapabilities & Capabilities.COMPRESS) != 0) {
+      assignStream(
+          new CompressOutputStream(out, compressionSequence),
+          new CompressInputStream(in, compressionSequence),
+          conf,
+          threadId);
+    }
+  }
+
+  private SSLSocket handleSSLConnection(InitialHandshakePacket handshake, long clientCapabilities)
+      throws SQLException, IOException {
+
+    updateThreadIds(handshake);
+
+    Configuration conf = context.getConf();
+    SslMode sslMode = determineSslMode(conf);
+
+    if (sslMode == SslMode.DISABLE) {
+      return null;
+    }
+
+    validateServerSslCapability();
+    sendSslRequest(handshake, clientCapabilities);
+
+    TlsSocketPlugin socketPlugin = TlsSocketPluginLoader.get(conf.tlsSocketType());
+    TrustManager[] trustManagers =
+        socketPlugin.getTrustManager(conf, context.getExceptionFactory(), hostAddress);
+    SSLSocket sslSocket = createSslSocket(conf, socketPlugin, trustManagers);
+    configureSslSocket(sslSocket, conf);
+
+    handleSslHandshake(sslSocket, trustManagers);
+
+    if (requiresHostnameVerification(sslMode)) {
+      verifyHostname(sslSocket, socketPlugin);
+    }
+
+    return sslSocket;
+  }
+
+  private void updateThreadIds(InitialHandshakePacket handshake) {
+    this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
+    this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
+  }
+
+  private SslMode determineSslMode(Configuration conf) {
+    return hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
+  }
+
+  private void validateServerSslCapability() throws SQLException {
+    if (!context.hasServerCapability(Capabilities.SSL)) {
+      throw context
+          .getExceptionFactory()
+          .create("Trying to connect with ssl, but ssl not enabled in the server", "08000");
+    }
+  }
+
+  private void sendSslRequest(InitialHandshakePacket handshake, long clientCapabilities)
+      throws IOException {
+    SslRequestPacket.create(
+            clientCapabilities | Capabilities.SSL, (byte) handshake.getDefaultCollation())
+        .encode(writer, context);
+  }
+
+  private SSLSocket createSslSocket(
+      Configuration conf, TlsSocketPlugin socketPlugin, TrustManager[] trustManagers)
+      throws SQLException, IOException {
 
     try {
-      // **********************************************************************
-      // creating socket
-      // **********************************************************************
-      OutputStream out = socket.getOutputStream();
-      InputStream in =
-          conf.useReadAheadInput()
-              ? new ReadAheadBufferedStream(socket.getInputStream())
-              : new BufferedInputStream(socket.getInputStream(), 16384);
+      SSLContext sslContext = SSLContext.getInstance("TLS");
+      sslContext.init(
+          socketPlugin.getKeyManager(conf, context.getExceptionFactory()), trustManagers, null);
 
-      assignStream(out, in, conf, null);
-
-      if (conf.connectTimeout() > 0) {
-        setSocketTimeout(conf.connectTimeout());
-      } else if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
-
-      // read server handshake
-      ReadableByteBuf buf = reader.readReusablePacket(logger.isTraceEnabled());
-      if (buf.getByte() == -1) {
-        ErrorPacket errorPacket = new ErrorPacket(buf, null);
-        throw this.exceptionFactory.create(
-            errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
-      }
-      final InitialHandshakePacket handshake = InitialHandshakePacket.decode(buf);
-
-      this.exceptionFactory.setThreadId(handshake.getThreadId());
-      long clientCapabilities =
-          ConnectionHelper.initializeClientCapabilities(
-              conf, handshake.getCapabilities(), hostAddress);
-      this.context =
-          conf.transactionReplay()
-              ? new RedoContext(
-                  hostAddress,
-                  handshake,
-                  clientCapabilities,
-                  conf,
-                  this.exceptionFactory,
-                  new PrepareCache(conf.prepStmtCacheSize(), this))
-              : new BaseContext(
-                  hostAddress,
-                  handshake,
-                  clientCapabilities,
-                  conf,
-                  this.exceptionFactory,
-                  conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null);
-
-      this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
-      this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
-
-      // **********************************************************************
-      // changing to SSL socket if needed
-      // **********************************************************************
-      SSLSocket sslSocket =
-          sslWrapper(
-              hostAddress,
-              socket,
-              clientCapabilities,
-              (byte) handshake.getDefaultCollation(),
-              context,
-              writer);
-
-      if (sslSocket != null) {
-        out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
-        in =
-            conf.useReadAheadInput()
-                ? new ReadAheadBufferedStream(sslSocket.getInputStream())
-                : new BufferedInputStream(sslSocket.getInputStream(), 16384);
-        assignStream(out, in, conf, handshake.getThreadId());
-      }
-
-      // **********************************************************************
-      // handling authentication
-      // **********************************************************************
-      String authenticationPluginType = handshake.getAuthenticationPluginType();
-      CredentialPlugin credentialPlugin = conf.credentialPlugin();
-      if (credentialPlugin != null && credentialPlugin.defaultAuthenticationPluginType() != null) {
-        authenticationPluginType = credentialPlugin.defaultAuthenticationPluginType();
-      }
-      Credential credential = ConnectionHelper.loadCredential(credentialPlugin, conf, hostAddress);
-
-      new HandshakeResponse(
-              credential,
-              authenticationPluginType,
-              context.getSeed(),
-              conf,
-              hostAddress.host,
-              clientCapabilities,
-              (byte) handshake.getDefaultCollation())
-          .encode(writer, context);
-      authPlugin =
-          "mysql_clear_password".equals(authenticationPluginType)
-              ? new ClearPasswordPlugin(credential.getPassword())
-              : new NativePasswordPlugin(credential.getPassword(), handshake.getSeed());
-      writer.flush();
-
-      authenticationHandler(credential, hostAddress);
-
-      // **********************************************************************
-      // activate compression if required
-      // **********************************************************************
-      if ((clientCapabilities & Capabilities.COMPRESS) != 0) {
-        assignStream(
-            new CompressOutputStream(out, compressionSequence),
-            new CompressInputStream(in, compressionSequence),
-            conf,
-            handshake.getThreadId());
-      }
-
-      // **********************************************************************
-      // post queries
-      // **********************************************************************
-      if (!skipPostCommands) {
-        postConnectionQueries();
-      }
-      setSocketTimeout(conf.socketTimeout());
-    } catch (SQLException sqlException) {
-      destroySocket();
-      throw sqlException;
-    } catch (SocketTimeoutException ste) {
-      destroySocket();
-      throw new SQLTimeoutException(
-          String.format("Socket timeout when connecting to %s. %s", hostAddress, ste.getMessage()),
-          "08000",
-          ste);
-    } catch (IOException ioException) {
-      destroySocket();
-      throw exceptionFactory.create(
-          String.format("Could not connect to %s : %s", hostAddress, ioException.getMessage()),
-          "08000",
-          ioException);
+      return socketPlugin.createSocket(socket, sslContext.getSocketFactory());
+    } catch (KeyManagementException e) {
+      throw context.getExceptionFactory().create("Could not initialize SSL context", "08000", e);
+    } catch (NoSuchAlgorithmException e) {
+      throw context
+          .getExceptionFactory()
+          .create("SSLContext TLS Algorithm not unknown", "08000", e);
     }
+  }
+
+  private void configureSslSocket(SSLSocket sslSocket, Configuration conf) throws SQLException {
+    enabledSslProtocolSuites(sslSocket, conf);
+    enabledSslCipherSuites(sslSocket, conf);
+    sslSocket.setUseClientMode(true);
+  }
+
+  private void handleSslHandshake(SSLSocket sslSocket, TrustManager[] trustManagers)
+      throws IOException {
+    sslSocket.startHandshake();
+    if (trustManagers.length > 0
+        && trustManagers[0] instanceof MariaDbX509EphemeralTrustingManager) {
+      certFingerprint = ((MariaDbX509EphemeralTrustingManager) trustManagers[0]).getFingerprint();
+    }
+  }
+
+  private boolean requiresHostnameVerification(SslMode sslMode) {
+    return certFingerprint == null && sslMode == SslMode.VERIFY_FULL && hostAddress.host != null;
+  }
+
+  private void verifyHostname(SSLSocket sslSocket, TlsSocketPlugin socketPlugin)
+      throws SQLException {
+    try {
+      socketPlugin.verify(hostAddress.host, sslSocket.getSession(), context.getThreadId());
+    } catch (SSLException ex) {
+      throw context
+          .getExceptionFactory()
+          .create(
+              "SSL hostname verification failed : "
+                  + ex.getMessage()
+                  + "\nThis verification can be disabled using the sslMode to VERIFY_CA "
+                  + "but won't prevent man-in-the-middle attacks anymore",
+              "08006");
+    }
+  }
+
+  private void configureTimeout() throws SQLException {
+    if (conf.connectTimeout() > 0) {
+      setSocketTimeout(conf.connectTimeout());
+    } else if (conf.socketTimeout() > 0) {
+      setSocketTimeout(conf.socketTimeout());
+    }
+  }
+
+  private InitialHandshakePacket handleServerHandshake() throws SQLException, IOException {
+    ReadableByteBuf buf = reader.readReusablePacket(logger.isTraceEnabled());
+    if (buf.getByte() == -1) {
+      throwHandshakeError(buf);
+    }
+    return InitialHandshakePacket.decode(buf);
+  }
+
+  private void throwHandshakeError(ReadableByteBuf buf) throws SQLException {
+    ErrorPacket errorPacket = new ErrorPacket(buf, null);
+    throw this.exceptionFactory.create(
+        errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
+  }
+
+  private long setupClientCapabilities(InitialHandshakePacket handshake) {
+    this.exceptionFactory.setThreadId(handshake.getThreadId());
+    long capabilities =
+        ConnectionHelper.initializeClientCapabilities(
+            conf, handshake.getCapabilities(), hostAddress);
+
+    initializeContext(handshake, capabilities);
+    this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
+    this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
+    return capabilities;
+  }
+
+  private void initializeContext(InitialHandshakePacket handshake, long clientCapabilities) {
+    PrepareCache cache =
+        conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null;
+    this.context =
+        conf.transactionReplay()
+            ? new RedoContext(
+                hostAddress, handshake, clientCapabilities, conf, exceptionFactory, cache)
+            : new BaseContext(
+                hostAddress, handshake, clientCapabilities, conf, exceptionFactory, cache);
+  }
+
+  private void handleAuthentication(InitialHandshakePacket handshake, long clientCapabilities)
+      throws IOException, SQLException {
+    String authType = determineAuthType(handshake);
+    Credential credential =
+        ConnectionHelper.loadCredential(conf.credentialPlugin(), conf, hostAddress);
+
+    sendHandshakeResponse(handshake, clientCapabilities, credential, authType);
+    createAuthPlugin(handshake, credential, authType);
+    writer.flush();
+
+    authenticationHandler(credential, hostAddress);
+  }
+
+  private String determineAuthType(InitialHandshakePacket handshake) {
+    String authType = handshake.getAuthenticationPluginType();
+    CredentialPlugin credPlugin = conf.credentialPlugin();
+    if (credPlugin != null && credPlugin.defaultAuthenticationPluginType() != null) {
+      authType = credPlugin.defaultAuthenticationPluginType();
+    }
+    return authType;
+  }
+
+  private void handleConnectionError(SQLException e) throws SQLException {
+    destroySocket();
+    throw e;
+  }
+
+  private void handleTimeoutError(SocketTimeoutException e) throws SQLTimeoutException {
+    destroySocket();
+    throw new SQLTimeoutException(
+        String.format("Socket timeout when connecting to %s. %s", hostAddress, e.getMessage()),
+        "08000",
+        e);
+  }
+
+  private void handleIOError(IOException e) throws SQLException {
+    destroySocket();
+    throw exceptionFactory.create(
+        String.format("Could not connect to %s : %s", hostAddress, e.getMessage()), "08000", e);
+  }
+
+  private void sendHandshakeResponse(
+      InitialHandshakePacket handshake,
+      long clientCapabilities,
+      Credential credential,
+      String authType)
+      throws IOException {
+    new HandshakeResponse(
+            credential,
+            authType,
+            context.getSeed(),
+            conf,
+            hostAddress.host,
+            clientCapabilities,
+            (byte) handshake.getDefaultCollation())
+        .encode(writer, context);
+  }
+
+  private void createAuthPlugin(
+      InitialHandshakePacket handshake, Credential credential, String authType) {
+    authPlugin =
+        "mysql_clear_password".equals(authType)
+            ? new ClearPasswordPlugin(credential.getPassword())
+            : new NativePasswordPlugin(credential.getPassword(), handshake.getSeed());
   }
 
   /**
@@ -458,101 +595,11 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
-  /**
-   * Create SSL wrapper
-   *
-   * @param hostAddress host
-   * @param socket socket
-   * @param clientCapabilities client capabilities
-   * @param exchangeCharset connection charset
-   * @param context connection context
-   * @param writer socket writer
-   * @return SSLsocket
-   * @throws IOException if any socket error occurs
-   * @throws SQLException for any other kind of error
-   */
-  public SSLSocket sslWrapper(
-      final HostAddress hostAddress,
-      final Socket socket,
-      long clientCapabilities,
-      final byte exchangeCharset,
-      Context context,
-      Writer writer)
-      throws IOException, SQLException {
-
-    Configuration conf = context.getConf();
-    SslMode sslMode = hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
-    if (sslMode != SslMode.DISABLE) {
-
-      if (!context.hasServerCapability(Capabilities.SSL)) {
-        throw context
-            .getExceptionFactory()
-            .create("Trying to connect with ssl, but ssl not enabled in the server", "08000");
-      }
-
-      clientCapabilities |= Capabilities.SSL;
-      SslRequestPacket.create(clientCapabilities, exchangeCharset).encode(writer, context);
-
-      TlsSocketPlugin socketPlugin = TlsSocketPluginLoader.get(conf.tlsSocketType());
-      SSLSocketFactory sslSocketFactory;
-      TrustManager[] trustManagers =
-          socketPlugin.getTrustManager(conf, context.getExceptionFactory(), hostAddress);
-      try {
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(
-            socketPlugin.getKeyManager(conf, context.getExceptionFactory()), trustManagers, null);
-        sslSocketFactory = sslContext.getSocketFactory();
-      } catch (KeyManagementException keyManagementEx) {
-        throw context
-            .getExceptionFactory()
-            .create("Could not initialize SSL context", "08000", keyManagementEx);
-      } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-        throw context
-            .getExceptionFactory()
-            .create("SSLContext TLS Algorithm not unknown", "08000", noSuchAlgorithmEx);
-      }
-      SSLSocket sslSocket = socketPlugin.createSocket(socket, sslSocketFactory);
-
-      enabledSslProtocolSuites(sslSocket, conf);
-      enabledSslCipherSuites(sslSocket, conf);
-
-      sslSocket.setUseClientMode(true);
-      sslSocket.startHandshake();
-      if (trustManagers.length > 0
-          && trustManagers[0] instanceof MariaDbX509EphemeralTrustingManager) {
-        certFingerprint = ((MariaDbX509EphemeralTrustingManager) trustManagers[0]).getFingerprint();
-      }
-
-      // perform hostname verification
-      // (rfc2818 indicate that if "client has external information as to the expected identity of
-      // the server, the hostname check MAY be omitted")
-      // validation is only done for not "self-signed" certificates
-      if (certFingerprint == null && sslMode == SslMode.VERIFY_FULL && hostAddress.host != null) {
-        SSLSession session = sslSocket.getSession();
-        try {
-          socketPlugin.verify(hostAddress.host, session, context.getThreadId());
-        } catch (SSLException ex) {
-          throw context
-              .getExceptionFactory()
-              .create(
-                  "SSL hostname verification failed : "
-                      + ex.getMessage()
-                      + "\nThis verification can be disabled using the sslMode to VERIFY_CA "
-                      + "but won't prevent man-in-the-middle attacks anymore",
-                  "08006");
-        }
-      }
-      return sslSocket;
-    }
-    return null;
-  }
-
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
     this.writer =
         new PacketWriter(
             out, conf.maxQuerySizeToLog(), conf.maxAllowedPacket(), sequence, compressionSequence);
     this.writer.setServerThreadId(threadId, hostAddress);
-
     this.reader = new PacketReader(in, conf, sequence);
     this.reader.setServerThreadId(threadId, hostAddress);
   }

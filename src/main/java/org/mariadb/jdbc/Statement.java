@@ -1592,7 +1592,7 @@ public class Statement implements java.sql.Statement {
    * @return results
    * @throws SQLException if any error occurs
    */
-  public List<Completion> executeInternalBatchPipeline() throws SQLException {
+  private List<Completion> executeInternalBatchPipeline() throws SQLException {
     QueryPacket[] packets = new QueryPacket[batchQueries.size()];
     for (int i = 0; i < batchQueries.size(); i++) {
       String sql = batchQueries.get(i);
@@ -1616,7 +1616,7 @@ public class Statement implements java.sql.Statement {
    * @return results
    * @throws SQLException if any error occurs
    */
-  public List<Completion> executeInternalBatchStandard() throws SQLException {
+  private List<Completion> executeInternalBatchStandard() throws SQLException {
     List<Completion> results = new ArrayList<>();
     try {
       for (String batchQuery : batchQueries) {

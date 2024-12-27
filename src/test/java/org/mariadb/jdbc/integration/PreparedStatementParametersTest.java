@@ -494,11 +494,11 @@ public class PreparedStatementParametersTest extends Common {
     Statement stmt = con.createStatement();
     stmt.execute("START TRANSACTION");
     try (PreparedStatement preparedStatement =
-        con.prepareStatement("INSERT INTO " + table + " VALUES (?)")) {
+        con.prepareStatement(String.format("INSERT INTO %s VALUES (?)", table))) {
       consumer.accept(preparedStatement);
       preparedStatement.execute();
     }
-    ResultSet rs = stmt.executeQuery("SELECT * FROM " + table);
+    ResultSet rs = stmt.executeQuery(String.format("SELECT * FROM %s", table));
     assertTrue(rs.next());
     con.rollback();
     check.accept(rs);

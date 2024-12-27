@@ -1289,7 +1289,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     }
   }
 
-  private boolean trySetByteArray(int parameterIndex, Object obj, Integer targetSqlType, Long scaleOrLength)
+  private boolean trySetByteArray(
+      int parameterIndex, Object obj, Integer targetSqlType, Long scaleOrLength)
       throws SQLException {
     if (!(obj instanceof byte[])) return false;
 

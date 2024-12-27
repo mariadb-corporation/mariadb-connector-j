@@ -7,7 +7,6 @@ import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
 import java.io.IOException;
 import java.sql.SQLDataException;
-import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Calendar;

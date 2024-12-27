@@ -5,7 +5,6 @@ package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
 import java.sql.SQLDataException;
-import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;

@@ -57,7 +57,6 @@ public class Configuration {
   private static final Set<String> PROPERTIES_TO_SKIP;
   private static final Set<String> SENSITIVE_FIELDS;
 
-
   static {
     EXCLUDED_FIELDS = new HashSet<>();
     EXCLUDED_FIELDS.add("database");
@@ -80,7 +79,6 @@ public class Configuration {
     SENSITIVE_FIELDS.add("password");
     SENSITIVE_FIELDS.add("keyStorePassword");
     SENSITIVE_FIELDS.add("trustStorePassword");
-
   }
 
   // standard options
@@ -1074,9 +1072,7 @@ public class Configuration {
   }
 
   private static void appendBasicConfiguration(StringBuilder sb, Configuration conf) {
-    sb.append("Configuration:")
-            .append("\n * resulting Url : ")
-            .append(conf.initialUrl);
+    sb.append("Configuration:\n * resulting Url : ").append(conf.initialUrl);
   }
 
   private static void appendUnknownOptions(StringBuilder sb, Configuration conf) {
@@ -1087,18 +1083,20 @@ public class Configuration {
     }
 
     conf.nonMappedOptions.entrySet().stream()
-            .map(entry -> new AbstractMap.SimpleEntry<>(
+        .map(
+            entry ->
+                new AbstractMap.SimpleEntry<>(
                     entry.getKey().toString(),
                     entry.getValue() != null ? entry.getValue().toString() : ""))
-            .sorted(Map.Entry.comparingByKey())
-            .forEach(entry -> sb.append("\n * ")
-                    .append(entry.getKey())
-                    .append(" : ")
-                    .append(entry.getValue()));
+        .sorted(Map.Entry.comparingByKey())
+        .forEach(
+            entry ->
+                sb.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue()));
     sb.append("\n");
   }
 
-  private static void appendNonDefaultOptions(StringBuilder sb, Configuration conf, Configuration defaultConf) {
+  private static void appendNonDefaultOptions(
+      StringBuilder sb, Configuration conf, Configuration defaultConf) {
     try {
       StringBuilder diffOpts = new StringBuilder();
       processFields(conf, defaultConf, new StringBuilder(), diffOpts);
@@ -1114,7 +1112,8 @@ public class Configuration {
     }
   }
 
-  private static void appendDefaultOptions(StringBuilder sb, Configuration conf, Configuration defaultConf) {
+  private static void appendDefaultOptions(
+      StringBuilder sb, Configuration conf, Configuration defaultConf) {
     try {
       StringBuilder defaultOpts = new StringBuilder();
       processFields(conf, defaultConf, defaultOpts, new StringBuilder());
@@ -1130,9 +1129,12 @@ public class Configuration {
     }
   }
 
-  private static void processFields(Configuration conf, Configuration defaultConf,
-                                    StringBuilder defaultOpts, StringBuilder diffOpts)
-          throws IllegalAccessException {
+  private static void processFields(
+      Configuration conf,
+      Configuration defaultConf,
+      StringBuilder defaultOpts,
+      StringBuilder diffOpts)
+      throws IllegalAccessException {
     Field[] fields = Configuration.class.getDeclaredFields();
     Arrays.sort(fields, Comparator.comparing(Field::getName));
 
@@ -1147,8 +1149,12 @@ public class Configuration {
     }
   }
 
-  private static void processField(Field field, Object fieldValue, Object defaultValue,
-                                   StringBuilder defaultOpts, StringBuilder diffOpts) {
+  private static void processField(
+      Field field,
+      Object fieldValue,
+      Object defaultValue,
+      StringBuilder defaultOpts,
+      StringBuilder diffOpts) {
     if (fieldValue == null) {
       appendNullField(field, defaultValue, defaultOpts, diffOpts);
       return;
@@ -1181,20 +1187,28 @@ public class Configuration {
     }
   }
 
-  private static void appendNullField(Field field, Object defaultValue,
-                                      StringBuilder defaultOpts, StringBuilder diffOpts) {
+  private static void appendNullField(
+      Field field, Object defaultValue, StringBuilder defaultOpts, StringBuilder diffOpts) {
     StringBuilder target = defaultValue == null ? defaultOpts : diffOpts;
     target.append("\n * ").append(field.getName()).append(" : null");
   }
 
-  private static void appendHaModeField(Field field, Object fieldValue, Object defaultValue,
-                                        StringBuilder defaultOpts, StringBuilder diffOpts) {
+  private static void appendHaModeField(
+      Field field,
+      Object fieldValue,
+      Object defaultValue,
+      StringBuilder defaultOpts,
+      StringBuilder diffOpts) {
     StringBuilder target = Objects.equals(fieldValue, defaultValue) ? defaultOpts : diffOpts;
     target.append("\n * ").append(field.getName()).append(" : ").append(fieldValue);
   }
 
-  private static void appendSimpleField(Field field, Object fieldValue, Object defaultValue,
-                                        StringBuilder defaultOpts, StringBuilder diffOpts) {
+  private static void appendSimpleField(
+      Field field,
+      Object fieldValue,
+      Object defaultValue,
+      StringBuilder defaultOpts,
+      StringBuilder diffOpts) {
     StringBuilder target = Objects.equals(fieldValue, defaultValue) ? defaultOpts : diffOpts;
     target.append("\n * ").append(field.getName()).append(" : ");
 
@@ -1205,10 +1219,14 @@ public class Configuration {
     }
   }
 
-  private static void appendListField(Field field, Object fieldValue, Object defaultValue,
-                                      StringBuilder defaultOpts, StringBuilder diffOpts) {
-    StringBuilder target = Objects.equals(fieldValue.toString(), defaultValue.toString())
-            ? defaultOpts : diffOpts;
+  private static void appendListField(
+      Field field,
+      Object fieldValue,
+      Object defaultValue,
+      StringBuilder defaultOpts,
+      StringBuilder diffOpts) {
+    StringBuilder target =
+        Objects.equals(fieldValue.toString(), defaultValue.toString()) ? defaultOpts : diffOpts;
     target.append("\n * ").append(field.getName()).append(" : ").append(fieldValue);
   }
 

@@ -91,8 +91,8 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
             // eat
           }
           throw new SQLDataException(
-                  String.format(
-                          "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
+              String.format(
+                  "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
         }
 
       default:
@@ -142,8 +142,8 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
             // eat
           }
           throw new SQLDataException(
-                  String.format(
-                          "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
+              String.format(
+                  "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
         }
 
       default:

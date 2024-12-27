@@ -98,8 +98,8 @@ public class MultiHostTest extends Common {
             && !isXpand());
     try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
       Statement stmt = con.createStatement();
-      stmt.execute("DROP TABLE IF EXISTS testReadOnly");
-      stmt.execute("CREATE TABLE testReadOnly(id int)");
+      stmt.executeUpdate("DROP TABLE IF EXISTS testReadOnly");
+      stmt.executeUpdate("CREATE TABLE testReadOnly(id int)");
       con.setAutoCommit(false);
       con.setReadOnly(true);
       Common.assertThrowsContains(
@@ -107,7 +107,7 @@ public class MultiHostTest extends Common {
           () -> stmt.execute("INSERT INTO testReadOnly values (2)"),
           "Cannot execute statement in a READ ONLY transaction");
       con.setReadOnly(false);
-      stmt.execute("DROP TABLE testReadOnly");
+      stmt.executeUpdate("DROP TABLE testReadOnly");
     }
   }
 
@@ -117,7 +117,7 @@ public class MultiHostTest extends Common {
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyConKeep("")) {
       Statement stmt = con.createStatement();
-      stmt.execute("CREATE DATABASE IF NOT EXISTS sync");
+      stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS sync");
       con.setCatalog("sync");
       con.setTransactionIsolation(java.sql.Connection.TRANSACTION_SERIALIZABLE);
       con.setReadOnly(true);
