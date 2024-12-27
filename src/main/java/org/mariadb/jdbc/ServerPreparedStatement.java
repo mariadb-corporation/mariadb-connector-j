@@ -195,8 +195,10 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   private void executeBatchPipeline(String cmd) throws SQLException {
     if (prepareResult == null && con.cachePrepStmts())
       prepareResult = con.getContext().getPrepareCacheCmd(cmd, this);
-    // server is 10.2+, permitting to execute last prepare with (-1) statement id.
-    // Server send prepare, followed by execute, in one exchange.
+    if (!con.getContext().hasServerCapability(STMT_BULK_OPERATIONS)) {
+      // server is before 10.2 or MySQL, not permitting to execute last prepare with (-1) statement id.
+      con.getClient().execute(new PreparePacket(cmd), this, false);
+    }
     int maxCmd = 250;
     List<Completion> res = new ArrayList<>();
     try {
