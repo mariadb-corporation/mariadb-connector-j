@@ -27,7 +27,7 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
-  public void testSessionVariable() throws SQLException {
+  void testSessionVariable() throws SQLException {
     try (Connection connection =
         createCon("sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
       Statement stmt = connection.createStatement();
@@ -81,7 +81,7 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
-  public void connectionAttributes() throws SQLException {
+  void connectionAttributes() throws SQLException {
     // xpand doesn't support @@performance_schema variable
     Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")) && !isXpand());
 
@@ -107,7 +107,7 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
-  public void useMysqlMetadata() throws SQLException {
+  void useMysqlMetadata() throws SQLException {
     assertEquals(
         isMariaDBServer() ? "MariaDB" : "MySQL", sharedConn.getMetaData().getDatabaseProductName());
     try (org.mariadb.jdbc.Connection conn = createCon("&useMysqlMetadata=true")) {
@@ -116,7 +116,7 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
-  public void jdbcCompliantTruncation() throws SQLException {
+  void jdbcCompliantTruncation() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT @@sql_mode");
     String sqlMode = "";
@@ -157,7 +157,7 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
-  public void connectionCollationTest() throws SQLException {
+  void connectionCollationTest() throws SQLException {
     try (org.mariadb.jdbc.Connection conn =
         createCon("&connectionCollation=utf8mb4_vietnamese_ci")) {
       Statement stmt = conn.createStatement();
@@ -197,5 +197,9 @@ public class ConfigurationTest extends Common {
         SQLException.class,
         () -> createCon("&connectionCollation=utf8mb4_vietnamese_ci;SELECT"),
         "wrong connection collation 'utf8mb4_vietnamese_ci;SELECT' name");
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("&connectionCollation=utf8mb4_🙏"),
+        "wrong connection collation 'utf8mb4_🙏' name");
   }
 }

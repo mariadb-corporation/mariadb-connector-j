@@ -6,7 +6,6 @@ package org.mariadb.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -58,6 +57,8 @@ public class Configuration {
   private static final Set<String> SECURE_FIELDS;
   private static final Set<String> PROPERTIES_TO_SKIP;
   private static final Set<String> SENSITIVE_FIELDS;
+  private static final String CATALOG_TERM = "CATALOG";
+  private static final String SCHEMA_TERM = "SCHEMA";
 
   static {
     EXCLUDED_FIELDS = new HashSet<>();
@@ -76,6 +77,8 @@ public class Configuration {
     PROPERTIES_TO_SKIP.add("logger");
     PROPERTIES_TO_SKIP.add("codecs");
     PROPERTIES_TO_SKIP.add("$jacocoData");
+    PROPERTIES_TO_SKIP.add("CATALOG_TERM");
+    PROPERTIES_TO_SKIP.add("SCHEMA_TERM");
 
     SENSITIVE_FIELDS = new HashSet<>();
     SENSITIVE_FIELDS.add("password");
@@ -84,347 +87,355 @@ public class Configuration {
   }
 
   // standard options
-  private String user = null;
-  private String password = null;
-  private String database = null;
-  private List<HostAddress> addresses = null;
-  private HaMode haMode = HaMode.NONE;
-  private String initialUrl = null;
-  private Properties nonMappedOptions = null;
+  private String user;
+  private String password;
+  private String database;
+  private List<HostAddress> addresses;
+  private HaMode haMode;
+  private String initialUrl;
+  private Properties nonMappedOptions;
 
   // various
-  private String timezone = null;
-  private String connectionCollation = null;
-  private String connectionTimeZone = null;
-  private Boolean forceConnectionTimeZoneToSession = null;
+  private String timezone;
+  private String connectionCollation;
+  private String connectionTimeZone;
+  private Boolean forceConnectionTimeZoneToSession;
   private boolean preserveInstants;
-  private Boolean autocommit = null;
-  private boolean useMysqlMetadata = false;
-  private boolean nullDatabaseMeansCurrent = false;
-  private CatalogTerm useCatalogTerm = CatalogTerm.UseCatalog;
-  private boolean createDatabaseIfNotExist = false;
-  private boolean useLocalSessionState = false;
-  private boolean returnMultiValuesGeneratedIds = false;
-  private boolean jdbcCompliantTruncation = true;
-  private boolean permitRedirect = true;
-  private TransactionIsolation transactionIsolation = null;
-  private int defaultFetchSize = 0;
-  private int maxQuerySizeToLog = 1024;
-  private Integer maxAllowedPacket = null;
-  private String geometryDefaultType = null;
-  private String restrictedAuth = null;
-  private String initSql = null;
-  private boolean pinGlobalTxToPhysicalConnection = false;
+  private Boolean autocommit;
+  private boolean useMysqlMetadata;
+  private boolean nullDatabaseMeansCurrent;
+  private CatalogTerm useCatalogTerm;
+  private boolean createDatabaseIfNotExist;
+  private boolean useLocalSessionState;
+  private boolean returnMultiValuesGeneratedIds;
+  private boolean jdbcCompliantTruncation;
+  private boolean permitRedirect;
+  private TransactionIsolation transactionIsolation;
+  private int defaultFetchSize;
+  private int maxQuerySizeToLog;
+  private Integer maxAllowedPacket;
+  private String geometryDefaultType;
+  private String restrictedAuth;
+  private String initSql;
+  private boolean pinGlobalTxToPhysicalConnection;
 
   // socket
-  private String socketFactory = null;
-  private int connectTimeout =
-      DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
-  private String pipe = null;
-  private String localSocket = null;
-  private boolean uuidAsString = false;
-  private boolean tcpKeepAlive = true;
-  private int tcpKeepIdle = 0;
-  private int tcpKeepCount = 0;
-  private int tcpKeepInterval = 0;
-  private boolean tcpAbortiveClose = false;
-  private String localSocketAddress = null;
-  private int socketTimeout = 0;
-  private boolean useReadAheadInput = false;
-  private String tlsSocketType = null;
+  private String socketFactory;
+  private int connectTimeout;
+  private String pipe;
+  private String localSocket;
+  private boolean uuidAsString;
+  private boolean tcpKeepAlive;
+  private int tcpKeepIdle;
+  private int tcpKeepCount;
+  private int tcpKeepInterval;
+  private boolean tcpAbortiveClose;
+  private String localSocketAddress;
+  private int socketTimeout;
+  private boolean useReadAheadInput;
+  private String tlsSocketType;
 
   // SSL
-  private SslMode sslMode = SslMode.DISABLE;
-  private String serverSslCert = null;
-  private String keyStore = null;
-  private String trustStore = null;
-  private String keyStorePassword = null;
-  private String trustStorePassword = null;
-  private String keyPassword = null;
-  private String keyStoreType = null;
-  private String trustStoreType = null;
-  private String enabledSslCipherSuites = null;
-  private String enabledSslProtocolSuites = null;
-  private boolean fallbackToSystemKeyStore = true;
-  private boolean fallbackToSystemTrustStore = true;
+  private SslMode sslMode;
+  private String serverSslCert;
+  private String keyStore;
+  private String trustStore;
+  private String keyStorePassword;
+  private String trustStorePassword;
+  private String keyPassword;
+  private String keyStoreType;
+  private String trustStoreType;
+  private String enabledSslCipherSuites;
+  private String enabledSslProtocolSuites;
+  private boolean fallbackToSystemKeyStore;
+  private boolean fallbackToSystemTrustStore;
   // protocol
-  private boolean allowMultiQueries = false;
-  private boolean allowLocalInfile = true;
-  private boolean useCompression = false;
-  private boolean useAffectedRows = false;
-  private boolean useBulkStmts = false;
-  private boolean useBulkStmtsForInserts = true;
-  private boolean disablePipeline = false;
+  private boolean allowMultiQueries;
+  private boolean allowLocalInfile;
+  private boolean useCompression;
+  private boolean useAffectedRows;
+  private boolean useBulkStmts;
+  private boolean useBulkStmtsForInserts;
+  private boolean disablePipeline;
   // prepare
-  private boolean cachePrepStmts = true;
-  private int prepStmtCacheSize = 250;
-  private boolean useServerPrepStmts = false;
+  private boolean cachePrepStmts;
+  private int prepStmtCacheSize;
+  private boolean useServerPrepStmts;
 
   // authentication
-  private CredentialPlugin credentialType = null;
-  private String sessionVariables = null;
-  private String connectionAttributes = null;
-  private String servicePrincipalName = null;
+  private CredentialPlugin credentialType;
+  private String sessionVariables;
+  private String connectionAttributes;
+  private String servicePrincipalName;
 
   // meta
-  private boolean blankTableNameMeta = false;
-  private boolean tinyInt1isBit = true;
-  private boolean transformedBitIsBoolean = true;
-  private boolean yearIsDateType = true;
-  private boolean dumpQueriesOnException = false;
-  private boolean includeInnodbStatusInDeadlockExceptions = false;
-  private boolean includeThreadDumpInDeadlockExceptions = false;
+  private boolean blankTableNameMeta;
+  private boolean tinyInt1isBit;
+  private boolean transformedBitIsBoolean;
+  private boolean yearIsDateType;
+  private boolean dumpQueriesOnException;
+  private boolean includeInnodbStatusInDeadlockExceptions;
+  private boolean includeThreadDumpInDeadlockExceptions;
 
   // HA options
-  private int retriesAllDown = 120;
-  private String galeraAllowedState = null;
-  private boolean transactionReplay = false;
-  private int transactionReplaySize = 64;
+  private int retriesAllDown;
+  private String galeraAllowedState;
+  private boolean transactionReplay;
+  private int transactionReplaySize;
 
   // Pool options
-  private boolean pool = false;
-  private String poolName = null;
-  private int maxPoolSize = 8;
-  private int minPoolSize = 8;
-  private int maxIdleTime = 600_000;
-  private boolean registerJmxPool = true;
-  private int poolValidMinDelay = 1000;
-  private boolean useResetConnection = false;
+  private boolean pool;
+  private String poolName;
+  private int maxPoolSize;
+  private int minPoolSize;
+  private int maxIdleTime;
+  private boolean registerJmxPool;
+  private int poolValidMinDelay;
+  private boolean useResetConnection;
 
   // MySQL sha authentication
-  private String serverRsaPublicKeyFile = null;
-  private boolean allowPublicKeyRetrieval = false;
+  private String serverRsaPublicKeyFile;
+  private boolean allowPublicKeyRetrieval;
 
-  private Codec<?>[] codecs = null;
+  private Codec<?>[] codecs;
 
-  private Configuration() {}
+  private Configuration(Builder builder) {
+    // Set basic configuration
+    initializeBasicConfig(builder);
 
-  private Configuration(
-      String database,
-      List<HostAddress> addresses,
-      HaMode haMode,
-      String user,
-      String password,
-      String enabledSslProtocolSuites,
-      Boolean fallbackToSystemKeyStore,
-      Boolean fallbackToSystemTrustStore,
-      String socketFactory,
-      Integer connectTimeout,
-      String pipe,
-      String localSocket,
-      Boolean tcpKeepAlive,
-      Boolean uuidAsString,
-      Integer tcpKeepIdle,
-      Integer tcpKeepCount,
-      Integer tcpKeepInterval,
-      Boolean tcpAbortiveClose,
-      String localSocketAddress,
-      Integer socketTimeout,
-      Boolean allowMultiQueries,
-      Boolean allowLocalInfile,
-      Boolean useCompression,
-      Boolean blankTableNameMeta,
-      String credentialType,
-      String sslMode,
-      String transactionIsolation,
-      String enabledSslCipherSuites,
-      String sessionVariables,
-      Boolean tinyInt1isBit,
-      Boolean transformedBitIsBoolean,
-      Boolean yearIsDateType,
-      String timezone,
-      String connectionTimeZone,
-      String connectionCollation,
-      Boolean forceConnectionTimeZoneToSession,
-      Boolean preserveInstants,
-      Boolean dumpQueriesOnException,
-      Integer prepStmtCacheSize,
-      Boolean useAffectedRows,
-      Boolean useServerPrepStmts,
-      String connectionAttributes,
-      Boolean useBulkStmts,
-      Boolean useBulkStmtsForInserts,
-      Boolean disablePipeline,
-      Boolean autocommit,
-      Boolean useMysqlMetadata,
-      Boolean nullDatabaseMeansCurrent,
-      String useCatalogTerm,
-      Boolean createDatabaseIfNotExist,
-      Boolean useLocalSessionState,
-      Boolean returnMultiValuesGeneratedIds,
-      Boolean jdbcCompliantTruncation,
-      Boolean permitRedirect,
-      Boolean pinGlobalTxToPhysicalConnection,
-      Boolean includeInnodbStatusInDeadlockExceptions,
-      Boolean includeThreadDumpInDeadlockExceptions,
-      String servicePrincipalName,
-      Integer defaultFetchSize,
-      String tlsSocketType,
-      Integer maxQuerySizeToLog,
-      Integer maxAllowedPacket,
-      Integer retriesAllDown,
-      String galeraAllowedState,
-      Boolean pool,
-      String poolName,
-      Integer maxPoolSize,
-      Integer minPoolSize,
-      Integer maxIdleTime,
-      Boolean registerJmxPool,
-      Integer poolValidMinDelay,
-      Boolean useResetConnection,
-      String serverRsaPublicKeyFile,
-      Boolean allowPublicKeyRetrieval,
-      String serverSslCert,
-      String keyStore,
-      String trustStore,
-      String keyStorePassword,
-      String trustStorePassword,
-      String keyPassword,
-      String keyStoreType,
-      String trustStoreType,
-      Boolean useReadAheadInput,
-      Boolean cachePrepStmts,
-      Boolean transactionReplay,
-      Integer transactionReplaySize,
-      String geometryDefaultType,
-      String restrictedAuth,
-      String initSql,
-      Properties nonMappedOptions)
-      throws SQLException {
-    this.database = database;
-    this.addresses = addresses;
-    this.nonMappedOptions = nonMappedOptions;
-    if (haMode != null) this.haMode = haMode;
-    this.credentialType = CredentialPluginLoader.get(credentialType);
-    this.user = user;
-    this.password = password;
-    this.enabledSslProtocolSuites = enabledSslProtocolSuites;
-    if (fallbackToSystemKeyStore != null) this.fallbackToSystemKeyStore = fallbackToSystemKeyStore;
-    if (fallbackToSystemTrustStore != null)
-      this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
-    this.socketFactory = socketFactory;
-    if (connectTimeout != null) this.connectTimeout = connectTimeout;
-    this.pipe = pipe;
-    this.localSocket = localSocket;
-    if (tcpKeepAlive != null) this.tcpKeepAlive = tcpKeepAlive;
-    if (uuidAsString != null) this.uuidAsString = uuidAsString;
-    if (tcpKeepIdle != null) this.tcpKeepIdle = tcpKeepIdle;
-    if (tcpKeepCount != null) this.tcpKeepCount = tcpKeepCount;
-    if (tcpKeepInterval != null) this.tcpKeepInterval = tcpKeepInterval;
-    if (tcpAbortiveClose != null) this.tcpAbortiveClose = tcpAbortiveClose;
-    this.localSocketAddress = localSocketAddress;
-    if (socketTimeout != null) this.socketTimeout = socketTimeout;
-    if (allowMultiQueries != null) this.allowMultiQueries = allowMultiQueries;
-    if (allowLocalInfile != null) this.allowLocalInfile = allowLocalInfile;
-    if (useCompression != null) this.useCompression = useCompression;
-    if (blankTableNameMeta != null) this.blankTableNameMeta = blankTableNameMeta;
+    // Set SSL/TLS configuration
+    initializeSslConfig(builder);
+
+    // Set socket configuration
+    initializeSocketConfig(builder);
+
+    // Set transaction and protocol settings
+    initializeTransactionConfig(builder);
+
+    // Set data type handling
+    initializeDataTypeConfig(builder);
+
+    // Set timezone settings
+    initializeTimezoneConfig(builder);
+
+    // Set query and statement handling
+    initializeQueryConfig(builder);
+
+    // Set bulk operations
+    initializeBulkConfig(builder);
+
+    // Set pipeline and transaction settings
+    initializePipelineConfig(builder);
+
+    // Set database and schema settings
+    initializeDatabaseConfig(builder);
+
+    // Set exception handling
+    initializeExceptionConfig(builder);
+
+    // Set pool configuration
+    initializePoolConfig(builder);
+
+    // Set security settings
+    initializeSecurityConfig(builder);
+
+    // Set additional properties
+    initializeAdditionalConfig(builder);
+
+    // Configure hosts
+    configureHosts();
+
+    // Validate configuration
+    validateConfiguration();
+  }
+
+  private void initializeBasicConfig(Builder builder) {
+    this.database = builder.database;
+    this.addresses = builder._addresses;
+    this.nonMappedOptions = builder._nonMappedOptions;
+    this.haMode = builder._haMode != null ? builder._haMode : HaMode.NONE;
+    this.credentialType = CredentialPluginLoader.get(builder.credentialType);
+    this.user = builder.user;
+    this.password = builder.password;
+  }
+
+  private void initializeSslConfig(Builder builder) {
+    this.enabledSslProtocolSuites = builder.enabledSslProtocolSuites;
+    this.fallbackToSystemKeyStore =
+        builder.fallbackToSystemKeyStore == null || builder.fallbackToSystemKeyStore;
+    this.fallbackToSystemTrustStore =
+        builder.fallbackToSystemTrustStore == null || builder.fallbackToSystemTrustStore;
+    this.serverSslCert = builder.serverSslCert;
+    this.keyStore = builder.keyStore;
+    this.trustStore = builder.trustStore;
+    this.keyStorePassword = builder.keyStorePassword;
+    this.trustStorePassword = builder.trustStorePassword;
+    this.keyPassword = builder.keyPassword;
+    this.keyStoreType = builder.keyStoreType;
+    this.trustStoreType = builder.trustStoreType;
+
+    // SSL Mode configuration
     if (this.credentialType != null
         && this.credentialType.mustUseSsl()
-        && (sslMode == null || SslMode.from(sslMode) == SslMode.DISABLE)) {
+        && (builder.sslMode == null || SslMode.from(builder.sslMode) == SslMode.DISABLE)) {
       this.sslMode = SslMode.VERIFY_FULL;
     } else {
-      this.sslMode = sslMode != null ? SslMode.from(sslMode) : SslMode.DISABLE;
+      this.sslMode = builder.sslMode != null ? SslMode.from(builder.sslMode) : SslMode.DISABLE;
     }
-    if (transactionIsolation != null)
-      this.transactionIsolation = TransactionIsolation.from(transactionIsolation);
-    this.enabledSslCipherSuites = enabledSslCipherSuites;
-    this.sessionVariables = sessionVariables;
-    if (tinyInt1isBit != null) this.tinyInt1isBit = tinyInt1isBit;
-    if (transformedBitIsBoolean != null) this.transformedBitIsBoolean = transformedBitIsBoolean;
-    if (yearIsDateType != null) this.yearIsDateType = yearIsDateType;
-    this.timezone = timezone;
-    if (connectionTimeZone != null) this.connectionTimeZone = connectionTimeZone;
-    if (connectionCollation != null) this.connectionCollation = connectionCollation;
-    if (forceConnectionTimeZoneToSession != null)
-      this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
-    if (preserveInstants != null) this.preserveInstants = preserveInstants;
-    if (dumpQueriesOnException != null) this.dumpQueriesOnException = dumpQueriesOnException;
-    if (prepStmtCacheSize != null) this.prepStmtCacheSize = prepStmtCacheSize;
-    if (useAffectedRows != null) this.useAffectedRows = useAffectedRows;
-    if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
-    this.connectionAttributes = connectionAttributes;
+  }
 
-    if (useBulkStmts != null) {
-      this.useBulkStmts = useBulkStmts;
-    }
-    if (useBulkStmtsForInserts != null) {
-      this.useBulkStmtsForInserts = useBulkStmtsForInserts;
-    } else if (useBulkStmts != null) {
-      this.useBulkStmtsForInserts = useBulkStmts;
-    }
+  private void initializeSocketConfig(Builder builder) {
+    this.socketFactory = builder.socketFactory;
+    this.connectTimeout =
+        builder.connectTimeout != null
+            ? builder.connectTimeout
+            : (DriverManager.getLoginTimeout() > 0
+                ? DriverManager.getLoginTimeout() * 1000
+                : 30_000);
+    this.pipe = builder.pipe;
+    this.localSocket = builder.localSocket;
+    this.tcpKeepAlive = builder.tcpKeepAlive == null || builder.tcpKeepAlive;
+    this.uuidAsString = builder.uuidAsString != null && builder.uuidAsString;
+    this.tcpKeepIdle = builder.tcpKeepIdle != null ? builder.tcpKeepIdle : 0;
+    this.tcpKeepCount = builder.tcpKeepCount != null ? builder.tcpKeepCount : 0;
+    this.tcpKeepInterval = builder.tcpKeepInterval != null ? builder.tcpKeepInterval : 0;
+    this.tcpAbortiveClose = builder.tcpAbortiveClose != null && builder.tcpAbortiveClose;
+    this.localSocketAddress = builder.localSocketAddress;
+    this.socketTimeout = builder.socketTimeout != null ? builder.socketTimeout : 0;
+    this.useReadAheadInput = builder.useReadAheadInput != null && builder.useReadAheadInput;
+    this.tlsSocketType = builder.tlsSocketType;
+    this.useCompression = builder.useCompression != null && builder.useCompression;
+  }
 
-    if (disablePipeline != null) this.disablePipeline = disablePipeline;
-    if (autocommit != null) this.autocommit = autocommit;
-    if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
-    if (nullDatabaseMeansCurrent != null) this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
-    if (useCatalogTerm != null) {
-      if (!"CATALOG".equalsIgnoreCase(useCatalogTerm)
-          && !"SCHEMA".equalsIgnoreCase(useCatalogTerm)) {
+  private void initializeTransactionConfig(Builder builder) {
+    this.transactionIsolation =
+        builder.transactionIsolation != null
+            ? TransactionIsolation.from(builder.transactionIsolation)
+            : null;
+    this.enabledSslCipherSuites = builder.enabledSslCipherSuites;
+    this.sessionVariables = builder.sessionVariables;
+  }
+
+  private void initializeDataTypeConfig(Builder builder) {
+    this.tinyInt1isBit = builder.tinyInt1isBit == null || builder.tinyInt1isBit;
+    this.transformedBitIsBoolean =
+        builder.transformedBitIsBoolean == null || builder.transformedBitIsBoolean;
+    this.yearIsDateType = builder.yearIsDateType == null || builder.yearIsDateType;
+  }
+
+  private void initializeTimezoneConfig(Builder builder) {
+    this.timezone = builder.timezone;
+    this.connectionTimeZone = builder.connectionTimeZone;
+    this.connectionCollation = builder.connectionCollation;
+    this.forceConnectionTimeZoneToSession = builder.forceConnectionTimeZoneToSession;
+    this.preserveInstants = builder.preserveInstants != null && builder.preserveInstants;
+  }
+
+  private void initializeQueryConfig(Builder builder) {
+    this.dumpQueriesOnException =
+        builder.dumpQueriesOnException != null && builder.dumpQueriesOnException;
+    this.prepStmtCacheSize = builder.prepStmtCacheSize != null ? builder.prepStmtCacheSize : 250;
+    this.useAffectedRows = builder.useAffectedRows != null && builder.useAffectedRows;
+    this.useServerPrepStmts = builder.useServerPrepStmts != null && builder.useServerPrepStmts;
+    this.connectionAttributes = builder.connectionAttributes;
+    this.allowLocalInfile = builder.allowLocalInfile == null || builder.allowLocalInfile;
+    this.allowMultiQueries = builder.allowMultiQueries != null && builder.allowMultiQueries;
+  }
+
+  private void initializeBulkConfig(Builder builder) {
+    this.useBulkStmts = builder.useBulkStmts != null && builder.useBulkStmts;
+    this.useBulkStmtsForInserts =
+        builder.useBulkStmtsForInserts != null
+            ? builder.useBulkStmtsForInserts
+            : (builder.useBulkStmts == null || builder.useBulkStmts);
+  }
+
+  private void initializePipelineConfig(Builder builder) {
+    this.disablePipeline = builder.disablePipeline != null && builder.disablePipeline;
+    this.autocommit = builder.autocommit;
+    this.useMysqlMetadata = builder.useMysqlMetadata != null && builder.useMysqlMetadata;
+    this.nullDatabaseMeansCurrent =
+        builder.nullDatabaseMeansCurrent != null && builder.nullDatabaseMeansCurrent;
+  }
+
+  private void initializeDatabaseConfig(Builder builder) {
+    if (builder.useCatalogTerm != null) {
+      if (!CATALOG_TERM.equalsIgnoreCase(builder.useCatalogTerm)
+          && !SCHEMA_TERM.equalsIgnoreCase(builder.useCatalogTerm)) {
         throw new IllegalArgumentException(
             "useCatalogTerm can only have CATALOG/SCHEMA value, current set value is "
-                + useCatalogTerm);
+                + builder.useCatalogTerm);
       }
       this.useCatalogTerm =
-          "CATALOG".equalsIgnoreCase(useCatalogTerm)
+          CATALOG_TERM.equalsIgnoreCase(builder.useCatalogTerm)
               ? CatalogTerm.UseCatalog
               : CatalogTerm.UseSchema;
-    }
-    if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
-    if (useLocalSessionState != null) this.useLocalSessionState = useLocalSessionState;
-    if (returnMultiValuesGeneratedIds != null)
-      this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
-    if (jdbcCompliantTruncation != null) this.jdbcCompliantTruncation = jdbcCompliantTruncation;
-    if (permitRedirect != null) this.permitRedirect = permitRedirect;
-    if (pinGlobalTxToPhysicalConnection != null)
-      this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
-    if (includeInnodbStatusInDeadlockExceptions != null)
-      this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
-    if (includeThreadDumpInDeadlockExceptions != null)
-      this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
-    if (servicePrincipalName != null) this.servicePrincipalName = servicePrincipalName;
-    if (defaultFetchSize != null) this.defaultFetchSize = defaultFetchSize;
-    if (tlsSocketType != null) this.tlsSocketType = tlsSocketType;
-    if (maxQuerySizeToLog != null) this.maxQuerySizeToLog = maxQuerySizeToLog;
-    if (maxAllowedPacket != null) this.maxAllowedPacket = maxAllowedPacket;
-    if (retriesAllDown != null) this.retriesAllDown = retriesAllDown;
-    if (galeraAllowedState != null) this.galeraAllowedState = galeraAllowedState;
-    if (pool != null) this.pool = pool;
-    if (poolName != null) this.poolName = poolName;
-    if (maxPoolSize != null) this.maxPoolSize = maxPoolSize;
-    // if min pool size default to maximum pool size if not set
-    if (minPoolSize != null) {
-      this.minPoolSize = minPoolSize;
     } else {
-      this.minPoolSize = this.maxPoolSize;
+      this.useCatalogTerm = CatalogTerm.UseCatalog;
     }
 
-    if (maxIdleTime != null) this.maxIdleTime = maxIdleTime;
-    if (registerJmxPool != null) this.registerJmxPool = registerJmxPool;
-    if (poolValidMinDelay != null) this.poolValidMinDelay = poolValidMinDelay;
-    if (useResetConnection != null) this.useResetConnection = useResetConnection;
-    if (serverRsaPublicKeyFile != null)
-      this.serverRsaPublicKeyFile =
-          serverRsaPublicKeyFile.isEmpty() ? null : serverRsaPublicKeyFile;
-    if (allowPublicKeyRetrieval != null) this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
-    if (useReadAheadInput != null) this.useReadAheadInput = useReadAheadInput;
-    if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;
-    if (transactionReplay != null) this.transactionReplay = transactionReplay;
-    if (transactionReplaySize != null) this.transactionReplaySize = transactionReplaySize;
-    if (geometryDefaultType != null) this.geometryDefaultType = geometryDefaultType;
-    if (restrictedAuth != null) this.restrictedAuth = restrictedAuth;
-    if (initSql != null) this.initSql = initSql;
-    if (serverSslCert != null) this.serverSslCert = serverSslCert;
-    if (keyStore != null) this.keyStore = keyStore;
-    if (trustStore != null) this.trustStore = trustStore;
-    if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
-    if (trustStorePassword != null) this.trustStorePassword = trustStorePassword;
-    if (keyPassword != null) this.keyPassword = keyPassword;
-    if (keyStoreType != null) this.keyStoreType = keyStoreType;
-    if (trustStoreType != null) this.trustStoreType = trustStoreType;
+    this.createDatabaseIfNotExist =
+        builder.createDatabaseIfNotExist != null && builder.createDatabaseIfNotExist;
+    this.useLocalSessionState =
+        builder.useLocalSessionState != null && builder.useLocalSessionState;
+    this.returnMultiValuesGeneratedIds =
+        builder.returnMultiValuesGeneratedIds != null && builder.returnMultiValuesGeneratedIds;
+    this.jdbcCompliantTruncation =
+        builder.jdbcCompliantTruncation == null || builder.jdbcCompliantTruncation;
+    this.permitRedirect = builder.permitRedirect == null || builder.permitRedirect;
+    this.pinGlobalTxToPhysicalConnection =
+        builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
+    this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
+  }
 
-    // *************************************************************
-    // hosts
-    // *************************************************************
+  private void initializeExceptionConfig(Builder builder) {
+    this.includeInnodbStatusInDeadlockExceptions =
+        builder.includeInnodbStatusInDeadlockExceptions != null
+            && builder.includeInnodbStatusInDeadlockExceptions;
+    this.includeThreadDumpInDeadlockExceptions =
+        builder.includeThreadDumpInDeadlockExceptions != null
+            && builder.includeThreadDumpInDeadlockExceptions;
+  }
+
+  private void initializePoolConfig(Builder builder) {
+    this.pool = builder.pool != null && builder.pool;
+    this.poolName = builder.poolName;
+    this.maxPoolSize = builder.maxPoolSize != null ? builder.maxPoolSize : 8;
+    this.minPoolSize = builder.minPoolSize != null ? builder.minPoolSize : this.maxPoolSize;
+    this.maxIdleTime = builder.maxIdleTime != null ? builder.maxIdleTime : 600_000;
+    this.registerJmxPool = builder.registerJmxPool == null || builder.registerJmxPool;
+    this.poolValidMinDelay = builder.poolValidMinDelay != null ? builder.poolValidMinDelay : 1000;
+    this.useResetConnection = builder.useResetConnection != null && builder.useResetConnection;
+  }
+
+  private void initializeSecurityConfig(Builder builder) {
+    this.serverRsaPublicKeyFile =
+        builder.serverRsaPublicKeyFile != null && !builder.serverRsaPublicKeyFile.isEmpty()
+            ? builder.serverRsaPublicKeyFile
+            : null;
+    this.allowPublicKeyRetrieval =
+        builder.allowPublicKeyRetrieval != null && builder.allowPublicKeyRetrieval;
+  }
+
+  private void initializeAdditionalConfig(Builder builder) {
+    this.servicePrincipalName = builder.servicePrincipalName;
+    this.defaultFetchSize = builder.defaultFetchSize != null ? builder.defaultFetchSize : 0;
+    this.tlsSocketType = builder.tlsSocketType;
+    this.maxQuerySizeToLog = builder.maxQuerySizeToLog != null ? builder.maxQuerySizeToLog : 1024;
+    this.maxAllowedPacket = builder.maxAllowedPacket;
+    this.retriesAllDown = builder.retriesAllDown != null ? builder.retriesAllDown : 120;
+    this.galeraAllowedState = builder.galeraAllowedState;
+    this.cachePrepStmts = builder.cachePrepStmts == null || builder.cachePrepStmts;
+    this.transactionReplay = builder.transactionReplay != null && builder.transactionReplay;
+    this.transactionReplaySize =
+        builder.transactionReplaySize != null ? builder.transactionReplaySize : 64;
+    this.geometryDefaultType = builder.geometryDefaultType;
+    this.restrictedAuth = builder.restrictedAuth;
+    this.initSql = builder.initSql;
+    this.codecs = null;
+  }
+
+  private void configureHosts() {
     if (addresses.isEmpty()) {
       if (this.localSocket != null) {
         addresses.add(HostAddress.localSocket(this.localSocket));
@@ -448,9 +459,7 @@ public class Configuration {
       }
     }
 
-    // *************************************************************
-    // host primary check
-    // *************************************************************
+    // Configure host primary settings
     boolean first = true;
     for (HostAddress host : addresses) {
       boolean primary = haMode != HaMode.REPLICATION || first;
@@ -459,10 +468,10 @@ public class Configuration {
       }
       first = false;
     }
+  }
 
-    // *************************************************************
-    // timezone verification
-    // *************************************************************
+  private void validateConfiguration() {
+    // Validate timezone settings
     if (this.timezone != null && this.connectionTimeZone == null) {
       if ("disable".equalsIgnoreCase(this.timezone)) {
         this.forceConnectionTimeZoneToSession = false;
@@ -474,42 +483,41 @@ public class Configuration {
       }
     }
 
-    // *************************************************************
-    // option value verification
-    // *************************************************************
-
-    // ensure connection collation format
+    // Validate connection collation
     if (connectionCollation != null) {
-      if ("".equals(connectionCollation.trim())) {
+      if (connectionCollation.trim().isEmpty()) {
         this.connectionCollation = null;
       } else {
-        // ensure this is an utf8mb4 collation
         if (!connectionCollation.toLowerCase(Locale.ROOT).startsWith("utf8mb4_")) {
-          throw new SQLException(
+          throw new IllegalArgumentException(
               String.format(
                   "wrong connection collation '%s' only utf8mb4 collation are accepted",
                   connectionCollation));
-        } else if (!connectionCollation.matches("^[a-zA-Z0-9_]+$")) {
-          throw new SQLException(
+        } else if (!connectionCollation.matches("\\w+$")) {
+          throw new IllegalArgumentException(
               String.format("wrong connection collation '%s' name", connectionCollation));
         }
       }
     }
 
-    // int fields must all be positive
+    // Validate integer fields
+    validateIntegerFields();
+  }
+
+  private void validateIntegerFields() {
     Field[] fields = Configuration.class.getDeclaredFields();
     try {
       for (Field field : fields) {
         if (field.getType().equals(int.class)) {
           int val = field.getInt(this);
           if (val < 0) {
-            throw new SQLException(
+            throw new IllegalArgumentException(
                 String.format("Value for %s must be >= 1 (value is %s)", field.getName(), val));
           }
         }
       }
-    } catch (IllegalArgumentException | IllegalAccessException ie) {
-      // eat
+    } catch (IllegalAccessException ie) {
+      // Ignore reflection errors
     }
   }
 
@@ -535,7 +543,8 @@ public class Configuration {
             .autocommit(this.autocommit)
             .useMysqlMetadata(this.useMysqlMetadata)
             .nullDatabaseMeansCurrent(this.nullDatabaseMeansCurrent)
-            .useCatalogTerm(this.useCatalogTerm == CatalogTerm.UseCatalog ? "CATALOG" : "SCHEMA")
+            .useCatalogTerm(
+                this.useCatalogTerm == CatalogTerm.UseCatalog ? CATALOG_TERM : SCHEMA_TERM)
             .createDatabaseIfNotExist(this.createDatabaseIfNotExist)
             .useLocalSessionState(this.useLocalSessionState)
             .returnMultiValuesGeneratedIds(this.returnMultiValuesGeneratedIds)
@@ -668,28 +677,21 @@ public class Configuration {
       throws SQLException {
     try {
       Builder builder = new Builder();
+
+      // Validate and parse basic URL structure
+      validateUrlFormat(url);
       int separator = url.indexOf("//");
-      if (separator == -1) {
-        throw new IllegalArgumentException(
-            "url parsing error : '//' is not present in the url " + url);
-      }
       builder.haMode(parseHaMode(url, separator));
 
+      // Extract host and parameters sections
       String urlSecondPart = url.substring(separator + 2);
 
-      int skipPos;
-      int posToSkip = 0;
-      while ((skipPos = urlSecondPart.indexOf("address=(", posToSkip)) > -1) {
-        posToSkip = urlSecondPart.indexOf(")", skipPos) + 1;
-        while (urlSecondPart.startsWith("(", posToSkip)) {
-          int endingBraceIndex = urlSecondPart.indexOf(")", posToSkip);
-          if (endingBraceIndex == -1) break;
-          posToSkip = endingBraceIndex + 1;
-        }
-      }
+      // Skip complex address definitions
+      int posToSkip = skipComplexAddresses(urlSecondPart);
       int dbIndex = urlSecondPart.indexOf("/", posToSkip);
       int paramIndex = urlSecondPart.indexOf("?");
 
+      // parse address and additional parameter parts
       String hostAddressesString;
       String additionalParameters;
       if ((dbIndex < paramIndex && dbIndex < 0) || (dbIndex > paramIndex && paramIndex > -1)) {
@@ -703,42 +705,84 @@ public class Configuration {
         additionalParameters = null;
       }
 
+      // Process database and parameters if present
       if (additionalParameters != null) {
-        int optIndex = additionalParameters.indexOf("?");
-        String database;
-        if (optIndex < 0) {
-          database = (additionalParameters.length() > 1) ? additionalParameters.substring(1) : null;
-        } else {
-          if (optIndex == 0) {
-            database = null;
-          } else {
-            database = additionalParameters.substring(1, optIndex);
-            if (database.isEmpty()) database = null;
-          }
-          String urlParameters = additionalParameters.substring(optIndex + 1);
-          if (!urlParameters.isEmpty()) {
-            String[] parameters = urlParameters.split("&");
-            for (String parameter : parameters) {
-              int pos = parameter.indexOf('=');
-              if (pos == -1) {
-                properties.setProperty(parameter, "");
-              } else {
-                properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
-              }
-            }
-          }
-        }
-        builder.database(database);
+        processDatabaseAndParameters(additionalParameters, builder, properties);
       } else {
         builder.database(null);
       }
 
+      // Map properties to configuration options
       mapPropertiesToOption(builder, properties);
+
+      // Parse host addresses
       builder._addresses = HostAddress.parse(hostAddressesString, builder._haMode);
+
       return builder.build();
 
     } catch (IllegalArgumentException i) {
-      throw new SQLException("error parsing url : " + i.getMessage(), i);
+      throw new SQLException("error parsing url: " + i.getMessage(), i);
+    }
+  }
+
+  private static void validateUrlFormat(String url) {
+    int separator = url.indexOf("//");
+    if (separator == -1) {
+      throw new IllegalArgumentException(
+          "url parsing error : '//' is not present in the url " + url);
+    }
+  }
+
+  private static int skipComplexAddresses(String urlSecondPart) {
+    int posToSkip = 0;
+    int skipPos;
+    while ((skipPos = urlSecondPart.indexOf("address=(", posToSkip)) > -1) {
+      posToSkip = urlSecondPart.indexOf(")", skipPos) + 1;
+      while (urlSecondPart.startsWith("(", posToSkip)) {
+        int endingBraceIndex = urlSecondPart.indexOf(")", posToSkip);
+        if (endingBraceIndex == -1) break;
+        posToSkip = endingBraceIndex + 1;
+      }
+    }
+    return posToSkip;
+  }
+
+  private static void processDatabaseAndParameters(
+      String additionalParameters, Builder builder, Properties properties) {
+
+    int optIndex = additionalParameters.indexOf("?");
+
+    // Extract database name
+    String database;
+    if (optIndex < 0) {
+      database = (additionalParameters.length() > 1) ? additionalParameters.substring(1) : null;
+    } else {
+      database = extractDatabase(additionalParameters, optIndex);
+      processUrlParameters(additionalParameters.substring(optIndex + 1), properties);
+    }
+
+    builder.database(database);
+  }
+
+  private static String extractDatabase(String additionalParameters, int optIndex) {
+    if (optIndex == 0) {
+      return null;
+    }
+    String database = additionalParameters.substring(1, optIndex);
+    return database.isEmpty() ? null : database;
+  }
+
+  private static void processUrlParameters(String urlParameters, Properties properties) {
+    if (!urlParameters.isEmpty()) {
+      String[] parameters = urlParameters.split("&");
+      for (String parameter : parameters) {
+        int pos = parameter.indexOf('=');
+        if (pos == -1) {
+          properties.setProperty(parameter, "");
+        } else {
+          properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+        }
+      }
     }
   }
 
@@ -746,72 +790,121 @@ public class Configuration {
     Properties nonMappedOptions = new Properties();
 
     try {
-      // Option object is already initialized to default values.
-      // loop on properties,
-      // - check DefaultOption to check that property value correspond to type (and range)
-      // - set values
-      for (final Object keyObj : properties.keySet()) {
-        String realKey =
-            OptionAliases.OPTIONS_ALIASES.get(keyObj.toString().toLowerCase(Locale.ROOT));
-        if (realKey == null) realKey = keyObj.toString();
-        final Object propertyValue = properties.get(keyObj);
-        if (propertyValue != null && realKey != null) {
-          boolean used = false;
-          for (Field field : Builder.class.getDeclaredFields()) {
-            if (realKey.toLowerCase(Locale.ROOT).equals(field.getName().toLowerCase(Locale.ROOT))) {
-              used = true;
-              if (field.getGenericType().equals(String.class)
-                  && !propertyValue.toString().isEmpty()) {
-                Method method = Builder.class.getDeclaredMethod(field.getName(), String.class);
-                method.invoke(builder, propertyValue);
-              } else if (field.getGenericType().equals(Boolean.class)) {
-                Method method = Builder.class.getDeclaredMethod(field.getName(), Boolean.class);
-                switch (propertyValue.toString().toLowerCase()) {
-                  case "":
-                  case "1":
-                  case "true":
-                    method.invoke(builder, Boolean.TRUE);
-                    break;
+      processProperties(builder, properties, nonMappedOptions);
+      handleLegacySslSettings(builder, nonMappedOptions);
+      builder._nonMappedOptions = nonMappedOptions;
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalArgumentException("Unexpected error while mapping properties", e);
+    }
+  }
 
-                  case "0":
-                  case "false":
-                    method.invoke(builder, Boolean.FALSE);
-                    break;
+  private static void processProperties(
+      Builder builder, Properties properties, Properties nonMappedOptions)
+      throws ReflectiveOperationException {
 
-                  default:
-                    throw new IllegalArgumentException(
-                        String.format(
-                            "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
-                            keyObj, propertyValue));
-                }
-              } else if (field.getGenericType().equals(Integer.class)) {
-                try {
-                  Method method = Builder.class.getDeclaredMethod(field.getName(), Integer.class);
-                  final Integer value = Integer.parseInt(propertyValue.toString());
-                  method.invoke(builder, value);
-                } catch (NumberFormatException n) {
-                  throw new IllegalArgumentException(
-                      String.format(
-                          "Optional parameter %s must be Integer, was '%s'",
-                          keyObj, propertyValue));
-                }
-              }
-            }
-          }
-          if (!used) nonMappedOptions.put(realKey, propertyValue);
-        }
+    for (final Map.Entry<Object, Object> entry : properties.entrySet()) {
+      String realKey = getRealKey(entry.getKey().toString());
+      final Object propertyValue = entry.getValue();
+
+      if (propertyValue != null) {
+        processProperty(builder, realKey, propertyValue, entry.getKey(), nonMappedOptions);
       }
+    }
+  }
 
-      // for compatibility with 2.x
-      if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
-        Properties deprecatedDesc = new Properties();
-        try (InputStream inputStream =
-            Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
-          deprecatedDesc.load(inputStream);
-        } catch (IOException io) {
-          // eat
-        }
+  private static String getRealKey(String key) {
+    String lowercaseKey = key.toLowerCase(Locale.ROOT);
+    String realKey = OptionAliases.OPTIONS_ALIASES.get(lowercaseKey);
+    return realKey != null ? realKey : key;
+  }
+
+  private static void processProperty(
+      Builder builder,
+      String realKey,
+      Object propertyValue,
+      Object originalKey,
+      Properties nonMappedOptions)
+      throws ReflectiveOperationException {
+
+    boolean used = false;
+    for (Field field : Builder.class.getDeclaredFields()) {
+      if (realKey.toLowerCase(Locale.ROOT).equals(field.getName().toLowerCase(Locale.ROOT))) {
+        used = true;
+        setFieldValue(builder, field, propertyValue, originalKey);
+      }
+    }
+    if (!used) {
+      nonMappedOptions.put(realKey, propertyValue);
+    }
+  }
+
+  private static void setFieldValue(
+      Builder builder, Field field, Object propertyValue, Object originalKey)
+      throws ReflectiveOperationException {
+
+    if (field.getGenericType().equals(String.class)) {
+      handleStringField(builder, field, propertyValue);
+    } else if (field.getGenericType().equals(Boolean.class)) {
+      handleBooleanField(builder, field, propertyValue, originalKey);
+    } else if (field.getGenericType().equals(Integer.class)) {
+      handleIntegerField(builder, field, propertyValue, originalKey);
+    }
+  }
+
+  private static void handleStringField(Builder builder, Field field, Object value)
+      throws ReflectiveOperationException {
+    String stringValue = value.toString();
+    if (!stringValue.isEmpty()) {
+      Method method = Builder.class.getDeclaredMethod(field.getName(), String.class);
+      method.invoke(builder, stringValue);
+    }
+  }
+
+  private static void handleBooleanField(
+      Builder builder, Field field, Object value, Object originalKey)
+      throws ReflectiveOperationException {
+
+    Method method = Builder.class.getDeclaredMethod(field.getName(), Boolean.class);
+    switch (value.toString().toLowerCase()) {
+      case "":
+      case "1":
+      case "true":
+        method.invoke(builder, Boolean.TRUE);
+        break;
+      case "0":
+      case "false":
+        method.invoke(builder, Boolean.FALSE);
+        break;
+      default:
+        throw new IllegalArgumentException(
+            String.format(
+                "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
+                originalKey, value));
+    }
+  }
+
+  private static void handleIntegerField(
+      Builder builder, Field field, Object value, Object originalKey)
+      throws ReflectiveOperationException {
+
+    try {
+      Method method = Builder.class.getDeclaredMethod(field.getName(), Integer.class);
+      final Integer intValue = Integer.parseInt(value.toString());
+      method.invoke(builder, intValue);
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException(
+          String.format("Optional parameter %s must be Integer, was '%s'", originalKey, value));
+    }
+  }
+
+  private static void handleLegacySslSettings(Builder builder, Properties nonMappedOptions) {
+    if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
+      Properties deprecatedDesc = new Properties();
+      try (InputStream inputStream =
+          Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
+        deprecatedDesc.load(inputStream);
         logger.warn(deprecatedDesc.getProperty("useSsl"));
+
         if (isSet("trustServerCertificate", nonMappedOptions)) {
           builder.sslMode("trust");
           logger.warn(deprecatedDesc.getProperty("trustServerCertificate"));
@@ -821,14 +914,11 @@ public class Configuration {
         } else {
           builder.sslMode("verify-full");
         }
+
+      } catch (IOException e) {
+        // Ignore IO exceptions when loading deprecation messages
       }
-    } catch (IllegalAccessException
-        | SecurityException
-        | InvocationTargetException
-        | NoSuchMethodException s) {
-      throw new IllegalArgumentException("Unexpected error", s);
     }
-    builder._nonMappedOptions = nonMappedOptions;
   }
 
   private static boolean isSet(String key, Properties nonMappedOptions) {
@@ -924,7 +1014,7 @@ public class Configuration {
       processFields(conf, defaultConf, new StringBuilder(), diffOpts);
 
       sb.append("\nNon default options : ");
-      if (diffOpts.length() == 0) {
+      if (diffOpts.isEmpty()) {
         sb.append("None\n");
       } else {
         sb.append(diffOpts);
@@ -941,7 +1031,7 @@ public class Configuration {
       processFields(conf, defaultConf, defaultOpts, new StringBuilder());
 
       sb.append("\n\ndefault options :");
-      if (defaultOpts.length() == 0) {
+      if (defaultOpts.isEmpty()) {
         sb.append("None\n");
       } else {
         sb.append(defaultOpts);
@@ -1117,7 +1207,7 @@ public class Configuration {
 
   private static void appendConfigurationParameters(StringBuilder sb, Configuration conf) {
     try {
-      Configuration defaultConf = new Configuration();
+      Configuration defaultConf = new Configuration(new Builder());
       ParameterAppender paramAppender = new ParameterAppender(sb);
 
       for (Field field : Configuration.class.getDeclaredFields()) {
@@ -1133,7 +1223,7 @@ public class Configuration {
         appendFieldParameter(paramAppender, field, value, defaultConf);
       }
     } catch (IllegalAccessException e) {
-      e.printStackTrace();
+      throw new IllegalStateException(e);
     }
   }
 
@@ -1205,7 +1295,7 @@ public class Configuration {
       throws IllegalAccessException {
     Object defaultValue = field.get(defaultConf);
     if (!value.equals(defaultValue)) {
-      appender.appendParameter(field.getName(), "SCHEMA");
+      appender.appendParameter(field.getName(), SCHEMA_TERM);
     }
   }
 
@@ -1253,15 +1343,10 @@ public class Configuration {
    * @return new cloned configuration object
    */
   public Configuration clone(String username, String password) {
-    try {
-      return this.toBuilder()
-          .user(username != null && username.isEmpty() ? null : username)
-          .password(password != null && password.isEmpty() ? null : password)
-          .build();
-    } catch (SQLException e) {
-      // not possible
-    }
-    return null;
+    return this.toBuilder()
+        .user(username != null && username.isEmpty() ? null : username)
+        .password(password != null && password.isEmpty() ? null : password)
+        .build();
   }
 
   public boolean havePrimaryHostOnly() {
@@ -1416,6 +1501,7 @@ public class Configuration {
     return enabledSslProtocolSuites;
   }
 
+  // do not remove, used with reflection
   public String credentialType() {
     return credentialType == null ? null : credentialType.type();
   }
@@ -3393,101 +3479,9 @@ public class Configuration {
      * Build a configuration
      *
      * @return a Configuration object
-     * @throws SQLException if option data type doesn't correspond
      */
-    public Configuration build() throws SQLException {
-      Configuration conf =
-          new Configuration(
-              this.database,
-              this._addresses,
-              this._haMode,
-              this.user,
-              this.password,
-              this.enabledSslProtocolSuites,
-              this.fallbackToSystemKeyStore,
-              this.fallbackToSystemTrustStore,
-              this.socketFactory,
-              this.connectTimeout,
-              this.pipe,
-              this.localSocket,
-              this.tcpKeepAlive,
-              this.uuidAsString,
-              this.tcpKeepIdle,
-              this.tcpKeepCount,
-              this.tcpKeepInterval,
-              this.tcpAbortiveClose,
-              this.localSocketAddress,
-              this.socketTimeout,
-              this.allowMultiQueries,
-              this.allowLocalInfile,
-              this.useCompression,
-              this.blankTableNameMeta,
-              this.credentialType,
-              this.sslMode,
-              this.transactionIsolation,
-              this.enabledSslCipherSuites,
-              this.sessionVariables,
-              this.tinyInt1isBit,
-              this.transformedBitIsBoolean,
-              this.yearIsDateType,
-              this.timezone,
-              this.connectionTimeZone,
-              this.connectionCollation,
-              this.forceConnectionTimeZoneToSession,
-              this.preserveInstants,
-              this.dumpQueriesOnException,
-              this.prepStmtCacheSize,
-              this.useAffectedRows,
-              this.useServerPrepStmts,
-              this.connectionAttributes,
-              this.useBulkStmts,
-              this.useBulkStmtsForInserts,
-              this.disablePipeline,
-              this.autocommit,
-              this.useMysqlMetadata,
-              this.nullDatabaseMeansCurrent,
-              this.useCatalogTerm,
-              this.createDatabaseIfNotExist,
-              this.useLocalSessionState,
-              this.returnMultiValuesGeneratedIds,
-              this.jdbcCompliantTruncation,
-              this.permitRedirect,
-              this.pinGlobalTxToPhysicalConnection,
-              this.includeInnodbStatusInDeadlockExceptions,
-              this.includeThreadDumpInDeadlockExceptions,
-              this.servicePrincipalName,
-              this.defaultFetchSize,
-              this.tlsSocketType,
-              this.maxQuerySizeToLog,
-              this.maxAllowedPacket,
-              this.retriesAllDown,
-              this.galeraAllowedState,
-              this.pool,
-              this.poolName,
-              this.maxPoolSize,
-              this.minPoolSize,
-              this.maxIdleTime,
-              this.registerJmxPool,
-              this.poolValidMinDelay,
-              this.useResetConnection,
-              this.serverRsaPublicKeyFile,
-              this.allowPublicKeyRetrieval,
-              this.serverSslCert,
-              this.keyStore,
-              this.trustStore,
-              this.keyStorePassword,
-              this.trustStorePassword,
-              this.keyPassword,
-              this.keyStoreType,
-              this.trustStoreType,
-              this.useReadAheadInput,
-              this.cachePrepStmts,
-              this.transactionReplay,
-              this.transactionReplaySize,
-              this.geometryDefaultType,
-              this.restrictedAuth,
-              this.initSql,
-              this._nonMappedOptions);
+    public Configuration build() {
+      Configuration conf = new Configuration(this);
       conf.initialUrl = buildUrl(conf);
       return conf;
     }

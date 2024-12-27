@@ -21,7 +21,7 @@ public final class CredentialPluginLoader {
    * @return identity plugin
    * @throws SQLException if no identity plugin found with this type is in classpath
    */
-  public static CredentialPlugin get(String type) throws SQLException {
+  public static CredentialPlugin get(String type) {
     if (type == null) return null;
 
     ServiceLoader<CredentialPlugin> loader =
@@ -32,7 +32,7 @@ public final class CredentialPluginLoader {
         return implClass;
       }
     }
-    throw new SQLException(
-        "No identity plugin registered with the type \"" + type + "\".", "08004", 1251);
+    throw new IllegalArgumentException(
+        "No identity plugin registered with the type \"" + type + "\".");
   }
 }

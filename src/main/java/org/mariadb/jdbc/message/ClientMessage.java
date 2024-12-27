@@ -66,9 +66,7 @@ public interface ClientMessage {
       if (pattern.matcher(sql).find() && parameters.size() > 0) {
         String paramString = parameters.get(0).bestEffortStringValue(context);
         if (paramString != null) {
-          return paramString
-              .toLowerCase()
-              .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
+          return paramString.equalsIgnoreCase("'" + fileName.replace("\\", "\\\\") + "'");
         }
         return true;
       }

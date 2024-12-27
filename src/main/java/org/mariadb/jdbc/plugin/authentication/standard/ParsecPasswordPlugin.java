@@ -27,9 +27,6 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       };
   private String authenticationData;
   private byte[] seed;
-  private byte[] salt;
-  private int iterations = 100;
-
   private byte[] hash;
 
   /**
@@ -62,7 +59,7 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
     ReadableByteBuf buf = in.readReusablePacket();
 
     byte firstByte = 0;
-
+    int iterations = 100;
     if (buf.readableBytes() > 2) {
       firstByte = buf.readByte();
       iterations = buf.readByte();
@@ -73,7 +70,7 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       throw new SQLException("Wrong parsec authentication format", "S1009");
     }
 
-    salt = new byte[buf.readableBytes()];
+    byte[] salt = new byte[buf.readableBytes()];
     buf.readBytes(salt);
     char[] password =
         this.authenticationData == null ? new char[0] : this.authenticationData.toCharArray();
