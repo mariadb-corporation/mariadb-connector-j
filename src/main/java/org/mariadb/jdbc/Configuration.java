@@ -6,6 +6,8 @@ package org.mariadb.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
@@ -196,190 +198,6 @@ public class Configuration {
   private Codec<?>[] codecs = null;
 
   private Configuration() {}
-
-  private Configuration(
-      String user,
-      String password,
-      String database,
-      List<HostAddress> addresses,
-      HaMode haMode,
-      Properties nonMappedOptions,
-      String timezone,
-      String connectionTimeZone,
-      String connectionCollation,
-      boolean forceConnectionTimeZoneToSession,
-      boolean preserveInstants,
-      Boolean autocommit,
-      boolean useMysqlMetadata,
-      boolean nullDatabaseMeansCurrent,
-      CatalogTerm useCatalogTerm,
-      boolean createDatabaseIfNotExist,
-      boolean useLocalSessionState,
-      boolean returnMultiValuesGeneratedIds,
-      boolean jdbcCompliantTruncation,
-      boolean permitRedirect,
-      boolean pinGlobalTxToPhysicalConnection,
-      TransactionIsolation transactionIsolation,
-      int defaultFetchSize,
-      int maxQuerySizeToLog,
-      Integer maxAllowedPacket,
-      String geometryDefaultType,
-      String restrictedAuth,
-      String initSql,
-      String socketFactory,
-      int connectTimeout,
-      String pipe,
-      String localSocket,
-      boolean tcpKeepAlive,
-      boolean uuidAsString,
-      int tcpKeepIdle,
-      int tcpKeepCount,
-      int tcpKeepInterval,
-      boolean tcpAbortiveClose,
-      String localSocketAddress,
-      int socketTimeout,
-      boolean useReadAheadInput,
-      String tlsSocketType,
-      SslMode sslMode,
-      String serverSslCert,
-      String keyStore,
-      String trustStore,
-      String keyStorePassword,
-      String trustStorePassword,
-      String keyPassword,
-      String keyStoreType,
-      String trustStoreType,
-      String enabledSslCipherSuites,
-      String enabledSslProtocolSuites,
-      boolean fallbackToSystemKeyStore,
-      boolean fallbackToSystemTrustStore,
-      boolean allowMultiQueries,
-      boolean allowLocalInfile,
-      boolean useCompression,
-      boolean useAffectedRows,
-      boolean useBulkStmts,
-      boolean useBulkStmtsForInserts,
-      boolean disablePipeline,
-      boolean cachePrepStmts,
-      int prepStmtCacheSize,
-      boolean useServerPrepStmts,
-      CredentialPlugin credentialType,
-      String sessionVariables,
-      String connectionAttributes,
-      String servicePrincipalName,
-      boolean blankTableNameMeta,
-      boolean tinyInt1isBit,
-      boolean transformedBitIsBoolean,
-      boolean yearIsDateType,
-      boolean dumpQueriesOnException,
-      boolean includeInnodbStatusInDeadlockExceptions,
-      boolean includeThreadDumpInDeadlockExceptions,
-      int retriesAllDown,
-      String galeraAllowedState,
-      boolean transactionReplay,
-      int transactionReplaySize,
-      boolean pool,
-      String poolName,
-      int maxPoolSize,
-      int minPoolSize,
-      int maxIdleTime,
-      boolean registerJmxPool,
-      int poolValidMinDelay,
-      boolean useResetConnection,
-      String serverRsaPublicKeyFile,
-      boolean allowPublicKeyRetrieval) {
-    this.user = user;
-    this.password = password;
-    this.database = database;
-    this.addresses = addresses;
-    this.haMode = haMode;
-    this.nonMappedOptions = nonMappedOptions;
-    this.timezone = timezone;
-    this.connectionTimeZone = connectionTimeZone;
-    this.connectionCollation = connectionCollation;
-    this.forceConnectionTimeZoneToSession = forceConnectionTimeZoneToSession;
-    this.preserveInstants = preserveInstants;
-    this.autocommit = autocommit;
-    this.useMysqlMetadata = useMysqlMetadata;
-    this.nullDatabaseMeansCurrent = nullDatabaseMeansCurrent;
-    this.useCatalogTerm = useCatalogTerm;
-    this.createDatabaseIfNotExist = createDatabaseIfNotExist;
-    this.returnMultiValuesGeneratedIds = returnMultiValuesGeneratedIds;
-    this.jdbcCompliantTruncation = jdbcCompliantTruncation;
-    this.permitRedirect = permitRedirect;
-    this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
-    this.useLocalSessionState = useLocalSessionState;
-    this.transactionIsolation = transactionIsolation;
-    this.defaultFetchSize = defaultFetchSize;
-    this.maxQuerySizeToLog = maxQuerySizeToLog;
-    this.maxAllowedPacket = maxAllowedPacket;
-    this.geometryDefaultType = geometryDefaultType;
-    this.restrictedAuth = restrictedAuth;
-    this.initSql = initSql;
-    this.socketFactory = socketFactory;
-    this.connectTimeout = connectTimeout;
-    this.pipe = pipe;
-    this.localSocket = localSocket;
-    this.tcpKeepAlive = tcpKeepAlive;
-    this.uuidAsString = uuidAsString;
-    this.tcpKeepIdle = tcpKeepIdle;
-    this.tcpKeepCount = tcpKeepCount;
-    this.tcpKeepInterval = tcpKeepInterval;
-    this.tcpAbortiveClose = tcpAbortiveClose;
-    this.localSocketAddress = localSocketAddress;
-    this.socketTimeout = socketTimeout;
-    this.useReadAheadInput = useReadAheadInput;
-    this.tlsSocketType = tlsSocketType;
-    this.sslMode = sslMode;
-    this.serverSslCert = serverSslCert;
-    this.keyStore = keyStore;
-    this.trustStore = trustStore;
-    this.keyStorePassword = keyStorePassword;
-    this.trustStorePassword = trustStorePassword;
-    this.keyPassword = keyPassword;
-    this.keyStoreType = keyStoreType;
-    this.trustStoreType = trustStoreType;
-    this.enabledSslCipherSuites = enabledSslCipherSuites;
-    this.enabledSslProtocolSuites = enabledSslProtocolSuites;
-    this.fallbackToSystemKeyStore = fallbackToSystemKeyStore;
-    this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
-    this.allowMultiQueries = allowMultiQueries;
-    this.allowLocalInfile = allowLocalInfile;
-    this.useCompression = useCompression;
-    this.useAffectedRows = useAffectedRows;
-    this.useBulkStmts = useBulkStmts;
-    this.useBulkStmtsForInserts = useBulkStmtsForInserts;
-    this.disablePipeline = disablePipeline;
-    this.cachePrepStmts = cachePrepStmts;
-    this.prepStmtCacheSize = prepStmtCacheSize;
-    this.useServerPrepStmts = useServerPrepStmts;
-    this.credentialType = credentialType;
-    this.sessionVariables = sessionVariables;
-    this.connectionAttributes = connectionAttributes;
-    this.servicePrincipalName = servicePrincipalName;
-    this.blankTableNameMeta = blankTableNameMeta;
-    this.tinyInt1isBit = tinyInt1isBit;
-    this.transformedBitIsBoolean = transformedBitIsBoolean;
-    this.yearIsDateType = yearIsDateType;
-    this.dumpQueriesOnException = dumpQueriesOnException;
-    this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
-    this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
-    this.retriesAllDown = retriesAllDown;
-    this.galeraAllowedState = galeraAllowedState;
-    this.transactionReplay = transactionReplay;
-    this.transactionReplaySize = transactionReplaySize;
-    this.pool = pool;
-    this.poolName = poolName;
-    this.maxPoolSize = maxPoolSize;
-    this.minPoolSize = minPoolSize;
-    this.maxIdleTime = maxIdleTime;
-    this.registerJmxPool = registerJmxPool;
-    this.poolValidMinDelay = poolValidMinDelay;
-    this.useResetConnection = useResetConnection;
-    this.serverRsaPublicKeyFile = serverRsaPublicKeyFile;
-    this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
-    this.initialUrl = buildUrl(this);
-  }
 
   private Configuration(
       String database,
@@ -941,23 +759,23 @@ public class Configuration {
           boolean used = false;
           for (Field field : Builder.class.getDeclaredFields()) {
             if (realKey.toLowerCase(Locale.ROOT).equals(field.getName().toLowerCase(Locale.ROOT))) {
-              field.setAccessible(true);
               used = true;
-
               if (field.getGenericType().equals(String.class)
                   && !propertyValue.toString().isEmpty()) {
-                field.set(builder, propertyValue);
+                Method method = Builder.class.getDeclaredMethod(field.getName(), String.class);
+                method.invoke(builder, propertyValue);
               } else if (field.getGenericType().equals(Boolean.class)) {
+                Method method = Builder.class.getDeclaredMethod(field.getName(), Boolean.class);
                 switch (propertyValue.toString().toLowerCase()) {
                   case "":
                   case "1":
                   case "true":
-                    field.set(builder, Boolean.TRUE);
+                    method.invoke(builder, Boolean.TRUE);
                     break;
 
                   case "0":
                   case "false":
-                    field.set(builder, Boolean.FALSE);
+                    method.invoke(builder, Boolean.FALSE);
                     break;
 
                   default:
@@ -968,8 +786,9 @@ public class Configuration {
                 }
               } else if (field.getGenericType().equals(Integer.class)) {
                 try {
+                  Method method = Builder.class.getDeclaredMethod(field.getName(), Integer.class);
                   final Integer value = Integer.parseInt(propertyValue.toString());
-                  field.set(builder, value);
+                  method.invoke(builder, value);
                 } catch (NumberFormatException n) {
                   throw new IllegalArgumentException(
                       String.format(
@@ -1003,7 +822,10 @@ public class Configuration {
           builder.sslMode("verify-full");
         }
       }
-    } catch (IllegalAccessException | SecurityException s) {
+    } catch (IllegalAccessException
+        | SecurityException
+        | InvocationTargetException
+        | NoSuchMethodException s) {
       throw new IllegalArgumentException("Unexpected error", s);
     }
     builder._nonMappedOptions = nonMappedOptions;
@@ -1592,6 +1414,10 @@ public class Configuration {
    */
   public String enabledSslProtocolSuites() {
     return enabledSslProtocolSuites;
+  }
+
+  public String credentialType() {
+    return credentialType == null ? null : credentialType.type();
   }
 
   /**

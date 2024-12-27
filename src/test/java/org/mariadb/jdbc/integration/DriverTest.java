@@ -5,6 +5,7 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -16,7 +17,7 @@ import org.mariadb.jdbc.Configuration;
 public class DriverTest extends Common {
 
   @Test
-  public void ensureDescriptionFilled() throws Exception {
+  public void ensureDescriptionFilled() throws IOException, NoSuchFieldException {
     Properties descr = new Properties();
     try (InputStream inputStream =
         Common.class.getClassLoader().getResourceAsStream("driver.properties")) {
@@ -28,7 +29,7 @@ public class DriverTest extends Common {
       if (!field.getName().startsWith("_")
           && descr.get(field.getName()) == null
           && !"$jacocoData".equals(field.getName())) {
-        throw new Exception(String.format("Missing %s description", field.getName()));
+        throw new IllegalStateException(String.format("Missing %s description", field.getName()));
       }
     }
 

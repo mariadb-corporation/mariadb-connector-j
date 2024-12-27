@@ -157,6 +157,7 @@ public class ErrorTest extends Common {
       DriverManager.getConnection("jdbc:mariadb://localhost:32760/db");
       fail("Must have thrown an error");
     } catch (SQLException e) {
+      e.printStackTrace();
       assertEquals("08000", e.getSQLState());
     }
   }

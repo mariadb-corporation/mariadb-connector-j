@@ -196,7 +196,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (prepareResult == null && con.cachePrepStmts())
       prepareResult = con.getContext().getPrepareCacheCmd(cmd, this);
     if (!con.getContext().hasServerCapability(STMT_BULK_OPERATIONS)) {
-      // server is before 10.2 or MySQL, not permitting to execute last prepare with (-1) statement id.
+      // server is before 10.2 or MySQL, not permitting to execute last prepare with (-1) statement
+      // id.
       con.getClient().execute(new PreparePacket(cmd), this, false);
     }
     int maxCmd = 250;

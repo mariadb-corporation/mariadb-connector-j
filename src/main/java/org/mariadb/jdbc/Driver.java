@@ -6,6 +6,8 @@ package org.mariadb.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
@@ -141,15 +143,14 @@ public final class Driver implements java.sql.Driver {
     for (Field field : Configuration.Builder.class.getDeclaredFields()) {
       if (!field.getName().startsWith("_")) {
         try {
-          Field fieldConf = Configuration.class.getDeclaredField(field.getName());
-          fieldConf.setAccessible(true);
-          Object obj = fieldConf.get(conf);
+          Method getterMethod = Configuration.class.getDeclaredMethod(field.getName());
+          Object obj = getterMethod.invoke(conf);
           String value = obj == null ? null : obj.toString();
           DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(), value);
           propertyInfo.description = value == null ? "" : (String) propDesc.get(field.getName());
           propertyInfo.required = false;
           props.add(propertyInfo);
-        } catch (IllegalAccessException | NoSuchFieldException e) {
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
           // eat error
         }
       }

@@ -26,7 +26,7 @@ public class DataSourceTest extends Common {
 
     MariaDbDataSource ds2 = new MariaDbDataSource();
     ds2.setUrl(mDefUrl);
-    ds2.setPassword("ttt");
+    ds2.setPassword("someP@ssword");
     ds2.setUser("ttt");
     assertThrows(SQLException.class, ds2::getConnection);
   }
@@ -115,7 +115,7 @@ public class DataSourceTest extends Common {
     ds.setUser("dd");
     assertEquals("dd", ds.getUser());
 
-    ds.setPassword("pwd");
+    ds.setPassword("someOtherP@ssword");
     assertThrows(SQLException.class, ds::getConnection);
     assertThrows(SQLException.class, ds::getPooledConnection);
 
