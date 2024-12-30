@@ -343,6 +343,7 @@ public class StatementTest extends Common {
 
     // with returnMultiValuesGeneratedIds options
     stmt.execute("TRUNCATE TABLE executeGenerated");
+    sharedConn.commit();
     try (Connection conn = createCon("&returnMultiValuesGeneratedIds")) {
       Statement stmt2 = conn.createStatement();
       assertFalse(
