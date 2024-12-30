@@ -1,6 +1,6 @@
 # Change Log
 
-## [3.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.2) (Dec 2024)
+## [3.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.2) (Jan 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.1...3.5.2)
 
 #### Bugs Fixed
@@ -9,6 +9,8 @@
 * CONJ-1218 Closing Connection closes associated XAConnection
 * CONJ-1217 trustCertificateKeyStorePassword alias doesn't work
 * CONJ-1221	DatabaseMetadata.getTypeInfo() missing UUID and VECTOR datatypes
+* CONJ-1225 regression resulting in throwing an exception without looping over all connections
+
 
 ## [3.5.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.1) (Nov 2024)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.0...3.5.1)
