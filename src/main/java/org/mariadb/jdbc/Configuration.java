@@ -1014,7 +1014,7 @@ public class Configuration {
       processFields(conf, defaultConf, new StringBuilder(), diffOpts);
 
       sb.append("\nNon default options : ");
-      if (diffOpts.isEmpty()) {
+      if (diffOpts.length() == 0) {
         sb.append("None\n");
       } else {
         sb.append(diffOpts);
@@ -1031,7 +1031,7 @@ public class Configuration {
       processFields(conf, defaultConf, defaultOpts, new StringBuilder());
 
       sb.append("\n\ndefault options :");
-      if (defaultOpts.isEmpty()) {
+      if (defaultOpts.length() == 0) {
         sb.append("None\n");
       } else {
         sb.append(defaultOpts);

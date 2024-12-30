@@ -199,7 +199,8 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
   private String createZeroTimeString() {
     StringBuilder zeroValue = new StringBuilder("00:00:00");
     if (getDecimals() > 0) {
-      zeroValue.append(".").append("0".repeat(getDecimals()));
+      zeroValue.append(".");
+      for (int i = 0; i < getDecimals(); i++) zeroValue.append("0");
     }
     return zeroValue.toString();
   }
