@@ -91,10 +91,10 @@ public class MultiPrimaryClient implements Client {
       if (client != null) {
         return client;
       }
-    } catch (SQLNonTransientConnectionException lastException) {
+    } catch (SQLNonTransientConnectionException | SQLTimeoutException lastException) {
       // Handle fail-fast scenario
       if (failFast) {
-        throwFailFastException(lastException);
+        throw lastException;
       }
     }
 
@@ -110,7 +110,7 @@ public class MultiPrimaryClient implements Client {
   }
 
   private Client tryConnectToAvailableHost(boolean readOnly, int retriesLeft) throws SQLException {
-    SQLNonTransientConnectionException lastException = null;
+    SQLException lastException = null;
     while (retriesLeft > 0) {
       Optional<HostAddress> host =
           conf.haMode().getAvailableHost(conf.addresses(), denyList, !readOnly);
@@ -120,7 +120,7 @@ public class MultiPrimaryClient implements Client {
 
       try {
         return createClient(host.get());
-      } catch (SQLNonTransientConnectionException e) {
+      } catch (SQLNonTransientConnectionException | SQLTimeoutException e) {
         lastException = e;
         addToDenyList(host.get());
         retriesLeft--;
@@ -177,13 +177,6 @@ public class MultiPrimaryClient implements Client {
       throw new SQLNonTransientConnectionException(
           String.format("No %s host defined", readOnly ? "replica" : "primary"));
     }
-  }
-
-  private void throwFailFastException(SQLNonTransientConnectionException lastException)
-      throws SQLException {
-    throw (lastException != null)
-        ? lastException
-        : new SQLNonTransientConnectionException("all hosts are blacklisted");
   }
 
   private Client createClient(HostAddress host) throws SQLException {
