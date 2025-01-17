@@ -19,7 +19,6 @@ public final class CredentialPluginLoader {
    *
    * @param type identity plugin type
    * @return identity plugin
-   * @throws SQLException if no identity plugin found with this type is in classpath
    */
   public static CredentialPlugin get(String type) {
     if (type == null) return null;
