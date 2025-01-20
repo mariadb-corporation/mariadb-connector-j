@@ -104,7 +104,7 @@ public class Common {
                 password,
                 true,
                 false,
-                "&prepStmtCacheSize=0" + other);
+                "&prepStmtCacheSize=0&cachePrepStmts=false" + other);
 
         connectionBinaryNoCache =
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
