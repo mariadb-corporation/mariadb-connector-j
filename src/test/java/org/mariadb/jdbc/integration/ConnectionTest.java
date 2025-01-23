@@ -16,6 +16,7 @@ import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.integration.util.SocketFactoryBasicTest;
 import org.mariadb.jdbc.integration.util.SocketFactoryTest;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 @DisplayName("Connection Test")
 public class ConnectionTest extends Common {
@@ -1432,6 +1433,55 @@ public class ConnectionTest extends Common {
         // must have succeeded
         connection.getCatalog();
       }
+    }
+  }
+
+  @Test
+  public void expiredPasswordTest() throws SQLException, InterruptedException {
+    Assumptions.assumeTrue(srvHasCapability(Capabilities.CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS));
+    boolean forced = false;
+    Statement stmt = sharedConn.createStatement();
+    try {
+      stmt.execute("DROP USER IF EXISTS 'expired_pwd_user'");
+      stmt.execute("CREATE USER 'expired_pwd_user' IDENTIFIED by '!Passw0rd3Works'");
+      stmt.execute("GRANT all on *.* to 'expired_pwd_user'");
+
+      String connStr =
+          String.format(
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
+              hostname, port, database, "expired_pwd_user", "!Passw0rd3Works", defaultOther);
+
+      stmt.execute("ALTER USER 'expired_pwd_user' PASSWORD EXPIRE");
+      stmt.execute("FLUSH PRIVILEGES");
+      if (isMariaDBServer()) {
+        // force
+        try {
+          ResultSet rs = stmt.executeQuery("select @@global.disconnect_on_expired_password");
+          rs.next();
+          if (rs.getBoolean(1) != true) {
+            stmt.execute("set @@global.disconnect_on_expired_password=true");
+            forced = true;
+          }
+        } catch (SQLException e) {
+          // eat
+          e.printStackTrace();
+        }
+      }
+      assertThrows(SQLException.class, () -> DriverManager.getConnection(connStr));
+
+      try (Connection con =
+          DriverManager.getConnection(connStr + "&disconnectOnExpiredPasswords=false")) {
+        assertThrows(SQLException.class, () -> con.createStatement().execute("SELECT 1"));
+      }
+      try (Connection con =
+          DriverManager.getConnection(
+              connStr + "&disconnectOnExpiredPasswords=false&initSql=SELECT 1")) {
+        assertThrows(SQLException.class, () -> con.createStatement().execute("SELECT 1"));
+      }
+
+    } finally {
+      stmt.execute("DROP USER IF EXISTS 'expired_pwd_user'");
+      if (forced) stmt.execute("set @@global.disconnect_on_expired_password=false");
     }
   }
 }

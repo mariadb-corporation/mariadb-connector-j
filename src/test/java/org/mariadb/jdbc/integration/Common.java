@@ -128,6 +128,10 @@ public class Common {
     return sharedConn.getContext().hasClientCapability(capability);
   }
 
+  public static boolean srvHasCapability(long capability) {
+    return sharedConn.getContext().hasServerCapability(capability);
+  }
+
   public static boolean runLongTest() {
     String runLongTest = System.getenv("RUN_LONG_TEST");
     if (runLongTest != null) {

@@ -73,6 +73,9 @@ public final class Capabilities {
   /** authentication data length is a length auth integer */
   public static final int PLUGIN_AUTH_LENENC_CLIENT_DATA = 1 << 21;
 
+  /** Client can handle expired passwords */
+  public static final int CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS = 1 << 22;
+
   /** server send session tracking info */
   public static final int CLIENT_SESSION_TRACK = 1 << 23;
 

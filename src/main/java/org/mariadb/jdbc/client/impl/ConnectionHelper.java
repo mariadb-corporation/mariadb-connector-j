@@ -231,6 +231,10 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.SSL;
     }
 
+    if (!configuration.disconnectOnExpiredPasswords()) {
+      capabilities |= Capabilities.CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
+    }
+
     return capabilities;
   }
 

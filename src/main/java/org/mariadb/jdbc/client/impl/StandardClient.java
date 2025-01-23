@@ -751,6 +751,13 @@ public class StandardClient implements Client, AutoCloseable {
 
       } catch (SQLException sqlException) {
 
+        if (!conf.disconnectOnExpiredPasswords()
+            && (sqlException.getErrorCode() == 1862 || sqlException.getErrorCode() == 1820)) {
+          // password has expired, but configuration expressly permit sandbox mode.
+          logger.info("connected in sandbox mode. only password change is permitted");
+          return;
+        }
+
         if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
           // timezone is not valid
           throw exceptionFactory.create(

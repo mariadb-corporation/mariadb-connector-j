@@ -167,6 +167,7 @@ public class Configuration {
   private String sessionVariables;
   private String connectionAttributes;
   private String servicePrincipalName;
+  private boolean disconnectOnExpiredPasswords;
 
   // meta
   private boolean blankTableNameMeta;
@@ -386,6 +387,8 @@ public class Configuration {
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
     this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
+    this.disconnectOnExpiredPasswords =
+        builder.disconnectOnExpiredPasswords == null || builder.disconnectOnExpiredPasswords;
   }
 
   private void initializeExceptionConfig(Builder builder) {
@@ -602,6 +605,7 @@ public class Configuration {
             .connectionAttributes(this.connectionAttributes)
             .servicePrincipalName(this.servicePrincipalName)
             .blankTableNameMeta(this.blankTableNameMeta)
+            .disconnectOnExpiredPasswords(this.disconnectOnExpiredPasswords)
             .tinyInt1isBit(this.tinyInt1isBit)
             .transformedBitIsBoolean(this.transformedBitIsBoolean)
             .yearIsDateType(this.yearIsDateType)
@@ -1681,6 +1685,17 @@ public class Configuration {
   }
 
   /**
+   * On connection creation, indicate behavior when password is expired. When true (default) throw
+   * an expired password error When false, connection succeed in "sandbox" mode, only queries
+   * related to password change are allowed
+   *
+   * @return must connection fails on expired password
+   */
+  public boolean disconnectOnExpiredPasswords() {
+    return disconnectOnExpiredPasswords;
+  }
+
+  /**
    * SSl mode
    *
    * @return ssl mode
@@ -2328,6 +2343,7 @@ public class Configuration {
     private String sessionVariables;
     private String connectionAttributes;
     private String servicePrincipalName;
+    private Boolean disconnectOnExpiredPasswords;
 
     // meta
     private Boolean blankTableNameMeta;
@@ -2850,6 +2866,18 @@ public class Configuration {
      */
     public Builder blankTableNameMeta(Boolean blankTableNameMeta) {
       this.blankTableNameMeta = blankTableNameMeta;
+      return this;
+    }
+
+    /**
+     * On connection creation, indicate behavior when password is expired. When true (default) throw
+     * an expired password error When false, connection succeed in "sandbox" mode, only queries
+     * related to password change are allowed
+     *
+     * @return this {@link Builder}
+     */
+    public Builder disconnectOnExpiredPasswords(Boolean disconnectOnExpiredPasswords) {
+      this.disconnectOnExpiredPasswords = disconnectOnExpiredPasswords;
       return this;
     }
 
