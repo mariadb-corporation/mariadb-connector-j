@@ -118,12 +118,12 @@ public class BlobCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob(2));
     assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(
-            new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
+    assertStreamEquals(new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
   }
+
   @Test
   void getObjectType() throws Exception {
     getObjectType(get());

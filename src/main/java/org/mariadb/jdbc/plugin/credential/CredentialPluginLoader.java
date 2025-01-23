@@ -3,7 +3,6 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.credential;
 
-import java.sql.SQLException;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
