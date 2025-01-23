@@ -1244,7 +1244,7 @@ public class ConnectionTest extends Common {
     // ensure connecting without DB
     String connStr =
         String.format(
-            "jdbc:mariadb://%s:%s/?user=%s&password=%s&%s&createDatabaseIfNotExist",
+            "jdbc:mariadb://%s:%s/?user=%s&password=%s&%s&createDatabaseIfNotExist&allowPublicKeyRetrieval=true",
             hostname, port, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       con.createStatement().executeQuery("SELECT 1");
@@ -1253,7 +1253,7 @@ public class ConnectionTest extends Common {
     String nonExistentDatabase = "bla`f`l";
     connStr =
         String.format(
-            "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist",
+            "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist&allowPublicKeyRetrieval=true",
             hostname, port, nonExistentDatabase, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
@@ -1264,7 +1264,7 @@ public class ConnectionTest extends Common {
     nonExistentDatabase = "bla`f`l0";
     connStr =
         String.format(
-            "jdbc:mariadb:replication://%s:%s,%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist",
+            "jdbc:mariadb:replication://%s:%s,%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist&allowPublicKeyRetrieval=true",
             hostname, port, hostname, port, nonExistentDatabase, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
@@ -1448,7 +1448,7 @@ public class ConnectionTest extends Common {
 
       String connStr =
           String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s&allowPublicKeyRetrieval=true",
               hostname, port, database, "expired_pwd_user", "!Passw0rd3Works", defaultOther);
 
       stmt.execute("ALTER USER 'expired_pwd_user' PASSWORD EXPIRE");
