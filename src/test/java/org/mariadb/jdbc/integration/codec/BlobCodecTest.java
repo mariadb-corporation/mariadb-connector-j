@@ -90,18 +90,40 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   void getObject(ResultSet rs) throws Exception {
-    assertStreamEquals(new MariaDbBlob("0".getBytes()), (Blob) rs.getObject(1));
+    assertArrayEquals("0".getBytes(), (byte[]) rs.getObject(1));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbBlob("1".getBytes()), (Blob) rs.getObject(2));
-    assertStreamEquals(new MariaDbBlob("1".getBytes()), (Blob) rs.getObject("t2alias"));
+    assertArrayEquals("1".getBytes(), (byte[]) rs.getObject(2));
+    assertArrayEquals("1".getBytes(), (byte[]) rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(
-        new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), (Blob) rs.getObject(3));
+    assertArrayEquals("some🌟".getBytes(StandardCharsets.UTF_8), (byte[]) rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
   }
 
+  @Test
+  void getObjectBlob() throws Exception {
+    getObjectBlob(get());
+  }
+
+  @Test
+  void getObjectBlobPrepare() throws Exception {
+    getObjectBlob(getPrepare(sharedConn));
+    getObjectBlob(getPrepare(sharedConnBinary));
+  }
+
+  void getObjectBlob(ResultSet rs) throws Exception {
+    assertStreamEquals(new MariaDbBlob("0".getBytes()), rs.getBlob(1));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob(2));
+    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(
+            new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4));
+    assertTrue(rs.wasNull());
+  }
   @Test
   void getObjectType() throws Exception {
     getObjectType(get());

@@ -137,7 +137,9 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
       final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
     if (isBinary()) {
-      return buf.readBlob(length.get());
+      byte[] bytes = new byte[length.get()];
+      buf.readBytes(bytes);
+      return bytes;
     }
     return buf.readString(length.get());
   }
