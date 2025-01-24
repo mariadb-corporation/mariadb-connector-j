@@ -75,25 +75,26 @@ public class StatementTest extends Common {
 
   @Test
   public void ensureJdbcErrorWhenNoResultset() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
-    stmt.execute("DO 1");
-    assertThrowsContains(
-        SQLException.class,
-        () -> stmt.executeQuery("DO 1"),
-        "Statement.executeQuery() command does NOT return a result-set as expected. Either use"
-            + " Statement.execute(), Statement.executeUpdate(), or correct command");
-    stmt.execute("DO 1");
-    try (PreparedStatement ps =
-        sharedConn.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
-      ps.setInt(1, 1);
-      ps.execute();
+    try (Connection con = createCon("&permitNoResults=false")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("DO 1");
       assertThrowsContains(
           SQLException.class,
-          () -> ps.executeQuery(),
-          "PrepareStatement.executeQuery() command does NOT return a result-set as expected. Either"
-              + " use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or correct"
-              + " command");
-      ps.execute();
+          () -> stmt.executeQuery("DO 1"),
+          "Statement.executeQuery() command does NOT return a result-set as expected. Either use"
+              + " Statement.execute(), Statement.executeUpdate(), or correct command");
+      stmt.execute("DO 1");
+      try (PreparedStatement ps = con.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
+        ps.setInt(1, 1);
+        ps.execute();
+        assertThrowsContains(
+            SQLException.class,
+            () -> ps.executeQuery(),
+            "PrepareStatement.executeQuery() command does NOT return a result-set as expected."
+                + " Either use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or"
+                + " correct command");
+        ps.execute();
+      }
     }
     try (Connection con = createCon("&permitNoResults=true")) {
       try (PreparedStatement ps = con.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
@@ -104,17 +105,18 @@ public class StatementTest extends Common {
         ps.execute();
       }
     }
-    try (PreparedStatement ps =
-        sharedConnBinary.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
-      ps.setInt(1, 1);
-      ps.execute();
-      assertThrowsContains(
-          SQLException.class,
-          () -> ps.executeQuery(),
-          "PrepareStatement.executeQuery() command does NOT return a result-set as expected. Either"
-              + " use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or correct"
-              + " command");
-      ps.execute();
+    try (Connection con = createCon("permitNoResults=false&useServerPrepStmts=true")) {
+      try (PreparedStatement ps = con.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {
+        ps.setInt(1, 1);
+        ps.execute();
+        assertThrowsContains(
+            SQLException.class,
+            () -> ps.executeQuery(),
+            "PrepareStatement.executeQuery() command does NOT return a result-set as expected."
+                + " Either use PrepareStatement.execute(), PrepareStatement.executeUpdate(), or"
+                + " correct command");
+        ps.execute();
+      }
     }
     try (Connection con = createCon("permitNoResults=true&useServerPrepStmts=true")) {
       try (PreparedStatement ps = con.prepareStatement("DO ?", Statement.RETURN_GENERATED_KEYS)) {

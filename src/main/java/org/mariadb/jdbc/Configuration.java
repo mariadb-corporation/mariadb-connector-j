@@ -118,6 +118,7 @@ public class Configuration {
   private String restrictedAuth;
   private String initSql;
   private boolean pinGlobalTxToPhysicalConnection;
+  private boolean permitNoResults;
 
   // socket
   private String socketFactory;
@@ -386,6 +387,7 @@ public class Configuration {
     this.permitRedirect = builder.permitRedirect == null || builder.permitRedirect;
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
+    this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
     this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
     this.disconnectOnExpiredPasswords =
         builder.disconnectOnExpiredPasswords == null || builder.disconnectOnExpiredPasswords;
@@ -554,6 +556,7 @@ public class Configuration {
             .jdbcCompliantTruncation(this.jdbcCompliantTruncation)
             .permitRedirect(this.permitRedirect)
             .pinGlobalTxToPhysicalConnection(this.pinGlobalTxToPhysicalConnection)
+            .permitNoResults(this.permitNoResults)
             .transactionIsolation(
                 transactionIsolation == null ? null : this.transactionIsolation.getValue())
             .defaultFetchSize(this.defaultFetchSize)
@@ -1970,6 +1973,19 @@ public class Configuration {
   }
 
   /**
+   * Indicate if Statement/PreparedStatement.executeQuery for command that produce no result will
+   * return an exception or just an empty result-set
+   *
+   * <p>When enabled, command not returning no data will end returning an empty result-set When
+   * disabled, command not returning no data will end throwing an exception
+   *
+   * @return permitNoResults
+   */
+  public boolean permitNoResults() {
+    return permitNoResults;
+  }
+
+  /**
    * On deadlock exception, must driver execute additional commands to show innodb status in error
    * description.
    *
@@ -2287,6 +2303,7 @@ public class Configuration {
     private Boolean jdbcCompliantTruncation;
     private Boolean permitRedirect;
     private Boolean pinGlobalTxToPhysicalConnection;
+    private Boolean permitNoResults;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -3237,6 +3254,20 @@ public class Configuration {
      */
     public Builder pinGlobalTxToPhysicalConnection(Boolean pinGlobalTxToPhysicalConnection) {
       this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
+      return this;
+    }
+
+    /**
+     * Indicate if Statement/PreparedStatement.executeQuery for command that produce no result will
+     * return an exception or just an empty result-set When enabled, command not returning no data
+     * will end returning an empty result-set When disabled, command not returning no data will end
+     * throwing an exception
+     *
+     * @param permitNoResults force reuse of same connection
+     * @return this {@link Builder}
+     */
+    public Builder permitNoResults(Boolean permitNoResults) {
+      this.permitNoResults = permitNoResults;
       return this;
     }
 

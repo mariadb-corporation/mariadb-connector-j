@@ -251,9 +251,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (currResult instanceof Result) {
       return (Result) currResult;
     }
-    if (Boolean.parseBoolean(
-        con.getContext().getConf().nonMappedOptions().getProperty("permitNoResults", "false"))) {
-      // for compatibility with pre 3.4.0 version
+
+    if (con.getContext().getConf().permitNoResults()) {
       return new CompleteResult(
           new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
     }

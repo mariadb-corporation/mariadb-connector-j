@@ -3645,7 +3645,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     String[][] data = baseData;
     if (connection.getContext().getVersion().isMariaDBServer()
         && connection.getContext().getVersion().versionGreaterOrEqual(10, 7, 0)) {
-      List datalist = new ArrayList<>(Arrays.asList(baseData));
+      List<String[]> datalist = new ArrayList<>(Arrays.asList(baseData));
 
       datalist.add(
           new String[] {
