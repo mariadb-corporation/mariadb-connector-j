@@ -1,15 +1,20 @@
 # Change Log
 
-## [3.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.2) (Jan 2025)
+## [3.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.2) (Feb 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.1...3.5.2)
 
 #### Bugs Fixed
 
-* CONJ-1216 Performance degradation on latest version
-* CONJ-1218 Closing Connection closes associated XAConnection
-* CONJ-1217 trustCertificateKeyStorePassword alias doesn't work
-* CONJ-1221	DatabaseMetadata.getTypeInfo() missing UUID and VECTOR datatypes
-* CONJ-1225 regression resulting in throwing an exception without looping over all connections
+* CONJ-1216 Resolved a performance issue that occurred when batch processing on MySQL and older MariaDB (pre-10.2) servers
+* CONJ-1218 Incorrect behavior where XA connections are closed when regular connections are terminated - this is against specifications
+* CONJ-1217 The trustCertificateKeyStorePassword alias parameter isn’t taken into account
+* CONJ-1221	DatabaseMetadata.getTypeInfo() is missing the data types UUID and VECTOR
+* CONJ-1225 System throws an exception prematurely without checking all available connections
+* CONJ-1228 result-set.getObject() on BLOB type returns Blob in place of byte[]
+* CONJ-660  new `disconnectOnExpiredPasswords` connection option that controls client behavior when connecting with an expired password.
+  When set to true (default), the client disconnects if it detects an expired password.  
+  When false, the client maintains the connection and allows setting a new password.
+* CONJ-1229 Permit executeQuery commands to not return a result-set
 
 
 ## [3.5.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.1) (Nov 2024)
