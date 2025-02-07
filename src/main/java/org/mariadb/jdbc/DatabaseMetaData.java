@@ -3022,8 +3022,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "BIT", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BIT", "0", "0", "0", "0", "10"
       },
       {
-        "BOOLEAN", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BOOLEAN", "0", "0", "0",
-        "0", "10"
+        "BOOL", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BOOL", "0", "0", "0", "0",
+        "10"
       },
       {
         "TINYINT",
@@ -3654,7 +3654,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           });
 
       if (connection.getContext().getVersion().isMariaDBServer()
-          && connection.getContext().getVersion().versionGreaterOrEqual(11, 7, 2)) {
+          && connection.getContext().getVersion().versionGreaterOrEqual(11, 7, 1)) {
         datalist.add(
             new String[] {
               "VECTOR",

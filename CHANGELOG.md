@@ -12,8 +12,8 @@
 * CONJ-1225 System throws an exception prematurely without checking all available connections
 * CONJ-1228 result-set.getObject() on BLOB type returns Blob in place of byte[]
 * CONJ-660  new `disconnectOnExpiredPasswords` connection option that controls client behavior when connecting with an expired password.
-  When set to true (default), the client disconnects if it detects an expired password.  
-  When false, the client maintains the connection and allows setting a new password.
+	When set to true (default), the client disconnects if it detects an expired password.
+	When false, the client maintains the connection and allows setting a new password.
 * CONJ-1229 Permit executeQuery commands to not return a result-set
 
 

@@ -2054,6 +2054,156 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
+  public void testGetTypeInfoDataTYpe() throws SQLException {
+    String[] expectedTypes =
+        new String[] {
+          "BIT",
+          "BOOL",
+          "TINYINT",
+          "TINYINT UNSIGNED",
+          "BIGINT",
+          "BIGINT UNSIGNED",
+          "LONG VARBINARY",
+          "MEDIUMBLOB",
+          "LONGBLOB",
+          "BLOB",
+          "TINYBLOB",
+          "VARBINARY",
+          "BINARY",
+          "LONG VARCHAR",
+          "MEDIUMTEXT",
+          "LONGTEXT",
+          "TEXT",
+          "TINYTEXT",
+          "CHAR",
+          "NUMERIC",
+          "DECIMAL",
+          "INTEGER",
+          "INTEGER UNSIGNED",
+          "INT",
+          "INT UNSIGNED",
+          "MEDIUMINT",
+          "MEDIUMINT UNSIGNED",
+          "SMALLINT",
+          "SMALLINT UNSIGNED",
+          "FLOAT",
+          "DOUBLE",
+          "DOUBLE PRECISION",
+          "REAL",
+          "VARCHAR",
+          "ENUM",
+          "SET",
+          "DATE",
+          "TIME",
+          "DATETIME",
+          "TIMESTAMP"
+        };
+    if (sharedConn.getContext().getVersion().isMariaDBServer()
+        && sharedConn.getContext().getVersion().versionGreaterOrEqual(10, 7, 0)) {
+      // add UUID
+      expectedTypes =
+          new String[] {
+            "BIT",
+            "BOOL",
+            "TINYINT",
+            "TINYINT UNSIGNED",
+            "BIGINT",
+            "BIGINT UNSIGNED",
+            "LONG VARBINARY",
+            "MEDIUMBLOB",
+            "LONGBLOB",
+            "BLOB",
+            "TINYBLOB",
+            "VARBINARY",
+            "BINARY",
+            "LONG VARCHAR",
+            "MEDIUMTEXT",
+            "LONGTEXT",
+            "TEXT",
+            "TINYTEXT",
+            "CHAR",
+            "NUMERIC",
+            "DECIMAL",
+            "INTEGER",
+            "INTEGER UNSIGNED",
+            "INT",
+            "INT UNSIGNED",
+            "MEDIUMINT",
+            "MEDIUMINT UNSIGNED",
+            "SMALLINT",
+            "SMALLINT UNSIGNED",
+            "FLOAT",
+            "DOUBLE",
+            "DOUBLE PRECISION",
+            "REAL",
+            "VARCHAR",
+            "ENUM",
+            "SET",
+            "DATE",
+            "TIME",
+            "DATETIME",
+            "TIMESTAMP",
+            "UUID"
+          };
+      if (sharedConn.getContext().getVersion().isMariaDBServer()
+          && sharedConn.getContext().getVersion().versionGreaterOrEqual(11, 7, 1)) {
+        // add VECTOR
+        expectedTypes =
+            new String[] {
+              "BIT",
+              "BOOL",
+              "TINYINT",
+              "TINYINT UNSIGNED",
+              "BIGINT",
+              "BIGINT UNSIGNED",
+              "LONG VARBINARY",
+              "MEDIUMBLOB",
+              "LONGBLOB",
+              "BLOB",
+              "TINYBLOB",
+              "VARBINARY",
+              "VECTOR",
+              "BINARY",
+              "LONG VARCHAR",
+              "MEDIUMTEXT",
+              "LONGTEXT",
+              "TEXT",
+              "TINYTEXT",
+              "CHAR",
+              "NUMERIC",
+              "DECIMAL",
+              "INTEGER",
+              "INTEGER UNSIGNED",
+              "INT",
+              "INT UNSIGNED",
+              "MEDIUMINT",
+              "MEDIUMINT UNSIGNED",
+              "SMALLINT",
+              "SMALLINT UNSIGNED",
+              "FLOAT",
+              "DOUBLE",
+              "DOUBLE PRECISION",
+              "REAL",
+              "VARCHAR",
+              "ENUM",
+              "SET",
+              "DATE",
+              "TIME",
+              "DATETIME",
+              "TIMESTAMP",
+              "UUID"
+            };
+      }
+    }
+
+    int i = 0;
+    ResultSet rs = sharedConn.getMetaData().getTypeInfo();
+    while (rs.next()) {
+      assertEquals(expectedTypes[i++], rs.getString(1));
+    }
+  }
+
+  @Test
   public void getColumnsTest() throws SQLException {
     // https://jira.mariadb.org/browse/XPT-280
     Assumptions.assumeTrue(!isXpand());
