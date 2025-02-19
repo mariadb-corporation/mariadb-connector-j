@@ -174,7 +174,6 @@ public class MultiPrimaryClient implements Client {
       return oldClient;
 
     } catch (SQLNonTransientConnectionException sqle) {
-      currentClient = null;
       closed = true;
       throw sqle;
     }
@@ -490,8 +489,10 @@ public class MultiPrimaryClient implements Client {
 
   @Override
   public void close() throws SQLException {
-    closed = true;
-    if (currentClient != null) currentClient.close();
+    if (!closed) {
+      closed = true;
+      currentClient.close();
+    }
   }
 
   @Override
