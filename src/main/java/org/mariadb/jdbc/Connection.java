@@ -185,16 +185,19 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public String nativeSQL(String sql) throws SQLException {
+    checkNotClosed();
     return NativeSql.parse(sql, client.getContext());
   }
 
   @Override
-  public boolean getAutoCommit() {
+  public boolean getAutoCommit() throws SQLException {
+    checkNotClosed();
     return (client.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT) > 0;
   }
 
   @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
+    checkNotClosed();
     if (autoCommit == getAutoCommit()) {
       return;
     }
@@ -210,6 +213,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void commit() throws SQLException {
+    checkNotClosed();
     lock.lock();
     try {
       if (forceTransactionEnd
@@ -223,6 +227,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void rollback() throws SQLException {
+    checkNotClosed();
     lock.lock();
     try {
       if (forceTransactionEnd
@@ -291,6 +296,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
+    checkNotClosed();
     lock.lock();
     try {
       if (this.readOnly != readOnly) {
@@ -326,6 +332,7 @@ public class Connection implements java.sql.Connection {
   }
 
   private String getDatabase() throws SQLException {
+    checkNotClosed();
     if (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       return client.getContext().getDatabase();
     }
@@ -339,6 +346,7 @@ public class Connection implements java.sql.Connection {
   }
 
   private void setDatabase(String database) throws SQLException {
+    checkNotClosed();
     // null catalog means keep current.
     // there is no possibility to set no database when one is selected
     if (database == null
@@ -358,6 +366,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public int getTransactionIsolation() throws SQLException {
+    checkNotClosed();
     if (conf.useLocalSessionState() && client.getContext().getTransactionIsolationLevel() != null) {
       return client.getContext().getTransactionIsolationLevel();
     }
@@ -402,6 +411,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void setTransactionIsolation(int level) throws SQLException {
+    checkNotClosed();
     if (conf.useLocalSessionState()
         && client.getContext().getTransactionIsolationLevel() != null
         && level == client.getContext().getTransactionIsolationLevel()) {
@@ -466,7 +476,8 @@ public class Connection implements java.sql.Connection {
   }
 
   @Override
-  public void clearWarnings() {
+  public void clearWarnings() throws SQLException {
+    checkNotClosed();
     client.getContext().setWarning(0);
   }
 
@@ -817,6 +828,7 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException if resetting operation failed
    */
   public void reset() throws SQLException {
+    checkNotClosed();
     // COM_RESET_CONNECTION exist since mysql 5.7.3 and mariadb 10.2.4
     // but not possible to use it with mysql waiting for https://bugs.mysql.com/bug.php?id=97633
     // correction.

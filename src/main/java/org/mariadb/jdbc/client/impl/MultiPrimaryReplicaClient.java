@@ -166,7 +166,6 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       return requestReadOnly ? null : oldClient;
 
     } catch (SQLNonTransientConnectionException sqle) {
-      currentClient = null;
       closed = true;
       if (replicaClient != null) {
         replicaClient.close();

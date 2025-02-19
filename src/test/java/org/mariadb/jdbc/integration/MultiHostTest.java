@@ -354,6 +354,42 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  public void commandsAfterReconnectFail() throws Exception {
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    try {
+      proxy = new TcpProxy(hostAddress.host, hostAddress.port);
+    } catch (IOException i) {
+      throw new SQLException("proxy error", i);
+    }
+
+    String url =
+        mDefUrl.replaceAll(
+            "//(" + hostname + "|" + hostname + ":" + port + ")/" + database,
+            String.format(
+                "//address=(host=localhost)(port=%s)(type=master),address=(host=localhost)(port=%s)(type=master)/"
+                    + database,
+                proxy.getLocalPort(),
+                proxy.getLocalPort()));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:load-balance:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    try (Connection con =
+        (Connection) DriverManager.getConnection(url + "&retriesAllDown=1&connectTimeout=50")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("DO 1");
+      proxy.stop();
+      Thread.sleep(200);
+      assertThrows(SQLException.class, () -> stmt.execute("DO 1"));
+      assertThrows(SQLException.class, con::rollback);
+      assertThrows(SQLException.class, con::getAutoCommit);
+      assertThrows(SQLException.class, con::getTransactionIsolation);
+    }
+  }
+
+  @Test
   public void masterStreamingFailover() throws Exception {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
