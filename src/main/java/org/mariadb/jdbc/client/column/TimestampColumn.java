@@ -6,7 +6,8 @@ package org.mariadb.jdbc.client.column;
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
 import java.sql.*;
-import java.text.SimpleDateFormat;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,9 +25,10 @@ import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
 
 /** Column metadata definition */
 public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDecoder {
-  private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
   private static final DateTimeFormatter dateTimeFormatter =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+  private static final DecimalFormat oldDecimalFormat =
+      new DecimalFormat(".0#####", DecimalFormatSymbols.getInstance(Locale.US));
 
   /**
    * TIMESTAMP metadata type decoder
@@ -150,12 +152,16 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
     }
     LocalDateTime modifiedLdt =
         localDateTimeToZoneDateTime(ldt, providedCal, context).toLocalDateTime();
-    if (this.decimals > 0) {
-      return dateTimeFormatter.format(modifiedLdt)
-          + "."
-          + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
+    String timestampWithoutMicro = dateTimeFormatter.format(modifiedLdt);
+    if (context.getConf().oldModeNoPrecisionTimestamp()) {
+      // for compatibility with 2.2.0 and before, micro precision use .0##### format
+      return timestampWithoutMicro
+          + oldDecimalFormat.format(((double) modifiedLdt.getNano()) / 1000000000);
     }
-    return dateTimeFormatter.format(modifiedLdt);
+    if (this.decimals == 0) return timestampWithoutMicro;
+    return timestampWithoutMicro
+        + "."
+        + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
   }
 
   private String buildZeroDate() {
@@ -183,12 +189,16 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
     }
     LocalDateTime modifiedLdt =
         localDateTimeToZoneDateTime(ldt, providedCal, context).toLocalDateTime();
-    if (this.decimals > 0) {
-      return dateTimeFormatter.format(modifiedLdt)
-          + "."
-          + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
+    String timestampWithoutMicro = dateTimeFormatter.format(modifiedLdt);
+    if (context.getConf().oldModeNoPrecisionTimestamp()) {
+      // for compatibility with 2.2.0 and before, micro precision use .0##### format
+      return timestampWithoutMicro
+          + oldDecimalFormat.format(((double) modifiedLdt.getNano()) / 1000000000);
     }
-    return dateTimeFormatter.format(modifiedLdt);
+    if (this.decimals == 0) return timestampWithoutMicro;
+    return timestampWithoutMicro
+        + "."
+        + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
   }
 
   @Override

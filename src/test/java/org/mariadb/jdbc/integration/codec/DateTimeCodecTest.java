@@ -278,22 +278,31 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getString() throws SQLException {
-    getString(get(), true);
+    getString(get(), true, false);
   }
 
   @Test
   public void getStringPrepare() throws SQLException {
-    getString(getPrepare(sharedConn), true);
-    getString(getPrepare(sharedConnBinary), false);
+    getString(getPrepare(sharedConn), true, false);
+    getString(getPrepare(sharedConnBinary), false, false);
+    try (Connection con = createCon("&oldModeNoPrecisionTimestamp=true")) {
+      getString(getPrepare(con), true, true);
+    }
+    try (Connection con = createCon("&oldModeNoPrecisionTimestamp=true&useServerPrepStmts=true")) {
+      getString(getPrepare(con), false, true);
+    }
   }
 
-  public void getString(ResultSet rs, boolean text) throws SQLException {
-    assertEquals("2010-01-12 01:55:12", rs.getString(1));
+  public void getString(ResultSet rs, boolean text, boolean oldModeNoPrecisionTimestamp)
+      throws SQLException {
+    assertEquals(
+        "2010-01-12 01:55:12" + (oldModeNoPrecisionTimestamp ? ".0" : ""), rs.getString(1));
     assertFalse(rs.wasNull());
     assertEquals("1000-01-01 01:55:13.212345", rs.getString(2));
     assertEquals("1000-01-01 01:55:13.212345", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("9999-12-31 18:30:12.550000", rs.getString(3));
+    assertEquals(
+        "9999-12-31 18:30:12.55" + (oldModeNoPrecisionTimestamp ? "" : "0000"), rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
@@ -301,7 +310,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
       rs.next();
       assertEquals("0000-00-00 00:00:00", rs.getString(1));
       assertEquals("0000-00-00 00:00:00.000000", rs.getString(2));
-      assertEquals("9999-12-31 00:00:00.000000", rs.getString(3));
+      assertEquals(
+          "9999-12-31 00:00:00.0" + (oldModeNoPrecisionTimestamp ? "" : "00000"), rs.getString(3));
     }
   }
 
