@@ -1371,4 +1371,25 @@ public class ConnectionTest extends Common {
       }
     }
   }
+
+  @Test
+  public void isClosed() throws SQLException {
+    Connection con = DriverManager.getConnection(mDefUrl);
+    Statement stmt = con.createStatement();
+    PreparedStatement preparedStatement = con.prepareStatement("SELECT ?");
+    assertFalse(stmt.isClosed());
+    assertFalse(preparedStatement.isClosed());
+
+    stmt.execute("SELECT 1");
+    preparedStatement.setInt(1, 1);
+    preparedStatement.execute();
+
+    assertFalse(stmt.isClosed());
+    assertFalse(preparedStatement.isClosed());
+
+    con.close();
+
+    assertTrue(stmt.isClosed());
+    assertTrue(preparedStatement.isClosed());
+  }
 }
