@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.mariadb.jdbc.client.Context;
@@ -43,7 +44,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
       InputStream localInfileInputStream) {
     this.preSqlCmd = preSqlCmd;
     this.parser = parser;
-    this.parametersList = List.of(parameters);
+    this.parametersList = Arrays.asList(parameters);
     this.localInfileInputStream = localInfileInputStream;
   }
   
