@@ -555,15 +555,15 @@ public class BatchTest extends Common {
   public void rewriteBatchPacketSplitMaxAllowedPacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(2, maxAllowedPacket - 40, maxAllowedPacket, true, 1);
-    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(2, (16 * 1024 * 1024) - 49, null, true, 2);
+    bulkPacketSplit(2, maxAllowedPacket - 53, maxAllowedPacket, true, 2);
+    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(2, (16 * 1024 * 1024) - 53, null, true, 2);
   }
 
   @Test
   public void rewriteBatchPacketSplitMultiplePacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket, true, 2);
+    bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket, true, 2); // 5
     if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(4, (16 * 1024 * 1024) / 3, null, true, 2);
   }
 
@@ -571,7 +571,7 @@ public class BatchTest extends Common {
   public void rewriteBatchPacketSplitHugeNbPacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket, true, 1);
+    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket, true, 1); // 2622 ?
     if (maxAllowedPacket >= 16 * 1024 * 1024)
       bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, null, true, 1);
   }

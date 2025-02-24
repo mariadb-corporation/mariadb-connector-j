@@ -240,7 +240,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 			  packetLength += byteCountingWriter.getByteCount();
 			  byteCountingWriter.resetCount();
 		  }
-		  if (packetLength > maxPacketLength) {
+		  if (packetLength >= maxPacketLength) {
 			  if (startIndex == currentIndex) {
 				  // exceeded maxPacketLength for a single set of parameters, throw an exception
 				  // this is how MaxAllowedPacketExceptions are converted to SqlExceptions in StandardClient
