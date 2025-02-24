@@ -449,6 +449,9 @@ public final class ClientParser implements PrepareResult {
         case (byte) '?':
           if (state == LexState.Normal) {
             paramPositions.add(i);
+            if (valuesBracketPositions.size() == 2) {
+            	reWritablePrepare = false;
+            }
           }
           break;
         case (byte) '`':

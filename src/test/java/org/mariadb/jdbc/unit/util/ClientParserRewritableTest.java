@@ -59,26 +59,38 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.util.ClientParser;
 
-public class ClientPrepareResultTest {
+public class ClientParserRewritableTest {
 
   /** SELECT query cannot be rewritable. */
   @Test
   public void selectQuery() {
     // SELECT query cannot be rewritable
-    assertFalse(checkRewritable("SELECT * FROM MyTable"));
-    assertFalse(checkRewritable("SELECT\n * FROM MyTable"));
-    assertFalse(checkRewritable("SELECT(1)"));
-    assertFalse(checkRewritable("INSERT MyTable (a) VALUES (1);SELECT(1)"));
+    assertFalse(checkRewritable("SELECT * FROM MyTable", 0, 0));
+    assertFalse(checkRewritable("SELECT\n * FROM MyTable", 0, 0));
+    assertFalse(checkRewritable("SELECT(1)", 0, 0));
+    assertFalse(checkRewritable("INSERT MyTable (a) VALUES (1);SELECT(1)", 0, 0));
   }
 
   /** INSERT FROM SELECT are not be rewritable. */
   @Test
   public void insertSelectQuery() {
-    assertFalse(checkRewritable("INSERT INTO MyTable (a) SELECT * FROM seq_1_to_1000"));
-    assertFalse(checkRewritable("INSERT INTO MyTable (a);SELECT * FROM seq_1_to_1000"));
-    assertFalse(checkRewritable("INSERT INTO MyTable (a)SELECT * FROM seq_1_to_1000"));
-    assertFalse(checkRewritable("INSERT INTO MyTable (a) (SELECT * FROM seq_1_to_1000)"));
-    assertFalse(checkRewritable("INSERT INTO MyTable (a) SELECT\n * FROM seq_1_to_1000"));
+    assertFalse(checkRewritable("INSERT INTO MyTable (a) SELECT * FROM seq_1_to_1000", 0, 0));
+    assertFalse(checkRewritable("INSERT INTO MyTable (a);SELECT * FROM seq_1_to_1000", 0, 0));
+    assertFalse(checkRewritable("INSERT INTO MyTable (a)SELECT * FROM seq_1_to_1000", 0, 0));
+    assertFalse(checkRewritable("INSERT INTO MyTable (a) (SELECT * FROM seq_1_to_1000)", 0, 0));
+    assertFalse(checkRewritable("INSERT INTO MyTable (a) SELECT\n * FROM seq_1_to_1000", 0, 0));
+  }
+  
+  /** If parameters exist outside the VALUES() block, not rewritable. */
+  @Test
+  public void insertParametersOutsideValues() {
+    assertFalse(checkRewritable("INSERT INTO TABLE(col1) VALUES (?) ON DUPLICATE KEY UPDATE col2=?", 0, 0));
+  }
+
+  /** LAST_INSERT_ID is not rewritable. */
+  @Test
+  public void insertLastInsertId() {
+    assertFalse(checkRewritable("INSERT INTO TABLE(col1, col2) VALUES (?, LAST_INSERT_ID())", 0, 0));
   }
 
   /**
@@ -88,19 +100,27 @@ public class ClientPrepareResultTest {
   @Test
   public void rewritableThatContainSelectQuery() {
     // but 'SELECT' keyword in column/table name can be rewritable
-    assertTrue(checkRewritable("INSERT INTO TABLE_SELECT VALUES (?)"));
-    assertTrue(checkRewritable("INSERT INTO TABLE_SELECT VALUES (?)"));
-    assertTrue(checkRewritable("INSERT INTO SELECT_TABLE VALUES (?)"));
-    assertTrue(checkRewritable("INSERT INTO `TABLE SELECT ` VALUES (?)"));
-    assertTrue(checkRewritable("INSERT INTO TABLE /* SELECT in comment */  VALUES (?)"));
-    assertTrue(checkRewritable("INSERT INTO TABLE  VALUES (?) //SELECT"));
+    assertTrue(checkRewritable("INSERT INTO TABLE_SELECT VALUES (?)", 31, 34));
+    assertTrue(checkRewritable("INSERT INTO TABLE_SELECT VALUES (?)", 31, 34));
+    assertTrue(checkRewritable("INSERT INTO SELECT_TABLE VALUES (?)", 31, 34));
+    assertTrue(checkRewritable("INSERT INTO `TABLE SELECT ` VALUES (?)", 34, 37));
+    assertTrue(checkRewritable("INSERT INTO TABLE /* SELECT in comment */  VALUES (?)", 49, 52));
+    assertTrue(checkRewritable("INSERT INTO TABLE  VALUES (?) //SELECT", 25, 28));
+    assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('abc', ?)", 24, 34));
+    assertTrue(checkRewritable("INSERT INTO TABLE VALUES (\"a''bc\", ?)", 24, 36));
+    assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) /*test* #/ ;`*/", 24, 37));
+    assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) # EOL ", 24, 37));
+    assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) -- EOL ", 24, 37));
   }
 
-  private boolean checkRewritable(String query) {
+  private boolean checkRewritable(String query, int pos1, int pos2) {
 	List<Integer> valuesBracketPositions = ClientParser.rewritableParts(query, true).getValuesBracketPositions();
 	if (valuesBracketPositions == null) {
 		return false;
 	} else if (valuesBracketPositions.size() == 2) {
+		System.out.println(valuesBracketPositions);
+		assertEquals(pos1, valuesBracketPositions.get(0));
+		assertEquals(pos2, valuesBracketPositions.get(1));
 		return true;
 	} else {
 		fail("valuesBracketPositions().size() != 2");

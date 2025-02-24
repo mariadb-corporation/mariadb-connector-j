@@ -212,6 +212,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   }
   
   public static ClientMessage[] getBatchPackets(String preSqlCmd, ClientParser parser, List<Parameters> parametersList, Context context) throws SQLException {
+	  Configuration conf = context.getConf();
 	  List<ClientMessage> messages = new ArrayList<>();
 	  int startValuePos = parser.getValuesBracketPositions().get(0);
 	  int endValuePos = parser.getValuesBracketPositions().get(1);
@@ -222,7 +223,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 	  int startIndex = 0;
 	  int currentIndex = 0;
 	  int totalParameterList = parametersList.size();
-	  int maxPacketLength = 0x00ffffff + 4; // from PacketWriter.MAX_PACKET_LENGTH 
+	  int maxPacketLength = conf.maxAllowedPacket() == null ? 0x00ffffff + 4 : conf.maxAllowedPacket(); // from PacketWriter.MAX_PACKET_LENGTH 
 	  
 	  int packetLength = 1 + staticLength;
 	  do {
@@ -244,7 +245,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 				  // exceeded maxPacketLength for a single set of parameters, throw an exception
 				  // this is how MaxAllowedPacketExceptions are converted to SqlExceptions in StandardClient
 				  MaxAllowedPacketException mape = new MaxAllowedPacketException("query size is >= to max_allowed_packet", false);
-				  context.getExceptionFactory()
+				  throw context.getExceptionFactory()
 		          .withSql(parser.getSql())
 		          .create(
 		              "Packet too big for current server max_allowed_packet value", "HZ000", mape);

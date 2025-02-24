@@ -530,36 +530,78 @@ public class BatchTest extends Common {
   public void bulkPacketSplitMaxAllowedPacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(2, maxAllowedPacket - 40, maxAllowedPacket);
-    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(2, maxAllowedPacket - 40, null);
+    bulkPacketSplit(2, maxAllowedPacket - 40, maxAllowedPacket, false, null);
+    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(2, maxAllowedPacket - 40, null, false, null);
   }
 
   @Test
   public void bulkPacketSplitMultiplePacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket);
-    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(4, getMaxAllowedPacket() / 3, null);
+    bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket, false, null);
+    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(4, getMaxAllowedPacket() / 3, null, false, null);
   }
 
   @Test
   public void bulkPacketSplitHugeNbPacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket);
+    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket, false, null);
     if (maxAllowedPacket >= 16 * 1024 * 1024)
-      bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, null);
+      bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, null, false, null);
   }
 
-  public void bulkPacketSplit(int nb, int len, Integer maxAllowedPacket) throws SQLException {
+  @Test
+  public void rewriteBatchPacketSplitMaxAllowedPacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
+    int maxAllowedPacket = getMaxAllowedPacket();
+    bulkPacketSplit(2, maxAllowedPacket - 40, maxAllowedPacket, true, 1);
+    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(2, (16 * 1024 * 1024) - 49, null, true, 2);
+  }
+
+  @Test
+  public void rewriteBatchPacketSplitMultiplePacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
+    int maxAllowedPacket = getMaxAllowedPacket();
+    bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket, true, 2);
+    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(4, (16 * 1024 * 1024) / 3, null, true, 2);
+  }
+
+  @Test
+  public void rewriteBatchPacketSplitHugeNbPacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
+    int maxAllowedPacket = getMaxAllowedPacket();
+    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket, true, 1);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, null, true, 1);
+  }
+
+  public void rewriteBatchPacketTooBig() throws SQLException {
+    try {
+    	bulkPacketSplit(1, 100, 100, true, 1); // can't fit a 100-byte array into a 100-byte packet
+    	fail("Expected SQLTransientConnectionException");
+    } catch (SQLTransientConnectionException e) {
+        assertTrue(e.getMessage().contains("Packet too big for current server max_allowed_packet value"));
+    }
+  }
+
+  public void bulkPacketSplit(int nb, int len, Integer maxAllowedPacket, boolean rewriteBatch, Integer expectedPacketCount) throws SQLException {
     byte[] arr = new byte[Math.min(16 * 1024 * 1024, len)];
-    for (int pos = 0; pos < arr.length; pos++) {
-      arr[pos] = (byte) ((pos % 60) + 65);
+    if (rewriteBatch) {
+    	for (int pos = 0; pos < arr.length; pos++) {
+    	   byte b = (byte) ((pos % 60) + 65);
+    	   b = (b == 92) ? 95 : b; // convert backslash to underscore, otherwise throws out packet lengths ( backslash is escaped in writeBytesEscaped )
+ 	       arr[pos] = b;
+ 	    }
+    } else {
+	    for (int pos = 0; pos < arr.length; pos++) {
+	       arr[pos] = (byte) ((pos % 60) + 65);
+	    }
     }
 
     try (Connection con =
         createCon(
-            "&useServerPrepStmts&useBulkStmts"
+        	(rewriteBatch ? "rewriteBatchedStatements" : "&useServerPrepStmts&useBulkStmts")
                 + (maxAllowedPacket != null ? "&maxAllowedPacket=" + maxAllowedPacket : ""))) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE BatchTest");
@@ -602,7 +644,7 @@ public class BatchTest extends Common {
         BatchUpdateException e =
             Assertions.assertThrows(BatchUpdateException.class, prep::executeBatch);
         int[] updateCounts = e.getUpdateCounts();
-        assertEquals(nb + 1, updateCounts.length);
+        assertEquals(expectedPacketCount == null ? nb + 1 : expectedPacketCount, updateCounts.length);
       }
       con.rollback();
       con.rollback();
@@ -623,6 +665,9 @@ public class BatchTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=true")) {
       batchWithError(con);
     }
+    try (Connection con = createCon("&rewriteBatchedStatements")) {
+        batchWithError(con);
+    }
     try (Connection con =
         createCon("&useServerPrepStmts=false&useBulkStmts=false&allowLocalInfile")) {
       batchWithError(con);
@@ -637,6 +682,10 @@ public class BatchTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=true&allowLocalInfile")) {
       batchWithError(con);
     }
+    try (Connection con = createCon("&rewriteBatchedStatements&allowLocalInfile")) {
+        batchWithError(con);
+    }
+    
   }
 
   private void batchWithError(Connection con) throws SQLException {
