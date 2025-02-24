@@ -1059,7 +1059,7 @@ public class StandardClient implements Client, AutoCloseable {
         results.add(null);
         // read remaining results
         perMsgCounter++;
-        for (; perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
+        for (; readCounter > 0 && perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
           try {
             results.addAll(
                 readResponse(
