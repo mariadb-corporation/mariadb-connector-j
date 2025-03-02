@@ -128,6 +128,10 @@ public class Common {
     return sharedConn.getContext().hasClientCapability(capability);
   }
 
+  public static boolean srvHasCapability(long capability) {
+    return sharedConn.getContext().hasServerCapability(capability);
+  }
+
   public static boolean runLongTest() {
     String runLongTest = System.getenv("RUN_LONG_TEST");
     if (runLongTest != null) {
@@ -269,7 +273,10 @@ public class Common {
       throw new SQLException("proxy error", i);
     }
 
-    String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+    String url =
+        mDefUrl.replaceAll(
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
+            "//localhost:" + proxy.getLocalPort() + "/");
     if (mode != HaMode.NONE) {
       url =
           url.replaceAll(
@@ -284,6 +291,41 @@ public class Common {
 
   public boolean isWindows() {
     return System.getProperty("os.name").toLowerCase().contains("win");
+  }
+
+  public int getJavaVersion() {
+    String version = System.getProperty("java.version");
+    if (version.startsWith("1.")) {
+      version = version.substring(2, 3);
+    } else {
+      int dot = version.indexOf(".");
+      if (dot != -1) {
+        version = version.substring(0, dot);
+      }
+    }
+    return Integer.parseInt(version);
+  }
+
+  public static int getMaxScaleVersion() throws SQLException {
+    int version = 0;
+    if ("maxscale".equals(System.getenv("srv"))) {
+      java.sql.Statement st = sharedConn.createStatement();
+      /**
+       * The test system must either create the maxscale_version() function that returns the
+       * MaxScale version as an integer or MaxScale must be configured with a regexfilter that
+       * replaces the SQL with something that returns it as a constant.
+       *
+       * <pre>[InjectVersion]
+       * type=filter
+       * module=regexfilter
+       * match=SELECT maxscale_version()
+       * replace=SELECT 230800</pre>
+       */
+      ResultSet rs = st.executeQuery("SELECT maxscale_version()");
+      assertTrue(rs.next());
+      version = rs.getInt(1);
+    }
+    return version;
   }
 
   public void cancelForVersion(int major, int minor) {

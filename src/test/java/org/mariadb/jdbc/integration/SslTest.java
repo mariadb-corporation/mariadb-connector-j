@@ -152,11 +152,7 @@ public class SslTest extends Common {
   public void mandatoryEphemeralSsl() throws SQLException {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && minVersion(11, 4, 1)
-            && !"mariadb-es".equals(System.getenv("srv"))
-            && !"mariadb-es-test".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
     try (Connection con = createCon(baseOptions + "&sslMode=verify-ca", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
@@ -174,11 +170,7 @@ public class SslTest extends Common {
 
   @Test
   void ensureSslUnixSocket() throws SQLException {
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && minVersion(11, 4, 1)
-            && !"mariadb-es".equals(System.getenv("srv"))
-            && !"mariadb-es-test".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
     Assumptions.assumeTrue(
         System.getenv("local") != null
             && "1".equals(System.getenv("local"))
@@ -201,11 +193,7 @@ public class SslTest extends Common {
   public void mandatoryEphemeralSsled25519() throws SQLException {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && minVersion(11, 4, 1)
-            && !"mariadb-es".equals(System.getenv("srv"))
-            && !"mariadb-es-test".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
 
     Statement stmt = sharedConn.createStatement();
     try {
@@ -252,7 +240,7 @@ public class SslTest extends Common {
     String path = rs.getString(2);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             "//address=(localSocket="
                 + path
                 + "),address=(host="
@@ -495,7 +483,10 @@ public class SslTest extends Common {
         throw new SQLException("proxy error", i);
       }
 
-      String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+      String url =
+          mDefUrl.replaceAll(
+              "//(" + hostname + "|" + hostname + ":" + port + ")/",
+              "//localhost:" + proxy.getLocalPort() + "/");
       Common.assertThrowsContains(
           SQLException.class,
           () ->
@@ -518,10 +509,7 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
-    if (isMariaDBServer()
-        && minVersion(11, 4, 1)
-        && !"mariadb-es".equals(System.getenv("srv"))
-        && !"mariadb-es-test".equals(System.getenv("srv"))) {
+    if (isMariaDBServer() && minVersion(11, 4, 1)) {
       try (Connection conn = createBasicCon(baseOptions + "&sslMode=VERIFY_CA", sslPort)) {
         conn.isValid(1);
       }
