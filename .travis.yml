@@ -6,7 +6,7 @@ before_install:
   - |-
     case $TRAVIS_OS_NAME in
       windows)
-        choco install openjdk11 maven
+        choco install microsoft-openjdk17 maven
         export PATH=$(cmd.exe //c "refreshenv > nul & C:\Progra~1\Git\bin\bash -c 'echo \$PATH' ")
         ;;
     esac
@@ -19,28 +19,35 @@ import: mariadb-corporation/connector-test-machine:common-build.yml@master
 jobs:
   include:
     - stage: Language
-      env: srv=mariadb v=10.6 packet=40 PROFILE=java8
+      env: srv=mariadb v=11.6 packet=40 PROFILE=java8
       jdk: openjdk8
-      name: "CS 10.6 - openjdk 8"
+      name: "CS 11.6 - openjdk 8"
     - stage: Language
-      env: srv=mariadb v=10.6 packet=8
+      env: srv=mariadb v=11.4 packet=8 PROFILE=java11
       jdk: openjdk11
-      name: "CS 10.6 - openjdk 11 - packet 8M"
+      name: "CS 11.4 - openjdk 11 - packet 8M"
     - stage: Language
-      env: srv=mariadb v=10.6 packet=40
+      env: srv=mariadb v=11.4 packet=40
       jdk: openjdk17
-      name: "CS 10.6 - openjdk 17 - packet 40M"
+      name: "CS 11.4 - openjdk 17 - packet 40M"
+    - stage: Language
+      env: srv=mariadb v=11.4
+      jdk: openjdk21
+      name: "CS 11.4 - openjdk 21"
     - stage: Benchmarks
       env: srv=mariadb v=10.6 local=1 BENCH=1
       name: "Benchmarks"
-
+    - stage: Language
+      env: srv=mariadb v=10.6 packet=40
+      jdk: openjdk21
+      name: "CS 10.6 - openjdk 21"
 script:
   - echo $PROFILE
   - mvn clean -Dmaven.test.skip -P $PROFILE
   - |-
     if [ "java8" == "$PROFILE" ]; then
       rm -R .mvn
-          java -version
+      java -version
       mvn -version
     fi
   - if [ -n "$BENCH" ] ; then mvn package -P bench -Dmaven.test.skip -Dmaven.javadoc.skip=true ; fi
