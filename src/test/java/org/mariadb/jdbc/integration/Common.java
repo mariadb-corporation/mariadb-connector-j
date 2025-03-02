@@ -13,9 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.function.Executable;
@@ -63,6 +61,33 @@ public class Common {
                   "jdbc:mariadb://%s:%s/%s?user=%s&password=%s%s",
                   hostname, port, database, user, password, defaultOther);
 
+      String srv = System.getenv("srv");
+      String version = System.getenv("v");
+      double versionInt = 0;
+      try {
+        versionInt = Double.parseDouble(version);
+      } catch (NumberFormatException | NullPointerException e) {
+        // eat
+      }
+      try (Connection c =
+          (Connection) DriverManager.getConnection(mDefUrl + "&allowPublicKeyRetrieval=true")) {
+        DatabaseMetaData meta = c.getMetaData();
+        if ("MySQL".equals(meta.getDatabaseProductName())
+            && meta.getDatabaseProductVersion().substring(0, 3).compareTo("8.4") >= 0) {
+          // choose to use allowPublicKeyRetrieval=true for testing
+          Statement stmt = c.createStatement();
+          ResultSet rs =
+              stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
+          if (rs.next()) {
+            mDefUrl += "&serverRsaPublicKeyFile=" + rs.getString(2);
+          }
+          // mDefUrl += "&allowPublicKeyRetrieval=true";
+        }
+      } catch (SQLException e) {
+        // eat
+        e.printStackTrace();
+      }
+
     } catch (IOException io) {
       io.printStackTrace();
     }
@@ -101,6 +126,10 @@ public class Common {
 
   public static boolean hasCapability(long capability) {
     return sharedConn.getContext().hasClientCapability(capability);
+  }
+
+  public static boolean srvHasCapability(long capability) {
+    return sharedConn.getContext().hasServerCapability(capability);
   }
 
   public static boolean runLongTest() {
@@ -236,7 +265,10 @@ public class Common {
       throw new SQLException("proxy error", i);
     }
 
-    String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+    String url =
+        mDefUrl.replaceAll(
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
+            "//localhost:" + proxy.getLocalPort() + "/");
     if (mode != HaMode.NONE) {
       url =
           url.replaceAll(
@@ -251,6 +283,41 @@ public class Common {
 
   public boolean isWindows() {
     return System.getProperty("os.name").toLowerCase().contains("win");
+  }
+
+  public int getJavaVersion() {
+    String version = System.getProperty("java.version");
+    if (version.startsWith("1.")) {
+      version = version.substring(2, 3);
+    } else {
+      int dot = version.indexOf(".");
+      if (dot != -1) {
+        version = version.substring(0, dot);
+      }
+    }
+    return Integer.parseInt(version);
+  }
+
+  public static int getMaxScaleVersion() throws SQLException {
+    int version = 0;
+    if ("maxscale".equals(System.getenv("srv"))) {
+      java.sql.Statement st = sharedConn.createStatement();
+      /**
+       * The test system must either create the maxscale_version() function that returns the
+       * MaxScale version as an integer or MaxScale must be configured with a regexfilter that
+       * replaces the SQL with something that returns it as a constant.
+       *
+       * <pre>[InjectVersion]
+       * type=filter
+       * module=regexfilter
+       * match=SELECT maxscale_version()
+       * replace=SELECT 230800</pre>
+       */
+      ResultSet rs = st.executeQuery("SELECT maxscale_version()");
+      assertTrue(rs.next());
+      version = rs.getInt(1);
+    }
+    return version;
   }
 
   public void cancelForVersion(int major, int minor) {
