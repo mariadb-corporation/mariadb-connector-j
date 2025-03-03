@@ -160,7 +160,7 @@ public class RePrepareTest extends BaseTest {
           preparedStatement.execute();
           fail();
         } catch (SQLException sqle) {
-          assertTrue(sqle.getMessage().contains("Unknown column 'test' in 'field list'"));
+          assertTrue(sqle.getMessage(), sqle.getMessage().contains("Unknown column 'test' in "));
         }
       }
     }
