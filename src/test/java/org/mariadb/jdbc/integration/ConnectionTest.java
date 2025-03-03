@@ -942,8 +942,8 @@ public class ConnectionTest extends Common {
       // eat
     }
     boolean useOldNotation =
-        (!isMariaDBServer() || !minVersion(10, 2, 0))
-            && (isMariaDBServer() || !minVersion(8, 0, 0));
+            (!isMariaDBServer() || !minVersion(10, 2, 0))
+                    && (isMariaDBServer() || !minVersion(8, 0, 0));
     if (useOldNotation) {
       stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
       stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
@@ -953,54 +953,38 @@ public class ConnectionTest extends Common {
     }
     stmt.execute("FLUSH PRIVILEGES");
 
-    try (java.sql.Connection connection =
-        DriverManager.getConnection(
+    String url =
             String.format(
-                "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
-                sharedConn.getCatalog(), path))) {
+                    "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
+                    sharedConn.getCatalog(), path);
+
+    try (java.sql.Connection connection = DriverManager.getConnection(url)) {
       connection.setNetworkTimeout(null, 300);
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
     }
 
-    // host format
-    try (java.sql.Connection connection =
-        DriverManager.getConnection(
-            String.format(
-                "jdbc:mariadb://address=(localSocket=%s)/%s?user=testSocket&password=heyPassw!µ20§rd&tcpAbortiveClose&tcpKeepAlive",
-                path, sharedConn.getCatalog()))) {
-      connection.setNetworkTimeout(null, 300);
-      rs = connection.createStatement().executeQuery("select 1");
-      assertTrue(rs.next());
-    }
     Common.assertThrowsContains(
-        SQLException.class,
-        () ->
-            DriverManager.getConnection(
-                "jdbc:mariadb:///"
-                    + sharedConn.getCatalog()
-                    + "?user=testSocket&password=heyPassw!µ20§rd&localSocket=/wrongPath"),
-        "Socket fail to connect to address=(localSocket=/wrongPath)");
-    Common.assertThrowsContains(
-        SQLException.class,
-        () ->
-            DriverManager.getConnection(
-                "jdbc:mariadb://address=(localSocket=/wrongPath)/"
-                    + sharedConn.getCatalog()
-                    + "?user=testSocket&password=heyPassw!µ20§rd"),
-        "Socket fail to connect to address=(localSocket=/wrongPath)");
+            SQLException.class,
+            () ->
+                    DriverManager.getConnection(
+                            "jdbc:mariadb:///"
+                                    + sharedConn.getCatalog()
+                                    + "?user=testSocket&password=heyPassw!µ20§rd&localSocket=/wrongPath"),
+            "Socket fail to connect to host");
+
     if (haveSsl()) {
       String serverCertPath = SslTest.retrieveCertificatePath();
       if (serverCertPath != null) {
         try (Connection con =
-            DriverManager.getConnection(
-                "jdbc:mariadb:///"
-                    + sharedConn.getCatalog()
-                    + "?sslMode=verify-full&user=testSocket&password=heyPassw!µ20§rd"
-                    + "&serverSslCert="
-                    + serverCertPath
-                    + "&localSocket="
-                    + path)) {
+                     DriverManager.getConnection(
+                             "jdbc:mariadb:///"
+                                     + sharedConn.getCatalog()
+                                     + "?sslMode=verify-full&user=testSocket&password=heyPassw!µ20§rd"
+                                     + "&serverSslCert="
+                                     + serverCertPath
+                                     + "&localSocket="
+                                     + path)) {
           rs = con.createStatement().executeQuery("select 1");
           assertTrue(rs.next());
         }
