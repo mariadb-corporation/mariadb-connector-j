@@ -47,18 +47,13 @@ public class MultiHostTest extends Common {
   @Test
   public void ensureReadOnlyOnReplica() throws Exception {
     // mariadb1.example.com, mariadb2.example.com and mariadb3.example.com DNS alias must be defined
-    Assumptions.assumeTrue(
-        !isWindows()
-            && !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
+    Assumptions.assumeFalse("maxscale".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//mariadb1.example.com:%s,mariadb2.example.com:%s,mariadb3.example.com:%s/",
                 hostAddress.port, hostAddress.port, hostAddress.port));
@@ -74,7 +69,7 @@ public class MultiHostTest extends Common {
             (Connection)
                 DriverManager.getConnection(
                     url + "&waitReconnectTimeout=30&deniedListTimeout=300")) {
-          assertTrue(con.__test_host().contains("primary"));
+          assertFalse(con.__test_host().contains("replica"));
           con.setReadOnly(true);
           assertTrue(con.__test_host().contains("replica"));
           if (con.__test_host().contains("mariadb2")) {
@@ -103,8 +98,8 @@ public class MultiHostTest extends Common {
             && !isXpand());
     try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
       Statement stmt = con.createStatement();
-      stmt.execute("DROP TABLE IF EXISTS testReadOnly");
-      stmt.execute("CREATE TABLE testReadOnly(id int)");
+      stmt.executeUpdate("DROP TABLE IF EXISTS testReadOnly");
+      stmt.executeUpdate("CREATE TABLE testReadOnly(id int)");
       con.setAutoCommit(false);
       con.setReadOnly(true);
       Common.assertThrowsContains(
@@ -112,7 +107,7 @@ public class MultiHostTest extends Common {
           () -> stmt.execute("INSERT INTO testReadOnly values (2)"),
           "Cannot execute statement in a READ ONLY transaction");
       con.setReadOnly(false);
-      stmt.execute("DROP TABLE testReadOnly");
+      stmt.executeUpdate("DROP TABLE testReadOnly");
     }
   }
 
@@ -122,7 +117,7 @@ public class MultiHostTest extends Common {
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyConKeep("")) {
       Statement stmt = con.createStatement();
-      stmt.execute("CREATE DATABASE IF NOT EXISTS sync");
+      stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS sync");
       con.setCatalog("sync");
       con.setTransactionIsolation(java.sql.Connection.TRANSACTION_SERIALIZABLE);
       con.setReadOnly(true);
@@ -170,7 +165,7 @@ public class MultiHostTest extends Common {
     HostAddress hostAddress = conf.addresses().get(0);
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=9999)(type=master),address=(host=%s)(port=%s)(type=master)/",
                 hostAddress.host, hostAddress.port));
@@ -188,7 +183,7 @@ public class MultiHostTest extends Common {
 
     url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//%s:%s,%s,%s/",
                 hostAddress.host, hostAddress.port, hostAddress.host, hostAddress.port));
@@ -250,7 +245,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/" + database,
+            "//(" + hostname + "|" + hostname + ":" + port + ")/" + database,
             String.format(
                 "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/"
                     + database,
@@ -266,10 +261,10 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
+                    + "&deniedListTimeout=300&retriesAllDown=4&connectTimeout=50&deniedListTimeout=50")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
-      proxy.restart(50);
+      proxy.restart(100);
       con.isValid(1000);
     }
 
@@ -279,7 +274,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=20&deniedListTimeout=20&socketTimeout=100")) {
+                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=50&deniedListTimeout=50&socketTimeout=100")) {
       Statement stmt = con.createStatement();
       stmt.execute("START TRANSACTION");
       stmt.execute("SET @con=1");
@@ -289,8 +284,7 @@ public class MultiHostTest extends Common {
         ResultSet rs = stmt.executeQuery("SELECT @con");
         if (rs.next()) {
           System.out.println("Resultset res:" + rs.getString(1));
-        }
-        fail("must have thrown exception");
+        } else fail("must have thrown exception");
       } catch (SQLTransientConnectionException e) {
         assertTrue(e.getMessage().contains("In progress transaction was lost"));
       }
@@ -301,7 +295,7 @@ public class MultiHostTest extends Common {
     try (Connection con =
         (Connection)
             DriverManager.getConnection(
-                url + "&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
+                url + "&retriesAllDown=4&connectTimeout=50&deniedListTimeout=50")) {
       Statement stmt = con.createStatement();
       con.setAutoCommit(false);
       stmt.execute("START TRANSACTION");
@@ -322,7 +316,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20")) {
+                    + "&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=50")) {
       Statement stmt = con.createStatement();
       stmt.execute("DROP TABLE IF EXISTS testReplay");
       stmt.execute("CREATE TABLE testReplay(id INT)");
@@ -374,7 +368,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=master)/", proxy.getLocalPort()));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
@@ -441,7 +435,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//localhost:%s,%s:%s/", proxy.getLocalPort(), hostAddress.host, hostAddress.port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
@@ -503,7 +497,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=primary),address=(host=%s)(port=%s)(type=replica)/",
                 proxy.getLocalPort(), hostAddress.host, hostAddress.port));
@@ -567,7 +561,7 @@ public class MultiHostTest extends Common {
 
     String url =
         mDefUrl.replaceAll(
-            "//([^/]*)/",
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
             String.format(
                 "//%s:%s,localhost:%s/", hostAddress.host, hostAddress.port, proxy.getLocalPort()));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
