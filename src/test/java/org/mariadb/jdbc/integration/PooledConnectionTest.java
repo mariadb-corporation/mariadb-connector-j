@@ -72,7 +72,10 @@ public class PooledConnectionTest extends Common {
       throw new SQLException("proxy error", i);
     }
 
-    String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+    String url =
+        mDefUrl.replaceAll(
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
+            "//localhost:" + proxy.getLocalPort() + "/");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
