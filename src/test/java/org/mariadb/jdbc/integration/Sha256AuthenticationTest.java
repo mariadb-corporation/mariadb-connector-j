@@ -219,7 +219,7 @@ public class Sha256AuthenticationTest extends Common {
 
     Common.assertThrowsContains(
         SQLException.class,
-        () -> createCon("user=cachingSha256User&password=!Passw0rd3Works"),
+        () -> createCon("user=cachingSha256User&password=!Passw0rd3Works&serverRsaPublicKeyFile="),
         "RSA public key is not available client side");
   }
 }

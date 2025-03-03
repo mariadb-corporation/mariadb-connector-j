@@ -72,7 +72,10 @@ public class PooledConnectionTest extends Common {
       throw new SQLException("proxy error", i);
     }
 
-    String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+    String url =
+        mDefUrl.replaceAll(
+            "//(" + hostname + "|" + hostname + ":" + port + ")/",
+            "//localhost:" + proxy.getLocalPort() + "/");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
@@ -185,15 +188,14 @@ public class PooledConnectionTest extends Common {
     }
 
     if (minVersion(8, 0, 0)) {
-      if (isMariaDBServer()) {
+      if (isMariaDBServer() || minVersion(8, 4, 0)) {
         stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
       } else {
         stmt.execute(
             "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY"
                 + " 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
       }
+      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
     } else {
       stmt.execute("CREATE USER 'dsUser'@'%'");
       stmt.execute(

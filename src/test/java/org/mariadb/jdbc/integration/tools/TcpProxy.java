@@ -29,7 +29,7 @@ public class TcpProxy {
   }
 
   public void stop() {
-    socket.kill();
+    socket.kill(false);
   }
 
   public void setDelay(int delay) {
@@ -46,7 +46,11 @@ public class TcpProxy {
    * @param sleepTime sleep time in milliseconds
    */
   public void restart(long sleepTime) {
-    socket.kill();
+    restart(sleepTime, false);
+  }
+
+  public void restart(long sleepTime, boolean rst) {
+    socket.kill(rst);
     logger.trace("host proxy port " + socket.getLocalport() + " for " + host + " started");
     Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
   }
