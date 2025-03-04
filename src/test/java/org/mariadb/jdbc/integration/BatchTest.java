@@ -757,4 +757,36 @@ public class BatchTest extends Common {
       return "TimestampCal{" + "val=" + val + ", id=" + id + '}';
     }
   }
+
+
+  @Test
+  public void batchWithoutParameter() throws SQLException {
+    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=true")) {
+      batchWithoutParameter(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts=true&useBulkStmts=true")) {
+      batchWithoutParameter(con);
+    }
+  }
+
+  private void batchWithoutParameter(Connection con) throws SQLException {
+    Assumptions.assumeTrue(isMariaDBServer());
+    Statement stmt = con.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS batchWithoutParameter");
+    stmt.setFetchSize(3);
+    stmt.execute("CREATE TABLE batchWithoutParameter(val varchar(10))");
+    try (PreparedStatement prep =
+                 con.prepareStatement("INSERT INTO batchWithoutParameter VALUES ('')")) {
+      prep.addBatch();
+      prep.addBatch();
+      prep.addBatch();
+      prep.addBatch();
+      prep.executeBatch();
+
+      ResultSet rs = stmt.executeQuery("SELECT count(*) FROM batchWithoutParameter");
+      rs.next();
+      assertEquals(rs.getInt(1), 4);
+    }
+  }
+
 }
