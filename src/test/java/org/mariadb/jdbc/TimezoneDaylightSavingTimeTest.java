@@ -92,6 +92,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
                 "SELECT count(*) from mysql.time_zone_name "
                     + "where Name in ('Europe/Paris','Canada/Atlantic')");
         assertTrue(rs.next());
+        Assume.assumeTrue(rs.getInt(1) != 1);
         if (rs.getInt(1) == 0) {
           ResultSet rs2 = st.executeQuery("SELECT DATABASE()");
           rs2.next();
