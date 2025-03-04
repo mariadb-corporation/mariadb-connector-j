@@ -235,7 +235,7 @@ public class StandardClient implements Client, AutoCloseable {
       throws SQLException, IOException {
 
     try {
-      SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+      SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(
           socketPlugin.getKeyManager(conf, context.getExceptionFactory()), trustManagers, null);
 
