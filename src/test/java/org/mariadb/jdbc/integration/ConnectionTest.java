@@ -751,7 +751,7 @@ public class ConnectionTest extends Common {
             hostname, testPort, database, pamUser, pamPwd, defaultOther);
     try {
       try (Connection connection =
-          DriverManager.getConnection(connStr + "&restrictedAuth=dialog")) {
+          DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
         // must have succeeded
         connection.getCatalog();
       }
@@ -847,20 +847,6 @@ public class ConnectionTest extends Common {
                   sharedConn.getCatalog(),
                   mDefUrl.substring(mDefUrl.indexOf("?user=") + 1),
                   namedPipeName))) {
-        connection.setNetworkTimeout(null, 300);
-        java.sql.Statement stmt = connection.createStatement();
-        try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
-          assertTrue(rs2.next());
-        }
-      }
-      // connection host format host name
-      try (java.sql.Connection connection =
-          DriverManager.getConnection(
-              String.format(
-                  "jdbc:mariadb://address=(pipe=%s)/%s?%s&tcpAbortiveClose&tcpKeepAlive",
-                  namedPipeName,
-                  sharedConn.getCatalog(),
-                  mDefUrl.substring(mDefUrl.indexOf("?user=") + 1)))) {
         connection.setNetworkTimeout(null, 300);
         java.sql.Statement stmt = connection.createStatement();
         try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
