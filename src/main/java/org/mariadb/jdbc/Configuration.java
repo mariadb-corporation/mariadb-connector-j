@@ -3251,9 +3251,8 @@ public class Configuration {
     }
 
     /**
-     * Force Timestamp string representation compatible 2.7 version Timestamp string
-     * representation will then correspond to Timestamp.toString() in place of taking field
-     * precision
+     * Force Timestamp string representation compatible 2.7 version Timestamp string representation
+     * will then correspond to Timestamp.toString() in place of taking field precision
      *
      * @param oldModeNoPrecisionTimestamp force 2.7 timestamp to string behavior
      * @return this {@link Builder}

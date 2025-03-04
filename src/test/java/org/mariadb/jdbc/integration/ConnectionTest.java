@@ -1485,7 +1485,6 @@ public class ConnectionTest extends Common {
     }
   }
 
-
   @Test
   public void isClosed() throws SQLException {
     Connection con = DriverManager.getConnection(mDefUrl);
