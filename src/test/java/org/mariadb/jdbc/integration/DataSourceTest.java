@@ -26,7 +26,7 @@ public class DataSourceTest extends Common {
 
     MariaDbDataSource ds2 = new MariaDbDataSource();
     ds2.setUrl(mDefUrl);
-    ds2.setPassword("ttt");
+    ds2.setPassword(System.getenv("someP@ssword"));
     ds2.setUser("ttt");
     assertThrows(SQLException.class, ds2::getConnection);
   }
@@ -115,7 +115,7 @@ public class DataSourceTest extends Common {
     ds.setUser("dd");
     assertEquals("dd", ds.getUser());
 
-    ds.setPassword("pwd");
+    ds.setPassword(System.getenv("someOtherP@ssword"));
     assertThrows(SQLException.class, ds::getConnection);
     assertThrows(SQLException.class, ds::getPooledConnection);
 
@@ -123,8 +123,7 @@ public class DataSourceTest extends Common {
 
     ds.setUrl("jdbc:mariadb://myhost:5500/db?someOption=val");
     assertEquals(
-        "jdbc:mariadb://myhost:5500/db?user=dd&password=***&someOption=val&connectTimeout=50000",
-        ds.getUrl());
+        "jdbc:mariadb://myhost:5500/db?user=dd&someOption=val&connectTimeout=50000", ds.getUrl());
   }
 
   @Test
