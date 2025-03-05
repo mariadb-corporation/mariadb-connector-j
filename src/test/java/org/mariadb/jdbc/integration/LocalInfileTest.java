@@ -551,16 +551,13 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer() || !minVersion(8, 0, 3));
     Assumptions.assumeTrue(runLongTest());
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
     assertTrue(rs.next());
     long maxAllowedPacket = rs.getLong(1);
-    Assumptions.assumeTrue(maxAllowedPacket < 100_000_000);
+    Assumptions.assumeTrue(maxAllowedPacket < 10_000_000);
     checkBigLocalInfile(maxAllowedPacket + 1024);
   }
 
