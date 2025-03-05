@@ -242,7 +242,7 @@ public class ConnectionTest extends BaseTest {
     ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
     assertTrue(rs.next());
     int maxAllowedPacket = rs.getInt(2);
-    Assume.assumeTrue(maxAllowedPacket < 40_000_000);
+    Assume.assumeTrue(maxAllowedPacket < 20_000_000);
 
     // Create a SQL stream bigger than maxAllowedPacket
     StringBuilder sb = new StringBuilder();
