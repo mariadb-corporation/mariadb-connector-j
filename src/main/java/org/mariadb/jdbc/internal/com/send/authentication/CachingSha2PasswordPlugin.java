@@ -182,8 +182,15 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
               PublicKey publicKey;
               if (options.serverRsaPublicKeyFile != null
                   && !options.serverRsaPublicKeyFile.isEmpty()) {
-                publicKey =
-                    Sha256PasswordPlugin.readPublicKeyFromFile(options.serverRsaPublicKeyFile);
+                if (options.serverRsaPublicKeyFile.contains("BEGIN PUBLIC KEY")) {
+                  publicKey =
+                      Sha256PasswordPlugin.generatePublicKey(
+                          options.serverRsaPublicKeyFile.getBytes());
+                } else {
+                  publicKey =
+                      Sha256PasswordPlugin.readPublicKeyFromFile(options.serverRsaPublicKeyFile);
+                }
+
               } else {
                 if (!options.allowPublicKeyRetrieval) {
                   throw new SQLException(
