@@ -601,8 +601,8 @@ public class BatchTest extends Common {
 
     try (Connection con =
         createCon(
-        	(rewriteBatch ? "rewriteBatchedStatements" : "&useServerPrepStmts&useBulkStmts")
-                + (maxAllowedPacket != null ? "&maxAllowedPacket=" + maxAllowedPacket : ""))) {
+        	(rewriteBatch ? "rewriteBatchedStatements&useBulkStmtsForInserts=false" : "&useServerPrepStmts&useBulkStmts") +
+            (maxAllowedPacket != null ? "&maxAllowedPacket=" + maxAllowedPacket : ""))) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE BatchTest");
       stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
