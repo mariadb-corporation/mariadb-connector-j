@@ -25,16 +25,18 @@ public class ByteCountingWriter implements Writer {
 	
 	@Override
 	public int pos() {
-		return 0;
+		// return 0;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public byte[] buf() {
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void pos(int pos) throws IOException {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -75,6 +77,7 @@ public class ByteCountingWriter implements Writer {
 	@Override
 	public void writeBytesAtPos(byte[] arr, int pos) {
 		// writes to buffer but does not change position
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
