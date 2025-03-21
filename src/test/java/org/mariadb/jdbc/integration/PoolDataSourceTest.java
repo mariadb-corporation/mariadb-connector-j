@@ -41,8 +41,7 @@ public class PoolDataSourceTest extends Common {
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
       stmt.execute("CREATE USER 'poolUser'@'%'");
-      stmt.execute(
-          "GRANT ALL ON *.* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("GRANT ALL ON *.* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
     } else {
       stmt.execute("CREATE USER 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
       stmt.execute("GRANT ALL ON *.* TO 'poolUser'@'%'");
