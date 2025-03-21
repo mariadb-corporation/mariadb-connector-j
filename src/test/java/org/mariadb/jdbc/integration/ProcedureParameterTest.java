@@ -324,4 +324,72 @@ public class ProcedureParameterTest extends Common {
       }
     }
   }
+
+
+  @Test
+  public void failStoredProcedureTest() throws Exception {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP PROCEDURE IF EXISTS workingStoreProcedure");
+    stmt.execute("DROP PROCEDURE IF EXISTS failingStoreProcedure");
+    stmt.execute("CREATE PROCEDURE workingStoreProcedure(a int) begin Do 1; end");
+    stmt.execute("CREATE PROCEDURE failingStoreProcedure(a int) begin SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Custom error'; end");
+
+    try (CallableStatement call1 = sharedConn.prepareCall("{call useParameterName(?)}")) {
+      call1.setInt(1, 1);
+      call1.execute();
+
+      try (CallableStatement call2 = sharedConn.prepareCall("{call failingStoreProcedure(?)}")) {
+        call2.setInt(1, 1);
+        assertThrows(SQLException.class, () -> call2.execute());
+
+        call2.setInt(1, 1);
+        call2.addBatch();
+        call2.setInt(1, 2);
+        call2.addBatch();
+        assertThrows(SQLException.class, () -> call2.executeBatch());
+
+        call1.setInt(1, 1);
+        call1.addBatch();
+        call1.setInt(1, 2);
+        call1.addBatch();
+        call1.executeBatch();
+      }
+    }
+  }
+
+  @Test
+  public void failStoredProcedureTest2() throws Exception {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP PROCEDURE IF EXISTS workingStoreProcedure");
+    stmt.execute("DROP TABLE IF EXISTS saveData");
+    stmt.execute("CREATE TABLE saveData(i int PRIMARY KEY)");
+    stmt.execute("CREATE PROCEDURE saveDataProc(val int) begin INSERT INTO saveData(i) VALUE (val); end");
+
+    try (CallableStatement call1 = sharedConn.prepareCall("{call saveDataProc(?)}")) {
+      call1.setInt(1, 1);
+      call1.execute();
+
+      call1.setInt(1, 1);
+      assertThrows(SQLException.class, () -> call1.execute());
+
+      call1.setInt(1, 2);
+      call1.addBatch();
+      call1.setInt(1, 3);
+      call1.addBatch();
+      call1.executeBatch();
+
+      call1.setInt(1, 2);
+      call1.addBatch();
+      call1.setInt(1, 4);
+      call1.addBatch();
+      assertThrows(SQLException.class, () -> call1.executeBatch());
+
+      call1.setInt(1, 5);
+      call1.addBatch();
+      call1.setInt(1, 6);
+      call1.addBatch();
+      call1.executeBatch();
+    }
+  }
+
 }

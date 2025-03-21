@@ -134,7 +134,7 @@ public class DataSourceTest extends Common {
             && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
     try {
-      stmt.execute("DROP USER 'dsUser'");
+      stmt.execute("DROP USER 'dsUser'@'%'");
     } catch (SQLException e) {
       // eat
     }
@@ -171,7 +171,7 @@ public class DataSourceTest extends Common {
       }
     } finally {
       try {
-        stmt.execute("DROP USER 'dsUser'");
+        stmt.execute("DROP USER 'dsUser'@'%'");
       } catch (SQLException e) {
         // eat
       }

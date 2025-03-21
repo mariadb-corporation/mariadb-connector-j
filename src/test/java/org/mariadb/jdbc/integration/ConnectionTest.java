@@ -766,7 +766,7 @@ public class ConnectionTest extends Common {
       // already existing
     }
     stmt.execute(
-        "GRANT SELECT on " + sharedConn.getCatalog() + ".* to verificationEd25519AuthPlugin");
+        "GRANT SELECT on " + sharedConn.getCatalog() + ".* to verificationEd25519AuthPlugin@'%'");
 
     try (Connection connection =
         createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord")) {
@@ -1442,8 +1442,8 @@ public class ConnectionTest extends Common {
     boolean forced = false;
     Statement stmt = sharedConn.createStatement();
     try {
-      stmt.execute("DROP USER IF EXISTS 'expired_pwd_user'");
-      stmt.execute("CREATE USER 'expired_pwd_user' IDENTIFIED by '!Passw0rd3Works'");
+      stmt.execute("DROP USER IF EXISTS 'expired_pwd_user'@'%'");
+      stmt.execute("CREATE USER 'expired_pwd_user'@'%' IDENTIFIED by '!Passw0rd3Works'");
       stmt.execute("GRANT all on *.* to 'expired_pwd_user'");
 
       String connStr =
@@ -1451,7 +1451,7 @@ public class ConnectionTest extends Common {
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s&allowPublicKeyRetrieval=true",
               hostname, port, database, "expired_pwd_user", "!Passw0rd3Works", defaultOther);
 
-      stmt.execute("ALTER USER 'expired_pwd_user' PASSWORD EXPIRE");
+      stmt.execute("ALTER USER 'expired_pwd_user'@'%' PASSWORD EXPIRE");
       stmt.execute("FLUSH PRIVILEGES");
       if (isMariaDBServer()) {
         // force

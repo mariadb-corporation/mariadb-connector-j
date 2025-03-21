@@ -181,43 +181,41 @@ public class PooledConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
-    try {
-      stmt.execute("DROP USER 'dsUser'");
-    } catch (SQLException e) {
-      // eat
-    }
+    stmt.execute("DROP USER IF EXISTS 'testPooledConnectionStatementError'@'%'");
 
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer() || minVersion(8, 4, 0)) {
-        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+        stmt.execute("CREATE USER 'testPooledConnectionStatementError'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
       } else {
         stmt.execute(
-            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY"
+            "CREATE USER 'testPooledConnectionStatementError'@'%' IDENTIFIED WITH mysql_native_password BY"
                 + " 'MySup8%rPassw@ord'");
       }
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
+      stmt.execute("GRANT ALL ON *.* TO 'testPooledConnectionStatementError'@'%'");
     } else {
-      stmt.execute("CREATE USER 'dsUser'@'%'");
+      stmt.execute("CREATE USER 'testPooledConnectionStatementError'@'%'");
       stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+          "GRANT ALL ON *.* TO 'testPooledConnectionStatementError'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     }
     stmt.execute("FLUSH PRIVILEGES");
 
-    ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
-    PooledConnection pc = ds.getPooledConnection("dsUser", "MySup8%rPassw@ord");
-    MyEventListener listener = new MyEventListener();
-    pc.addStatementEventListener(listener);
-    Connection connection = pc.getConnection();
-    try (PreparedStatement ps = connection.prepareStatement("SELECT ?")) {
-      ps.execute();
-      fail("should never get there");
-    } catch (Exception e) {
-      assertTrue(listener.statementErrorOccurred);
+    try {
+      ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
+      PooledConnection pc = ds.getPooledConnection("testPooledConnectionStatementError", "MySup8%rPassw@ord");
+      MyEventListener listener = new MyEventListener();
+      pc.addStatementEventListener(listener);
+      Connection connection = pc.getConnection();
+      try (PreparedStatement ps = connection.prepareStatement("SELECT ?")) {
+        ps.execute();
+        fail("should never get there");
+      } catch (Exception e) {
+        assertTrue(listener.statementErrorOccurred);
+      }
+      assertTrue(listener.statementClosed);
+      pc.close();
+    } finally {
+      stmt.execute("DROP USER IF EXISTS 'dsUser'@'%'");
     }
-    assertTrue(listener.statementClosed);
-    pc.close();
   }
 
   public static class MyEventListener implements ConnectionEventListener, StatementEventListener {
