@@ -110,7 +110,7 @@ public class Configuration {
   private boolean returnMultiValuesGeneratedIds;
   private boolean jdbcCompliantTruncation;
   private boolean oldModeNoPrecisionTimestamp;
-  private boolean permitRedirect;
+  private Boolean permitRedirect;
   private TransactionIsolation transactionIsolation;
   private int defaultFetchSize;
   private int maxQuerySizeToLog;
@@ -387,7 +387,7 @@ public class Configuration {
         builder.jdbcCompliantTruncation == null || builder.jdbcCompliantTruncation;
     this.oldModeNoPrecisionTimestamp =
         builder.oldModeNoPrecisionTimestamp != null && builder.oldModeNoPrecisionTimestamp;
-    this.permitRedirect = builder.permitRedirect == null || builder.permitRedirect;
+    this.permitRedirect = builder.permitRedirect;
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
     this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
@@ -1973,7 +1973,7 @@ public class Configuration {
    *
    * @return must client redirect when required
    */
-  public boolean permitRedirect() {
+  public Boolean permitRedirect() {
     return permitRedirect;
   }
 

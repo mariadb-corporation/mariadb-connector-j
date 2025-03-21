@@ -480,8 +480,9 @@ public class StandardClient implements Client, AutoCloseable {
             }
           }
 
-          if (context.getRedirectUrl() != null && conf.permitRedirect())
-            redirect(context.getRedirectUrl());
+          if (context.getRedirectUrl() != null
+              && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
+                  || conf.permitRedirect())) redirect(context.getRedirectUrl());
 
           break authentication_loop;
 
@@ -525,7 +526,9 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   public void redirect(String redirectUrl) {
-    if (this.conf.permitRedirect() && redirectUrl != null) {
+    if (redirectUrl != null
+        && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
+            || conf.permitRedirect())) {
       // redirect only if not in a transaction
       if ((this.context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0) {
         this.context.setRedirectUrl(null);

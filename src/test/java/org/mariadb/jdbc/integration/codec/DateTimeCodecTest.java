@@ -36,7 +36,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
 
     // ensure not setting NO_ZERO_DATE and NO_ZERO_IN_DATE
-    stmt.execute("set sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'");
+    stmt.execute(
+        "set sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'");
 
     stmt.execute(
         "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4"
@@ -46,7 +47,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
             + " '9999-12-31 18:30:12.55', null)"
             + (isMariaDBServer()
                 ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null)"
-                + ",('1980-00-10 00:00:00', '1970-10-00 00:00:00.0123', null, null)"
+                    + ",('1980-00-10 00:00:00', '1970-10-00 00:00:00.0123', null, null)"
                 : ""));
     stmt.execute(
         "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
@@ -224,11 +225,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
       rs.next();
 
       assertEquals(
-              Timestamp.valueOf("1979-12-10 00:00:00").getTime(),
-              ((Timestamp) rs.getObject(1)).getTime());
+          Timestamp.valueOf("1979-12-10 00:00:00").getTime(),
+          ((Timestamp) rs.getObject(1)).getTime());
       assertEquals(
-              Timestamp.valueOf("1970-09-30 00:00:00.012300").getTime(),
-              ((Timestamp) rs.getObject(2)).getTime());
+          Timestamp.valueOf("1970-09-30 00:00:00.012300").getTime(),
+          ((Timestamp) rs.getObject(2)).getTime());
     }
   }
 

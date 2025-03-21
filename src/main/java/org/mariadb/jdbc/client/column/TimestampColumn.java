@@ -382,7 +382,8 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
     }
 
     try {
-      LocalDateTime ldt = LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
+      LocalDateTime ldt =
+          LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
               .plusNanos(parts[6]);
       Timestamp res = new Timestamp(localDateTimeToInstant(ldt, calParam, context));
       res.setNanos(ldt.getNano());
@@ -405,7 +406,6 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       timestamp.setNanos(parts[6]);
       return timestamp;
     }
-
   }
 
   @Override
@@ -435,7 +435,8 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       }
     }
     try {
-      LocalDateTime ldt = LocalDateTime.of(year, month, dayOfMonth, hour, minutes, seconds)
+      LocalDateTime ldt =
+          LocalDateTime.of(year, month, dayOfMonth, hour, minutes, seconds)
               .plusNanos(microseconds * 1000);
       if (ldt == null) return null;
       Timestamp res = new Timestamp(localDateTimeToInstant(ldt, calParam, context));

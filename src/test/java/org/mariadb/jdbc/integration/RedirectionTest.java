@@ -18,7 +18,7 @@ public class RedirectionTest extends Common {
   @Test
   void basicRedirection() throws Exception {
 
-    Connection connection = createProxyCon(HaMode.NONE, "");
+    Connection connection = createProxyCon(HaMode.NONE, "&permitRedirect=true");
     Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     boolean permitRedirection = true;
     Statement stmt = connection.createStatement();
@@ -43,7 +43,7 @@ public class RedirectionTest extends Common {
   @Test
   void redirectionDuringTransaction() throws Exception {
 
-    Connection connection = createProxyCon(HaMode.NONE, "");
+    Connection connection = createProxyCon(HaMode.NONE, "&permitRedirect=true");
     Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     boolean permitRedirection = true;
     Statement stmt = connection.createStatement();
@@ -90,7 +90,7 @@ public class RedirectionTest extends Common {
           String.format("address=(host=localhost)(port=%s)(type=primary)", proxy.getLocalPort()),
           sharedConn.__test_host());
 
-      try (Connection conn = createCon("")) {
+      try (Connection conn = createCon("&permitRedirect=true")) {
         Assertions.assertEquals(
             String.format("address=(host=localhost)(port=%s)(type=primary)", proxy.getLocalPort()),
             conn.__test_host());
