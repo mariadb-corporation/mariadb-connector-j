@@ -181,23 +181,23 @@ public class PooledConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS 'testPooledConnectionStatementError'@'%'");
+    stmt.execute("DROP USER IF EXISTS 'StatementErrorUser'@'%'");
 
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer() || minVersion(8, 4, 0)) {
         stmt.execute(
-            "CREATE USER 'testPooledConnectionStatementError'@'%' IDENTIFIED BY"
+            "CREATE USER 'StatementErrorUser'@'%' IDENTIFIED BY"
                 + " 'MySup8%rPassw@ord'");
       } else {
         stmt.execute(
-            "CREATE USER 'testPooledConnectionStatementError'@'%' IDENTIFIED WITH"
+            "CREATE USER 'StatementErrorUser'@'%' IDENTIFIED WITH"
                 + " mysql_native_password BY 'MySup8%rPassw@ord'");
       }
-      stmt.execute("GRANT ALL ON *.* TO 'testPooledConnectionStatementError'@'%'");
+      stmt.execute("GRANT ALL ON *.* TO 'StatementErrorUser'@'%'");
     } else {
-      stmt.execute("CREATE USER 'testPooledConnectionStatementError'@'%'");
+      stmt.execute("CREATE USER 'StatementErrorUser'@'%'");
       stmt.execute(
-          "GRANT ALL ON *.* TO 'testPooledConnectionStatementError'@'%' IDENTIFIED BY"
+          "GRANT ALL ON *.* TO 'StatementErrorUser'@'%' IDENTIFIED BY"
               + " 'MySup8%rPassw@ord'");
     }
     stmt.execute("FLUSH PRIVILEGES");
@@ -205,7 +205,7 @@ public class PooledConnectionTest extends Common {
     try {
       ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
       PooledConnection pc =
-          ds.getPooledConnection("testPooledConnectionStatementError", "MySup8%rPassw@ord");
+          ds.getPooledConnection("StatementErrorUser", "MySup8%rPassw@ord");
       MyEventListener listener = new MyEventListener();
       pc.addStatementEventListener(listener);
       Connection connection = pc.getConnection();
@@ -218,7 +218,7 @@ public class PooledConnectionTest extends Common {
       assertTrue(listener.statementClosed);
       pc.close();
     } finally {
-      stmt.execute("DROP USER IF EXISTS 'dsUser'@'%'");
+      stmt.execute("DROP USER IF EXISTS 'StatementErrorUser'@'%'");
     }
   }
 
