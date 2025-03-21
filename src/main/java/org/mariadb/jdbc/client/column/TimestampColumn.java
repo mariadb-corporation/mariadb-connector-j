@@ -8,6 +8,7 @@ import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 import java.sql.*;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -144,24 +145,30 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       final Context context)
       throws SQLDataException {
     if (length.get() == 0) return buildZeroDate();
+    int initialPos = buf.pos();
     int initialLength = length.get();
-    LocalDateTime ldt = parseText(buf, length);
-    if (ldt == null) {
-      if (initialLength > 0) return buildZeroDate();
-      return null;
-    }
-    LocalDateTime modifiedLdt =
-        localDateTimeToZoneDateTime(ldt, providedCal, context).toLocalDateTime();
-    String timestampWithoutMicro = dateTimeFormatter.format(modifiedLdt);
-    if (context.getConf().oldModeNoPrecisionTimestamp()) {
-      // for compatibility with 2.2.0 and before, micro precision use .0##### format
+    try {
+      LocalDateTime ldt = parseText(buf, length);
+      if (ldt == null) {
+        if (initialLength > 0) return buildZeroDate();
+        return null;
+      }
+      LocalDateTime modifiedLdt =
+          localDateTimeToZoneDateTime(ldt, providedCal, context).toLocalDateTime();
+      String timestampWithoutMicro = dateTimeFormatter.format(modifiedLdt);
+      if (context.getConf().oldModeNoPrecisionTimestamp()) {
+        // for compatibility with 2.2.0 and before, micro precision use .0##### format
+        return timestampWithoutMicro
+            + oldDecimalFormat.format(((double) modifiedLdt.getNano()) / 1000000000);
+      }
+      if (this.decimals == 0) return timestampWithoutMicro;
       return timestampWithoutMicro
-          + oldDecimalFormat.format(((double) modifiedLdt.getNano()) / 1000000000);
+          + "."
+          + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
+    } catch (DateTimeException e) {
+      buf.pos(initialPos);
+      return buf.readString(length.get());
     }
-    if (this.decimals == 0) return timestampWithoutMicro;
-    return timestampWithoutMicro
-        + "."
-        + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
   }
 
   private String buildZeroDate() {
@@ -181,24 +188,72 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       final Context context)
       throws SQLDataException {
     if (length.get() == 0) return buildZeroDate();
+    int initialPos = buf.pos();
     int initialLength = length.get();
-    LocalDateTime ldt = parseBinary(buf, length);
-    if (ldt == null) {
-      if (initialLength > 0) return buildZeroDate();
-      return null;
-    }
-    LocalDateTime modifiedLdt =
-        localDateTimeToZoneDateTime(ldt, providedCal, context).toLocalDateTime();
-    String timestampWithoutMicro = dateTimeFormatter.format(modifiedLdt);
-    if (context.getConf().oldModeNoPrecisionTimestamp()) {
-      // for compatibility with 2.2.0 and before, micro precision use .0##### format
+    try {
+      LocalDateTime ldt = parseBinary(buf, length);
+      if (ldt == null) {
+        if (initialLength > 0) return buildZeroDate();
+        return null;
+      }
+      LocalDateTime modifiedLdt =
+          localDateTimeToZoneDateTime(ldt, providedCal, context).toLocalDateTime();
+      String timestampWithoutMicro = dateTimeFormatter.format(modifiedLdt);
+      if (context.getConf().oldModeNoPrecisionTimestamp()) {
+        // for compatibility with 2.2.0 and before, micro precision use .0##### format
+        return timestampWithoutMicro
+            + oldDecimalFormat.format(((double) modifiedLdt.getNano()) / 1000000000);
+      }
+      if (this.decimals == 0) return timestampWithoutMicro;
       return timestampWithoutMicro
-          + oldDecimalFormat.format(((double) modifiedLdt.getNano()) / 1000000000);
+          + "."
+          + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
+    } catch (DateTimeException e) {
+      buf.pos(initialPos);
+      int year = buf.readUnsignedShort();
+      int month = buf.readByte();
+      int dayOfMonth = buf.readByte();
+      int hour = 0;
+      int minutes = 0;
+      int seconds = 0;
+      long microseconds = 0;
+
+      if (length.get() > 4) {
+        hour = buf.readByte();
+        minutes = buf.readByte();
+        seconds = buf.readByte();
+
+        if (length.get() > 7) {
+          microseconds = buf.readUnsignedInt();
+        }
+      }
+      StringBuilder sb = new StringBuilder();
+      fill(year, 4, sb);
+      sb.append("-");
+      fill(month, 2, sb);
+      sb.append("-");
+      fill(dayOfMonth, 2, sb);
+      sb.append(" ");
+      fill(hour, 2, sb);
+      sb.append(":");
+      fill(minutes, 2, sb);
+      sb.append(":");
+      fill(seconds, 2, sb);
+
+      if (getDecimals() == 0) return sb.toString();
+      sb.append(".");
+      fill((int) (microseconds / Math.pow(10, 6 - getDecimals())), getDecimals(), sb);
+      return sb.toString();
     }
-    if (this.decimals == 0) return timestampWithoutMicro;
-    return timestampWithoutMicro
-        + "."
-        + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
+  }
+
+  private void fill(int val, int size, StringBuilder sb) {
+    String valSt = String.valueOf(val);
+    long zeroToAdd = size - valSt.length();
+    while (zeroToAdd-- > 0) {
+      sb.append("0");
+    }
+    sb.append(valSt);
   }
 
   @Override
@@ -320,22 +375,90 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
       throws SQLDataException {
-    LocalDateTime ldt = parseText(buf, length);
-    if (ldt == null) return null;
-    Timestamp res = new Timestamp(localDateTimeToInstant(ldt, calParam, context));
-    res.setNanos(ldt.getNano());
-    return res;
+    int[] parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
+    if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
+      length.set(NULL_LENGTH);
+      return null;
+    }
+
+    try {
+      LocalDateTime ldt = LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
+              .plusNanos(parts[6]);
+      Timestamp res = new Timestamp(localDateTimeToInstant(ldt, calParam, context));
+      res.setNanos(ldt.getNano());
+      return res;
+    } catch (DateTimeException e) {
+      Timestamp timestamp;
+      Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+      synchronized (cal) {
+        cal.setLenient(true);
+        cal.clear();
+        cal.set(Calendar.YEAR, parts[0]);
+        cal.set(Calendar.MONTH, parts[1] - 1);
+        cal.set(Calendar.DAY_OF_MONTH, parts[2]);
+        cal.set(Calendar.HOUR_OF_DAY, parts[3]);
+        cal.set(Calendar.MINUTE, parts[4]);
+        cal.set(Calendar.SECOND, parts[5]);
+        cal.set(Calendar.MILLISECOND, parts[6] / 1000000);
+        timestamp = new Timestamp(cal.getTime().getTime());
+      }
+      timestamp.setNanos(parts[6]);
+      return timestamp;
+    }
+
   }
 
   @Override
   public Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
       throws SQLDataException {
-    LocalDateTime ldt = parseBinary(buf, length);
-    if (ldt == null) return null;
-    Timestamp res = new Timestamp(localDateTimeToInstant(ldt, calParam, context));
-    res.setNanos(ldt.getNano());
-    return res;
+    if (length.get() == 0) {
+      length.set(NULL_LENGTH);
+      return null;
+    }
+
+    int year = buf.readUnsignedShort();
+    int month = buf.readByte();
+    int dayOfMonth = buf.readByte();
+    int hour = 0;
+    int minutes = 0;
+    int seconds = 0;
+    long microseconds = 0;
+
+    if (length.get() > 4) {
+      hour = buf.readByte();
+      minutes = buf.readByte();
+      seconds = buf.readByte();
+
+      if (length.get() > 7) {
+        microseconds = buf.readUnsignedInt();
+      }
+    }
+    try {
+      LocalDateTime ldt = LocalDateTime.of(year, month, dayOfMonth, hour, minutes, seconds)
+              .plusNanos(microseconds * 1000);
+      if (ldt == null) return null;
+      Timestamp res = new Timestamp(localDateTimeToInstant(ldt, calParam, context));
+      res.setNanos(ldt.getNano());
+      return res;
+    } catch (DateTimeException e) {
+      Timestamp timestamp;
+      Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+      synchronized (cal) {
+        cal.setLenient(true);
+        cal.clear();
+        cal.set(Calendar.YEAR, year);
+        cal.set(Calendar.MONTH, month - 1);
+        cal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+        cal.set(Calendar.HOUR_OF_DAY, hour);
+        cal.set(Calendar.MINUTE, minutes);
+        cal.set(Calendar.SECOND, seconds);
+        cal.set(Calendar.MILLISECOND, (int) (microseconds / 1000000));
+        timestamp = new Timestamp(cal.getTime().getTime());
+      }
+      timestamp.setNanos((int) (microseconds * 1000));
+      return timestamp;
+    }
   }
 
   private LocalDateTime parseText(final ReadableByteBuf buf, final MutableInt length) {
@@ -370,18 +493,6 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       if (length.get() > 7) {
         microseconds = buf.readUnsignedInt();
       }
-    }
-
-    // xpand workaround https://jira.mariadb.org/browse/XPT-274
-    if (year == 0
-        && month == 0
-        && dayOfMonth == 0
-        && hour == 0
-        && minutes == 0
-        && seconds == 0
-        && microseconds == 0) {
-      length.set(NULL_LENGTH);
-      return null;
     }
     return LocalDateTime.of(year, month, dayOfMonth, hour, minutes, seconds)
         .plusNanos(microseconds * 1000);
