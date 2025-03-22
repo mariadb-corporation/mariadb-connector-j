@@ -77,7 +77,7 @@ public class DatabaseMetadataTest extends Common {
             + " tinytext,  `text_col` text,  `mediumtext_col` mediumtext,  `longtext_col`"
             + " longtext"
             + (isMariaDBServer() && minVersion(10, 7, 0) ? ", `uuid_col` UUID" : "")
-            + (isMariaDBServer() && minVersion(11, 7, 2) ? ", `vector_col` VECTOR" : "")
+            + (isMariaDBServer() && minVersion(11, 7, 2) ? ", `vector_col` VECTOR(20)" : "")
             + ")");
     stmt.execute("CREATE TABLE IF NOT EXISTS ytab(y year)");
     stmt.execute(
@@ -2252,7 +2252,7 @@ public class DatabaseMetadataTest extends Common {
       if (isMariaDBServer() && minVersion(10, 7, 0)) {
         checkType(columnName, type, "uuid_col", Types.OTHER);
         if (minVersion(11, 7, 2)) {
-          checkType(columnName, type, "vector_col", Types.LONGVARBINARY);
+          checkType(columnName, type, "vector_col", Types.OTHER);
         }
       }
     }

@@ -37,7 +37,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
     // ensure not setting NO_ZERO_DATE and NO_ZERO_IN_DATE
     stmt.execute(
-        "set sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'");
+        "set sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
 
     stmt.execute(
         "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4"
