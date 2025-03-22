@@ -109,7 +109,8 @@ public class Configuration {
   private boolean useLocalSessionState;
   private boolean returnMultiValuesGeneratedIds;
   private boolean jdbcCompliantTruncation;
-  private boolean permitRedirect;
+  private boolean oldModeNoPrecisionTimestamp;
+  private Boolean permitRedirect;
   private TransactionIsolation transactionIsolation;
   private int defaultFetchSize;
   private int maxQuerySizeToLog;
@@ -384,7 +385,9 @@ public class Configuration {
         builder.returnMultiValuesGeneratedIds != null && builder.returnMultiValuesGeneratedIds;
     this.jdbcCompliantTruncation =
         builder.jdbcCompliantTruncation == null || builder.jdbcCompliantTruncation;
-    this.permitRedirect = builder.permitRedirect == null || builder.permitRedirect;
+    this.oldModeNoPrecisionTimestamp =
+        builder.oldModeNoPrecisionTimestamp != null && builder.oldModeNoPrecisionTimestamp;
+    this.permitRedirect = builder.permitRedirect;
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
     this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
@@ -554,6 +557,7 @@ public class Configuration {
             .useLocalSessionState(this.useLocalSessionState)
             .returnMultiValuesGeneratedIds(this.returnMultiValuesGeneratedIds)
             .jdbcCompliantTruncation(this.jdbcCompliantTruncation)
+            .oldModeNoPrecisionTimestamp(this.oldModeNoPrecisionTimestamp)
             .permitRedirect(this.permitRedirect)
             .pinGlobalTxToPhysicalConnection(this.pinGlobalTxToPhysicalConnection)
             .permitNoResults(this.permitNoResults)
@@ -1955,11 +1959,21 @@ public class Configuration {
   }
 
   /**
+   * Force Timestamp string representation compatible to 2.7 version Timestamp string representation
+   * will then correspond to Timestamp.toString() in place of taking field precision
+   *
+   * @return force 2.7 timestamp to string behavior
+   */
+  public boolean oldModeNoPrecisionTimestamp() {
+    return oldModeNoPrecisionTimestamp;
+  }
+
+  /**
    * must client redirect when required
    *
    * @return must client redirect when required
    */
-  public boolean permitRedirect() {
+  public Boolean permitRedirect() {
     return permitRedirect;
   }
 
@@ -2301,6 +2315,7 @@ public class Configuration {
     private Boolean useLocalSessionState;
     private Boolean returnMultiValuesGeneratedIds;
     private Boolean jdbcCompliantTruncation;
+    private Boolean oldModeNoPrecisionTimestamp;
     private Boolean permitRedirect;
     private Boolean pinGlobalTxToPhysicalConnection;
     private Boolean permitNoResults;
@@ -3232,6 +3247,18 @@ public class Configuration {
      */
     public Builder jdbcCompliantTruncation(Boolean jdbcCompliantTruncation) {
       this.jdbcCompliantTruncation = jdbcCompliantTruncation;
+      return this;
+    }
+
+    /**
+     * Force Timestamp string representation compatible 2.7 version Timestamp string representation
+     * will then correspond to Timestamp.toString() in place of taking field precision
+     *
+     * @param oldModeNoPrecisionTimestamp force 2.7 timestamp to string behavior
+     * @return this {@link Builder}
+     */
+    public Builder oldModeNoPrecisionTimestamp(Boolean oldModeNoPrecisionTimestamp) {
+      this.oldModeNoPrecisionTimestamp = oldModeNoPrecisionTimestamp;
       return this;
     }
 

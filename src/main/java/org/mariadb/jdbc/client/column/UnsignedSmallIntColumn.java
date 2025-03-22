@@ -71,7 +71,12 @@ public class UnsignedSmallIntColumn extends ColumnDefinitionPacket implements Co
   }
 
   public int getColumnType(final Configuration conf) {
-    return Types.SMALLINT;
+    boolean resultSetMetaDataUnsignedCompatibility =
+        Boolean.parseBoolean(
+            conf.nonMappedOptions().getProperty("resultSetMetaDataUnsignedCompatibility", "false"));
+    // compatibility option to ensure compatibility
+    // to be removed in 4.0
+    return resultSetMetaDataUnsignedCompatibility ? Types.INTEGER : Types.SMALLINT;
   }
 
   public String getColumnTypeName(final Configuration conf) {

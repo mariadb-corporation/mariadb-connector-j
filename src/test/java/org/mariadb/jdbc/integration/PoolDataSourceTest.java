@@ -40,14 +40,11 @@ public class PoolDataSourceTest extends Common {
             && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("CREATE USER 'poolUser'@'%'");
+      stmt.execute("GRANT ALL ON *.* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
     } else {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
+      stmt.execute("CREATE USER 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("GRANT ALL ON *.* TO 'poolUser'@'%'");
     }
     stmt.execute(
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test"
@@ -59,6 +56,7 @@ public class PoolDataSourceTest extends Common {
   @AfterAll
   public static void drop() throws SQLException {
     try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP USER IF EXISTS 'poolUser'@'%'");
       stmt.execute("DROP TABLE IF EXISTS testResetRollback");
     }
   }

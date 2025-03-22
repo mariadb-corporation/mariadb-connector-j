@@ -19,7 +19,7 @@ import: mariadb-corporation/connector-test-machine:common-build.yml@master
 jobs:
   include:
     - stage: Language
-      env: srv=mariadb v=11.6-rc packet=40 PROFILE=java8
+      env: srv=mariadb v=11.6 packet=40 PROFILE=java8
       jdk: openjdk8
       name: "CS 11.6 - openjdk 8"
     - stage: Language

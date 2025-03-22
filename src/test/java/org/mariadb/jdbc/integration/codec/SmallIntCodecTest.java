@@ -936,6 +936,20 @@ public class SmallIntCodecTest extends CommonCodecTest {
       assertEquals(5, meta.getPrecision(1));
       assertEquals(5, meta.getColumnDisplaySize(1));
     }
+
+    try (org.mariadb.jdbc.Connection conn =
+        createCon("&resultSetMetaDataUnsignedCompatibility=true")) {
+      Statement stmt = conn.createStatement();
+      stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+      rs =
+          stmt.executeQuery(
+              "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                  + " SmallIntCodecUnsigned");
+      assertTrue(rs.next());
+      stmt.execute("COMMIT");
+      meta = rs.getMetaData();
+      assertEquals(Types.INTEGER, meta.getColumnType(1));
+    }
   }
 
   @Test

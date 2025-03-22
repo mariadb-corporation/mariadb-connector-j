@@ -131,7 +131,7 @@ public class MultiPrimaryClient implements Client {
   }
 
   private Client tryConnectToDeniedHost(boolean readOnly, int retriesLeft) throws SQLException {
-    SQLNonTransientConnectionException lastException = null;
+    SQLException lastException = null;
 
     while (retriesLeft > 0) {
       Optional<HostAddress> host = findHostWithLowestDenyTimeout(readOnly);
@@ -144,7 +144,7 @@ public class MultiPrimaryClient implements Client {
         Client client = createClient(host.get());
         denyList.remove(host.get());
         return client;
-      } catch (SQLNonTransientConnectionException e) {
+      } catch (SQLNonTransientConnectionException | SQLTimeoutException e) {
         lastException = e;
         host.ifPresent(this::addToDenyList);
         retriesLeft--;
@@ -218,7 +218,6 @@ public class MultiPrimaryClient implements Client {
       return oldClient;
 
     } catch (SQLNonTransientConnectionException sqle) {
-      currentClient = null;
       closed = true;
       throw sqle;
     }
@@ -579,8 +578,10 @@ public class MultiPrimaryClient implements Client {
 
   @Override
   public void close() throws SQLException {
-    closed = true;
-    if (currentClient != null) currentClient.close();
+    if (!closed) {
+      closed = true;
+      currentClient.close();
+    }
   }
 
   @Override
