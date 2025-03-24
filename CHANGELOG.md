@@ -1,5 +1,17 @@
 # Change Log
 
+## [3.4.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.2) (Mar 2025)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.1...3.4.2)
+
+##### Bugs Fixed
+
+_bug fix report from 3.3.4_
+* CONJ-1237 wrong statements.isClosed value after closing connection
+* CONJ-1236 ensure not having NPE after reconnection fail for high availability configurations
+* CONJ-1239 disable BULK use when there isn't any parameter
+
+
 ## [3.4.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.1) (Jul 2024)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.0...3.4.1)
 
