@@ -1,4 +1,116 @@
 # Change Log
+
+
+## [3.3.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.3) (Mar 2025)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.3...3.3.4)
+
+##### Bugs Fixed
+
+* CONJ-1237 wrong statements.isClosed value after closing connection
+* CONJ-1236 ensure not having NPE after reconnection fail for high availability configurations
+* CONJ-1239 disable BULK use when there isn't any parameter
+
+
+## [3.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.2) (Feb 2025)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.1...3.5.2)
+
+#### Bugs Fixed
+
+* CONJ-1216 Resolved a performance issue that occurred when batch processing on MySQL and older MariaDB (pre-10.2) servers
+* CONJ-1218 Incorrect behavior where XA connections are closed when regular connections are terminated - this is against specifications
+* CONJ-1217 The trustCertificateKeyStorePassword alias parameter isn’t taken into account
+* CONJ-1221	DatabaseMetadata.getTypeInfo() is missing the data types UUID and VECTOR
+* CONJ-1225 System throws an exception prematurely without checking all available connections
+* CONJ-1228 result-set.getObject() on BLOB type returns Blob in place of byte[]
+* CONJ-660  new `disconnectOnExpiredPasswords` connection option that controls client behavior when connecting with an expired password.
+	When set to true (default), the client disconnects if it detects an expired password.
+	When false, the client maintains the connection and allows setting a new password.
+* CONJ-1229 Permit executeQuery commands to not return a result-set
+
+
+## [3.5.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.1) (Nov 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.0...3.5.1)
+
+#### Notable changes
+
+* CONJ-1193 Implement parsec authentication
+* CONJ-1207 New HaMode: sequential write, loadbalance read
+* CONJ-1208 permit bulk for INSERT ON DUPLICATE KEY UPDATE commands for 11.5.1+ servers
+
+#### Bugs Fixed
+
+* CONJ-1053 Mark waffle-jna dependency optional in module descriptor
+* CONJ-1196 setObject on java.util.Date was considered was a java.sql.Date and truncate hour/minutes/seconds/ms while it must be considered like a java.sql.Timestamp
+* CONJ-1211 jdbc 4.3 enquoteIdentifier missing validation
+* CONJ-1213 sql command ending with semicolon and trailing space are not using bulk
+
+
+## [3.5.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.0) (Oct 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.1...3.5.0)
+
+#### Notable changes
+
+~~* CONJ-1193 Parsec authentication implementation~~
+* CONJ-1183 permit setting specific truststore
+
+#### Bugs Fixed
+
+* CONJ-1202 Session variable setting must be executed last
+* CONJ-1201 incorrect default behavior for forceConnectionTimeZoneToSession
+* CONJ-1200 Batch import fails with exception "Unknown command"
+* CONJ-1199 option `connectionCollation` addition in order to force collation
+* CONJ-1187 Use different exception type for connection timeouts
+
+## [3.4.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.1) (Jul 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.0...3.4.1)
+
+##### Bugs Fixed
+
+* CONJ-1181 Ensure Prepare cache use schema
+* CONJ-1178 DatabaseMetaData.getImportedKeys return different PK_NAME value than getExportedKeys.
+* CONJ-1180 Correct DatabaseMeta.getExportedKeys() performances
+* CONJ-1185 Android app compatibility, regex CANON_EQ flag not supported
+* CONJ-1188 database meta getSQLKeywords listing all reserved key word, not restricted keywords only
+* CONJ-1189 implementation of pinGlobalTxToPhysicalConnection for XA Connection
+* CONJ-1190 Adding MySQL option 'databaseTerm' as alias for useCatalogTerm for compatibility
+* CONJ-1191 slow metadata getImportedKeys when not having database set
+* CONJ-685 permit setting sslMode per host
+* CONJ-686 Allow mixing TCP and socket hosts in failover configuration
+* CONJ-1068 ResultSetMetaData.getColumnTypeName() returns VARCHAR instead of TINYTEXT
+* CONJ-1182 missing XA_RBTIMEOUT,XA_RBTIMEOUT and XA_RBDEADLOCK error mapping
+
+
+## [3.4.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.0) (Apr 2024)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.3...3.4.0)
+
+##### Notable Changes
+
+* CONJ-981 Add support for connection redirection
+* CONJ-1087 handle mariadb-11.1+ transaction_isolation
+* CONJ-1100 Be able to filter system tables and views
+* CONJ-1105 TLS certificate validation without needs to provide certificate client side
+* CONJ-1171 timezone support missing feature
+* CONJ-1173 Bulk implementation returning individual results for MariaDB 11.5
+* CONJ-1154 avoid unnecessary set transaction isolation queries
+
+##### Bugs Fixed
+
+* CONJ-1103 Connector/J Version 3 Does Not Respect "nullCatalogMeansCurrent" Property
+* CONJ-1161 Database connection failing on android
+* CONJ-1107 MariaDB Connector 3 no longer supports query timeout with MySQL
+* CONJ-1125 Inconsistency in Handling PreparedStatement.executeQuery() between MariaDB and MySQL Connectors
+* CONJ-1156 getTables should be ordered as expected
+* CONJ-1163 jdbcCompliantTruncation Does Not Appear To Be Working
+* CONJ-1164 Variable initialization ahead of LOAD DATA INFILE not possible by validateLocalFileName pattern
+* CONJ-1168 useBulkStmts compatibility value with pre 3.2 version
+* CONJ-1169 improve Client prepared statement setMaxRows implementation
+* CONJ-1170 OFFSET missing from getSQLKeywords
+* CONJ-1158 DatabaseMetaData#getFunctions's result not property ordered
+* CONJ-1159 DatabaseMetaData#getClientInfoProperties not ordered correctly
+* CONJ-1166 Implement connection properties fallbackToSystemKeyStore and fallbackToSystemTrustStore
+* CONJ-1174 ConnectorJ gives precision of 20 for signed bigint
+
 ## [3.3.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.3) (Feb 2024)
 
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.2...3.3.3)
