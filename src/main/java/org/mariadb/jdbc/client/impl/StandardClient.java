@@ -432,6 +432,20 @@ public class StandardClient implements Client, AutoCloseable {
               authPluginFactory.initialize(
                   credential.getPassword(), authSwitchPacket.getSeed(), conf, hostAddress);
 
+          if (certFingerprint != null
+              && (!authPlugin.isMitMProof()
+                  || credential.getPassword() == null
+                  || credential.getPassword().isEmpty())) {
+            throw context
+                .getExceptionFactory()
+                .create(
+                    String.format(
+                        "Cannot use authentication plugin %s with a Self signed certificates."
+                            + " Either set sslMode=trust, use password with a MitM-Proof"
+                            + " authentication plugin or provide server certificate to client",
+                        authPluginFactory.type()));
+          }
+
           buf = authPlugin.process(writer, reader, context);
           break;
 
