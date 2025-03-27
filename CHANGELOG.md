@@ -1,5 +1,23 @@
 # Change Log
 
+## [3.5.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.3) (Mar 2025)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.2...3.5.3)
+
+#### Bugs Fixed
+* 
+* CONJ-1226 Fixed issue where dates containing zero day or month resulted in a DateTimeException
+* CONJ-1232 Resolved timestamp string representation incompatibility between versions 2.7 and 3.x
+  * see new option oldModeNoPrecisionTimestamp
+* CONJ-1226 Fixed incorrect values returned by ResultSet.getColumnType() for unsigned values
+* CONJ-1241 Corrected regression in 3.x affecting column metadata for unsigned types
+* CONJ-1243 Fixed CallableStatement.getParameterMetadata() returning wrong java.sql.Type for boolean values
+* CONJ-1236 Prevented NPE (Null Pointer Exception) after reconnection failure in high availability configurations
+* CONJ-1237 Fixed issue with incorrect statements.isClosed value after closing connection
+* CONJ-1239 Disabled BULK operations when no parameters are present
+* CONJ-1240 Fixed connectivity issues with databases that only accept TLSv1.3
+* CONJ-1235 Modified redirection option to enable by default only when SSL is enabled
+
+
 ## [3.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.2) (Feb 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.1...3.5.2)
 
