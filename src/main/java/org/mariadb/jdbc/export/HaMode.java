@@ -141,9 +141,10 @@ public enum HaMode {
 
     for (HostAddress hostAddress : hostAddresses) {
       if (hostAddress.primary == primary) {
-        if (denyList.containsKey(hostAddress)) {
+        Long deniedTimeout = denyList.get(hostAddress);
+        if (deniedTimeout != null) {
           // take in account denied server that have reached denied timeout
-          if (denyList.get(hostAddress) > System.currentTimeMillis()) {
+          if (deniedTimeout > System.currentTimeMillis()) {
             continue;
           } else {
             denyList.remove(hostAddress);
