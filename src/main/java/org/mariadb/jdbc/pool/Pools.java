@@ -107,7 +107,9 @@ public final class Pools {
       for (PoolHolder holder : poolMap.values()) {
         if (poolName.equals(holder.conf.poolName())) {
           try {
-            holder.getPool().close(); // Pool.close() calls Pools.remove(), which does the rest of the cleanup
+            holder
+                .getPool()
+                .close(); // Pool.close() calls Pools.remove(), which does the rest of the cleanup
           } catch (Exception exception) {
             // eat
           }

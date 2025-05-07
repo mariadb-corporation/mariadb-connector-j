@@ -791,17 +791,20 @@ public class PoolDataSourceTest extends Common {
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
       // When many pools are created concurrently
-      List<Future<MariaDbPoolDataSource>> futures = IntStream
-          .rangeClosed(1, 5)
-          .mapToObj(hostIndex ->
-              executor.submit(() -> {
-                ready.countDown();
-                start.await();
-                MariaDbPoolDataSource ds = new MariaDbPoolDataSource();
-                ds.setUrl("jdbc:mariadb://myhost" + hostIndex + ":5500/db?someOption=val");
-                return ds;
-              }))
-          .collect(Collectors.toList());
+      List<Future<MariaDbPoolDataSource>> futures =
+          IntStream.rangeClosed(1, 5)
+              .mapToObj(
+                  hostIndex ->
+                      executor.submit(
+                          () -> {
+                            ready.countDown();
+                            start.await();
+                            MariaDbPoolDataSource ds = new MariaDbPoolDataSource();
+                            ds.setUrl(
+                                "jdbc:mariadb://myhost" + hostIndex + ":5500/db?someOption=val");
+                            return ds;
+                          }))
+              .collect(Collectors.toList());
 
       ready.await();
       start.countDown();
