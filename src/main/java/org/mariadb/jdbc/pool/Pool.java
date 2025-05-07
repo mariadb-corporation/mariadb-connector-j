@@ -534,8 +534,10 @@ public class Pool implements AutoCloseable, PoolMBean {
     String jmxName = poolTag.replace(":", "_");
     ObjectName name = new ObjectName("org.mariadb.jdbc.pool:type=" + jmxName);
 
-    if (!mbs.isRegistered(name)) {
-      mbs.registerMBean(this, name);
+    synchronized (mbs) {
+      if (!mbs.isRegistered(name)) {
+        mbs.registerMBean(this, name);
+      }
     }
   }
 
@@ -544,8 +546,10 @@ public class Pool implements AutoCloseable, PoolMBean {
     String jmxName = poolTag.replace(":", "_");
     ObjectName name = new ObjectName("org.mariadb.jdbc.pool:type=" + jmxName);
 
-    if (mbs.isRegistered(name)) {
-      mbs.unregisterMBean(name);
+    synchronized (mbs) {
+      if (mbs.isRegistered(name)) {
+        mbs.unregisterMBean(name);
+      }
     }
   }
 
