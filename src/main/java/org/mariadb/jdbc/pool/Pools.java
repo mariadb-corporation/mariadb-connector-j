@@ -14,8 +14,28 @@ import org.mariadb.jdbc.Configuration;
 public final class Pools {
 
   private static final AtomicInteger poolIndex = new AtomicInteger();
-  private static final Map<Configuration, Pool> poolMap = new ConcurrentHashMap<>();
+  private static final Map<Configuration, PoolHolder> poolMap = new ConcurrentHashMap<>();
   private static ScheduledThreadPoolExecutor poolExecutor = null;
+
+  static class PoolHolder {
+    private final Configuration conf;
+    private final int poolIndex;
+    private final ScheduledThreadPoolExecutor executor;
+    private Pool pool;
+
+    PoolHolder(Configuration conf, int poolIndex, ScheduledThreadPoolExecutor executor) {
+      this.conf = conf;
+      this.poolIndex = poolIndex;
+      this.executor = executor;
+    }
+
+    synchronized Pool getPool() {
+      if (pool == null) {
+        pool = new Pool(conf, poolIndex, executor);
+      }
+      return pool;
+    }
+  }
 
   /**
    * Get existing pool for a configuration. Create it if it doesn't exist.
@@ -24,21 +44,23 @@ public final class Pools {
    * @return pool
    */
   public static Pool retrievePool(Configuration conf) {
-    if (!poolMap.containsKey(conf)) {
+    PoolHolder holder = poolMap.get(conf);
+    if (holder == null) {
       synchronized (poolMap) {
-        if (!poolMap.containsKey(conf)) {
+        holder = poolMap.get(conf);
+        if (holder == null) {
           if (poolExecutor == null) {
             poolExecutor =
                 new ScheduledThreadPoolExecutor(
                     1, new PoolThreadFactory("MariaDbPool-maxTimeoutIdle-checker"));
           }
-          Pool pool = new Pool(conf, poolIndex.incrementAndGet(), poolExecutor);
-          poolMap.put(conf, pool);
-          return pool;
+          holder = new PoolHolder(conf, poolIndex.incrementAndGet(), poolExecutor);
+          poolMap.put(conf, holder);
         }
       }
     }
-    return poolMap.get(conf);
+    // Don't initialize a pool while holding a lock on `poolMap`.
+    return holder.getPool();
   }
 
   /**
@@ -49,12 +71,9 @@ public final class Pools {
   public static void remove(Pool pool) {
     if (poolMap.containsKey(pool.getConf())) {
       synchronized (poolMap) {
-        if (poolMap.containsKey(pool.getConf())) {
-          poolMap.remove(pool.getConf());
-
-          if (poolMap.isEmpty()) {
-            shutdownExecutor();
-          }
+        PoolHolder previous = poolMap.remove(pool.getConf());
+        if (previous != null && poolMap.isEmpty()) {
+          shutdownExecutor();
         }
       }
     }
@@ -63,9 +82,9 @@ public final class Pools {
   /** Close all pools. */
   public static void close() {
     synchronized (poolMap) {
-      for (Pool pool : poolMap.values()) {
+      for (PoolHolder holder : poolMap.values()) {
         try {
-          pool.close();
+          holder.getPool().close();
         } catch (Exception exception) {
           // eat
         }
@@ -85,10 +104,10 @@ public final class Pools {
       return;
     }
     synchronized (poolMap) {
-      for (Pool pool : poolMap.values()) {
-        if (poolName.equals(pool.getConf().poolName())) {
+      for (PoolHolder holder : poolMap.values()) {
+        if (poolName.equals(holder.conf.poolName())) {
           try {
-            pool.close(); // Pool.close() calls Pools.remove(), which does the rest of the cleanup
+            holder.getPool().close(); // Pool.close() calls Pools.remove(), which does the rest of the cleanup
           } catch (Exception exception) {
             // eat
           }

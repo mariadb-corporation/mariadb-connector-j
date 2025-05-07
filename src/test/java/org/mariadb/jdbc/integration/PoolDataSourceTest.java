@@ -8,11 +8,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.lang.management.ManagementFactory;
 import java.sql.*;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -23,6 +30,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.pool.PoolThreadFactory;
 import org.mariadb.jdbc.pool.Pools;
@@ -773,5 +781,38 @@ public class PoolDataSourceTest extends Common {
     xac.getConnection().close();
     assertFalse(xac.getConnection().isClosed());
     xac.close();
+  }
+
+  @Timeout(value = 5, unit = TimeUnit.SECONDS)
+  @Test
+  public void testConcurrentCreationForDifferentHosts() throws Exception {
+    CountDownLatch ready = new CountDownLatch(5);
+    CountDownLatch start = new CountDownLatch(1);
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      // When many pools are created concurrently
+      List<Future<MariaDbPoolDataSource>> futures = IntStream
+          .rangeClosed(1, 5)
+          .mapToObj(hostIndex ->
+              executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                MariaDbPoolDataSource ds = new MariaDbPoolDataSource();
+                ds.setUrl("jdbc:mariadb://myhost" + hostIndex + ":5500/db?someOption=val");
+                return ds;
+              }))
+          .collect(Collectors.toList());
+
+      ready.await();
+      start.countDown();
+
+      // Then they should all be created without deadlock or livelock
+      for (Future<MariaDbPoolDataSource> future : futures) {
+        future.get().close();
+      }
+
+    } finally {
+      executor.shutdown();
+    }
   }
 }
