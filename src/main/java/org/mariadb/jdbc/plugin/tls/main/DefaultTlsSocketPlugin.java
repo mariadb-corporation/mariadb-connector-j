@@ -205,7 +205,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
             }
           }
         } catch (Exception e) {
-          // eat
+          throw new SQLException("No X509TrustManager found", e);
         }
       }
 
