@@ -171,9 +171,9 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
           for (TrustManager tm : tmf.getTrustManagers()) {
             if (tm instanceof X509TrustManager) {
               trustManager =
-                      new X509TrustManager[] {
-                              new MariaDbX509EphemeralTrustingManager((X509TrustManager) tm)
-                      };
+                  new X509TrustManager[] {
+                    new MariaDbX509EphemeralTrustingManager((X509TrustManager) tm)
+                  };
               break;
             }
           }

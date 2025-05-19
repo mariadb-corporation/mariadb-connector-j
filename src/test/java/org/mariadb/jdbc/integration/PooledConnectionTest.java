@@ -185,9 +185,7 @@ public class PooledConnectionTest extends Common {
 
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer() || minVersion(8, 4, 0)) {
-        stmt.execute(
-            "CREATE USER 'StatementErrorUser'@'%' IDENTIFIED BY"
-                + " 'MySup8%rPassw@ord'");
+        stmt.execute("CREATE USER 'StatementErrorUser'@'%' IDENTIFIED BY" + " 'MySup8%rPassw@ord'");
       } else {
         stmt.execute(
             "CREATE USER 'StatementErrorUser'@'%' IDENTIFIED WITH"
@@ -197,15 +195,13 @@ public class PooledConnectionTest extends Common {
     } else {
       stmt.execute("CREATE USER 'StatementErrorUser'@'%'");
       stmt.execute(
-          "GRANT ALL ON *.* TO 'StatementErrorUser'@'%' IDENTIFIED BY"
-              + " 'MySup8%rPassw@ord'");
+          "GRANT ALL ON *.* TO 'StatementErrorUser'@'%' IDENTIFIED BY" + " 'MySup8%rPassw@ord'");
     }
     stmt.execute("FLUSH PRIVILEGES");
 
     try {
       ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
-      PooledConnection pc =
-          ds.getPooledConnection("StatementErrorUser", "MySup8%rPassw@ord");
+      PooledConnection pc = ds.getPooledConnection("StatementErrorUser", "MySup8%rPassw@ord");
       MyEventListener listener = new MyEventListener();
       pc.addStatementEventListener(listener);
       Connection connection = pc.getConnection();
