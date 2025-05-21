@@ -2054,11 +2054,10 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
-  public void testGetTypeInfoDataTYpe() throws SQLException {
+  public void testGetTypeInfoDataType() throws SQLException {
     String[] expectedTypes =
         new String[] {
           "BIT",
-          "BOOL",
           "TINYINT",
           "TINYINT UNSIGNED",
           "BIGINT",
@@ -2074,7 +2073,6 @@ public class DatabaseMetadataTest extends Common {
           "MEDIUMTEXT",
           "LONGTEXT",
           "TEXT",
-          "TINYTEXT",
           "CHAR",
           "NUMERIC",
           "DECIMAL",
@@ -2092,7 +2090,10 @@ public class DatabaseMetadataTest extends Common {
           "REAL",
           "VARCHAR",
           "ENUM",
+          "TINYTEXT",
           "SET",
+          "BOOL",
+          "BOOLEAN",
           "DATE",
           "TIME",
           "DATETIME",
@@ -2104,7 +2105,6 @@ public class DatabaseMetadataTest extends Common {
       expectedTypes =
           new String[] {
             "BIT",
-            "BOOL",
             "TINYINT",
             "TINYINT UNSIGNED",
             "BIGINT",
@@ -2120,7 +2120,6 @@ public class DatabaseMetadataTest extends Common {
             "MEDIUMTEXT",
             "LONGTEXT",
             "TEXT",
-            "TINYTEXT",
             "CHAR",
             "NUMERIC",
             "DECIMAL",
@@ -2138,20 +2137,23 @@ public class DatabaseMetadataTest extends Common {
             "REAL",
             "VARCHAR",
             "ENUM",
+            "TINYTEXT",
             "SET",
+            "BOOL",
+            "BOOLEAN",
             "DATE",
             "TIME",
             "DATETIME",
             "TIMESTAMP",
-            "UUID"
+            "UUID",
           };
+
       if (sharedConn.getContext().getVersion().isMariaDBServer()
           && sharedConn.getContext().getVersion().versionGreaterOrEqual(11, 7, 1)) {
         // add VECTOR
         expectedTypes =
             new String[] {
               "BIT",
-              "BOOL",
               "TINYINT",
               "TINYINT UNSIGNED",
               "BIGINT",
@@ -2168,7 +2170,6 @@ public class DatabaseMetadataTest extends Common {
               "MEDIUMTEXT",
               "LONGTEXT",
               "TEXT",
-              "TINYTEXT",
               "CHAR",
               "NUMERIC",
               "DECIMAL",
@@ -2186,12 +2187,15 @@ public class DatabaseMetadataTest extends Common {
               "REAL",
               "VARCHAR",
               "ENUM",
+              "TINYTEXT",
               "SET",
+              "BOOL",
+              "BOOLEAN",
               "DATE",
               "TIME",
               "DATETIME",
               "TIMESTAMP",
-              "UUID"
+              "UUID",
             };
       }
     }
