@@ -3019,11 +3019,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     String[][] baseData = {
       {
-        "BIT", "-7", "1", "", "", "", "1", "\1", "3", "\0", "\0", "\0", "BIT", "0", "0", "0", "0",
-        "10"
-      },
-      {
-        "BOOL", "-7", "1", "", "", "", "1", "\1", "3", "\0", "\0", "\0", "BOOL", "0", "0", "0",
+        "BIT", "-7", "1", "", "", "[(M)]", "1", "\1", "3", "\0", "\0", "\0", "BIT", "0", "0", "0",
         "0", "10"
       },
       {
@@ -3034,7 +3030,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [UNSIGNED] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\0",
         "\0",
@@ -3054,7 +3050,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [UNSIGNED] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\1",
         "\0",
@@ -3074,7 +3070,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [UNSIGNED] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\0",
         "\0",
@@ -3094,7 +3090,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\1",
         "\0",
@@ -3119,7 +3115,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "\0",
         "\0",
         "\0",
-        "LONG VARBINARY",
+        "MEDIUMBLOB",
         "0",
         "0",
         "0",
@@ -3172,7 +3168,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       },
       {
         "TINYBLOB",
-        "-4",
+        "-3",
         "255",
         "'",
         "'",
@@ -3211,7 +3207,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       },
       {
-        "BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "\0", "0", "0", "BINARY", "0", "0",
+        "BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "\0", "\0", "\0", "BINARY", "0", "0",
         "0", "0", "10"
       },
       {
@@ -3220,14 +3216,14 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "16777215",
         "'",
         "'",
-        "",
+        "[CHARACTER SET charset_name] [COLLATE collation_name]",
         "1",
         "\0",
         "3",
         "\0",
         "\0",
         "\0",
-        "LONG VARCHAR",
+        "MEDIUMTEXT",
         "0",
         "0",
         "0",
@@ -3240,7 +3236,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "16777215",
         "'",
         "'",
-        "",
+        "[CHARACTER SET charset_name] [COLLATE collation_name]",
         "1",
         "\0",
         "3",
@@ -3260,7 +3256,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "2147483647",
         "'",
         "'",
-        "",
+        "[CHARACTER SET charset_name] [COLLATE collation_name]",
         "1",
         "\0",
         "3",
@@ -3275,23 +3271,19 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       },
       {
-        "TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "\0", "0", "0", "TEXT", "0", "0", "0",
-        "0", "10"
-      },
-      {
-        "TINYTEXT",
+        "TEXT",
         "-1",
-        "255",
+        "65535",
         "'",
         "'",
-        "",
+        "[CHARACTER SET charset_name] [COLLATE collation_name]",
         "1",
-        "\0",
+        "0",
         "3",
         "\0",
-        "\0",
-        "\0",
-        "TINYTEXT",
+        "0",
+        "0",
+        "TEXT",
         "0",
         "0",
         "0",
@@ -3299,8 +3291,24 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       },
       {
-        "CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "\0", "0", "0", "CHAR", "0", "0", "0",
-        "0", "10"
+        "CHAR",
+        "1",
+        "255",
+        "'",
+        "'",
+        "[(M)] [CHARACTER SET charset_name] [COLLATE collation_name]",
+        "1",
+        "0",
+        "3",
+        "\0",
+        "0",
+        "0",
+        "CHAR",
+        "0",
+        "0",
+        "0",
+        "0",
+        "10"
       },
       {
         "NUMERIC",
@@ -3310,12 +3318,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M,D])] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\0",
         "\0",
         "\1",
-        "NUMERIC",
+        "DECIMAL",
         "-308",
         "308",
         "0",
@@ -3330,7 +3338,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M,D])] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\0",
         "\0",
@@ -3350,7 +3358,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [UNSIGNED] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\0",
         "\0",
@@ -3370,7 +3378,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\1",
         "\0",
@@ -3390,7 +3398,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [UNSIGNED] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\0",
         "\0",
@@ -3410,7 +3418,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\1",
         "\0",
@@ -3430,7 +3438,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [UNSIGNED] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\0",
         "\0",
@@ -3450,7 +3458,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\1",
         "\0",
@@ -3470,7 +3478,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [UNSIGNED] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\0",
         "\0",
@@ -3490,7 +3498,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "",
         "[(M)] [ZEROFILL]",
         "1",
-        "\0",
+        "\1",
         "3",
         "\1",
         "\0",
@@ -3575,7 +3583,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "\0",
         "\0",
         "\1",
-        "REAL",
+        "DOUBLE",
         "-308",
         "308",
         "0",
@@ -3587,12 +3595,56 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "0", "0", "0", "10"
       },
       {
-        "ENUM", "12", "65535", "'", "'", "", "1", "\0", "3", "\0", "\0", "\0", "ENUM", "0", "0",
-        "0", "0", "10"
+        "ENUM",
+        "12",
+        "65535",
+        "'",
+        "'",
+        "[CHARACTER SET charset_name] [COLLATE collation_name]",
+        "1",
+        "\0",
+        "3",
+        "\0",
+        "\0",
+        "\0",
+        "ENUM",
+        "0",
+        "0",
+        "0",
+        "0",
+        "10"
+      },
+      {
+        "TINYTEXT",
+        "12",
+        "255",
+        "'",
+        "'",
+        "[CHARACTER SET charset_name] [COLLATE collation_name]",
+        "1",
+        "\0",
+        "3",
+        "\0",
+        "\0",
+        "\0",
+        "TINYTEXT",
+        "0",
+        "0",
+        "0",
+        "0",
+        "10"
       },
       {
         "SET", "12", "64", "'", "'", "", "1", "\0", "3", "\0", "\0", "\0", "SET", "0", "0", "0",
         "0", "10"
+      },
+      {
+        "BOOL", "16", "1", "", "", "", "1", "\1", "3", "\0", "\0", "\0", "BOOLEAN", "0", "0", "0",
+        "0", "10"
+      },
+      {
+        "BOOLEAN", "16", "1", "", "", "", "1", "\1", "3", "\0", "\0", "\0", "BOOLEAN", "0", "0",
+        "0", "0", "10"
       },
       {
         "DATE", "91", "10", "'", "'", "", "1", "\0", "3", "\0", "\0", "\0", "DATE", "0", "0", "0",
@@ -3679,8 +3731,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             });
       }
       data = new String[datalist.size()][];
-      datalist.sort(
-          (Comparator<String[]>) (m1, m2) -> Integer.parseInt(m1[1]) - Integer.parseInt(m2[1]));
+      datalist.sort(Comparator.comparingInt(m -> Integer.parseInt(m[1])));
       datalist.toArray(data);
     }
 
