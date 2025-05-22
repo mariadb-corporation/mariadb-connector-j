@@ -54,7 +54,7 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     return toFloatArray(getBytes(buf, length, column));
   }
@@ -66,7 +66,7 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     return toFloatArray(getBytes(buf, length, column));
   }
@@ -110,7 +110,7 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
   }
 
   private byte[] getBytes(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case BLOB:
       case TINYBLOB:

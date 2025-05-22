@@ -53,7 +53,7 @@ public class InstantCodec implements Codec<Instant> {
       final ColumnDecoder column,
       final Calendar calParam,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam, context);
     if (localDateTime == null) return null;
@@ -67,7 +67,7 @@ public class InstantCodec implements Codec<Instant> {
       final ColumnDecoder column,
       final Calendar calParam,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam, context);
     if (localDateTime == null) return null;

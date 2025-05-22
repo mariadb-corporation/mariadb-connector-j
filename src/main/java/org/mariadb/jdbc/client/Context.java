@@ -8,6 +8,7 @@ import java.util.TimeZone;
 import java.util.function.Function;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 
@@ -139,7 +140,7 @@ public interface Context {
    *
    * @return Column decoder function
    */
-  Function<ReadableByteBuf, ColumnDecoder> getColumnDecoderFunction();
+  Function<BufferedReadableByteBuf, ColumnDecoder> getColumnDecoderFunction();
 
   /**
    * has server warnings

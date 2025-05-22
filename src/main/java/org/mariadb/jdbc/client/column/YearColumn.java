@@ -3,12 +3,14 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 
 /** Column metadata definition */
@@ -28,7 +30,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
    * @param extTypeFormat extended type format
    */
   public YearColumn(
-      final ReadableByteBuf buf,
+      final BufferedReadableByteBuf buf,
       final int charset,
       final long length,
       final DataType dataType,
@@ -69,7 +71,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
   @Override
   public Object getDefaultText(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (context.getConf().yearIsDateType()) {
       short y = (short) buf.atoull(length.get());
       if (columnLength == 2) {
@@ -88,7 +90,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
   @Override
   public Object getDefaultBinary(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (context.getConf().yearIsDateType()) {
       int v = buf.readShort();
       if (columnLength == 2) {
@@ -107,7 +109,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
   @Override
   public Date decodeDateText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     short y = (short) buf.atoll(length.get());
     if (columnLength == 2) {
       // YEAR(2) - deprecated
@@ -123,7 +125,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
   @Override
   public Date decodeDateBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     int v = buf.readShort();
 
     if (columnLength == 2) {
@@ -140,7 +142,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
   @Override
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     int year = Integer.parseInt(buf.readAscii(length.get()));
     if (columnLength <= 2) year += year >= 70 ? 1900 : 2000;
 
@@ -161,7 +163,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
   @Override
   public Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     int year = buf.readUnsignedShort();
     if (columnLength <= 2) year += year >= 70 ? 1900 : 2000;
 

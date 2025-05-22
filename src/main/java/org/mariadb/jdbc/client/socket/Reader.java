@@ -35,19 +35,12 @@ public interface Reader {
    * MySQL packet. (first that has not length = 16Mb)
    *
    * @param traceEnable must trace packet.
-   * @return array packet.
+   * @param permitSequentialAccess permit sequential access
+   * @return InputStream containing the packet data.
    * @throws IOException if socket exception occur.
    */
-  byte[] readPacket(boolean traceEnable) throws IOException;
-
-  /**
-   * Get a readable byte array from byte array. This packet is expected to be read immediately,
-   * since no lock is set on this packet.
-   *
-   * @param buf byte array to be parsed
-   * @return array packet.
-   */
-  ReadableByteBuf readableBufFromArray(byte[] buf);
+  ReadableByteBuf readPacket(boolean traceEnable, boolean permitSequentialAccess)
+      throws IOException;
 
   /**
    * Skip next MySQL packet. Packet is expected to have size &lt; 16M

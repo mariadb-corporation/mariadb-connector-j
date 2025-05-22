@@ -53,13 +53,13 @@ public class ClobCodec implements Codec<Clob> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return getClob(buf, length, column);
   }
 
   @SuppressWarnings("fallthrough")
   private Clob getClob(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case BLOB:
       case TINYBLOB:
@@ -76,9 +76,7 @@ public class ClobCodec implements Codec<Clob> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        Clob clob = new MariaDbClob(buf.buf(), buf.pos(), length.get());
-        buf.skip(length.get());
-        return clob;
+        return buf.readClob(length.get());
 
       default:
         buf.skip(length.get());
@@ -94,7 +92,7 @@ public class ClobCodec implements Codec<Clob> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return getClob(buf, length, column);
   }
 

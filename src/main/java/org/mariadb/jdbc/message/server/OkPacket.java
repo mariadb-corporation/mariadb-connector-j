@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.server;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.mariadb.jdbc.client.Completion;
@@ -48,7 +49,7 @@ public class OkPacket implements Completion {
    * @param buf packet buffer
    * @param context connection context
    */
-  public static OkPacket parse(ReadableByteBuf buf, Context context) {
+  public static OkPacket parse(ReadableByteBuf buf, Context context) throws IOException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();
@@ -143,7 +144,7 @@ public class OkPacket implements Completion {
    * @param context connection context
    * @return Ok_Packet object
    */
-  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) {
+  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) throws IOException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();

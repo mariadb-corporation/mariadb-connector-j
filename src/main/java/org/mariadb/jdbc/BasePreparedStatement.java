@@ -121,7 +121,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    * @param ci metadata columns
    */
   public void updateMeta(ColumnDecoder[] ci) {
-    this.prepareResult.setColumns(ci);
+    if (this.prepareResult != null) this.prepareResult.setColumns(ci);
   }
 
   public abstract boolean execute() throws SQLException;
@@ -1926,7 +1926,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
                     0,
                     maxRows,
                     ResultSet.CONCUR_READ_ONLY,
-                    ResultSet.TYPE_FORWARD_ONLY,
+                    ResultSet.TYPE_SCROLL_INSENSITIVE,
                     closeOnCompletion,
                     false);
 
@@ -1945,7 +1945,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
                     0,
                     maxRows,
                     ResultSet.CONCUR_READ_ONLY,
-                    ResultSet.TYPE_FORWARD_ONLY,
+                    ResultSet.TYPE_SCROLL_INSENSITIVE,
                     closeOnCompletion,
                     false);
       }

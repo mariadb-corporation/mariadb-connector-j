@@ -58,7 +58,7 @@ public class BooleanCodec implements Codec<Boolean> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeBooleanText(buffer, length);
   }
 
@@ -68,7 +68,7 @@ public class BooleanCodec implements Codec<Boolean> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeBooleanBinary(buffer, length);
   }
 

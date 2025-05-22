@@ -98,7 +98,9 @@ public class CommonCodecTest extends Common {
   void testErrObject(ResultSet rs, Class<?> objClass) throws SQLException {
     testErrObject(rs, objClass, 1);
     assertNull(rs.getObject(4, objClass));
-    assertNull(rs.getObject("t4alias", objClass));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertNull(rs.getObject("t4alias", objClass));
+    }
   }
 
   void testArrObject(ResultSet rs, byte[] exp, int index) throws SQLException {

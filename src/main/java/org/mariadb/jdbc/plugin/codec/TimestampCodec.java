@@ -56,7 +56,7 @@ public class TimestampCodec implements Codec<Timestamp> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeTimestampText(buf, length, cal, context);
   }
 
@@ -68,7 +68,7 @@ public class TimestampCodec implements Codec<Timestamp> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeTimestampBinary(buf, length, cal, context);
   }
 

@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.util.ClosableLock;
@@ -235,7 +236,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
             0,
             maxRows,
             ResultSet.CONCUR_READ_ONLY,
-            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
             closeOnCompletion,
             false);
   }
@@ -257,7 +258,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                 0,
                 maxRows,
                 ResultSet.CONCUR_READ_ONLY,
-                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
                 closeOnCompletion,
                 false);
     // in case of failover, prepare is done in failover, skipping prepare result
@@ -382,7 +383,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
     if (con.getContext().getConf().permitNoResults()) {
       return new CompleteResult(
-          new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
+          new ColumnDecoder[0], new ReadableByteBuf[0], con.getContext(), resultSetType);
     }
 
     throw new SQLException(

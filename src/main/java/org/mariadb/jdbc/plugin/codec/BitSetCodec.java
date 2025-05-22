@@ -24,7 +24,7 @@ public class BitSetCodec implements Codec<BitSet> {
    * @param length encoded length
    * @return BitSet value
    */
-  public static BitSet parseBit(ReadableByteBuf buf, MutableInt length) {
+  public static BitSet parseBit(ReadableByteBuf buf, MutableInt length) throws IOException {
     byte[] arr = new byte[length.get()];
     buf.readBytes(arr);
     revertOrder(arr);
@@ -63,7 +63,8 @@ public class BitSetCodec implements Codec<BitSet> {
       final MutableInt length,
       final ColumnDecoder column,
       final Calendar cal,
-      final Context context) {
+      final Context context)
+      throws IOException {
     return parseBit(buf, length);
   }
 
@@ -73,7 +74,8 @@ public class BitSetCodec implements Codec<BitSet> {
       final MutableInt length,
       final ColumnDecoder column,
       final Calendar cal,
-      final Context context) {
+      final Context context)
+      throws IOException {
     return parseBit(buf, length);
   }
 

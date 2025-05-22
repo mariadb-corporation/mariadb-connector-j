@@ -39,6 +39,7 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.BaseContext;
 import org.mariadb.jdbc.client.context.RedoContext;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -301,7 +302,7 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   private void throwHandshakeError(ReadableByteBuf buf) throws SQLException {
-    ErrorPacket errorPacket = new ErrorPacket(buf, null);
+    ErrorPacket errorPacket = new ErrorPacket((BufferedReadableByteBuf) buf, null);
     throw this.exceptionFactory.create(
         errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
   }
@@ -416,7 +417,8 @@ public class StandardClient implements Client, AutoCloseable {
           // Authentication Switch Request see
           // https://mariadb.com/kb/en/library/connection/#authentication-switch-request
           // *************************************************************************************
-          AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf);
+          AuthSwitchPacket authSwitchPacket =
+              AuthSwitchPacket.decode((BufferedReadableByteBuf) buf);
           AuthenticationPluginFactory authPluginFactory =
               AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
           if (authPluginFactory.requireSsl() && !context.hasClientCapability(SSL)) {
@@ -454,7 +456,7 @@ public class StandardClient implements Client, AutoCloseable {
           // ERR_Packet
           // see https://mariadb.com/kb/en/library/err_packet/
           // *************************************************************************************
-          ErrorPacket errorPacket = new ErrorPacket(buf, context);
+          ErrorPacket errorPacket = new ErrorPacket((BufferedReadableByteBuf) buf, context);
           throw context
               .getExceptionFactory()
               .create(
@@ -652,9 +654,9 @@ public class StandardClient implements Client, AutoCloseable {
       String zoneId = conf.connectionTimeZone();
       if ("SERVER".equalsIgnoreCase(zoneId)) {
         try {
+          Object obj = execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone"), true).get(0);
           Result res =
-              (Result)
-                  execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone"), true).get(0);
+                  (Result) obj;
           res.next();
           zoneId = res.getString(1);
           if ("SYSTEM".equals(zoneId)) {
@@ -791,7 +793,16 @@ public class StandardClient implements Client, AutoCloseable {
 
       if (conf.returnMultiValuesGeneratedIds()) {
         ClientMessage query = new QueryPacket("SELECT @@auto_increment_increment");
-        List<Completion> res = execute(query, true);
+        List<Completion> res =
+            execute(
+                query,
+                null,
+                0,
+                0L,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                false,
+                true);
         ResultSet rs = (ResultSet) res.get(0);
         if (rs.next()) {
           context.setAutoIncrement(rs.getLong(1));
@@ -1005,7 +1016,7 @@ public class StandardClient implements Client, AutoCloseable {
         0,
         0L,
         ResultSet.CONCUR_READ_ONLY,
-        ResultSet.TYPE_FORWARD_ONLY,
+        ResultSet.TYPE_SCROLL_INSENSITIVE,
         false,
         canRedo);
   }
@@ -1018,7 +1029,7 @@ public class StandardClient implements Client, AutoCloseable {
         0,
         0L,
         ResultSet.CONCUR_READ_ONLY,
-        ResultSet.TYPE_FORWARD_ONLY,
+        ResultSet.TYPE_SCROLL_INSENSITIVE,
         false,
         canRedo);
   }
@@ -1142,6 +1153,10 @@ public class StandardClient implements Client, AutoCloseable {
       boolean canRedo)
       throws SQLException {
     int nbResp = sendQuery(message);
+    if (streamStmt != null) {
+      streamStmt.fetchRemaining();
+      streamStmt = null;
+    }
     if (nbResp == 1) {
       return readResponse(
           stmt,
@@ -1152,10 +1167,6 @@ public class StandardClient implements Client, AutoCloseable {
           resultSetType,
           closeOnCompletion);
     } else {
-      if (streamStmt != null) {
-        streamStmt.fetchRemaining();
-        streamStmt = null;
-      }
       List<Completion> completions = new ArrayList<>();
       try {
         while (nbResp-- > 0) {

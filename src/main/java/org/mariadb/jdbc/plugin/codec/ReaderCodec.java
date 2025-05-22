@@ -46,7 +46,7 @@ public class ReaderCodec implements Codec<Reader> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case BLOB:
       case TINYBLOB:
@@ -79,7 +79,7 @@ public class ReaderCodec implements Codec<Reader> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return decodeText(buf, length, column, cal, context);
   }
 

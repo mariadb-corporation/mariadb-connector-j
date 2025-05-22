@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.type;
 
+import java.io.IOException;
 import java.sql.SQLDataException;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -17,7 +18,7 @@ public interface Geometry {
    * @param buf packet buffer
    * @return point value
    */
-  static Point parsePoint(boolean littleEndian, ReadableByteBuf buf) {
+  static Point parsePoint(boolean littleEndian, ReadableByteBuf buf) throws IOException {
     double x = littleEndian ? buf.readDouble() : buf.readDoubleBE();
     double y = littleEndian ? buf.readDouble() : buf.readDoubleBE();
     return new Point(x, y);
@@ -33,7 +34,7 @@ public interface Geometry {
    * @throws SQLDataException if parsing exception occurs
    */
   static Geometry getGeometry(ReadableByteBuf buf, int length, Column column)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (length == 0) return null;
     boolean littleEndian = buf.readByte() == 0x01;
     int dataType = littleEndian ? buf.readInt() : buf.readIntBE();

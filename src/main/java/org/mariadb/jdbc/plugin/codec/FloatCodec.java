@@ -58,7 +58,7 @@ public class FloatCodec implements Codec<Float> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeFloatText(buf, length);
   }
 
@@ -69,7 +69,7 @@ public class FloatCodec implements Codec<Float> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeFloatBinary(buf, length);
   }
 

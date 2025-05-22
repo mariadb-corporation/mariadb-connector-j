@@ -59,7 +59,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
       final ColumnDecoder column,
       final Calendar calParam,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     switch (column.getType()) {
       case DATETIME:
@@ -110,7 +110,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
       final ColumnDecoder column,
       final Calendar calParam,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     switch (column.getType()) {
       case DATETIME:

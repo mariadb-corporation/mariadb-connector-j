@@ -59,7 +59,7 @@ public class TimeCodec implements Codec<Time> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeTimeText(buf, length, cal, context);
   }
 
@@ -71,7 +71,7 @@ public class TimeCodec implements Codec<Time> {
       final ColumnDecoder column,
       final Calendar calParam,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeTimeBinary(buf, length, calParam, context);
   }
 

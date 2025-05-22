@@ -58,8 +58,10 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
             .toFormatter();
   }
 
-  public static int[] parseTextTimestamp(ReadableByteBuf buf, MutableInt length) {
+  public static int[] parseTextTimestamp(ReadableByteBuf buf, MutableInt length)
+      throws IOException {
     int pos = buf.pos();
+    buf.ensureAvailable(length.get());
     int nanoBegin = -1;
     int[] parts = new int[7];
     int partIdx = 0;
@@ -134,7 +136,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     ZonedDateTime zdt = ZonedDateTimeCodec.INSTANCE.decodeText(buf, length, column, cal, context);
     if (zdt == null) return null;
     return zdt.toLocalDateTime();
@@ -148,7 +150,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     ZonedDateTime zdt = ZonedDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, cal, context);
     if (zdt == null) return null;
     return zdt.toLocalDateTime();

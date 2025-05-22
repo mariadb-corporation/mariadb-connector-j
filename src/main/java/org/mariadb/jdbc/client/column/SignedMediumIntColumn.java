@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
@@ -10,6 +11,7 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
@@ -30,7 +32,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
    * @param extTypeFormat extended type format
    */
   public SignedMediumIntColumn(
-      final ReadableByteBuf buf,
+      final BufferedReadableByteBuf buf,
       final int charset,
       final long length,
       final DataType dataType,
@@ -93,33 +95,33 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   @Override
   public Object getDefaultText(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return decodeIntText(buf, length);
   }
 
   @Override
   public Object getDefaultBinary(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return decodeIntBinary(buf, length);
   }
 
   @Override
   public boolean decodeBooleanText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     String s = buf.readAscii(length.get());
     return !"0".equals(s);
   }
 
   @Override
   public boolean decodeBooleanBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readInt() != 0;
   }
 
   @Override
   public byte decodeByteText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.atoll(length.get());
     if ((byte) result != result) {
       throw new SQLDataException("byte overflow");
@@ -129,7 +131,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
 
   @Override
   public byte decodeByteBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.readMedium();
     buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
     if ((byte) result != result) {
@@ -142,14 +144,14 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   @Override
   public String decodeStringText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readString(length.get());
   }
 
   @Override
   public String decodeStringBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     String mediumStr = String.valueOf(isSigned() ? buf.readMedium() : buf.readUnsignedMedium());
     buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
     return mediumStr;
@@ -157,7 +159,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
 
   @Override
   public short decodeShortText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.atoll(length.get());
     if ((short) result != result) {
       throw new SQLDataException("Short overflow");
@@ -167,7 +169,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
 
   @Override
   public short decodeShortBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.readMedium();
     buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
     if ((short) result != result) {
@@ -178,13 +180,13 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
 
   @Override
   public int decodeIntText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return (int) buf.atoll(length.get());
   }
 
   @Override
   public int decodeIntBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     int res = buf.readMedium();
     buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
     return res;
@@ -192,13 +194,13 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
 
   @Override
   public long decodeLongText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.atoll(length.get());
   }
 
   @Override
   public long decodeLongBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long l = buf.readMedium();
     buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
     return l;
@@ -206,13 +208,13 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
 
   @Override
   public float decodeFloatText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return Float.parseFloat(buf.readAscii(length.get()));
   }
 
   @Override
   public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     float f = buf.readMedium();
     buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
     return f;
@@ -220,13 +222,13 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
 
   @Override
   public double decodeDoubleText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return Double.parseDouble(buf.readAscii(length.get()));
   }
 
   @Override
   public double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     double f = buf.readMedium();
     buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
     return f;
@@ -235,7 +237,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   @Override
   public Date decodeDateText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
@@ -243,7 +245,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   @Override
   public Date decodeDateBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
@@ -251,7 +253,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   @Override
   public Time decodeTimeText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
@@ -259,7 +261,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   @Override
   public Time decodeTimeBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
@@ -267,7 +269,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   @Override
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));
@@ -276,7 +278,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   @Override
   public Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));

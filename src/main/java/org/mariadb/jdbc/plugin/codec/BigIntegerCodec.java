@@ -61,7 +61,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     switch (column.getType()) {
       case FLOAT:
@@ -124,7 +124,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     switch (column.getType()) {
       case BIT:

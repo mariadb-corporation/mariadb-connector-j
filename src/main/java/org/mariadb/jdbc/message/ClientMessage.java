@@ -12,9 +12,10 @@ import java.sql.SQLException;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.BasePreparedStatement;
+import org.mariadb.jdbc.MariaDbResultSet;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.*;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
@@ -181,7 +182,7 @@ public interface ClientMessage {
       case (byte) 0xff:
         // force current status to in transaction to ensure rollback/commit, since command may
         // have issue a transaction
-        ErrorPacket errorPacket = new ErrorPacket(buf, context);
+        ErrorPacket errorPacket = new ErrorPacket((BufferedReadableByteBuf) buf, context);
         throw exceptionFactory
             .withSql(this.description())
             .create(
@@ -272,7 +273,7 @@ public interface ClientMessage {
               ci[i] =
                   context
                       .getColumnDecoderFunction()
-                      .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
+                      .apply((BufferedReadableByteBuf) reader.readPacket(traceEnable, false));
             }
             ((BasePreparedStatement) stmt).updateMeta(ci);
           }
@@ -283,7 +284,7 @@ public interface ClientMessage {
             ci[i] =
                 context
                     .getColumnDecoderFunction()
-                    .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
+                    .apply((BufferedReadableByteBuf) reader.readPacket(traceEnable, false));
           }
         }
 
@@ -306,7 +307,7 @@ public interface ClientMessage {
               traceEnable);
         }
 
-        if (fetchSize != 0) {
+        if (fetchSize != 0 || resultSetType == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY) {
           if ((context.getServerStatus() & ServerStatus.MORE_RESULTS_EXISTS) > 0) {
             context.setServerStatus(context.getServerStatus() - ServerStatus.MORE_RESULTS_EXISTS);
           }
@@ -318,7 +319,7 @@ public interface ClientMessage {
               ci,
               reader,
               context,
-              fetchSize,
+              fetchSize == 0 ? 1 : fetchSize,
               lock,
               resultSetType,
               closeOnCompletion,

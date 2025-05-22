@@ -55,7 +55,7 @@ public class DateCodec implements Codec<Date> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeDateText(buf, length, cal, context);
   }
 
@@ -67,7 +67,7 @@ public class DateCodec implements Codec<Date> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeDateBinary(buf, length, cal, context);
   }
 

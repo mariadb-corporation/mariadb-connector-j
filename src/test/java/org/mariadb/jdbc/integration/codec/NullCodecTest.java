@@ -28,7 +28,8 @@ public class NullCodecTest extends CommonCodecTest {
   }
 
   private ResultSet get(String table) throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs = stmt.executeQuery("select NULL as t1alias");
     assertTrue(rs.next());
@@ -50,7 +51,10 @@ public class NullCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
-        con.prepareStatement("select NULL as t1alias WHERE 1 > ?")) {
+        con.prepareStatement(
+            "select NULL as t1alias WHERE 1 > ?",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       preparedStatement.setInt(1, 0);
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());

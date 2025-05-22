@@ -56,7 +56,8 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   private ResultSet get(boolean zerofill) throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
@@ -72,13 +73,16 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   private ResultSet getPrepare(Connection con, boolean zerofill) throws SQLException {
-    java.sql.Statement stmt = con.createStatement();
+    java.sql.Statement stmt =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec"
                 + (zerofill ? "4" : "")
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ?",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY);
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     ResultSet rs = preparedStatement.executeQuery();

@@ -14,6 +14,7 @@ import java.util.Random;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.MariaDbBlob;
+import org.mariadb.jdbc.MariaDbResultSet;
 import org.mariadb.jdbc.Statement;
 
 public class PreparedStatementTest extends Common {
@@ -64,7 +65,11 @@ public class PreparedStatementTest extends Common {
   @Test
   public void prep() throws SQLException {
     try (PreparedStatement stmt = sharedConn.prepareStatement("SELECT ?")) {
-      assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());
+      assertEquals(
+          defaultOther.contains("useSequentialAccess")
+              ? MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY
+              : ResultSet.TYPE_FORWARD_ONLY,
+          stmt.getResultSetType());
       assertEquals(ResultSet.CONCUR_READ_ONLY, stmt.getResultSetConcurrency());
       assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
       assertEquals(sharedConn, stmt.getConnection());
@@ -1190,7 +1195,11 @@ public class PreparedStatementTest extends Common {
     try (PreparedStatement prep =
         con.prepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS)) {
       assertEquals(ResultSet.CONCUR_READ_ONLY, prep.getResultSetConcurrency());
-      assertEquals(ResultSet.TYPE_FORWARD_ONLY, prep.getResultSetType());
+      if (defaultOther.contains("useSequentialAccess")) {
+        assertEquals(MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY, prep.getResultSetType());
+      } else {
+        assertEquals(ResultSet.TYPE_FORWARD_ONLY, prep.getResultSetType());
+      }
       prep.execute();
     }
     try (PreparedStatement prep =

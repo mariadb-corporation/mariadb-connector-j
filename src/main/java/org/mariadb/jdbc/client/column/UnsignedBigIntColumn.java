@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.Calendar;
@@ -11,6 +12,7 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
@@ -18,7 +20,7 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements ColumnDecoder {
 
   /**
-   * BIGINT UNSIGNED metadata type decoder
+   * UNSIGNED BIGINT metadata type decoder
    *
    * @param buf buffer
    * @param charset charset
@@ -31,7 +33,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
    * @param extTypeFormat extended type format
    */
   public UnsignedBigIntColumn(
-      final ReadableByteBuf buf,
+      final BufferedReadableByteBuf buf,
       final int charset,
       final long length,
       final DataType dataType,
@@ -82,14 +84,14 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public Object getDefaultText(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return new BigInteger(buf.readAscii(length.get()));
   }
 
   @Override
   public Object getDefaultBinary(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     // need BIG ENDIAN, so reverse order
     byte[] bb = new byte[8];
     for (int i = 7; i >= 0; i--) {
@@ -100,20 +102,20 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public boolean decodeBooleanText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     String s = buf.readAscii(length.get());
     return !"0".equals(s);
   }
 
   @Override
   public boolean decodeBooleanBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readLong() != 0;
   }
 
   @Override
   public byte decodeByteText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.atoull(length.get());
     if ((byte) result != result || result < 0) {
       throw new SQLDataException("byte overflow");
@@ -123,7 +125,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public byte decodeByteBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     // need BIG ENDIAN, so reverse order
     byte[] bb = new byte[8];
     for (int i = 7; i >= 0; i--) {
@@ -141,14 +143,14 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public String decodeStringText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readString(length.get());
   }
 
   @Override
   public String decodeStringBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     // need BIG ENDIAN, so reverse order
     byte[] bb = new byte[8];
     for (int i = 7; i >= 0; i--) {
@@ -159,7 +161,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public short decodeShortText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.atoull(length.get());
     if ((short) result != result || result < 0) {
       throw new SQLDataException("Short overflow");
@@ -169,7 +171,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public short decodeShortBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.readLong();
     if ((short) result != result || result < 0) {
       throw new SQLDataException("Short overflow");
@@ -179,7 +181,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public int decodeIntText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.atoull(length.get());
     int res = (int) result;
     if (res != result || result < 0) {
@@ -190,7 +192,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public int decodeIntBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     // need BIG ENDIAN, so reverse order
     byte[] bb = new byte[8];
@@ -207,7 +209,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public long decodeLongText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (length.get() < 10) return buf.atoull(length.get());
     BigInteger val = new BigInteger(buf.readAscii(length.get()));
     try {
@@ -219,15 +221,23 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public long decodeLongBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
-    if ((buf.getByte(buf.pos() + 7) & 0x80) == 0) {
-      return buf.readLong();
+      throws SQLDataException, IOException {
+
+    byte[] bb = new byte[8];
+    for (int i = 7; i >= 0; i--) {
+      bb[i] = buf.readByte();
+    }
+    if ((bb[7] & 0x80) == 0) {
+      return ((bb[0] & 0xffL)
+              + ((bb[1] & 0xffL) << 8)
+              + ((bb[2] & 0xffL) << 16)
+              + ((bb[3] & 0xffL) << 24)
+              + ((bb[4] & 0xffL) << 32)
+              + ((bb[5] & 0xffL) << 40)
+              + ((bb[6] & 0xffL) << 48)
+              + ((bb[7] & 0xffL) << 56));
     } else {
       // error too big to return a long
-      byte[] bb = new byte[8];
-      for (int i = 7; i >= 0; i--) {
-        bb[i] = buf.readByte();
-      }
       BigInteger val = new BigInteger(1, bb);
       try {
         return val.longValueExact();
@@ -239,13 +249,13 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public float decodeFloatText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return Float.parseFloat(buf.readAscii(length.get()));
   }
 
   @Override
   public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     // need BIG ENDIAN, so reverse order
     byte[] bb = new byte[8];
     for (int i = 7; i >= 0; i--) {
@@ -256,13 +266,13 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
 
   @Override
   public double decodeDoubleText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return Double.parseDouble(buf.readAscii(length.get()));
   }
 
   @Override
   public double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     // need BIG ENDIAN, so reverse order
     byte[] bb = new byte[8];
     for (int i = 7; i >= 0; i--) {
@@ -274,7 +284,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public Date decodeDateText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
@@ -282,7 +292,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public Date decodeDateBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
@@ -290,7 +300,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public Time decodeTimeText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
@@ -298,7 +308,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public Time decodeTimeBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
@@ -306,7 +316,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));
@@ -315,7 +325,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));

@@ -7,7 +7,7 @@ import java.sql.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
@@ -27,7 +27,7 @@ public class JsonColumn extends StringColumn implements ColumnDecoder {
    * @param extTypeFormat extended type format
    */
   public JsonColumn(
-      final ReadableByteBuf buf,
+      final BufferedReadableByteBuf buf,
       final int charset,
       final long length,
       final DataType dataType,

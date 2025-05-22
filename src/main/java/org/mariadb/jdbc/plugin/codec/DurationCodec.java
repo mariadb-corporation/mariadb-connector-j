@@ -54,7 +54,7 @@ public class DurationCodec implements Codec<Duration> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     int[] parts;
     switch (column.getType()) {
@@ -113,7 +113,7 @@ public class DurationCodec implements Codec<Duration> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     long days = 0;
     int hours = 0;

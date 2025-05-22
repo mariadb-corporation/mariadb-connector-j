@@ -67,7 +67,7 @@ public class StringCodec implements Codec<String> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeStringText(buf, length, cal, context);
   }
 
@@ -77,7 +77,7 @@ public class StringCodec implements Codec<String> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeStringBinary(buf, length, cal, context);
   }
 

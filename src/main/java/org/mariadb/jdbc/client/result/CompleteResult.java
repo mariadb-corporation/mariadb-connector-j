@@ -13,6 +13,8 @@ import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.util.ClosableLock;
 
@@ -68,39 +70,17 @@ public class CompleteResult extends Result {
         0);
     this.mightBeBulkResult = mightBeBulkResult;
 
-    this.data = new byte[10][];
+    this.data = new ReadableByteBuf[10];
     if (maxRows > 0) {
-      this.data = new byte[10][];
       do {
-        readNext(reader.readPacket(traceEnable));
+        readNext(reader.readPacket(traceEnable, false));
       } while (!this.loaded && this.dataSize < maxRows);
       if (!this.loaded) skipRemaining();
     } else {
       // avoiding creating array of array since
-      byte[] buf = reader.readPacket(traceEnable);
-      if (buf[0] == (byte) 0xFF || (buf[0] == (byte) 0xFE && buf.length < 16777215)) {
-        // no rows
-        this.data = new byte[0][];
-        readNext(buf);
-      } else {
-        byte[] buf2 = reader.readPacket(traceEnable);
-        if (buf2[0] == (byte) 0xFF || (buf2[0] == (byte) 0xFE && buf2.length < 16777215)) {
-          // one row
-          this.data = new byte[1][];
-          this.data[0] = buf;
-          this.dataSize = 1;
-          readNext(buf2);
-        } else {
-          // multiple rows
-          this.data = new byte[10][];
-          this.data[0] = buf;
-          this.data[1] = buf2;
-          this.dataSize = 2;
-          do {
-            readNext(reader.readPacket(traceEnable));
-          } while (!this.loaded);
-        }
-      }
+      do {
+        readNext(reader.readPacket(traceEnable, false));
+      } while (!this.loaded);
     }
   }
 
@@ -112,6 +92,8 @@ public class CompleteResult extends Result {
     super(metadataList, prev);
   }
 
+  protected void ensureLoadingStream() throws SQLException {}
+
   /**
    * Specific constructor for internal build result-set, empty resultset, or generated key
    * result-set.
@@ -122,7 +104,7 @@ public class CompleteResult extends Result {
    * @param resultSetType result set type
    */
   public CompleteResult(
-      ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
+      ColumnDecoder[] metadataList, ReadableByteBuf[] data, Context context, int resultSetType) {
     super(metadataList, data, context, resultSetType);
   }
 
@@ -207,7 +189,11 @@ public class CompleteResult extends Result {
       byte[] bb = baos.toByteArray();
       rows.add(bb);
     }
-    return new CompleteResult(columns, rows.toArray(new byte[0][0]), context, resultSetType);
+    ReadableByteBuf[] readableRows =
+        rows.stream()
+            .map(bytes -> new BufferedReadableByteBuf(bytes, bytes.length))
+            .toArray(ReadableByteBuf[]::new);
+    return new CompleteResult(columns, readableRows, context, resultSetType);
   }
 
   /**

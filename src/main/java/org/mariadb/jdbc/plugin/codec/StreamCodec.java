@@ -44,7 +44,7 @@ public class StreamCodec implements Codec<InputStream> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case STRING:
       case VARCHAR:
@@ -53,9 +53,7 @@ public class StreamCodec implements Codec<InputStream> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
-        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length.get());
-        buf.skip(length.get());
-        return is;
+        return buf.readInputStream(length.get());
       default:
         buf.skip(length.get());
         throw new SQLDataException(
@@ -70,7 +68,7 @@ public class StreamCodec implements Codec<InputStream> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case STRING:
       case VARCHAR:
@@ -79,9 +77,7 @@ public class StreamCodec implements Codec<InputStream> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
-        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length.get());
-        buf.skip(length.get());
-        return is;
+        return buf.readInputStream(length.get());
       default:
         buf.skip(length.get());
         throw new SQLDataException(

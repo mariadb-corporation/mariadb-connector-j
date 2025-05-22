@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.Calendar;
 import java.util.Locale;
@@ -10,8 +11,8 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
-import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.type.*;
 
 /** Column metadata definition */
@@ -31,7 +32,7 @@ public class GeometryColumn extends BlobColumn {
    * @param extTypeFormat extended type format
    */
   public GeometryColumn(
-      final ReadableByteBuf buf,
+      final BufferedReadableByteBuf buf,
       final int charset,
       final long length,
       final DataType dataType,
@@ -96,7 +97,7 @@ public class GeometryColumn extends BlobColumn {
   @Override
   public Object getDefaultText(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (context.getConf().geometryDefaultType() != null
         && "default".equals(context.getConf().geometryDefaultType())) {
       buf.skip(4); // SRID
@@ -110,14 +111,14 @@ public class GeometryColumn extends BlobColumn {
   @Override
   public Object getDefaultBinary(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return getDefaultText(buf, length, context);
   }
 
   @Override
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));
@@ -126,7 +127,7 @@ public class GeometryColumn extends BlobColumn {
   @Override
   public Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));

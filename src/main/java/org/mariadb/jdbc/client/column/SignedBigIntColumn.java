@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.Calendar;
@@ -11,6 +12,7 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
@@ -31,7 +33,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
    * @param extTypeFormat extended type format
    */
   public SignedBigIntColumn(
-      final ReadableByteBuf buf,
+      final BufferedReadableByteBuf buf,
       final int charset,
       final long length,
       final DataType dataType,
@@ -89,33 +91,33 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   @Override
   public Object getDefaultText(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.atoll(length.get());
   }
 
   @Override
   public Object getDefaultBinary(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readLong();
   }
 
   @Override
   public boolean decodeBooleanText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     String s = buf.readAscii(length.get());
     return !"0".equals(s);
   }
 
   @Override
   public boolean decodeBooleanBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readLong() != 0;
   }
 
   @Override
   public byte decodeByteText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.atoll(length.get());
     if ((byte) result != result) {
       throw new SQLDataException("byte overflow");
@@ -125,7 +127,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
 
   @Override
   public byte decodeByteBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.readLong();
     if ((byte) result != result) {
       throw new SQLDataException("byte overflow");
@@ -137,20 +139,20 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   @Override
   public String decodeStringText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readString(length.get());
   }
 
   @Override
   public String decodeStringBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return BigInteger.valueOf(buf.readLong()).toString();
   }
 
   @Override
   public short decodeShortText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.atoll(length.get());
     if ((short) result != result) {
       throw new SQLDataException("Short overflow");
@@ -160,7 +162,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
 
   @Override
   public short decodeShortBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.readLong();
     if ((short) result != result) {
       throw new SQLDataException("Short overflow");
@@ -170,7 +172,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
 
   @Override
   public int decodeIntText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.atoll(length.get());
     int res = (int) result;
     if (res != result) {
@@ -181,7 +183,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
 
   @Override
   public int decodeIntBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     long result = buf.readLong();
     int res = (int) result;
     if (res != result) {
@@ -192,44 +194,44 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
 
   @Override
   public long decodeLongText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.atoll(length.get());
   }
 
   @Override
   public long decodeLongBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readLong();
   }
 
   @Override
   public float decodeFloatText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return Float.parseFloat(buf.readAscii(length.get()));
   }
 
   @Override
   public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return (float) buf.readLong();
   }
 
   @Override
   public double decodeDoubleText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return Double.parseDouble(buf.readAscii(length.get()));
   }
 
   @Override
   public double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return buf.readLong();
   }
 
   @Override
   public Date decodeDateText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
@@ -237,7 +239,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   @Override
   public Date decodeDateBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
@@ -245,7 +247,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   @Override
   public Time decodeTimeText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
@@ -253,7 +255,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   @Override
   public Time decodeTimeBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
@@ -261,7 +263,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   @Override
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));
@@ -270,7 +272,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   @Override
   public Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));

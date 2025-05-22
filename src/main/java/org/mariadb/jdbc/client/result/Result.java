@@ -15,8 +15,10 @@ import java.sql.*;
 import java.sql.Date;
 import java.util.*;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.MariaDbResultSet;
+import org.mariadb.jdbc.StreamMariaDbBlob;
 import org.mariadb.jdbc.client.*;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.result.rowdecoder.BinaryRowDecoder;
 import org.mariadb.jdbc.client.result.rowdecoder.RowDecoder;
 import org.mariadb.jdbc.client.result.rowdecoder.TextRowDecoder;
@@ -55,8 +57,7 @@ public abstract class Result implements ResultSet, Completion {
   /** binary/text row decoder */
   protected final RowDecoder rowDecoder;
 
-  /** reusable row buffer decoder */
-  protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
+  protected ReadableByteBuf rowBuf;
 
   protected final boolean traceEnable;
   private final int maxIndex;
@@ -68,7 +69,7 @@ public abstract class Result implements ResultSet, Completion {
   protected int dataSize = 0;
 
   /** rows */
-  protected byte[][] data;
+  protected ReadableByteBuf[] data;
 
   /** mutable field index */
   protected MutableInt fieldIndex = new MutableInt();
@@ -90,6 +91,8 @@ public abstract class Result implements ResultSet, Completion {
 
   /** row number limit */
   protected long maxRows;
+
+  protected StreamMariaDbBlob streamBlob;
 
   private boolean closeOnCompletion;
   private Map<String, Integer> mapper = null;
@@ -172,7 +175,8 @@ public abstract class Result implements ResultSet, Completion {
    * @param context connection context
    * @param resultSetType result set type
    */
-  public Result(ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
+  public Result(
+      ColumnDecoder[] metadataList, ReadableByteBuf[] data, Context context, int resultSetType) {
     this.metadataList = metadataList;
     this.maxIndex = this.metadataList.length;
     this.reader = null;
@@ -199,32 +203,31 @@ public abstract class Result implements ResultSet, Completion {
    * @throws SQLException for all other type of errors
    */
   @SuppressWarnings("fallthrough")
-  protected boolean readNext(byte[] buf) throws IOException, SQLException {
-    switch (buf[0]) {
+  protected boolean readNext(ReadableByteBuf buf) throws IOException, SQLException {
+    switch (buf.getByte()) {
       case (byte) 0xFF:
         loaded = true;
-        ErrorPacket errorPacket = new ErrorPacket(reader.readableBufFromArray(buf), context);
+        ErrorPacket errorPacket = new ErrorPacket((BufferedReadableByteBuf) buf, context);
         throw exceptionFactory.create(
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
-        if ((context.isEofDeprecated() && buf.length < 16777215)
-            || (!context.isEofDeprecated() && buf.length < 8)) {
-          ReadableByteBuf readBuf = reader.readableBufFromArray(buf);
-          readBuf.skip(); // skip header
+        if ((context.isEofDeprecated() && buf.readableBytes() != -1 && buf.readableBytes() < 16777215)
+            || (!context.isEofDeprecated() && buf.readableBytes() < 8)) {
+          buf.skip(); // skip header
           int serverStatus;
           int warnings;
 
           if (!context.isEofDeprecated()) {
             // EOF_Packet
-            warnings = readBuf.readUnsignedShort();
-            serverStatus = readBuf.readUnsignedShort();
+            warnings = buf.readUnsignedShort();
+            serverStatus = buf.readUnsignedShort();
           } else {
             // OK_Packet with a 0xFE header
-            readBuf.readLongLengthEncodedNotNull(); // skip update count
-            readBuf.readLongLengthEncodedNotNull(); // skip insert id
-            serverStatus = readBuf.readUnsignedShort();
-            warnings = readBuf.readUnsignedShort();
+            buf.readLongLengthEncodedNotNull(); // skip update count
+            buf.readLongLengthEncodedNotNull(); // skip insert id
+            serverStatus = buf.readUnsignedShort();
+            warnings = buf.readUnsignedShort();
           }
           outputParameter = (serverStatus & ServerStatus.PS_OUT_PARAMETERS) != 0;
           if ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) == 0) setBulkResult();
@@ -248,6 +251,8 @@ public abstract class Result implements ResultSet, Completion {
   /** Indicate that result is a bulk result */
   public abstract void setBulkResult();
 
+  protected abstract void ensureLoadingStream() throws SQLException;
+
   public void closeOnCompletion() throws SQLException {
     this.closeOnCompletion = true;
   }
@@ -265,7 +270,7 @@ public abstract class Result implements ResultSet, Completion {
       switch (buf.getUnsignedByte()) {
         case 0xFF:
           loaded = true;
-          ErrorPacket errorPacket = new ErrorPacket(buf, context);
+          ErrorPacket errorPacket = new ErrorPacket((BufferedReadableByteBuf) buf, context);
           throw exceptionFactory.create(
               errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
@@ -301,7 +306,7 @@ public abstract class Result implements ResultSet, Completion {
   /** Grow data array. */
   private void growDataArray() {
     int newCapacity = Math.max(10, data.length + (data.length >> 1));
-    byte[][] newData = new byte[newCapacity][];
+    ReadableByteBuf[] newData = new ReadableByteBuf[newCapacity];
     System.arraycopy(data, 0, newData, 0, data.length);
     data = newData;
   }
@@ -398,7 +403,7 @@ public abstract class Result implements ResultSet, Completion {
    *
    * @return current row RAW data
    */
-  protected byte[] getCurrentRowData() {
+  protected ReadableByteBuf getCurrentRowData() {
     return data[0];
   }
 
@@ -407,7 +412,7 @@ public abstract class Result implements ResultSet, Completion {
    *
    * @param buf add row
    */
-  protected void addRowData(byte[] buf) {
+  protected void addRowData(ReadableByteBuf buf) {
     if (dataSize + 1 > data.length) {
       growDataArray();
     }
@@ -419,7 +424,7 @@ public abstract class Result implements ResultSet, Completion {
    *
    * @param rawData new row
    */
-  protected void updateRowData(byte[] rawData) {
+  protected void updateRowData(ReadableByteBuf rawData) {
     data[rowPointer] = rawData;
     if (rawData == null) {
       setNullRowBuf();
@@ -434,7 +439,7 @@ public abstract class Result implements ResultSet, Completion {
       throw new SQLException(
           String.format("Wrong index position. Is %s but must be in 1-%s range", index, maxIndex));
     }
-    if (rowBuf.buf == null) {
+    if (rowBuf == null) {
       throw new SQLDataException("wrong row position", "22023");
     }
   }
@@ -452,73 +457,139 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public String getString(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decodeString(metadataList, fieldIndex, rowBuf, fieldLength, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeString(metadataList, fieldIndex, rowBuf, fieldLength, context);
   }
 
   @Override
   public boolean getBoolean(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return false;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return false;
+      }
+      return rowDecoder.decodeBoolean(metadataList, fieldIndex, rowBuf, fieldLength);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeBoolean(metadataList, fieldIndex, rowBuf, fieldLength);
   }
 
   @Override
   public byte getByte(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return 0;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return 0;
+      }
+      return rowDecoder.decodeByte(metadataList, fieldIndex, rowBuf, fieldLength);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeByte(metadataList, fieldIndex, rowBuf, fieldLength);
   }
 
   @Override
   public short getShort(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return 0;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return 0;
+      }
+      return rowDecoder.decodeShort(metadataList, fieldIndex, rowBuf, fieldLength);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeShort(metadataList, fieldIndex, rowBuf, fieldLength);
   }
 
   @Override
   public int getInt(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return 0;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return 0;
+      }
+      return rowDecoder.decodeInt(metadataList, fieldIndex, rowBuf, fieldLength);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeInt(metadataList, fieldIndex, rowBuf, fieldLength);
   }
 
   @Override
   public long getLong(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return 0L;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return 0L;
+      }
+      return rowDecoder.decodeLong(metadataList, fieldIndex, rowBuf, fieldLength);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeLong(metadataList, fieldIndex, rowBuf, fieldLength);
   }
 
   /**
@@ -531,14 +602,25 @@ public abstract class Result implements ResultSet, Completion {
    */
   public BigInteger getBigInteger(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          BigIntegerCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        BigIntegerCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   /**
@@ -556,131 +638,248 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public float getFloat(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return 0F;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return 0F;
+      }
+      return rowDecoder.decodeFloat(metadataList, fieldIndex, rowBuf, fieldLength);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeFloat(metadataList, fieldIndex, rowBuf, fieldLength);
   }
 
   @Override
   public double getDouble(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return 0D;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return 0D;
+      }
+      return rowDecoder.decodeDouble(metadataList, fieldIndex, rowBuf, fieldLength);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeDouble(metadataList, fieldIndex, rowBuf, fieldLength);
   }
 
   @Override
   @Deprecated
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      BigDecimal d =
+          rowDecoder.decode(
+              BigDecimalCodec.INSTANCE,
+              null,
+              rowBuf,
+              fieldLength,
+              metadataList,
+              fieldIndex,
+              context);
+      if (d == null) return null;
+      return d.setScale(scale, RoundingMode.HALF_DOWN);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    BigDecimal d =
-        rowDecoder.decode(
-            BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
-    if (d == null) return null;
-    return d.setScale(scale, RoundingMode.HALF_DOWN);
   }
 
   @Override
   public byte[] getBytes(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          ByteArrayCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        ByteArrayCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
   public Date getDate(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, null, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, null, context);
   }
 
   @Override
   public Time getTime(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, null, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, null, context);
   }
 
   @Override
   public Timestamp getTimestamp(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decodeTimestamp(
+          metadataList, fieldIndex, rowBuf, fieldLength, null, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, null, context);
   }
 
   @Override
   public InputStream getAsciiStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
   @Deprecated
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        StreamCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -793,13 +992,24 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Object getObject(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.defaultDecode(metadataList, fieldIndex, rowBuf, fieldLength, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.defaultDecode(metadataList, fieldIndex, rowBuf, fieldLength, context);
   }
 
   @Override
@@ -810,14 +1020,25 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Reader getCharacterStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          ReaderCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        ReaderCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -828,14 +1049,25 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -860,8 +1092,11 @@ public abstract class Result implements ResultSet, Completion {
    * @throws SQLException throw error if type is ResultSet.TYPE_FORWARD_ONLY
    */
   protected void checkNotForwardOnly() throws SQLException {
-    if (resultSetType == ResultSet.TYPE_FORWARD_ONLY) {
-      throw exceptionFactory.create("Operation not permit on TYPE_FORWARD_ONLY resultSet", "HY000");
+    if (resultSetType == ResultSet.TYPE_FORWARD_ONLY
+        || resultSetType == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY) {
+      throw exceptionFactory.create(
+          "Operation not permit on TYPE_FORWARD_ONLY or TYPE_SEQUENTIAL_ACCESS_ONLY resultSet",
+          "HY000");
     }
   }
 
@@ -898,10 +1133,11 @@ public abstract class Result implements ResultSet, Completion {
   /**
    * set row decoder to current row data
    *
-   * @param row row
+   * @param newRow row
    */
-  public void setRow(byte[] row) {
-    rowBuf.buf(row, row.length, 0);
+  public void setRow(ReadableByteBuf newRow) {
+    rowBuf = newRow;
+    rowBuf.pos(0);
     fieldIndex.set(-1);
   }
 
@@ -1212,42 +1448,81 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Blob getBlob(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          BlobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        BlobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
   public Clob getClob(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          ClobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        ClobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
   public Array getArray(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      float[] val =
+          rowDecoder.decode(
+              FloatArrayCodec.INSTANCE,
+              null,
+              rowBuf,
+              fieldLength,
+              metadataList,
+              fieldIndex,
+              context);
+      return new FloatArray(val, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    float[] val =
-        rowDecoder.decode(
-            FloatArrayCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
-    return new FloatArray(val, context);
   }
 
   @Override
@@ -1282,13 +1557,24 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Date getDate(int columnIndex, Calendar cal) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
   }
 
   @Override
@@ -1299,13 +1585,24 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Time getTime(int columnIndex, Calendar cal) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
   }
 
   @Override
@@ -1316,13 +1613,25 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decodeTimestamp(
+          metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, cal, context);
   }
 
   @Override
@@ -1333,21 +1642,32 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public URL getURL(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
-    }
-
-    String s =
-        rowDecoder.decode(
-            StringCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
-    if (s == null) return null;
+    ensureLoadingStream();
     try {
-      return new URI(s).toURL();
-    } catch (Exception e) {
-      throw exceptionFactory.create(String.format("Could not parse '%s' as URL", s));
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+
+      String s =
+          rowDecoder.decode(
+              StringCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+      if (s == null) return null;
+      try {
+        return new URI(s).toURL();
+      } catch (Exception e) {
+        throw exceptionFactory.create(String.format("Could not parse '%s' as URL", s));
+      }
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
   }
 
@@ -1449,15 +1769,26 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public NClob getNClob(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return (NClob)
+          rowDecoder.decode(
+              ClobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return (NClob)
-        rowDecoder.decode(
-            ClobCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -1498,14 +1829,25 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Reader getNCharacterStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
-    if (fieldLength.get() == NULL_LENGTH) {
-      return null;
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
+      if (fieldLength.get() == NULL_LENGTH) {
+        return null;
+      }
+      return rowDecoder.decode(
+          ReaderCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    return rowDecoder.decode(
-        ReaderCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
   }
 
   @Override
@@ -1663,33 +2005,48 @@ public abstract class Result implements ResultSet, Completion {
   @SuppressWarnings("unchecked")
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength.set(
-        rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    ensureLoadingStream();
+    try {
+      fieldLength.set(
+          rowDecoder.setPosition(
+              columnIndex - 1,
+              fieldIndex,
+              maxIndex,
+              rowBuf,
+              nullBitmap,
+              metadataList,
+              resultSetType));
 
-    if (wasNull()) {
-      if (type.isPrimitive()) {
-        throw new SQLException(
-            String.format("Cannot return null for primitive %s", type.getName()));
+      if (wasNull()) {
+        if (type.isPrimitive()) {
+          throw new SQLException(
+              String.format("Cannot return null for primitive %s", type.getName()));
+        }
+        return null;
       }
-      return null;
-    }
-    ColumnDecoder column = metadataList[columnIndex - 1];
-    // type generic, return "natural" java type
-    if (Object.class.equals(type) || type == null) {
-      return (T) rowDecoder.defaultDecode(metadataList, fieldIndex, rowBuf, fieldLength, context);
-    }
+      ColumnDecoder column = metadataList[columnIndex - 1];
+      // type generic, return "natural" java type
+      if (Object.class.equals(type) || type == null) {
+        return (T) rowDecoder.defaultDecode(metadataList, fieldIndex, rowBuf, fieldLength, context);
+      }
 
-    Configuration conf = context.getConf();
-    for (Codec<?> codec : conf.codecs()) {
-      if (codec.canDecode(column, type)) {
-        return rowDecoder.decode(
-            (Codec<T>) codec, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+      Configuration conf = context.getConf();
+      for (Codec<?> codec : conf.codecs()) {
+        if (codec.canDecode(column, type)) {
+          return rowDecoder.decode(
+              (Codec<T>) codec, null, rowBuf, fieldLength, metadataList, fieldIndex, context);
+        }
       }
+      try {
+        rowBuf.skip(fieldLength.get());
+      } catch (IOException e) {
+        throw exceptionFactory.create("Error while streaming resultSet data", "08000", e);
+      }
+      throw new SQLException(
+          String.format("Type %s not supported type for %s type", type, column.getType().name()));
+    } catch (IOException e) {
+      throw exceptionFactory.create("Socket error while reading resultset", "08000", e);
     }
-    rowBuf.skip(fieldLength.get());
-    throw new SQLException(
-        String.format("Type %s not supported type for %s type", type, column.getType().name()));
   }
 
   @Override
@@ -1735,7 +2092,7 @@ public abstract class Result implements ResultSet, Completion {
 
   /** Set row buffer to null (no row) */
   protected void setNullRowBuf() {
-    rowBuf.buf(null, 0, 0);
+    rowBuf = null;
   }
 
   public int findColumn(String label) throws SQLException {

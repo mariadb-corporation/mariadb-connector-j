@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.SQLDataException;
@@ -11,7 +12,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.column.UuidColumn;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -23,7 +24,7 @@ public interface ColumnDecoder extends Column {
    * @param buf packet
    * @return column
    */
-  static ColumnDecoder decodeStd(ReadableByteBuf buf) {
+  static ColumnDecoder decodeStd(BufferedReadableByteBuf buf) {
     // skip first strings
     int[] stringPos = new int[5];
     stringPos[0] = buf.skipIdentifier(); // schema pos
@@ -53,7 +54,7 @@ public interface ColumnDecoder extends Column {
    * @param buf packet
    * @return column
    */
-  static ColumnDecoder decode(ReadableByteBuf buf) {
+  static ColumnDecoder decode(final BufferedReadableByteBuf buf) {
     // skip first strings
     int[] stringPos = new int[5];
     stringPos[0] = buf.skipIdentifier(); // schema pos
@@ -70,7 +71,7 @@ public interface ColumnDecoder extends Column {
       // revert position, because has extended info.
       buf.pos(buf.pos() - 1);
 
-      ReadableByteBuf subPacket = buf.readLengthBuffer();
+      BufferedReadableByteBuf subPacket = buf.readLengthBuffer();
       while (subPacket.readableBytes() > 0) {
         switch (subPacket.readByte()) {
           case 0:
@@ -155,7 +156,7 @@ public interface ColumnDecoder extends Column {
             ? type.getColumnConstructor()
             : type.getUnsignedColumnConstructor();
     return constructor.create(
-        new StandardReadableByteBuf(arr, arr.length),
+        new BufferedReadableByteBuf(arr, arr.length),
         33,
         len,
         type,
@@ -209,7 +210,7 @@ public interface ColumnDecoder extends Column {
    * @throws SQLDataException if any decoding error occurs
    */
   Object getDefaultText(final ReadableByteBuf buf, final MutableInt length, Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return default Object binary encoded
@@ -221,7 +222,7 @@ public interface ColumnDecoder extends Column {
    * @throws SQLDataException if any decoding error occurs
    */
   Object getDefaultBinary(final ReadableByteBuf buf, final MutableInt length, Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return String text encoded value
@@ -235,7 +236,7 @@ public interface ColumnDecoder extends Column {
    */
   String decodeStringText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return String binary encoded value
@@ -249,7 +250,7 @@ public interface ColumnDecoder extends Column {
    */
   String decodeStringBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return byte text encoded value
@@ -259,7 +260,8 @@ public interface ColumnDecoder extends Column {
    * @return byte value
    * @throws SQLDataException if any decoding error occurs
    */
-  byte decodeByteText(final ReadableByteBuf buf, final MutableInt length) throws SQLDataException;
+  byte decodeByteText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException, IOException;
 
   /**
    * Return byte binary encoded value
@@ -269,7 +271,8 @@ public interface ColumnDecoder extends Column {
    * @return byte value
    * @throws SQLDataException if any decoding error occurs
    */
-  byte decodeByteBinary(final ReadableByteBuf buf, final MutableInt length) throws SQLDataException;
+  byte decodeByteBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException, IOException;
 
   /**
    * Return date text encoded value
@@ -283,7 +286,7 @@ public interface ColumnDecoder extends Column {
    */
   Date decodeDateText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return date binary encoded value
@@ -297,7 +300,7 @@ public interface ColumnDecoder extends Column {
    */
   Date decodeDateBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return time text encoded value
@@ -311,7 +314,7 @@ public interface ColumnDecoder extends Column {
    */
   Time decodeTimeText(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return time binary encoded value
@@ -325,7 +328,7 @@ public interface ColumnDecoder extends Column {
    */
   Time decodeTimeBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return timestamp text encoded value
@@ -339,7 +342,7 @@ public interface ColumnDecoder extends Column {
    */
   Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return timestamp binary encoded value
@@ -353,7 +356,7 @@ public interface ColumnDecoder extends Column {
    */
   Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar cal, Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Return boolean text encoded value
@@ -364,7 +367,7 @@ public interface ColumnDecoder extends Column {
    * @throws SQLDataException if any decoding error occurs
    */
   boolean decodeBooleanText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Parse boolean binary encoded value
@@ -375,7 +378,7 @@ public interface ColumnDecoder extends Column {
    * @throws SQLDataException if any decoding error occurs
    */
   boolean decodeBooleanBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Parse short text encoded value
@@ -385,7 +388,8 @@ public interface ColumnDecoder extends Column {
    * @return short value
    * @throws SQLDataException if any decoding error occurs
    */
-  short decodeShortText(final ReadableByteBuf buf, final MutableInt length) throws SQLDataException;
+  short decodeShortText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException, IOException;
 
   /**
    * Parse short binary encoded value
@@ -396,7 +400,7 @@ public interface ColumnDecoder extends Column {
    * @throws SQLDataException if any decoding error occurs
    */
   short decodeShortBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Parse int text encoded value
@@ -406,7 +410,8 @@ public interface ColumnDecoder extends Column {
    * @return int value
    * @throws SQLDataException if any decoding error occurs
    */
-  int decodeIntText(final ReadableByteBuf buf, final MutableInt length) throws SQLDataException;
+  int decodeIntText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException, IOException;
 
   /**
    * Parse int binary encoded value
@@ -416,7 +421,8 @@ public interface ColumnDecoder extends Column {
    * @return int value
    * @throws SQLDataException if any decoding error occurs
    */
-  int decodeIntBinary(final ReadableByteBuf buf, final MutableInt length) throws SQLDataException;
+  int decodeIntBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException, IOException;
 
   /**
    * Parse long text encoded value
@@ -426,7 +432,8 @@ public interface ColumnDecoder extends Column {
    * @return long value
    * @throws SQLDataException if any decoding error occurs
    */
-  long decodeLongText(final ReadableByteBuf buf, final MutableInt length) throws SQLDataException;
+  long decodeLongText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException, IOException;
 
   /**
    * Parse long binary encoded value
@@ -436,7 +443,8 @@ public interface ColumnDecoder extends Column {
    * @return long value
    * @throws SQLDataException if any decoding error occurs
    */
-  long decodeLongBinary(final ReadableByteBuf buf, final MutableInt length) throws SQLDataException;
+  long decodeLongBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException, IOException;
 
   /**
    * Parse float text encoded value
@@ -446,7 +454,8 @@ public interface ColumnDecoder extends Column {
    * @return float value
    * @throws SQLDataException if any decoding error occurs
    */
-  float decodeFloatText(final ReadableByteBuf buf, final MutableInt length) throws SQLDataException;
+  float decodeFloatText(final ReadableByteBuf buf, final MutableInt length)
+      throws SQLDataException, IOException;
 
   /**
    * Parse float binary encoded value
@@ -457,7 +466,7 @@ public interface ColumnDecoder extends Column {
    * @throws SQLDataException if any decoding error occurs
    */
   float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Parse double text encoded value
@@ -468,7 +477,7 @@ public interface ColumnDecoder extends Column {
    * @throws SQLDataException if any decoding error occurs
    */
   double decodeDoubleText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Parse double binary encoded value
@@ -479,7 +488,7 @@ public interface ColumnDecoder extends Column {
    * @throws SQLDataException if any decoding error occurs
    */
   double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   ColumnDecoder useAliasAsName();
 }

@@ -4,7 +4,7 @@
 package org.mariadb.jdbc.message.server;
 
 import java.util.Arrays;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.message.ServerMessage;
 
 /**
@@ -35,7 +35,7 @@ public class AuthSwitchPacket implements ServerMessage {
    * @param buf packet
    * @return Authentication switch packet.
    */
-  public static AuthSwitchPacket decode(ReadableByteBuf buf) {
+  public static AuthSwitchPacket decode(BufferedReadableByteBuf buf) {
     buf.skip(1);
     String plugin = buf.readStringNullEnd();
 

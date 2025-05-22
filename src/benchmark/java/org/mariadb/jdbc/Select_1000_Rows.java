@@ -19,8 +19,30 @@ public class Select_1000_Rows extends Common {
   }
 
   @Benchmark
+  public void textsequential(MyState state, Blackhole blackhole) throws Throwable {
+    try (PreparedStatement st = state.connectionText.prepareStatement(sql, MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+      ResultSet rs = st.executeQuery();
+      while (rs.next()) {
+        blackhole.consume(rs.getInt(1));
+        blackhole.consume(rs.getString(2));
+      }
+    }
+  }
+
+  @Benchmark
   public void binary(MyState state, Blackhole blackhole) throws Throwable {
     run(state.connectionBinary, blackhole);
+  }
+
+  @Benchmark
+  public void binarysequential(MyState state, Blackhole blackhole) throws Throwable {
+    try (PreparedStatement st = state.connectionBinary.prepareStatement(sql, MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+      ResultSet rs = st.executeQuery();
+      while (rs.next()) {
+        blackhole.consume(rs.getInt(1));
+        blackhole.consume(rs.getString(2));
+      }
+    }
   }
 
   private void run(Connection con, Blackhole blackhole) throws Throwable {

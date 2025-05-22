@@ -12,6 +12,7 @@ import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
@@ -26,7 +27,7 @@ public class BaseContext implements Context {
   private final ServerVersion version;
   private final boolean eofDeprecated;
   private final boolean skipMeta;
-  private final Function<ReadableByteBuf, ColumnDecoder> columnDecoderFunction;
+  private final Function<BufferedReadableByteBuf, ColumnDecoder> columnDecoderFunction;
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
   private final boolean canUseTransactionIsolation;
@@ -150,7 +151,7 @@ public class BaseContext implements Context {
     return eofDeprecated;
   }
 
-  public Function<ReadableByteBuf, ColumnDecoder> getColumnDecoderFunction() {
+  public Function<BufferedReadableByteBuf, ColumnDecoder> getColumnDecoderFunction() {
     return columnDecoderFunction;
   }
 

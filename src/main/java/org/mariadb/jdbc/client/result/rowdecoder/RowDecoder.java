@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.result.rowdecoder;
 
+import java.io.IOException;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -10,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -35,15 +36,18 @@ public interface RowDecoder {
    * @param rowBuf row buffer
    * @param nullBitmap null bitmap
    * @param metadataList metadata list
+   * @param resultSetType resultset type
    * @return new index to read data
    */
   int setPosition(
       int newIndex,
       MutableInt fieldIndex,
       int maxIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       byte[] nullBitmap,
-      ColumnDecoder[] metadataList);
+      ColumnDecoder[] metadataList,
+      int resultSetType)
+      throws IOException, SQLException;
 
   /**
    * Decode data according to data type.
@@ -62,12 +66,12 @@ public interface RowDecoder {
   <T> T decode(
       Codec<T> codec,
       Calendar calendar,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       Context context)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to data type.
@@ -83,10 +87,10 @@ public interface RowDecoder {
   Object defaultDecode(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Context context)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to byte.
@@ -101,9 +105,9 @@ public interface RowDecoder {
   byte decodeByte(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to boolean.
@@ -118,9 +122,9 @@ public interface RowDecoder {
   boolean decodeBoolean(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to Date.
@@ -137,11 +141,11 @@ public interface RowDecoder {
   Date decodeDate(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
       Context context)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to Time.
@@ -158,11 +162,11 @@ public interface RowDecoder {
   Time decodeTime(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
       Context context)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to Timestamp.
@@ -179,11 +183,11 @@ public interface RowDecoder {
   Timestamp decodeTimestamp(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
       Context context)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to short.
@@ -198,9 +202,9 @@ public interface RowDecoder {
   short decodeShort(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to int.
@@ -215,9 +219,9 @@ public interface RowDecoder {
   int decodeInt(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to String.
@@ -233,10 +237,10 @@ public interface RowDecoder {
   String decodeString(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Context context)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to long.
@@ -251,9 +255,9 @@ public interface RowDecoder {
   long decodeLong(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to float.
@@ -268,9 +272,9 @@ public interface RowDecoder {
   float decodeFloat(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
-      throws SQLException;
+      throws SQLException, IOException;
 
   /**
    * Decode data according to double.
@@ -285,7 +289,7 @@ public interface RowDecoder {
   double decodeDouble(
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
-      throws SQLException;
+      throws SQLException, IOException;
 }

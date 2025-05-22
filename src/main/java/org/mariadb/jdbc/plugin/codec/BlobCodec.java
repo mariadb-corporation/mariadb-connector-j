@@ -56,7 +56,7 @@ public class BlobCodec implements Codec<Blob> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case STRING:
       case VARCHAR:
@@ -84,7 +84,7 @@ public class BlobCodec implements Codec<Blob> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case STRING:
       case VARCHAR:
@@ -95,8 +95,7 @@ public class BlobCodec implements Codec<Blob> {
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
-        buf.skip(length.get());
-        return new MariaDbBlob(buf.buf(), buf.pos() - length.get(), length.get());
+        return buf.readBlob(length.get());
 
       default:
         buf.skip(length.get());

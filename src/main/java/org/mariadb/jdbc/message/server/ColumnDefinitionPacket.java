@@ -6,7 +6,7 @@ package org.mariadb.jdbc.message.server;
 import java.util.Objects;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.message.ServerMessage;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -34,7 +34,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   /** extended type format */
   protected final String extTypeFormat;
 
-  private final ReadableByteBuf buf;
+  private final BufferedReadableByteBuf buf;
 
   /**
    * @see <a href="https://mariadb.com/kb/en/result-set-packets/#field-details-flag">flags</a>
@@ -62,7 +62,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
    * @param useAliasAsName use alias as name
    */
   public ColumnDefinitionPacket(
-      ReadableByteBuf buf,
+      BufferedReadableByteBuf buf,
       int charset,
       long columnLength,
       DataType dataType,

@@ -10,6 +10,8 @@ import java.util.Map;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -80,13 +82,14 @@ public class FloatArray implements Array {
 
   @Override
   public ResultSet getResultSet(long index, int count) throws SQLException {
-    byte[][] rows = new byte[count][];
+    ReadableByteBuf[] rows = new ReadableByteBuf[count];
     for (int i = 0; i < count; i++) {
       byte[] val =
           Float.toString(this.val[(int) index - 1 + i]).getBytes(StandardCharsets.US_ASCII);
-      rows[i] = new byte[val.length + 1];
-      rows[i][0] = (byte) val.length;
-      System.arraycopy(val, 0, rows[i], 1, val.length);
+      byte[] buf = new byte[val.length + 1];
+      buf[0] = (byte) val.length;
+      System.arraycopy(val, 0, buf, 1, val.length);
+      rows[i] = new BufferedReadableByteBuf(buf, val.length + 1);
     }
 
     return new CompleteResult(

@@ -4,6 +4,7 @@
 package org.mariadb.jdbc.client;
 
 import org.mariadb.jdbc.client.column.*;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 
 public enum DataType {
   OLDDECIMAL(0, BigDecimalColumn::new, BigDecimalColumn::new),
@@ -77,7 +78,7 @@ public enum DataType {
   public interface ColumnConstructor {
 
     ColumnDecoder create(
-        ReadableByteBuf buf,
+        BufferedReadableByteBuf buf,
         int charset,
         long length,
         DataType dataType,

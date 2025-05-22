@@ -3,6 +3,11 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Blob;
+import java.sql.Clob;
+
 import org.mariadb.jdbc.MariaDbBlob;
 
 /** Packet buffer interface */
@@ -15,29 +20,7 @@ public interface ReadableByteBuf {
    */
   int readableBytes();
 
-  /**
-   * Current buffer position
-   *
-   * @return position
-   */
   int pos();
-
-  /**
-   * buffer
-   *
-   * @return buffer
-   */
-  byte[] buf();
-
-  /**
-   * Reset buffer
-   *
-   * @param buf new buffer
-   * @param limit buffer limit
-   * @param pos initial position
-   */
-  void buf(byte[] buf, int limit, int pos);
-
   /**
    * Set position
    *
@@ -46,17 +29,19 @@ public interface ReadableByteBuf {
   void pos(int pos);
 
   /** Skip one byte */
-  void skip();
+  void skip() throws IOException;
+
+  void ensureAvailable(int bytes) throws IOException;
 
   /**
    * Skip length value of bytes
    *
    * @param length number of position to skip
    */
-  void skip(int length);
+  void skip(int length) throws IOException;
 
   /** Skip length encoded value */
-  void skipLengthEncoded();
+  void skipLengthEncoded() throws IOException;
 
   /**
    * Read Blob at current position
@@ -64,14 +49,24 @@ public interface ReadableByteBuf {
    * @param length blob length
    * @return Blob
    */
-  MariaDbBlob readBlob(int length);
+  Blob readBlob(int length) throws IOException;
+
+  Clob readClob(int length) throws IOException;
+
+  /**
+   * Read inputStream at current position
+   *
+   * @param length blob length
+   * @return Blob
+   */
+  InputStream readInputStream(int length);
 
   /**
    * Read byte from buffer at current position, without changing position
    *
    * @return byte value
    */
-  byte getByte();
+  byte getByte() throws IOException;
 
   /**
    * Read byte from buffer at indicated index, without changing position
@@ -79,14 +74,14 @@ public interface ReadableByteBuf {
    * @param index index
    * @return byte value
    */
-  byte getByte(int index);
+  byte getByte(int index) throws IOException;
 
   /**
    * Read unsigned byte value at current position, without changing position
    *
    * @return short value
    */
-  short getUnsignedByte();
+  short getUnsignedByte() throws IOException;
 
   /**
    * Read encoded length value that cannot be null
@@ -95,7 +90,7 @@ public interface ReadableByteBuf {
    *     encoded integer</a>
    * @return encoded length
    */
-  long readLongLengthEncodedNotNull();
+  long readLongLengthEncodedNotNull() throws IOException;
 
   /**
    * Read encoded length value that cannot be null
@@ -105,14 +100,14 @@ public interface ReadableByteBuf {
    *     <p>this is readLongLengthEncodedNotNull limited to 32 bits
    * @return encoded length
    */
-  int readIntLengthEncodedNotNull();
+  int readIntLengthEncodedNotNull() throws IOException;
 
   /**
    * Utility to skip length encoded string, returning initial position
    *
    * @return initial position
    */
-  int skipIdentifier();
+  int skipIdentifier() throws IOException;
 
   /**
    * Fast signed long parsing
@@ -120,7 +115,7 @@ public interface ReadableByteBuf {
    * @param length data length
    * @return long value
    */
-  long atoll(int length);
+  long atoll(int length) throws IOException;
 
   /**
    * Fast unsigned long parsing
@@ -128,7 +123,7 @@ public interface ReadableByteBuf {
    * @param length data length
    * @return long value
    */
-  long atoull(int length);
+  long atoull(int length) throws IOException;
 
   /**
    * Read encoded length value
@@ -137,91 +132,91 @@ public interface ReadableByteBuf {
    *     encoded integer</a>
    * @return encoded length
    */
-  Integer readLength();
+  Integer readLength() throws IOException;
 
   /**
    * Read byte at current position, incrementing position
    *
    * @return byte at current position
    */
-  byte readByte();
+  byte readByte() throws IOException;
 
   /**
    * Read unsigned byte value at current position
    *
    * @return short value
    */
-  short readUnsignedByte();
+  short readUnsignedByte() throws IOException;
 
   /**
    * Read signed 2 bytes value (little endian) at current position
    *
    * @return short value
    */
-  short readShort();
+  short readShort() throws IOException;
 
   /**
    * Read unsigned 2 bytes value (little endian) at current position
    *
    * @return short value
    */
-  int readUnsignedShort();
+  int readUnsignedShort() throws IOException;
 
   /**
    * Read signed 3 bytes value (little endian) at current position
    *
    * @return int value
    */
-  int readMedium();
+  int readMedium() throws IOException;
 
   /**
    * Read unsigned 3 bytes value (little endian) at current position
    *
    * @return int value
    */
-  int readUnsignedMedium();
+  int readUnsignedMedium() throws IOException;
 
   /**
    * Read signed 4 bytes value (little endian) at current position
    *
    * @return int value
    */
-  int readInt();
+  int readInt() throws IOException;
 
   /**
    * Read signed 4 bytes value (big endian) at current position
    *
    * @return int value
    */
-  int readIntBE();
+  int readIntBE() throws IOException;
 
   /**
    * Read unsigned 4 bytes value (little endian) at current position
    *
    * @return long value
    */
-  long readUnsignedInt();
+  long readUnsignedInt() throws IOException;
 
   /**
    * Read signed 8 bytes value (little endian) at current position
    *
    * @return long value
    */
-  long readLong();
+  long readLong() throws IOException;
 
   /**
    * Read unsigned 4 bytes value (big endian) at current position
    *
    * @return long value
    */
-  long readLongBE();
+  long readLongBE() throws IOException;
 
   /**
    * Read as many bytes to fill destination array
    *
    * @param dst destination array
    */
-  void readBytes(byte[] dst);
+  void readBytes(byte[] dst) throws IOException;
 
   /**
    * Read null-ended encoded bytes. 0x00 null value won't be in return byte, so position is
@@ -229,14 +224,14 @@ public interface ReadableByteBuf {
    *
    * @return byte array
    */
-  byte[] readBytesNullEnd();
+  byte[] readBytesNullEnd() throws IOException;
 
   /**
    * Return a length encoded buffer
    *
    * @return new buffer
    */
-  ReadableByteBuf readLengthBuffer();
+  ReadableByteBuf readLengthBuffer() throws IOException;
 
   /**
    * Read utf-8 encoded string from length bytes
@@ -244,7 +239,7 @@ public interface ReadableByteBuf {
    * @param length length byte to read
    * @return string value
    */
-  String readString(int length);
+  String readString(int length) throws IOException;
 
   /**
    * Read ascii encoded string from length bytes
@@ -252,7 +247,7 @@ public interface ReadableByteBuf {
    * @param length length byte to read
    * @return string value
    */
-  String readAscii(int length);
+  String readAscii(int length) throws IOException;
 
   /**
    * Read null-ended utf-8 encoded string. 0x00 = null represent string ending. Position is
@@ -260,33 +255,33 @@ public interface ReadableByteBuf {
    *
    * @return corresponding string
    */
-  String readStringNullEnd();
+  String readStringNullEnd() throws IOException;
 
   /**
    * Return the utf-8 string represented by current position to the limit of buffer
    *
    * @return string value
    */
-  String readStringEof();
+  String readStringEof() throws IOException;
 
   /**
    * Read float encoded on 4 bytes value at current position
    *
    * @return float value
    */
-  float readFloat();
+  float readFloat() throws IOException;
 
   /**
    * Read double encoded on 8 bytes value at current position
    *
    * @return double value
    */
-  double readDouble();
+  double readDouble() throws IOException;
 
   /**
    * Read double encoded on 8 bytes (big endian) value at current position
    *
    * @return double value
    */
-  double readDoubleBE();
+  double readDoubleBE() throws IOException;
 }

@@ -60,7 +60,7 @@ public class IntCodec implements Codec<Integer> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeIntText(buf, length);
   }
 
@@ -71,7 +71,7 @@ public class IntCodec implements Codec<Integer> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeIntBinary(buf, length);
   }
 

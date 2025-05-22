@@ -5,9 +5,12 @@ package org.mariadb.jdbc.client.result;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import org.mariadb.jdbc.MariaDbResultSet;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.StreamMariaDbBlob;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.util.ClosableLock;
 
@@ -42,6 +45,7 @@ public class StreamingResult extends Result {
   private final ClosableLock lock;
   private int dataFetchTime;
   private int requestedFetchSize;
+  private StreamMariaDbBlob streamBlob;
 
   /**
    * Constructor
@@ -89,7 +93,7 @@ public class StreamingResult extends Result {
     this.lock = lock;
     this.dataFetchTime = 0;
     this.requestedFetchSize = fetchSize;
-    this.data = new byte[Math.min(MAX_FETCH_SIZE, Math.max(fetchSize, 10))][];
+    this.data = new ReadableByteBuf[Math.min(MAX_FETCH_SIZE, Math.max(fetchSize, 10))];
     addStreamingValue();
   }
 
@@ -105,6 +109,13 @@ public class StreamingResult extends Result {
 
   public void setBulkResult() {}
 
+  protected void ensureLoadingStream() throws SQLException {
+    if (streamBlob != null) {
+      streamBlob.load();
+      streamBlob = null;
+    }
+  }
+
   /**
    * This permit to replace current stream results by next ones.
    *
@@ -113,7 +124,8 @@ public class StreamingResult extends Result {
   private void nextStreamingValue() throws SQLException {
 
     // if resultSet can be back to some previous value
-    if (resultSetType == TYPE_FORWARD_ONLY) {
+    if (resultSetType == TYPE_FORWARD_ONLY
+        || resultSetType == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY) {
       rowPointer = 0;
       dataSize = 0;
     }
@@ -132,8 +144,12 @@ public class StreamingResult extends Result {
                   super.getFetchSize(),
                   Math.max(0, (int) (maxRows - dataFetchTime * super.getFetchSize())));
       do {
-        byte[] buf = reader.readPacket(traceEnable);
-        readNext(buf);
+        ReadableByteBuf buf =
+            reader.readPacket(
+                traceEnable, resultSetType == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY);
+        if (!readNext(buf)) {
+          break;
+        }
         fetchSizeTmp--;
       } while (fetchSizeTmp > 0 && !loaded);
       dataFetchTime++;
@@ -175,7 +191,8 @@ public class StreamingResult extends Result {
           }
         }
 
-        if (resultSetType == TYPE_FORWARD_ONLY) {
+        if (resultSetType == TYPE_FORWARD_ONLY
+            || resultSetType == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY) {
           // resultSet has been cleared. next value is pointer 0.
           rowPointer = 0;
           if (dataSize > 0) {
@@ -219,7 +236,8 @@ public class StreamingResult extends Result {
   @Override
   public boolean isFirst() throws SQLException {
     checkClose();
-    if (resultSetType == TYPE_FORWARD_ONLY) {
+    if (resultSetType == TYPE_FORWARD_ONLY
+        || resultSetType == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY) {
       return rowPointer == 0 && dataSize > 0 && dataFetchTime == 1;
     } else {
       return rowPointer == 0 && dataSize > 0;
@@ -295,7 +313,8 @@ public class StreamingResult extends Result {
   @Override
   public int getRow() throws SQLException {
     checkClose();
-    if (resultSetType == TYPE_FORWARD_ONLY) {
+    if (resultSetType == TYPE_FORWARD_ONLY
+        || resultSetType == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY) {
       return 0;
     }
     return rowPointer + 1;

@@ -11,6 +11,7 @@ import java.util.*;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.util.ClosableLock;
@@ -142,7 +143,7 @@ public class Statement implements java.sql.Statement {
 
     if (con.getContext().getConf().permitNoResults()) {
       return new CompleteResult(
-          new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
+          new ColumnDecoder[0], new ReadableByteBuf[0], con.getContext(), resultSetType);
     }
     throw new SQLException(
         "Statement.executeQuery() command does NOT return a result-set as expected. Either use"
@@ -852,7 +853,12 @@ public class Statement implements java.sql.Statement {
           && (con.getContext().getServerStatus() & ServerStatus.MORE_RESULTS_EXISTS) > 0) {
         con.getClient()
             .readStreamingResults(
-                results, 0, 0L, resultSetConcurrency, resultSetType, closeOnCompletion);
+                results,
+                0,
+                0L,
+                resultSetConcurrency,
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                closeOnCompletion);
       }
     }
   }

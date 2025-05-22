@@ -60,7 +60,7 @@ public class ShortCodec implements Codec<Short> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeShortText(buf, length);
   }
 
@@ -71,7 +71,7 @@ public class ShortCodec implements Codec<Short> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeShortBinary(buf, length);
   }
 

@@ -33,7 +33,7 @@ public class PointCodecTest extends CommonCodecTest {
   @BeforeAll
   public static void beforeAll2() throws Exception {
     drop();
-    // xpand doesn't recognized POINT
+    // xpand doesn't recognize POINT
     Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE PointCodec (t1 POINT, t2 POINT, t3 POINT, t4 POINT)");
@@ -49,7 +49,8 @@ public class PointCodecTest extends CommonCodecTest {
   }
 
   private ResultSet get() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
@@ -65,7 +66,9 @@ public class PointCodecTest extends CommonCodecTest {
     PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from PointCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ?",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY);
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();

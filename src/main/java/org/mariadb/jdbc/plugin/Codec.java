@@ -61,7 +61,7 @@ public interface Codec<T> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Decode from a mysql packet binary encoded a value to codec java type
@@ -80,7 +80,7 @@ public interface Codec<T> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException;
+      throws SQLDataException, IOException;
 
   /**
    * Text encode value to writer

@@ -113,6 +113,7 @@ public class Configuration {
   private Boolean permitRedirect;
   private TransactionIsolation transactionIsolation;
   private int defaultFetchSize;
+  private boolean useSequentialAccess;
   private int maxQuerySizeToLog;
   private Integer maxAllowedPacket;
   private String geometryDefaultType;
@@ -391,6 +392,7 @@ public class Configuration {
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
     this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
+    this.useSequentialAccess = builder.useSequentialAccess != null && builder.useSequentialAccess;
     this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
     this.disconnectOnExpiredPasswords =
         builder.disconnectOnExpiredPasswords == null || builder.disconnectOnExpiredPasswords;
@@ -564,6 +566,7 @@ public class Configuration {
             .transactionIsolation(
                 transactionIsolation == null ? null : this.transactionIsolation.getValue())
             .defaultFetchSize(this.defaultFetchSize)
+            .useSequentialAccess(this.useSequentialAccess)
             .maxQuerySizeToLog(this.maxQuerySizeToLog)
             .maxAllowedPacket(this.maxAllowedPacket)
             .geometryDefaultType(this.geometryDefaultType)
@@ -2037,6 +2040,15 @@ public class Configuration {
   }
 
   /**
+   * Indicate if connector must use TYPE_SEQUENTIAL_ACCESS_ONLY in place of TYPE_FORWARD_ONLY
+   *
+   * @return connector must use TYPE_SEQUENTIAL_ACCESS_ONLY in place of TYPE_FORWARD_ONLY
+   */
+  public boolean useSequentialAccess() {
+    return useSequentialAccess;
+  }
+
+  /**
    * non standard options
    *
    * @return non standard options
@@ -2320,6 +2332,7 @@ public class Configuration {
     private Boolean pinGlobalTxToPhysicalConnection;
     private Boolean permitNoResults;
     private Integer defaultFetchSize;
+    private Boolean useSequentialAccess;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
     private String geometryDefaultType;
@@ -3343,6 +3356,16 @@ public class Configuration {
      */
     public Builder defaultFetchSize(Integer defaultFetchSize) {
       this.defaultFetchSize = defaultFetchSize;
+      return this;
+    }
+
+    /**
+     * Indicate if connector must use TYPE_SEQUENTIAL_ACCESS_ONLY in place of TYPE_FORWARD_ONLY
+     *
+     * @return connector must use TYPE_SEQUENTIAL_ACCESS_ONLY in place of TYPE_FORWARD_ONLY
+     */
+    public Builder useSequentialAccess(Boolean useSequentialAccess) {
+      this.useSequentialAccess = useSequentialAccess;
       return this;
     }
 

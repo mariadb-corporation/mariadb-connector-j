@@ -47,7 +47,7 @@ public class ByteCodec implements Codec<Byte> {
    * @param length encoded length
    * @return long value
    */
-  public static long parseBit(ReadableByteBuf buf, MutableInt length) {
+  public static long parseBit(ReadableByteBuf buf, MutableInt length) throws IOException {
     if (length.get() == 1) {
       return buf.readUnsignedByte();
     }
@@ -80,7 +80,7 @@ public class ByteCodec implements Codec<Byte> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeByteText(buf, length);
   }
 
@@ -91,7 +91,7 @@ public class ByteCodec implements Codec<Byte> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeByteBinary(buf, length);
   }
 

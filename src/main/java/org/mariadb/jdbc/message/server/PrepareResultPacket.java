@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.client.*;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.util.log.Logger;
@@ -51,7 +51,7 @@ public class PrepareResultPacket implements Completion, Prepare {
           0x00,
           0x00
         };
-    CONSTANT_PARAMETER = ColumnDecoder.decode(new StandardReadableByteBuf(bytes, bytes.length));
+    CONSTANT_PARAMETER = ColumnDecoder.decode(new BufferedReadableByteBuf(bytes, bytes.length));
   }
 
   private final ColumnDecoder[] parameters;
@@ -81,10 +81,10 @@ public class PrepareResultPacket implements Completion, Prepare {
 
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
-        // skipping packet, since there is no metadata information.
-        // might change when https://jira.mariadb.org/browse/MDEV-15031 is done
-        parameters[i] = CONSTANT_PARAMETER;
-        reader.skipPacket();
+        parameters[i] =
+            context
+                .getColumnDecoderFunction()
+                .apply((BufferedReadableByteBuf) reader.readPacket(trace, false));
       }
       if (!context.isEofDeprecated()) {
         reader.skipPacket();
@@ -95,7 +95,7 @@ public class PrepareResultPacket implements Completion, Prepare {
         columns[i] =
             context
                 .getColumnDecoderFunction()
-                .apply(new StandardReadableByteBuf(reader.readPacket(trace)));
+                .apply((BufferedReadableByteBuf) reader.readPacket(trace, false));
       }
       if (!context.isEofDeprecated()) {
         reader.skipPacket();

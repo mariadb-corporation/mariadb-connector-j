@@ -42,7 +42,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
-  static BigInteger getBigInteger(ReadableByteBuf buf, ColumnDecoder column) {
+  static BigInteger getBigInteger(ReadableByteBuf buf, ColumnDecoder column) throws IOException {
     BigInteger val;
     if (column.isSigned()) {
       val = BigInteger.valueOf(buf.readLong());
@@ -77,7 +77,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case TINYINT:
       case SMALLINT:
@@ -137,7 +137,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     switch (column.getType()) {
       case TINYINT:

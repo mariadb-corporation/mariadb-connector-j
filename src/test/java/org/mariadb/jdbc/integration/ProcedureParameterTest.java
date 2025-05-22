@@ -385,10 +385,10 @@ public class ProcedureParameterTest extends Common {
   public void failStoredProcedureTest2() throws Exception {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS saveDataProc");
-    stmt.execute("DROP TABLE IF EXISTS workingStoreProcedure");
-    stmt.execute("CREATE TABLE workingStoreProcedure(i int PRIMARY KEY)");
+    stmt.execute("DROP TABLE IF EXISTS saveData");
+    stmt.execute("CREATE TABLE saveData(i int PRIMARY KEY)");
     stmt.execute(
-        "CREATE PROCEDURE saveDataProc(val int) begin INSERT INTO workingStoreProcedure(i) VALUE (val); end");
+        "CREATE PROCEDURE saveDataProc(val int) begin INSERT INTO saveData(i) VALUE (val); end");
 
     try (CallableStatement call1 = sharedConn.prepareCall("{call saveDataProc(?)}")) {
       call1.setInt(1, 1);

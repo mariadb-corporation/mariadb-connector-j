@@ -5,6 +5,7 @@ package org.mariadb.jdbc.client.column;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
+import java.io.IOException;
 import java.sql.*;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -20,6 +21,7 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
@@ -45,7 +47,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
    * @param extTypeFormat extended type format
    */
   public TimestampColumn(
-      final ReadableByteBuf buf,
+      final BufferedReadableByteBuf buf,
       final int charset,
       final long length,
       final DataType dataType,
@@ -96,20 +98,20 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   @Override
   public Object getDefaultText(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return decodeTimestampText(buf, length, null, context);
   }
 
   @Override
   public Object getDefaultBinary(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return decodeTimestampBinary(buf, length, null, context);
   }
 
   @Override
   public boolean decodeBooleanText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Boolean", dataType));
@@ -117,7 +119,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
 
   @Override
   public boolean decodeBooleanBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Boolean", dataType));
@@ -125,14 +127,14 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
 
   @Override
   public byte decodeByteText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Byte", dataType));
   }
 
   @Override
   public byte decodeByteBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Byte", dataType));
   }
@@ -143,10 +145,14 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       final MutableInt length,
       final Calendar providedCal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (length.get() == 0) return buildZeroDate();
+
     int initialPos = buf.pos();
     int initialLength = length.get();
+
+    buf.ensureAvailable(initialLength);
+
     try {
       LocalDateTime ldt = parseText(buf, length);
       if (ldt == null) {
@@ -186,10 +192,11 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       final MutableInt length,
       final Calendar providedCal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (length.get() == 0) return buildZeroDate();
     int initialPos = buf.pos();
     int initialLength = length.get();
+    buf.ensureAvailable(initialLength);
     try {
       LocalDateTime ldt = parseBinary(buf, length);
       if (ldt == null) {
@@ -258,21 +265,21 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
 
   @Override
   public short decodeShortText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Short", dataType));
   }
 
   @Override
   public short decodeShortBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Short", dataType));
   }
 
   @Override
   public int decodeIntText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Integer", dataType));
@@ -280,7 +287,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
 
   @Override
   public int decodeIntBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Integer", dataType));
@@ -288,42 +295,42 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
 
   @Override
   public long decodeLongText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Long", dataType));
   }
 
   @Override
   public long decodeLongBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Long", dataType));
   }
 
   @Override
   public float decodeFloatText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Float", dataType));
   }
 
   @Override
   public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Float", dataType));
   }
 
   @Override
   public double decodeDoubleText(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Double", dataType));
   }
 
   @Override
   public double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Double", dataType));
   }
@@ -331,7 +338,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   @Override
   public Date decodeDateText(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     LocalDateTime ldt = parseText(buf, length);
     if (ldt == null) return null;
     return new Date(localDateTimeToInstant(ldt, calParam, context) + ldt.getNano() / 1_000_000);
@@ -343,7 +350,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       final MutableInt length,
       final Calendar calParam,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     LocalDateTime ldt = parseBinary(buf, length);
     if (ldt == null) return null;
     return new Date(localDateTimeToInstant(ldt, calParam, context) + ldt.getNano() / 1_000_000);
@@ -352,7 +359,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   @Override
   public Time decodeTimeText(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     LocalDateTime ldt = parseText(buf, length);
     if (ldt == null) return null;
     return new Time(
@@ -363,7 +370,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   @Override
   public Time decodeTimeBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     LocalDateTime ldt = parseBinary(buf, length);
     if (ldt == null) return null;
     return new Time(
@@ -374,7 +381,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   @Override
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     int[] parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
     if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
       length.set(NULL_LENGTH);
@@ -411,7 +418,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   @Override
   public Timestamp decodeTimestampBinary(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (length.get() == 0) {
       length.set(NULL_LENGTH);
       return null;
@@ -462,7 +469,8 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
     }
   }
 
-  private LocalDateTime parseText(final ReadableByteBuf buf, final MutableInt length) {
+  private LocalDateTime parseText(final ReadableByteBuf buf, final MutableInt length)
+      throws IOException {
     int[] parts = LocalDateTimeCodec.parseTextTimestamp(buf, length);
     if (LocalDateTimeCodec.isZeroTimestamp(parts)) {
       length.set(NULL_LENGTH);
@@ -472,7 +480,8 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
         .plusNanos(parts[6]);
   }
 
-  private LocalDateTime parseBinary(final ReadableByteBuf buf, final MutableInt length) {
+  private LocalDateTime parseBinary(final ReadableByteBuf buf, final MutableInt length)
+      throws IOException {
     if (length.get() == 0) {
       length.set(NULL_LENGTH);
       return null;

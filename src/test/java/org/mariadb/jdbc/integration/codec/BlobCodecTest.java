@@ -13,6 +13,7 @@ import java.sql.*;
 import java.time.*;
 import java.util.Arrays;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbBlob;
@@ -54,7 +55,8 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   private ResultSet get() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
@@ -69,7 +71,9 @@ public class BlobCodecTest extends CommonCodecTest {
     PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BlobCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ?",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY);
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();
@@ -93,7 +97,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertArrayEquals("0".getBytes(), (byte[]) rs.getObject(1));
     assertFalse(rs.wasNull());
     assertArrayEquals("1".getBytes(), (byte[]) rs.getObject(2));
-    assertArrayEquals("1".getBytes(), (byte[]) rs.getObject("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertArrayEquals("1".getBytes(), (byte[]) rs.getObject("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertArrayEquals("some🌟".getBytes(StandardCharsets.UTF_8), (byte[]) rs.getObject(3));
     assertFalse(rs.wasNull());
@@ -116,7 +122,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbBlob("0".getBytes()), rs.getBlob(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob(2));
-    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertStreamEquals(new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
     assertFalse(rs.wasNull());
@@ -126,6 +134,7 @@ public class BlobCodecTest extends CommonCodecTest {
 
   @Test
   void getObjectType() throws Exception {
+    Assumptions.assumeFalse(defaultOther.contains("useSequentialAccess"));
     getObjectType(get());
   }
 
@@ -179,7 +188,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertEquals("0", rs.getString(1));
     assertFalse(rs.wasNull());
     assertEquals("1", rs.getString(2));
-    assertEquals("1", rs.getString("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertEquals("1", rs.getString("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertEquals("some🌟", rs.getString(3));
     assertFalse(rs.wasNull());
@@ -202,7 +213,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertEquals("0", rs.getNString(1));
     assertFalse(rs.wasNull());
     assertEquals("1", rs.getNString(2));
-    assertEquals("1", rs.getNString("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertEquals("1", rs.getNString("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertEquals("some🌟", rs.getNString(3));
     assertFalse(rs.wasNull());
@@ -244,7 +257,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertEquals((byte) 48, rs.getByte(1));
     assertFalse(rs.wasNull());
     assertEquals((byte) 49, rs.getByte(2));
-    assertEquals((byte) 49, rs.getByte("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertEquals((byte) 49, rs.getByte("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertEquals((byte) 115, rs.getByte(3));
     assertFalse(rs.wasNull());
@@ -482,7 +497,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("0".getBytes()), rs.getAsciiStream(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getAsciiStream(2));
-    assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getAsciiStream("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getAsciiStream("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertStreamEquals(
         new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getAsciiStream(3));
@@ -507,7 +524,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("0".getBytes()), rs.getUnicodeStream(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getUnicodeStream(2));
-    assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getUnicodeStream("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getUnicodeStream("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertStreamEquals(
         new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)),
@@ -532,7 +551,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("0".getBytes()), rs.getBinaryStream(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getBinaryStream(2));
-    assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getBinaryStream("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getBinaryStream("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertStreamEquals(
         new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBinaryStream(3));
@@ -556,7 +577,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertArrayEquals("0".getBytes(), rs.getBytes(1));
     assertFalse(rs.wasNull());
     assertArrayEquals("1".getBytes(), rs.getBytes(2));
-    assertArrayEquals("1".getBytes(), rs.getBytes("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertArrayEquals("1".getBytes(), rs.getBytes("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertArrayEquals("some🌟".getBytes(StandardCharsets.UTF_8), rs.getBytes(3));
     assertFalse(rs.wasNull());
@@ -617,7 +640,9 @@ public class BlobCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbBlob("0".getBytes()), rs.getBlob(1));
     assertFalse(rs.wasNull());
     assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob(2));
-    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
+    if (!defaultOther.contains("useSequentialAccess")) {
+      assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
+    }
     assertFalse(rs.wasNull());
     assertStreamEquals(new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
     assertFalse(rs.wasNull());
@@ -931,72 +956,75 @@ public class BlobCodecTest extends CommonCodecTest {
     assertNull(rs.getBlob(2));
 
     assertTrue(rs.next());
+    Blob blob = rs.getBlob(2);
     assertArrayEquals(
-        "g🌟1".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        "g🌟1".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
 
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        "f🌟1".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
-
-    assertTrue(rs.next());
-    assertNull(rs.getBlob(2));
-
-    assertTrue(rs.next());
-    assertArrayEquals(
-        "f🌟".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        "f🌟1".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
 
     assertTrue(rs.next());
     assertNull(rs.getBlob(2));
 
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        "e🌟3".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        "f🌟".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
+
+    assertTrue(rs.next());
+    assertNull(rs.getBlob(2));
+
+    assertTrue(rs.next());
+    blob = rs.getBlob(2);
+    assertArrayEquals(
+        "e🌟3".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
     assertNull(rs.getBlob(2));
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        "e🌟4".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        "e🌟4".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        "e🌟5".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        "e🌟5".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
-    assertArrayEquals(fileContent, rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+    blob = rs.getBlob(2);
+    assertArrayEquals(fileContent, blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        Arrays.copyOfRange(fileContent, 0, 5000),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        Arrays.copyOfRange(fileContent, 0, 5000), blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
-    assertArrayEquals(fileContent, rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+    blob = rs.getBlob(2);
+    assertArrayEquals(fileContent, blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        Arrays.copyOfRange(fileContent, 0, 5000),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        Arrays.copyOfRange(fileContent, 0, 5000), blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
-    assertArrayEquals(fileContent, rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+    blob = rs.getBlob(2);
+    assertArrayEquals(fileContent, blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        Arrays.copyOfRange(fileContent, 0, 5000),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        Arrays.copyOfRange(fileContent, 0, 5000), blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        "e🌟6''".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        "e🌟6''".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
     assertArrayEquals("e🌟7".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        "2g🌟12".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        "2g🌟12".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
     assertTrue(rs.next());
+    blob = rs.getBlob(2);
     assertArrayEquals(
-        "2g🌟15".getBytes(StandardCharsets.UTF_8),
-        rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
+        "2g🌟15".getBytes(StandardCharsets.UTF_8), blob.getBytes(1, (int) blob.length()));
 
     assertTrue(rs.next());
     assertArrayEquals("2g🌟15".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));

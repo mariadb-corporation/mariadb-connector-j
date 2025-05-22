@@ -46,7 +46,11 @@ public class FloatArrayCodecTest extends CommonCodecTest {
       prep.setObject(1, val);
       prep.execute();
     }
-    try (PreparedStatement prep = con.prepareStatement("SELECT * FROM BinaryCodec")) {
+    try (PreparedStatement prep =
+        con.prepareStatement(
+            "SELECT * FROM BinaryCodec",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       ResultSet rs = prep.executeQuery();
       assertTrue(rs.next());
       assertArrayEquals(expectedConverstion, rs.getBytes(2));
@@ -221,7 +225,11 @@ public class FloatArrayCodecTest extends CommonCodecTest {
       prep.setArray(1, valArray);
       prep.execute();
     }
-    try (PreparedStatement prep = con.prepareStatement("SELECT * FROM BinaryCodec")) {
+    try (PreparedStatement prep =
+        con.prepareStatement(
+            "SELECT * FROM BinaryCodec",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       ResultSet rs = prep.executeQuery();
       assertTrue(rs.next());
       assertArrayEquals(expectedConverstion, rs.getBytes(2));
@@ -248,7 +256,11 @@ public class FloatArrayCodecTest extends CommonCodecTest {
       prep.setObject(1, val);
       prep.execute();
     }
-    try (PreparedStatement prep = con.prepareStatement("SELECT * FROM BinaryCodec")) {
+    try (PreparedStatement prep =
+        con.prepareStatement(
+            "SELECT * FROM BinaryCodec",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       ResultSet rs = prep.executeQuery();
       assertTrue(rs.next());
       assertArrayEquals(expectedConverstion, rs.getBytes(2));

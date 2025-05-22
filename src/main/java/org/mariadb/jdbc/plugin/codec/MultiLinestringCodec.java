@@ -40,7 +40,7 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return decodeBinary(buf, length, column, cal, context);
   }
 
@@ -51,7 +51,7 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);

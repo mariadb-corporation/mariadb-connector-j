@@ -3837,20 +3837,24 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   /**
-   * Retrieves whether this database supports the given result set type. ResultSet.TYPE_FORWARD_ONLY
-   * and ResultSet.TYPE_SCROLL_INSENSITIVE are supported.
+   * Retrieves whether this database supports the given result set type.
+   * ResultSet.TYPE_FORWARD_ONLY, ResultSet.TYPE_SCROLL_INSENSITIVE and
+   * MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY are supported.
    *
    * @param type one of the following <code>ResultSet</code> constants:
    *     <ul>
    *       <li><code>ResultSet.TYPE_FORWARD_ONLY</code>
    *       <li><code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>
    *       <li><code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+   *       <li><code>MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY</code>
    *     </ul>
    *
    * @return true if supported
    */
   public boolean supportsResultSetType(int type) {
-    return (type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY);
+    return type == ResultSet.TYPE_SCROLL_INSENSITIVE
+        || type == ResultSet.TYPE_FORWARD_ONLY
+        || type == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY;
   }
 
   /**
@@ -3876,7 +3880,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public boolean supportsResultSetConcurrency(int type, int concurrency) {
     // Support all concurrency (ResultSet.CONCUR_READ_ONLY and ResultSet.CONCUR_UPDATABLE)
     // so just return scroll type
-    return type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY;
+    return type == ResultSet.TYPE_SCROLL_INSENSITIVE
+        || type == ResultSet.TYPE_FORWARD_ONLY
+        || type == MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY;
   }
 
   public boolean ownUpdatesAreVisible(int type) {

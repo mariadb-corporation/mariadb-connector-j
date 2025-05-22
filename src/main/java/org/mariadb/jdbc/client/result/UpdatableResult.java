@@ -17,6 +17,7 @@ import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.result.rowdecoder.BinaryRowDecoder;
 import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.plugin.Codec;
@@ -132,7 +133,7 @@ public class UpdatableResult extends CompleteResult {
     ResultSet rs =
         statement
             .getConnection()
-            .createStatement()
+            .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)
             .executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
     List<String> primaryColumns = new ArrayList<>();
     while (rs.next()) {
@@ -472,7 +473,7 @@ public class UpdatableResult extends CompleteResult {
             && context.getVersion().versionGreaterOrEqual(10, 5, 1)) {
           ResultSet insertRs = insertPreparedStatement.getResultSet();
           if (insertRs.next()) {
-            byte[] rowByte = ((Result) insertRs).getCurrentRowData();
+            ReadableByteBuf rowByte = ((Result) insertRs).getCurrentRowData();
             addRowData(rowByte);
           }
         } else if (isAutoincrementPk) {
@@ -613,7 +614,7 @@ public class UpdatableResult extends CompleteResult {
             rowDecoder instanceof BinaryRowDecoder);
   }
 
-  private byte[] refreshRawData() throws SQLException {
+  private ReadableByteBuf refreshRawData() throws SQLException {
     int fieldsPrimaryIndex = 0;
     try (PreparedStatement refreshPreparedStatement = prepareRefreshStmt()) {
 

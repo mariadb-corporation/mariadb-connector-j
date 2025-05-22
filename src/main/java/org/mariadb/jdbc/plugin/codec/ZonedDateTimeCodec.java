@@ -60,7 +60,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
       final ColumnDecoder column,
       final Calendar calParam,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     int[] parts;
     switch (column.getType()) {
       case BLOB:
@@ -153,7 +153,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
       final ColumnDecoder column,
       final Calendar calParam,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     int year = 1970;
     int month = 1;
     long dayOfMonth = 1;

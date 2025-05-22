@@ -60,7 +60,7 @@ public class LongCodec implements Codec<Long> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeLongText(buf, length);
   }
 
@@ -71,7 +71,7 @@ public class LongCodec implements Codec<Long> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeLongBinary(buf, length);
   }
 

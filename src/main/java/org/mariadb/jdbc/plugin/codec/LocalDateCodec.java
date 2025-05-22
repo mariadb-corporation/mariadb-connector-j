@@ -44,7 +44,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
    * @param length data length
    * @return date/month/year array
    */
-  public static int[] parseDate(ReadableByteBuf buf, MutableInt length) {
+  public static int[] parseDate(ReadableByteBuf buf, MutableInt length) throws IOException {
     int[] datePart = new int[] {0, 0, 0};
     int partIdx = 0;
     int idx = 0;
@@ -85,7 +85,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     int[] parts;
     switch (column.getType()) {
@@ -172,7 +172,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     int year;
     int month = 1;

@@ -15,7 +15,8 @@ import org.mariadb.jdbc.integration.Common;
 
 public class StreamingRowChangeTest extends Common {
 
-  private final String NOT_FORWARD = "Operation not permit on TYPE_FORWARD_ONLY resultSet";
+  private final String NOT_FORWARD =
+      "Operation not permit on TYPE_FORWARD_ONLY or TYPE_SEQUENTIAL_ACCESS_ONLY resultSet";
   private final Class<? extends java.lang.Exception> sqle = SQLException.class;
 
   @AfterAll
@@ -464,7 +465,11 @@ public class StreamingRowChangeTest extends Common {
   public void getFetchSizeNoFetchOnStmt() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     final ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
-    assertEquals(0, rs.getFetchSize());
+    if (defaultOther.contains("useSequentialAccess")) {
+      assertEquals(1, rs.getFetchSize());
+    } else {
+      assertEquals(0, rs.getFetchSize());
+    }
 
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));

@@ -166,7 +166,8 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
   }
 
   private ResultSet get() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
@@ -183,7 +184,9 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
-                + " MultiPolygonCodec WHERE 1 > ?");
+                + " MultiPolygonCodec WHERE 1 > ?",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY);
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();

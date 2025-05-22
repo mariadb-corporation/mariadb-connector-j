@@ -58,7 +58,8 @@ public class VarcharCodecTest extends CommonCodecTest {
   }
 
   private ResultSet get() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
@@ -74,7 +75,9 @@ public class VarcharCodecTest extends CommonCodecTest {
     PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ?",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY);
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     ResultSet rs = preparedStatement.executeQuery();
@@ -885,7 +888,8 @@ public class VarcharCodecTest extends CommonCodecTest {
   }
 
   private void sendParam(Connection con) throws SQLException {
-    java.sql.Statement stmt = con.createStatement();
+    java.sql.Statement stmt =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("TRUNCATE TABLE StringParamCodec");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
@@ -935,7 +939,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     }
 
     ResultSet rs =
-        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)
             .executeQuery("SELECT * FROM StringParamCodec");
     assertTrue(rs.next());
     assertEquals("e'\\n🌟'\\'1Ã", rs.getString(2));

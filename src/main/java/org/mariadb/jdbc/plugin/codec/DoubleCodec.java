@@ -59,7 +59,7 @@ public class DoubleCodec implements Codec<Double> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeDoubleText(buf, length);
   }
 
@@ -71,7 +71,7 @@ public class DoubleCodec implements Codec<Double> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return column.decodeDoubleBinary(buf, length);
   }
 

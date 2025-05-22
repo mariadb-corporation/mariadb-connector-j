@@ -58,7 +58,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   private ResultSet get() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
@@ -74,7 +75,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     PreparedStatement prepStmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateTimeCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ?",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY);
     prepStmt.closeOnCompletion();
     prepStmt.setInt(1, 0);
     ResultSet rs = prepStmt.executeQuery();
@@ -648,7 +651,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
     java.sql.Statement stmt = conGmt8.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    try (PreparedStatement prepStmt = conGmt8.prepareStatement("select * from DateTimeCodec3")) {
+    try (PreparedStatement prepStmt =
+        conGmt8.prepareStatement(
+            "select * from DateTimeCodec3",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       rs = prepStmt.executeQuery();
       rs.next();
       assertEquals("2010-01-12T01:55:12+08:00", rs.getObject(2, OffsetDateTime.class).toString());
@@ -731,7 +738,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
     java.sql.Statement stmt = conGmt8.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    try (PreparedStatement prepStmt = conGmt8.prepareStatement("select * from DateTimeCodec3")) {
+    try (PreparedStatement prepStmt =
+        conGmt8.prepareStatement(
+            "select * from DateTimeCodec3",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       rs = prepStmt.executeQuery();
       rs.next();
       assertEquals("2010-01-12T01:55:12+08:00", rs.getObject(2, OffsetDateTime.class).toString());
@@ -814,7 +825,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
     java.sql.Statement stmt = conGmt8.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    try (PreparedStatement prepStmt = conGmt8.prepareStatement("select * from DateTimeCodec3")) {
+    try (PreparedStatement prepStmt =
+        conGmt8.prepareStatement(
+            "select * from DateTimeCodec3",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       rs = prepStmt.executeQuery();
       rs.next();
       assertEquals("2010-01-12T01:55:12-08:00", rs.getObject(2, OffsetDateTime.class).toString());
@@ -897,7 +912,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
     java.sql.Statement stmt = conGmt8.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    try (PreparedStatement prepStmt = conGmt8.prepareStatement("select * from DateTimeCodec3")) {
+    try (PreparedStatement prepStmt =
+        conGmt8.prepareStatement(
+            "select * from DateTimeCodec3",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       rs = prepStmt.executeQuery();
       rs.next();
       assertEquals("2010-01-12T01:55:12Z", rs.getObject(2, OffsetDateTime.class).toString());
@@ -964,7 +983,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = conAuto.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prepStmt =
-        conAuto.prepareStatement("select * from DateTimeCodec3 order by id")) {
+        conAuto.prepareStatement(
+            "select * from DateTimeCodec3 order by id",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       rs = prepStmt.executeQuery();
       rs.next();
       assertEquals(5, rs.getInt(1));
@@ -1487,7 +1509,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   private void sendParam(Connection con) throws SQLException {
-    java.sql.Statement stmt = con.createStatement();
+    java.sql.Statement stmt =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("TRUNCATE TABLE DateTimeCodec2");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     LocalDateTime ldtNow = LocalDateTime.parse("2022-04-15T19:49:41.398057");

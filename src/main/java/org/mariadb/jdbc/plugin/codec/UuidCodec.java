@@ -43,7 +43,7 @@ public class UuidCodec implements Codec<UUID> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return UUID.fromString(column.decodeStringText(buf, length, cal, context));
   }
 
@@ -53,7 +53,7 @@ public class UuidCodec implements Codec<UUID> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return UUID.fromString(column.decodeStringBinary(buf, length, cal, context));
   }
 

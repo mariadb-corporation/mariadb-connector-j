@@ -16,6 +16,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mariadb.jdbc.Connection;
+import org.mariadb.jdbc.MariaDbResultSet;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.plugin.Codec;
@@ -214,7 +215,11 @@ public class StatementTest extends Common {
   @Test
   public void getConnection() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());
+    assertEquals(
+        defaultOther.contains("useSequentialAccess")
+            ? MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY
+            : ResultSet.TYPE_FORWARD_ONLY,
+        stmt.getResultSetType());
     assertEquals(ResultSet.CONCUR_READ_ONLY, stmt.getResultSetConcurrency());
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
     assertEquals(sharedConn, stmt.getConnection());
@@ -781,7 +786,11 @@ public class StatementTest extends Common {
     stmt.setFetchDirection(ResultSet.FETCH_REVERSE);
     assertEquals(ResultSet.FETCH_FORWARD, stmt.getFetchDirection());
     assertEquals(ResultSet.CONCUR_READ_ONLY, stmt.getResultSetConcurrency());
-    assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());
+    assertEquals(
+        defaultOther.contains("useSequentialAccess")
+            ? MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY
+            : ResultSet.TYPE_FORWARD_ONLY,
+        stmt.getResultSetType());
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
     assertEquals(0, stmt.getMaxFieldSize());
     stmt.setMaxFieldSize(100);
@@ -814,9 +823,11 @@ public class StatementTest extends Common {
         () -> {
           stmt.setQueryTimeout(1);
           assertEquals(1, stmt.getQueryTimeout());
-          stmt.execute(
-              "select * from information_schema.columns as c1,  information_schema.tables,"
-                  + " information_schema.tables as t2");
+          ResultSet rs =
+              stmt.executeQuery(
+                  "select * from information_schema.columns as c1,  information_schema.tables,"
+                      + " information_schema.tables as t2");
+          while (rs.next()) {}
         },
         "Query execution was interrupted");
     stmt.setQueryTimeout(1);
@@ -826,9 +837,11 @@ public class StatementTest extends Common {
         () -> {
           stmt.setQueryTimeout(1);
           assertEquals(1, stmt.getQueryTimeout());
-          stmt.execute(
-              "select * from information_schema.columns as c1,  information_schema.tables,"
-                  + " information_schema.tables as t2");
+          ResultSet rs =
+              stmt.executeQuery(
+                  "select * from information_schema.columns as c1,  information_schema.tables,"
+                      + " information_schema.tables as t2");
+          while (rs.next()) {}
         },
         "Query execution was interrupted");
   }
@@ -877,7 +890,8 @@ public class StatementTest extends Common {
 
     // connection level
     Assertions.assertNull(sharedConn.getWarnings());
-    stmt.executeQuery("select now() = 1");
+    ResultSet rs = stmt.executeQuery("select now() = 1");
+    while (rs.next()) {}
     SQLWarning warning = sharedConn.getWarnings();
     assertTrue(warning.getMessage().contains("ncorrect datetime value: '1'"));
     stmt.executeQuery("select now() = 1");
@@ -885,7 +899,8 @@ public class StatementTest extends Common {
     Assertions.assertNull(sharedConn.getWarnings());
 
     // statement level
-    ResultSet rs = stmt.executeQuery("select now() = 1");
+    rs = stmt.executeQuery("select now() = 1");
+    while (rs.next()) {}
     warning = rs.getWarnings();
     assertTrue(warning.getMessage().contains("ncorrect datetime value: '1'"));
 
@@ -918,10 +933,12 @@ public class StatementTest extends Common {
         SQLTimeoutException.class,
         () -> {
           exec.execute(new CancelThread(stmt));
-          stmt.execute(
-              "select * from information_schema.columns as c1,  information_schema.tables,"
-                  + " information_schema.tables as t2");
+          ResultSet rs =
+              stmt.executeQuery(
+                  "select * from information_schema.columns as c1,  information_schema.tables,"
+                      + " information_schema.tables as t2");
           exec.shutdown();
+          while (rs.next()) {}
         },
         "Query execution was interrupted");
   }

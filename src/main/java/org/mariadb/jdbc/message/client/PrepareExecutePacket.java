@@ -13,6 +13,7 @@ import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.impl.readable.BufferedReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.ClosableLock;
@@ -150,7 +151,7 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
           == 0xff) { // force current status to in transaction to ensure rollback/commit, since
         // command may
         // have issue a transaction
-        ErrorPacket errorPacket = new ErrorPacket(buf, context);
+        ErrorPacket errorPacket = new ErrorPacket((BufferedReadableByteBuf) buf, context);
         throw exceptionFactory
             .withSql(this.description())
             .create(

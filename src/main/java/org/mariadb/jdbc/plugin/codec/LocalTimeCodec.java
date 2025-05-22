@@ -48,8 +48,9 @@ public class LocalTimeCodec implements Codec<LocalTime> {
    * @throws SQLDataException if parsing error occurs
    */
   public static int[] parseTime(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     int initialPos = buf.pos();
+    buf.ensureAvailable(length.get());
     int[] parts = new int[5];
     parts[0] = 1;
     int idx = 1;
@@ -115,7 +116,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     int[] parts;
     switch (column.getType()) {
@@ -184,7 +185,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
 
     int hour = 0;
     int minutes = 0;

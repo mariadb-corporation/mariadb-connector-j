@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
-package org.mariadb.jdbc.client.impl;
+package org.mariadb.jdbc.client.impl.readable;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+
 import org.mariadb.jdbc.MariaDbBlob;
+import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 
 /** Packet buffer */
-public final class StandardReadableByteBuf implements ReadableByteBuf {
+public final class BufferedReadableByteBuf implements ReadableByteBuf {
   /** buffer */
-  public byte[] buf;
+  public final byte[] buf;
 
   /** current position reading buffer */
   public int pos;
@@ -24,18 +29,21 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
    * @param buf buffer
    * @param limit buffer limit
    */
-  public StandardReadableByteBuf(byte[] buf, int limit) {
+  public BufferedReadableByteBuf(byte[] buf, int limit) {
     this.pos = 0;
     this.buf = buf;
     this.limit = limit;
   }
+
+  @Override
+  public void ensureAvailable(int bytes) { }
 
   /**
    * Packet buffer constructor, limit being the buffer length
    *
    * @param buf buffer
    */
-  public StandardReadableByteBuf(byte[] buf) {
+  public BufferedReadableByteBuf(byte[] buf) {
     this.pos = 0;
     this.buf = buf;
     this.limit = buf.length;
@@ -51,12 +59,6 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   public byte[] buf() {
     return buf;
-  }
-
-  public void buf(byte[] buf, int limit, int pos) {
-    this.buf = buf;
-    this.limit = limit;
-    this.pos = pos;
   }
 
   public void pos(int pos) {
@@ -93,6 +95,17 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   public MariaDbBlob readBlob(int length) {
     pos += length;
     return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
+  }
+
+  public MariaDbClob readClob(int length) {
+    pos += length;
+    return new MariaDbClob(buf, pos - length, length);
+  }
+
+  public InputStream readInputStream(int length) {
+    ByteArrayInputStream is = new ByteArrayInputStream(buf, pos, length);
+    pos += length;
+    return is;
   }
 
   public long atoll(int length) {
@@ -276,10 +289,10 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     return dst;
   }
 
-  public StandardReadableByteBuf readLengthBuffer() {
+  public BufferedReadableByteBuf readLengthBuffer() {
     int len = this.readIntLengthEncodedNotNull();
 
-    StandardReadableByteBuf b = new StandardReadableByteBuf(buf, pos + len);
+    BufferedReadableByteBuf b = new BufferedReadableByteBuf(buf, pos + len);
     b.pos = pos;
     pos += len;
     return b;

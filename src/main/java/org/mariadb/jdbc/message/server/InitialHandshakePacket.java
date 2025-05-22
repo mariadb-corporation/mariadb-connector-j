@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.server;
 
+import java.io.IOException;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.message.ServerMessage;
@@ -62,7 +63,7 @@ public final class InitialHandshakePacket implements ServerMessage {
    * @param reader packet reader
    * @return Parsed packet
    */
-  public static InitialHandshakePacket decode(ReadableByteBuf reader) {
+  public static InitialHandshakePacket decode(ReadableByteBuf reader) throws IOException {
     byte protocolVersion = reader.readByte();
     if (protocolVersion != 0x0a) {
       throw new IllegalArgumentException(

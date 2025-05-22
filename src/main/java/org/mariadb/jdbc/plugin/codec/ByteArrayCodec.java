@@ -55,12 +55,12 @@ public class ByteArrayCodec implements Codec<byte[]> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return getBytes(buf, length, column);
   }
 
   private byte[] getBytes(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     switch (column.getType()) {
       case BIT:
       case BLOB:
@@ -89,7 +89,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
       final ColumnDecoder column,
       final Calendar cal,
       final Context context)
-      throws SQLDataException {
+      throws SQLDataException, IOException {
     return getBytes(buf, length, column);
   }
 

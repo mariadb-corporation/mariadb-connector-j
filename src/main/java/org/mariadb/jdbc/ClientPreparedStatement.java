@@ -8,6 +8,7 @@ import static org.mariadb.jdbc.util.constants.Capabilities.*;
 import java.sql.*;
 import java.util.*;
 import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.util.ClosableLock;
@@ -163,7 +164,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   0,
                   maxRows,
                   ResultSet.CONCUR_READ_ONLY,
-                  ResultSet.TYPE_FORWARD_ONLY,
+                  ResultSet.TYPE_SCROLL_INSENSITIVE,
                   closeOnCompletion,
                   false);
     } catch (SQLException bue) {
@@ -257,7 +258,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
     if (con.getContext().getConf().permitNoResults()) {
       return new CompleteResult(
-          new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
+          new ColumnDecoder[0], new ReadableByteBuf[0], con.getContext(), resultSetType);
     }
 
     throw new SQLException(

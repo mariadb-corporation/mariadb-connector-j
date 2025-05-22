@@ -8,9 +8,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.Blob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.MariaDbBlob;
+import org.mariadb.jdbc.MariaDbResultSet;
+import org.mariadb.jdbc.Statement;
 
 public class BlobTest extends Common {
 
@@ -88,6 +95,112 @@ public class BlobTest extends Common {
       fail("must have thrown exception, min pos is 1");
     } catch (SQLException sqle) {
       // normal exception
+    }
+  }
+
+  @Test
+  public void blobStream() throws SQLException, IOException {
+    int maxAllowedPacket = getMaxAllowedPacket();
+    Assumptions.assumeTrue(maxAllowedPacket > 40 * 1024 * 1024);
+    blobStream(sharedConn);
+    blobStream(sharedConnBinary);
+  }
+
+  public void blobStream(Connection con) throws SQLException, IOException {
+    Statement stmt = con.createStatement(MariaDbResultSet.TYPE_SEQUENTIAL_ACCESS_ONLY, ResultSet.CONCUR_READ_ONLY);
+    int LENGTH = 50 * 1024 * 1024;
+    stmt.execute("DROP TABLE IF EXISTS blobStream");
+    stmt.execute("CREATE TABLE blobStream (t1 int not null primary key auto_increment, t2 LONGTEXT)");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO blobStream VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setBinaryStream(2, new RepeatingCharacterInputStream('a', LENGTH));
+      prep.execute();
+    }
+
+    try (ResultSet rs = stmt.executeQuery("SELECT t2, t1 from blobStream WHERE t1 = 1")) {
+      assertTrue(rs.next());
+      Blob blob = rs.getBlob(1);
+      assertEquals(LENGTH, blob.length());
+      InputStream is = blob.getBinaryStream();
+      int read;
+      int total = 0;
+      byte[] b = new byte[8192];
+      do {
+        read = is.read(b);
+        if (read > 0) {
+          total += read;
+        }
+      } while (read != -1);
+      assertEquals(LENGTH, total);
+      assertEquals(-1, is.read(b));
+      assertEquals(1, rs.getInt(2));
+    }
+
+    try (ResultSet rs = stmt.executeQuery("SELECT t2, t1 from blobStream WHERE t1 = 1")) {
+      assertTrue(rs.next());
+      Blob blob = rs.getBlob(1);
+      assertEquals(LENGTH, blob.length());
+      InputStream is = blob.getBinaryStream();
+      int read;
+      int total = 0;
+      byte[] b = new byte[8192];
+
+      read = is.read(b);
+      total += read;
+
+      // force loading into memory
+      assertEquals(1, rs.getInt(2));
+
+      do {
+        read = is.read(b);
+        if (read > 0) {
+          total += read;
+        }
+      } while (read != -1);
+      assertEquals(LENGTH, total);
+
+    }
+
+    con.commit();
+  }
+
+  private class RepeatingCharacterInputStream extends InputStream {
+    private final char character;
+    private final long size;
+    private long position = 0;
+
+    public RepeatingCharacterInputStream(char character, long size) {
+      this.character = character;
+      this.size = size;
+    }
+
+    @Override
+    public int read() throws IOException {
+      if (position < size) {
+        position++;
+        return character;
+      } else {
+        return -1; // End of stream
+      }
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+      if (position >= size) {
+        return -1; // End of stream
+      }
+
+      int bytesToRead = (int) Math.min(len, size - position);
+      byte value = (byte) character;
+
+      for (int i = 0; i < bytesToRead; i++) {
+        b[off + i] = value;
+      }
+
+      position += bytesToRead;
+      return bytesToRead;
     }
   }
 
