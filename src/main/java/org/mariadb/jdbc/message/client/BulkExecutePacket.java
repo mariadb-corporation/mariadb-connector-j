@@ -25,6 +25,8 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
  * @see <a href="https://mariadb.com/kb/en/com_stmt_bulk_execute/">documentation</a>
  */
 public final class BulkExecutePacket implements RedoableWithPrepareClientMessage {
+  private static final int FLAG_SEND_UNIT_RESULTS = 64;
+  private static final int FLAG_SEND_TYPES_TO_SERVER = 128;
   private final String command;
   private final BasePreparedStatement prep;
   private List<Parameters> batchParameterList;
@@ -92,12 +94,16 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
       writer.initPacket();
       writer.writeByte(0xfa); // COM_STMT_BULK_EXECUTE
       writer.writeInt(statementId);
-      writer.writeShort(
-          (short)
-              (mightBeBulkResult ? 192 : 128)); // always SEND_TYPES_TO_SERVER + SEND_UNIT_RESULTS
+      short calculatedFlags = FLAG_SEND_TYPES_TO_SERVER;
+      if (mightBeBulkResult) {
+        calculatedFlags |= FLAG_SEND_UNIT_RESULTS;
+      }
+      writer.writeShort(calculatedFlags);
 
-      for (int i = 0; i < parameterCount; i++) {
-        writer.writeShort((short) parameterHeaderType[i].getBinaryEncodeType());
+      if ((calculatedFlags & FLAG_SEND_TYPES_TO_SERVER) == FLAG_SEND_TYPES_TO_SERVER) {
+        for (int i = 0; i < parameterCount; i++) {
+          writer.writeShort((short) parameterHeaderType[i].getBinaryEncodeType());
+        }
       }
 
       if (lastCmdData != null) {
