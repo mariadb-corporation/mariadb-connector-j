@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.socket.impl;
 
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -141,39 +142,40 @@ public class PacketReader implements Reader {
     int lastPacketLength =
         (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
 
-    // prepare array
-    byte[] rawBytes = new byte[lastPacketLength];
-
-    // ***************************************************
-    // Read content
-    // ***************************************************
-    remaining = lastPacketLength;
-    off = 0;
-    do {
-      int count = inputStream.read(rawBytes, off, remaining);
-      if (count < 0) {
-        throw new EOFException(
-            "unexpected end of stream, read "
-                + (lastPacketLength - remaining)
-                + " bytes from "
-                + lastPacketLength
-                + " (socket was closed by server)");
-      }
-      remaining -= count;
-      off += count;
-    } while (remaining > 0);
-
-    if (traceEnable) {
-      logger.trace(
-          "read: {}\n{}",
-          serverThreadLog,
-          LoggerHelper.hex(header, rawBytes, 0, lastPacketLength, maxQuerySizeToLog));
-    }
+    byte[] rawBytes;
 
     // ***************************************************
     // In case content length is big, content will be separate in many 16Mb packets
     // ***************************************************
     if (lastPacketLength == MAX_PACKET_SIZE) {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      byte[] chunkBytes = new byte[MAX_PACKET_SIZE];
+      // Read first chunk
+      remaining = MAX_PACKET_SIZE;
+      off = 0;
+      do {
+        int count = inputStream.read(chunkBytes, off, remaining);
+        if (count < 0) {
+          throw new EOFException(
+              "unexpected end of stream, read "
+                  + (MAX_PACKET_SIZE - remaining)
+                  + " bytes from "
+                  + MAX_PACKET_SIZE
+                  + " (socket was closed by server)");
+        }
+        remaining -= count;
+        off += count;
+      } while (remaining > 0);
+      baos.write(chunkBytes, 0, MAX_PACKET_SIZE);
+
+      if (traceEnable) {
+        logger.trace(
+            "read: {}\n{}",
+            serverThreadLog,
+            LoggerHelper.hex(header, chunkBytes, 0, MAX_PACKET_SIZE, maxQuerySizeToLog));
+      }
+
+      int totalPacketLength = MAX_PACKET_SIZE;
       int packetLength;
       do {
         remaining = 4;
@@ -189,41 +191,76 @@ public class PacketReader implements Reader {
 
         packetLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
 
-        int currentbufLength = rawBytes.length;
-        byte[] newRawBytes = new byte[currentbufLength + packetLength];
-        System.arraycopy(rawBytes, 0, newRawBytes, 0, currentbufLength);
-        rawBytes = newRawBytes;
-
-        // ***************************************************
-        // Read content
-        // ***************************************************
-        remaining = packetLength;
-        off = currentbufLength;
-        do {
-          int count = inputStream.read(rawBytes, off, remaining);
-          if (count < 0) {
-            throw new EOFException(
-                "unexpected end of stream, read "
-                    + (packetLength - remaining)
-                    + " bytes from "
-                    + packetLength);
+        if (packetLength > 0) {
+          // Resize or reallocate chunkBytes if necessary
+          if (chunkBytes.length < packetLength) {
+            chunkBytes = new byte[packetLength];
           }
-          remaining -= count;
-          off += count;
-        } while (remaining > 0);
 
-        if (traceEnable) {
-          logger.trace(
-              "read: {}\n{}",
-              serverThreadLog,
-              LoggerHelper.hex(
-                  header, rawBytes, currentbufLength, packetLength, maxQuerySizeToLog));
+          // ***************************************************
+          // Read content
+          // ***************************************************
+          remaining = packetLength;
+          off = 0;
+          do {
+            int count = inputStream.read(chunkBytes, off, remaining);
+            if (count < 0) {
+              throw new EOFException(
+                  "unexpected end of stream, read "
+                      + (packetLength - remaining)
+                      + " bytes from "
+                      + packetLength);
+            }
+            remaining -= count;
+            off += count;
+          } while (remaining > 0);
+
+          baos.write(chunkBytes, 0, packetLength);
+
+          if (traceEnable) {
+            logger.trace(
+                "read: {}\n{}",
+                serverThreadLog,
+                LoggerHelper.hex(header, chunkBytes, 0, packetLength, maxQuerySizeToLog));
+          }
         }
-
-        lastPacketLength += packetLength;
+        totalPacketLength += packetLength;
       } while (packetLength == MAX_PACKET_SIZE);
-    }
+      rawBytes = baos.toByteArray();
+      // Sanity check, should not happen with current server implementation that totalPacketLength differs
+      if (rawBytes.length != totalPacketLength) {
+        logger.warn(
+            "Mismatch between calculated total packet length ({}) and actual ({})",
+            totalPacketLength,
+            rawBytes.length);
+      }
 
+    } else {
+      // Standard packet read (not chunked)
+      rawBytes = new byte[lastPacketLength];
+      remaining = lastPacketLength;
+      off = 0;
+      do {
+        int count = inputStream.read(rawBytes, off, remaining);
+        if (count < 0) {
+          throw new EOFException(
+              "unexpected end of stream, read "
+                  + (lastPacketLength - remaining)
+                  + " bytes from "
+                  + lastPacketLength
+                  + " (socket was closed by server)");
+        }
+        remaining -= count;
+        off += count;
+      } while (remaining > 0);
+
+      if (traceEnable) {
+        logger.trace(
+            "read: {}\n{}",
+            serverThreadLog,
+            LoggerHelper.hex(header, rawBytes, 0, lastPacketLength, maxQuerySizeToLog));
+      }
+    }
     return rawBytes;
   }
 
