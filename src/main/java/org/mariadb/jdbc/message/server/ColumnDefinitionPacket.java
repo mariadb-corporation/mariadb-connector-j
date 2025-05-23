@@ -98,7 +98,8 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   }
 
   public String getCatalog() {
-    return "def";
+    buf.pos(0);
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getSchema() {
