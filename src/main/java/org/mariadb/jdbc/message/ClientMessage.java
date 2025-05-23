@@ -289,7 +289,7 @@ public interface ClientMessage {
 
         // intermediate EOF
         if (!context.isEofDeprecated()) {
-          reader.skipPacket();
+          reader.readReusablePacket();
         }
 
         // read resultSet
