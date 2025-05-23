@@ -388,7 +388,8 @@ public class ProcedureParameterTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS workingStoreProcedure");
     stmt.execute("CREATE TABLE workingStoreProcedure(i int PRIMARY KEY)");
     stmt.execute(
-        "CREATE PROCEDURE saveDataProc(val int) begin INSERT INTO workingStoreProcedure(i) VALUE (val); end");
+        "CREATE PROCEDURE saveDataProc(val int) begin INSERT INTO workingStoreProcedure(i) VALUE"
+            + " (val); end");
 
     try (CallableStatement call1 = sharedConn.prepareCall("{call saveDataProc(?)}")) {
       call1.setInt(1, 1);

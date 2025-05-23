@@ -646,7 +646,9 @@ public class BitCodecTest extends CommonCodecTest {
     Common.assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse 'false' as URL");
     Common.assertThrowsContains(
-        SQLSyntaxErrorException.class, () -> rs.getURL("t1alias"), "Could not parse 'false' as URL");
+        SQLSyntaxErrorException.class,
+        () -> rs.getURL("t1alias"),
+        "Could not parse 'false' as URL");
   }
 
   @Test
