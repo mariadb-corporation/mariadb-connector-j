@@ -1,0 +1,94 @@
+---
+name: Run CI Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:  # Allows to trigger the workflow manually in GitHub UI
+
+# If another push to the same PR or branch happens while this workflow is still running,
+# cancel the earlier run in favor of the next run.
+#
+# There's no point in testing an outdated version of the code. GitHub only allows
+# a limited number of job runners to be active at the same time, so it's better to cancel
+# pointless jobs early so that more useful jobs can run sooner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WORKDIR: "."
+
+jobs:
+  test:
+    timeout-minutes: 50
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKDIR }}
+    strategy:
+      matrix:
+        java-version: ['21']
+        registry: ['docker.io/mariadb']
+        include:
+          - tag: '10.5'
+          - tag: '10.6'
+          - tag: '10.11'
+          - tag: '11.4'
+          - tag: '11.4'
+            java-version: '8'
+            mvn-profile: 'java8'
+          - tag: '11.4'
+            java-version: '17'
+          - tag: '10.5'
+            registry: 'docker.mariadb.com/enterprise-server'
+            if: github.event_name != 'pull_request'
+            registry-user: ${{ secrets.ENTERPRISE_USER }}
+            registry-password: ${{ secrets.ENTERPRISE_TOKEN }}
+          - tag: '10.6'
+            registry: 'docker.mariadb.com/enterprise-server'
+            if: github.event_name != 'pull_request'
+            registry-user: ${{ secrets.ENTERPRISE_USER }}
+            registry-password: ${{ secrets.ENTERPRISE_TOKEN }}
+          - tag: '11.4'
+            registry: 'docker.mariadb.com/enterprise-server'
+            if: github.event_name != 'pull_request'
+            registry-user: ${{ secrets.ENTERPRISE_USER }}
+            registry-password: ${{ secrets.ENTERPRISE_TOKEN }}
+          - tag: '8.0'
+            mysql: true
+    env:
+      TEST_DB_HOST: localhost
+      TEST_DB_PORT: 3306
+      TEST_DB_USER: boby
+      TEST_DB_PASSWORD: 'heyPassw-!*20oRd'
+      TEST_DB_DATABASE: testj
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          cache: maven
+          distribution: 'adopt'
+
+      - name: Set up MariaDB Server
+        if: {{ mysql != true}}
+        uses: rusher/setup-mariadb@v1
+        with:
+          tag : ${{ matrix.tag }}
+          registry: ${{ matrix.registry }}
+          root-password: "$TEST_DB_PASSWORD"
+          user: "TEST_DB_USER"
+          password: "$TEST_DB_PASSWORD"
+          database: "TEST_DB_DATABASE"
+          registry-user: ${{ registry-user }}
+          registry-password: ${{ registry-password }}
+
+      - name: Build with Maven java 8
+        if: matrix.mvn-profile == 'java8'
+        run: mvn clean test -P java8
+
+      - name: Build with Maven
+        if: mvn-profile == ''
+        run: mvn clean test
