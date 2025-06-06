@@ -853,6 +853,8 @@ public class BaseTest {
       // do nothing
     }
 
+    String localDb = System.getenv().get("LOCAL_DB");
+    if (isLocal && localDb != null) isLocal = "local".equals(localDb);
     if (!isLocal) {
       System.out.println("test '" + testName + "' skipped because connection is not local");
     }
