@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -9,9 +9,7 @@ import java.io.*;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import javax.net.ssl.SSLContext;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
@@ -57,27 +55,35 @@ public class SslTest extends Common {
             && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS '" + user + "'@'%' " + requirement);
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS '" + user + "'" + getHostSuffix() + " " + requirement);
       stmt.execute(
           "GRANT SELECT ON *.* TO '"
               + user
-              + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
+              + "'"
+              + getHostSuffix()
+              + " IDENTIFIED BY '!Passw0rd3Works' "
               + requirement);
     } else {
       if (!isMariaDBServer() && minVersion(8, 0, 0)) {
         stmt.execute(
             "CREATE USER IF NOT EXISTS '"
                 + user
-                + "'@'%' IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
+                + "'"
+                + getHostSuffix()
+                + " IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
                 + requirement);
       } else {
         stmt.execute(
             "CREATE USER IF NOT EXISTS '"
                 + user
-                + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
+                + "'"
+                + getHostSuffix()
+                + " IDENTIFIED BY '!Passw0rd3Works' "
                 + requirement);
       }
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO '" + user + "'@'%' ");
+      stmt.execute(
+          "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO '" + user + "'" + getHostSuffix());
     }
   }
 
@@ -99,6 +105,18 @@ public class SslTest extends Common {
     }
     if (serverCertificatePath == null) {
       serverCertificatePath = checkFileExists("../../ssl/server.crt");
+    }
+    return serverCertificatePath;
+  }
+
+  public static String retrieveCaCertificatePath() throws Exception {
+    String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists(System.getenv("TEST_DB_SERVER_CA_CERT"));
+    }
+
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists("../../ssl/ca.crt");
     }
     return serverCertificatePath;
   }
@@ -202,15 +220,20 @@ public class SslTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
     }
     try {
-      stmt.execute("drop user if exists verificationEd25519AuthPlugin@'%'");
+      stmt.execute("drop user if exists verificationEd25519AuthPlugin" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     stmt.execute(
-        "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+        "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+            + getHostSuffix()
+            + " IDENTIFIED "
             + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord') REQUIRE SSL");
     stmt.execute(
-        "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO verificationEd25519AuthPlugin@'%' ");
+        "GRANT SELECT ON "
+            + sharedConn.getCatalog()
+            + ".* TO verificationEd25519AuthPlugin"
+            + getHostSuffix());
     try (Connection con =
         createCon(
             "user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord&sslMode=verify-ca",
@@ -333,14 +356,19 @@ public class SslTest extends Common {
     Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
 
     // without password
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions
-                    + "&sslMode=trust&keyStore="
-                    + System.getenv("TEST_DB_CLIENT_PKCS"),
-                sslPort));
+    try {
+      assertThrows(
+          SQLInvalidAuthorizationSpecException.class,
+          () ->
+              createCon(
+                  baseMutualOptions
+                      + "&sslMode=trust&keyStore="
+                      + System.getenv("TEST_DB_CLIENT_PKCS"),
+                  sslPort));
+    } catch (Throwable e) {
+      e.printStackTrace();
+      throw e;
+    }
     // with password
     try (Connection con =
         createCon(

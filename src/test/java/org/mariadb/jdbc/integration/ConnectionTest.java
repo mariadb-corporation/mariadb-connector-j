@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -578,7 +578,6 @@ public class ConnectionTest extends Common {
       Statement stmt = connection.createStatement();
       boolean canUseTransactionReadOnly =
           (isMariaDBServer()
-                  && sharedConn.getContext().getVersion().getMajorVersion() < 23
                   && sharedConn.getContext().getVersion().versionGreaterOrEqual(11, 1, 1))
               || (!sharedConn.getContext().getVersion().isMariaDBServer()
                   && ((sharedConn.getContext().getVersion().getMajorVersion() >= 8
@@ -732,32 +731,39 @@ public class ConnectionTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
     }
     try {
-      stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+      stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     try {
       if (minVersion(10, 4, 0)) {
         stmt.execute(
-            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+                + getHostSuffix()
+                + " IDENTIFIED "
                 + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
       } else {
         stmt.execute(
-            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+                + getHostSuffix()
+                + " IDENTIFIED "
                 + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
       }
     } catch (SQLException sqle) {
       // already existing
     }
     stmt.execute(
-        "GRANT SELECT on " + sharedConn.getCatalog() + ".* to verificationEd25519AuthPlugin");
+        "GRANT SELECT on "
+            + sharedConn.getCatalog()
+            + ".* to verificationEd25519AuthPlugin"
+            + getHostSuffix());
 
     try (Connection connection =
         createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord")) {
       // must have succeeded
       connection.getCatalog();
     }
-    stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+    stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
   }
 
   @Test
@@ -782,12 +788,13 @@ public class ConnectionTest extends Common {
     String pamUser = System.getenv("TEST_PAM_USER");
     String pamPwd = System.getenv("TEST_PAM_PWD");
     try {
-      stmt.execute("DROP USER '" + pamUser + "'@'%'");
+      stmt.execute("DROP USER '" + pamUser + "'" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     stmt.execute("CREATE USER '" + pamUser + "'@'%' IDENTIFIED VIA pam USING 'mariadb'");
-    stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
+    stmt.execute(
+        "GRANT SELECT ON *.* TO '" + pamUser + "'" + getHostSuffix() + " IDENTIFIED VIA pam");
 
     stmt.execute("FLUSH PRIVILEGES");
 
@@ -835,7 +842,7 @@ public class ConnectionTest extends Common {
         () -> DriverManager.getConnection(connStr + "&restrictedAuth=other"),
         "Client restrict authentication plugin to a limited set of authentication");
 
-    stmt.execute("drop user " + pamUser + "@'%'");
+    stmt.execute("drop user " + pamUser + getHostSuffix());
   }
 
   @Test
