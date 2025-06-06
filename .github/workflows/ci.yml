@@ -56,7 +56,7 @@ jobs:
           echo "matrix=$final_matrix" >> $GITHUB_OUTPUT
 
   ci:
-    name: ${{ matrix.name }}${{ matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
+    name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
     needs: setup
     timeout-minutes: 50
     strategy:
