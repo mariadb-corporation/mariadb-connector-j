@@ -293,6 +293,13 @@ public class Common {
     return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
+  public static String getHostSuffix() {
+    if ("local".equals(System.getenv().getOrDefault("LOCAL_DB", "container"))) {
+      return "@'localhost'";
+    }
+    return "@'%'";
+  }
+
   public int getJavaVersion() {
     String version = System.getProperty("java.version");
     if (version.startsWith("1.")) {

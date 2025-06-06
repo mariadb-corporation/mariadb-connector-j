@@ -58,27 +58,35 @@ public class SslTest extends Common {
             && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS '" + user + "'@'%' " + requirement);
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS '" + user + "'" + getHostSuffix() + " " + requirement);
       stmt.execute(
           "GRANT SELECT ON *.* TO '"
               + user
-              + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
+              + "'"
+              + getHostSuffix()
+              + " IDENTIFIED BY '!Passw0rd3Works' "
               + requirement);
     } else {
       if (!isMariaDBServer() && minVersion(8, 0, 0)) {
         stmt.execute(
             "CREATE USER IF NOT EXISTS '"
                 + user
-                + "'@'%' IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
+                + "'"
+                + getHostSuffix()
+                + " IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
                 + requirement);
       } else {
         stmt.execute(
             "CREATE USER IF NOT EXISTS '"
                 + user
-                + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
+                + "'"
+                + getHostSuffix()
+                + " IDENTIFIED BY '!Passw0rd3Works' "
                 + requirement);
       }
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO '" + user + "'@'%' ");
+      stmt.execute(
+          "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO '" + user + "'" + getHostSuffix());
     }
   }
 
@@ -215,15 +223,20 @@ public class SslTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
     }
     try {
-      stmt.execute("drop user if exists verificationEd25519AuthPlugin@'%'");
+      stmt.execute("drop user if exists verificationEd25519AuthPlugin" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     stmt.execute(
-        "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+        "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+            + getHostSuffix()
+            + " IDENTIFIED "
             + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord') REQUIRE SSL");
     stmt.execute(
-        "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO verificationEd25519AuthPlugin@'%' ");
+        "GRANT SELECT ON "
+            + sharedConn.getCatalog()
+            + ".* TO verificationEd25519AuthPlugin"
+            + getHostSuffix());
     try (Connection con =
         createCon(
             "user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord&sslMode=verify-ca",
@@ -251,15 +264,20 @@ public class SslTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have auth_parsec plugin, cancelling test");
     }
     try {
-      stmt.execute("drop user if exists verificationParsecAuthPlugin@'%'");
+      stmt.execute("drop user if exists verificationParsecAuthPlugin" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     stmt.execute(
-        "CREATE USER IF NOT EXISTS verificationParsecAuthPlugin@'%' IDENTIFIED "
+        "CREATE USER IF NOT EXISTS verificationParsecAuthPlugin"
+            + getHostSuffix()
+            + " IDENTIFIED "
             + "VIA parsec USING PASSWORD('MySup8%rPassw@ord') REQUIRE SSL");
     stmt.execute(
-        "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO verificationParsecAuthPlugin@'%' ");
+        "GRANT SELECT ON "
+            + sharedConn.getCatalog()
+            + ".* TO verificationParsecAuthPlugin"
+            + getHostSuffix());
     try (Connection con =
         createCon(
             "user=verificationParsecAuthPlugin&password=MySup8%rPassw@ord&sslMode=verify-ca",

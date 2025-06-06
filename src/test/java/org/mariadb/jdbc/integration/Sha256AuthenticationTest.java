@@ -24,10 +24,10 @@ public class Sha256AuthenticationTest extends Common {
   public static void drop() throws SQLException {
     if (sharedConn != null) {
       org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
-      dropUserWithoutError(stmt, "'cachingSha256User'@'%'");
-      dropUserWithoutError(stmt, "'cachingSha256User2'@'%'");
-      dropUserWithoutError(stmt, "'cachingSha256User3'@'%'");
-      dropUserWithoutError(stmt, "'cachingSha256User4'@'%'");
+      dropUserWithoutError(stmt, "'cachingSha256User'" + getHostSuffix());
+      dropUserWithoutError(stmt, "'cachingSha256User2'" + getHostSuffix());
+      dropUserWithoutError(stmt, "'cachingSha256User3'" + getHostSuffix());
+      dropUserWithoutError(stmt, "'cachingSha256User4'" + getHostSuffix());
     }
     // reason is that after nativePassword test, it sometime always return wrong authentication id
     // not cached
@@ -76,20 +76,28 @@ public class Sha256AuthenticationTest extends Common {
     }
 
     stmt.execute(
-        "CREATE USER 'cachingSha256User'@'%' IDENTIFIED WITH caching_sha2_password BY"
+        "CREATE USER 'cachingSha256User'"
+            + getHostSuffix()
+            + " IDENTIFIED WITH caching_sha2_password BY"
             + " '!Passw0rd3Works'");
     stmt.execute(
-        "CREATE USER 'cachingSha256User2'@'%' IDENTIFIED WITH caching_sha2_password BY ''");
+        "CREATE USER 'cachingSha256User2'"
+            + getHostSuffix()
+            + " IDENTIFIED WITH caching_sha2_password BY ''");
     stmt.execute(
-        "CREATE USER 'cachingSha256User3'@'%' IDENTIFIED WITH caching_sha2_password BY"
+        "CREATE USER 'cachingSha256User3'"
+            + getHostSuffix()
+            + " IDENTIFIED WITH caching_sha2_password BY"
             + " '!Passw0rd3Works'");
     stmt.execute(
-        "CREATE USER 'cachingSha256User4'@'%' IDENTIFIED WITH caching_sha2_password BY"
+        "CREATE USER 'cachingSha256User4'"
+            + getHostSuffix()
+            + " IDENTIFIED WITH caching_sha2_password BY"
             + " '!Passw0rd3Works'");
-    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
-    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User2'@'%'");
-    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User3'@'%'");
-    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User4'@'%'");
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'" + getHostSuffix());
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User2'" + getHostSuffix());
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User3'" + getHostSuffix());
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User4'" + getHostSuffix());
     stmt.execute("FLUSH PRIVILEGES");
   }
 
@@ -111,20 +119,22 @@ public class Sha256AuthenticationTest extends Common {
         !isWindows() && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     try {
-      stmt.execute("DROP USER tmpUser@'%'");
+      stmt.execute("DROP USER tmpUser" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
 
     stmt.execute(
-        "CREATE USER tmpUser@'%' IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works'");
-    stmt.execute("grant all on `" + sharedConn.getCatalog() + "`.* TO tmpUser@'%'");
+        "CREATE USER tmpUser"
+            + getHostSuffix()
+            + " IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works'");
+    stmt.execute("grant all on `" + sharedConn.getCatalog() + "`.* TO tmpUser" + getHostSuffix());
     stmt.execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con = createCon("user=tmpUser&password=!Passw0rd3Works")) {
       con.isValid(1);
     }
     try {
-      stmt.execute("DROP USER tmpUser@'%' ");
+      stmt.execute("DROP USER tmpUser" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
