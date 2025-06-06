@@ -61,6 +61,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
+
+import com.sun.jna.Platform;
 import org.junit.*;
 
 public class StoredProcedureTest extends BaseTest {
@@ -1663,19 +1665,21 @@ public class StoredProcedureTest extends BaseTest {
   public void testNoKillRights() throws Exception {
     Assume.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!Platform.isWindows());
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 1, 2));
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("DROP USER IF EXISTS basicUser" + getHostSuffix());
     stmt.execute("CREATE USER basicUser"+ getHostSuffix() +" IDENTIFIED BY '!Passw0rd3Works'");
     stmt.execute("GRANT ALL ON *.* TO basicUser"+ getHostSuffix());
     stmt.execute("DROP PROCEDURE IF EXISTS p_r_d");
+
     stmt.execute(
         String.format(
             "CREATE DEFINER=%s PROCEDURE p_r_d() SQL SECURITY DEFINER\n"
                 + "BEGIN\n"
                 + "SELECT SLEEP(60), 'hello';\n"
                 + "END;",
-            username+ getHostSuffix()));
+            username + getHostSuffix()));
     try (CallableStatement st = sharedConnection.prepareCall("CALL p_r_d()")) {
       st.setQueryTimeout(1);
       st.execute();

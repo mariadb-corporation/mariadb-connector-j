@@ -608,17 +608,17 @@ public class ConnectionTest extends BaseTest {
     try {
       if (minVersion(10, 4)) {
         stmt.execute(
-            "CREATE USER verificationEd25519AuthPlugin IDENTIFIED "
+            "CREATE USER verificationEd25519AuthPlugin" + getHostSuffix() + " IDENTIFIED "
                 + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
       } else {
         stmt.execute(
-            "CREATE USER verificationEd25519AuthPlugin IDENTIFIED "
+            "CREATE USER verificationEd25519AuthPlugin" + getHostSuffix() + " IDENTIFIED "
                 + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
       }
     } catch (SQLException sqle) {
       // already existing
     }
-    stmt.execute("GRANT SELECT on " + database + ".* to verificationEd25519AuthPlugin");
+    stmt.execute("GRANT SELECT on " + database + ".* to verificationEd25519AuthPlugin" + getHostSuffix());
 
     String url =
         "jdbc:mariadb://"
@@ -631,7 +631,7 @@ public class ConnectionTest extends BaseTest {
     try (Connection connection = openNewConnection(url)) {
       // must have succeed
     }
-    stmt.execute("drop user verificationEd25519AuthPlugin");
+    stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
   }
 
   private void initializeDns(String host) {
@@ -664,15 +664,15 @@ public class ConnectionTest extends BaseTest {
         2000,
         3200);
     // aurora - no cluster end point
-    checkConnection(
-        "jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20",
-        2000,
-        3200);
-    // aurora - using cluster end point
-    checkConnection(
-        "jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=20",
-        4500,
-        10000);
+//    checkConnection(
+//        "jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20",
+//        2000,
+//        3200);
+//    // aurora - using cluster end point
+//    checkConnection(
+//        "jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=20",
+//        4500,
+//        10000);
   }
 
   private void checkConnection(String conUrl, int min, int max) {

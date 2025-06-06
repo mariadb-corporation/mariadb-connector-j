@@ -847,14 +847,14 @@ public class BaseTest {
       if (InetAddress.getByName(hostname).isAnyLocalAddress()
           || InetAddress.getByName(hostname).isLoopbackAddress()) {
         isLocal = true;
+        String localDb = System.getenv().get("LOCAL_DB");
+        if (localDb != null) isLocal = "local".equals(localDb);
       }
     } catch (UnknownHostException e) {
       // for some reason it wasn't possible to parse the hostname
       // do nothing
     }
 
-    String localDb = System.getenv().get("LOCAL_DB");
-    if (isLocal && localDb != null) isLocal = "local".equals(localDb);
     if (!isLocal) {
       System.out.println("test '" + testName + "' skipped because connection is not local");
     }

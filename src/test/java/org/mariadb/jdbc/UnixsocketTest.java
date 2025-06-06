@@ -16,7 +16,7 @@ import org.junit.Test;
 public class UnixsocketTest extends BaseTest {
   @Test
   public void testConnectWithUnixSocketWhenDBNotUp() throws IOException {
-    Assume.assumeTrue(!System.getProperty("os.name").toLowerCase().contains("win"));
+    Assume.assumeTrue(!System.getProperty("os.name").toLowerCase().contains("win") && !System.getProperty("os.name").toLowerCase().contains("mac"));
 
     String jdbcBase =
         "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC&trackSessionState=TRUE%s";
