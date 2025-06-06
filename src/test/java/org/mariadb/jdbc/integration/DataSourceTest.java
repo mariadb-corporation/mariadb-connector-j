@@ -134,26 +134,31 @@ public class DataSourceTest extends Common {
             && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
     try {
-      stmt.execute("DROP USER 'dsUser'@'%'");
+      stmt.execute("DROP USER 'dsUser'" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
 
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer() || minVersion(8, 4, 0)) {
-        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+        stmt.execute(
+            "CREATE USER 'dsUser'" + getHostSuffix() + " IDENTIFIED BY 'MySup8%rPassw@ord'");
       } else {
         stmt.execute(
-            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY"
+            "CREATE USER 'dsUser'"
+                + getHostSuffix()
+                + " IDENTIFIED WITH mysql_native_password BY"
                 + " 'MySup8%rPassw@ord'");
       }
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
+      stmt.execute("GRANT ALL ON *.* TO 'dsUser'" + getHostSuffix());
     } else {
-      stmt.execute("CREATE USER 'dsUser'@'%'");
+      stmt.execute("CREATE USER 'dsUser'" + getHostSuffix());
       stmt.execute(
           "GRANT SELECT ON "
               + sharedConn.getCatalog()
-              + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+              + ".* TO 'dsUser'"
+              + getHostSuffix()
+              + " IDENTIFIED BY 'MySup8%rPassw@ord'");
     }
     stmt.execute("FLUSH PRIVILEGES");
 
@@ -171,7 +176,7 @@ public class DataSourceTest extends Common {
       }
     } finally {
       try {
-        stmt.execute("DROP USER 'dsUser'@'%'");
+        stmt.execute("DROP USER 'dsUser'" + getHostSuffix());
       } catch (SQLException e) {
         // eat
       }

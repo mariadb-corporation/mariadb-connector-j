@@ -181,21 +181,30 @@ public class PooledConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS 'StatementErrorUser'@'%'");
+    stmt.execute("DROP USER IF EXISTS 'StatementErrorUser'" + getHostSuffix());
 
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer() || minVersion(8, 4, 0)) {
-        stmt.execute("CREATE USER 'StatementErrorUser'@'%' IDENTIFIED BY" + " 'MySup8%rPassw@ord'");
+        stmt.execute(
+            "CREATE USER 'StatementErrorUser'"
+                + getHostSuffix()
+                + " IDENTIFIED BY"
+                + " 'MySup8%rPassw@ord'");
       } else {
         stmt.execute(
-            "CREATE USER 'StatementErrorUser'@'%' IDENTIFIED WITH"
+            "CREATE USER 'StatementErrorUser'"
+                + getHostSuffix()
+                + " IDENTIFIED WITH"
                 + " mysql_native_password BY 'MySup8%rPassw@ord'");
       }
-      stmt.execute("GRANT ALL ON *.* TO 'StatementErrorUser'@'%'");
+      stmt.execute("GRANT ALL ON *.* TO 'StatementErrorUser'" + getHostSuffix());
     } else {
-      stmt.execute("CREATE USER 'StatementErrorUser'@'%'");
+      stmt.execute("CREATE USER 'StatementErrorUser'" + getHostSuffix());
       stmt.execute(
-          "GRANT ALL ON *.* TO 'StatementErrorUser'@'%' IDENTIFIED BY" + " 'MySup8%rPassw@ord'");
+          "GRANT ALL ON *.* TO 'StatementErrorUser'"
+              + getHostSuffix()
+              + " IDENTIFIED BY"
+              + " 'MySup8%rPassw@ord'");
     }
     stmt.execute("FLUSH PRIVILEGES");
 
@@ -214,7 +223,7 @@ public class PooledConnectionTest extends Common {
       assertTrue(listener.statementClosed);
       pc.close();
     } finally {
-      stmt.execute("DROP USER IF EXISTS 'StatementErrorUser'@'%'");
+      stmt.execute("DROP USER IF EXISTS 'StatementErrorUser'" + getHostSuffix());
     }
   }
 
