@@ -160,6 +160,13 @@ public class BaseTest {
     return val;
   }
 
+  public static String getHostSuffix() {
+    if (hostname.equals("localhost") || "local".equals(System.getenv().getOrDefault("LOCAL_DB", "container"))) {
+      return "@'localhost'";
+    }
+    return "@'%'";
+  }
+
   @Rule
   public TestRule watcher =
       new TestWatcher() {
@@ -801,7 +808,8 @@ public class BaseTest {
               st.executeQuery(
                   "SELECT Super_Priv FROM mysql.user WHERE user = '"
                       + username
-                      + "' AND host = '%'")) {
+                      + "' AND host = "
+                      + getHostSuffix().substring(1))) {
             if (rs2.next()) {
               superPrivilege = (rs2.getString(1).equals("Y"));
             }

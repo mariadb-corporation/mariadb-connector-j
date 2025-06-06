@@ -121,7 +121,7 @@ public class PasswordEncodingTest extends BaseTest {
       Statement stmt = sharedConnection.createStatement();
       for (String charsetName : charsets) {
         try {
-          stmt.execute("DROP USER IF EXISTS 'test" + charsetName + "'@'%'");
+          stmt.execute("DROP USER IF EXISTS 'test" + charsetName + "'" + getHostSuffix());
         } catch (SQLException e) {
           // nothing
           e.printStackTrace();
@@ -142,20 +142,28 @@ public class PasswordEncodingTest extends BaseTest {
         useOldNotation = false;
       }
       if (useOldNotation) {
-        stmt.execute("CREATE USER IF NOT EXISTS 'test" + charsetName + "'@'%'");
+        stmt.execute("CREATE USER IF NOT EXISTS 'test" + charsetName + "'" + getHostSuffix());
         stmt.testExecute(
             "GRANT SELECT on *.* to 'test"
                 + charsetName
-                + "'@'%' identified by '"
+                + "'"
+                + getHostSuffix()
+                + " identified by '"
                 + exoticPwd
                 + "'",
             Charset.forName(charsetName));
 
       } else {
         stmt.testExecute(
-            "CREATE USER 'test" + charsetName + "'@'%' identified by '" + exoticPwd + "'",
+            "CREATE USER 'test"
+                + charsetName
+                + "'"
+                + getHostSuffix()
+                + " identified by '"
+                + exoticPwd
+                + "'",
             Charset.forName(charsetName));
-        stmt.execute("GRANT SELECT on *.* to 'test" + charsetName + "'@'%'");
+        stmt.execute("GRANT SELECT on *.* to 'test" + charsetName + "'" + getHostSuffix());
       }
       // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
       Assume.assumeTrue(!isMariadbServer() && !exactVersion(8, 0, 31));

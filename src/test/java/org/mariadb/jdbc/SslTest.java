@@ -104,28 +104,40 @@ public class SslTest extends BaseTest {
     }
     Statement stmt = sharedConnection.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS '" + user + "'@'%' " + requirement);
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS '" + user + "'" + getHostSuffix() + " " + requirement);
       stmt.execute(
           "GRANT SELECT ON *.* TO '"
               + user
-              + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
+              + "'"
+              + getHostSuffix()
+              + " IDENTIFIED BY '!Passw0rd3Works' "
               + requirement);
     } else {
       if (!isMariadbServer() && minVersion(8, 0, 0)) {
         stmt.execute(
             "CREATE USER IF NOT EXISTS '"
                 + user
-                + "'@'%' IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
+                + "'"
+                + getHostSuffix()
+                + " IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
                 + requirement);
       } else {
         stmt.execute(
             "CREATE USER IF NOT EXISTS '"
                 + user
-                + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
+                + "'"
+                + getHostSuffix()
+                + " IDENTIFIED BY '!Passw0rd3Works' "
                 + requirement);
       }
       stmt.execute(
-          "GRANT SELECT ON " + sharedConnection.getCatalog() + ".* TO '" + user + "'@'%' ");
+          "GRANT SELECT ON "
+              + sharedConnection.getCatalog()
+              + ".* TO '"
+              + user
+              + "'"
+              + getHostSuffix());
     }
   }
 

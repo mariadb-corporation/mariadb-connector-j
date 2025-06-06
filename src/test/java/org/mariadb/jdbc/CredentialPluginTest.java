@@ -40,21 +40,17 @@ public class CredentialPluginTest extends BaseTest {
     }
     Statement stmt = sharedConnection.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER 'identityUser'@'localhost'");
+      stmt.execute("CREATE USER 'identityUser'" + getHostSuffix());
       stmt.execute(
           "GRANT SELECT ON "
               + database
-              + ".* TO 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("CREATE USER 'identityUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + database
-              + ".* TO 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+              + ".* TO 'identityUser'"
+              + getHostSuffix()
+              + " IDENTIFIED BY '!Passw0rd3Works'");
     } else {
-      stmt.execute("CREATE USER 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'@'localhost'");
-      stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'@'%'");
+      stmt.execute(
+          "CREATE USER 'identityUser'" + getHostSuffix() + " IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'" + getHostSuffix());
     }
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assume.assumeTrue(!isMariadbServer() && !exactVersion(8, 0, 31));
@@ -70,8 +66,7 @@ public class CredentialPluginTest extends BaseTest {
   @After
   public void afterTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("DROP USER 'identityUser'@'%'");
-    stmt.execute("DROP USER 'identityUser'@'localhost'");
+    stmt.execute("DROP USER 'identityUser'" + getHostSuffix());
   }
 
   @Test

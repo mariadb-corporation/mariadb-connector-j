@@ -411,11 +411,13 @@ public class BaseMultiHostTest {
         superPrivilege = (rs.getString(1).equals("Y"));
       } else {
         // then check for user on whatever (%) host
+
         try (ResultSet rs2 =
             st.executeQuery(
                 "SELECT Super_Priv FROM mysql.user WHERE user = '"
                     + username
-                    + "' AND host = '%'")) {
+                    + "' AND host = "
+                    + BaseTest.getHostSuffix().substring(1))) {
           if (rs2.next()) {
             superPrivilege = (rs2.getString(1).equals("Y"));
           }

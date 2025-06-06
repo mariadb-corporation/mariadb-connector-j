@@ -1665,9 +1665,9 @@ public class StoredProcedureTest extends BaseTest {
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 1, 2));
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("DROP USER IF EXISTS basicUser");
-    stmt.execute("CREATE USER basicUser IDENTIFIED BY '!Passw0rd3Works'");
-    stmt.execute("GRANT ALL ON *.* TO basicUser");
+    stmt.execute("DROP USER IF EXISTS basicUser" + getHostSuffix());
+    stmt.execute("CREATE USER basicUser"+ getHostSuffix() +" IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute("GRANT ALL ON *.* TO basicUser"+ getHostSuffix());
     stmt.execute("DROP PROCEDURE IF EXISTS p_r_d");
     stmt.execute(
         String.format(
@@ -1675,7 +1675,7 @@ public class StoredProcedureTest extends BaseTest {
                 + "BEGIN\n"
                 + "SELECT SLEEP(60), 'hello';\n"
                 + "END;",
-            username));
+            username+ getHostSuffix()));
     try (CallableStatement st = sharedConnection.prepareCall("CALL p_r_d()")) {
       st.setQueryTimeout(1);
       st.execute();
@@ -1685,7 +1685,7 @@ public class StoredProcedureTest extends BaseTest {
       assertTrue(
           e.getMessage().contains("Query execution was interrupted (max_statement_time exceeded)"));
     } finally {
-      stmt.execute("DROP USER basicUser");
+      stmt.execute("DROP USER basicUser"+ getHostSuffix());
       stmt.execute("DROP PROCEDURE p_r_d");
     }
   }

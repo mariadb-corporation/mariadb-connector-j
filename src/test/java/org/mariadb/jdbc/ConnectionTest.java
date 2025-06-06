@@ -734,10 +734,12 @@ public class ConnectionTest extends BaseTest {
       throw new AssumptionViolatedException("server doesn't have ed25519 plugin, cancelling test");
     }
 
-    stmt.execute("drop user IF EXISTS mysqltest1@'%'");
+    stmt.execute("drop user IF EXISTS mysqltest1" + getHostSuffix());
     try {
       stmt.execute(
-          "CREATE USER mysqltest1@'%' IDENTIFIED "
+          "CREATE USER mysqltest1"
+              + getHostSuffix()
+              + " IDENTIFIED "
               + "VIA ed25519 as password('!Passw0rd3') "
               + " OR mysql_native_password as password('!Passw0rd3Works')");
 
@@ -745,7 +747,7 @@ public class ConnectionTest extends BaseTest {
       // already existing
       sqle.printStackTrace();
     }
-    stmt.execute("GRANT SELECT on " + database + ".* to mysqltest1@'%'");
+    stmt.execute("GRANT SELECT on " + database + ".* to mysqltest1" + getHostSuffix());
 
     try (Connection connection =
         openNewConnection(
@@ -769,7 +771,7 @@ public class ConnectionTest extends BaseTest {
       // must have succeed
     }
 
-    stmt.execute("drop user mysqltest1@'%'");
+    stmt.execute("drop user mysqltest1" + getHostSuffix());
   }
 
   @Test

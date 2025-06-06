@@ -34,29 +34,36 @@ public class Sha256AuthenticationTest extends BaseTest {
     }
     Statement stmt = sharedConnection.createStatement();
     try {
-      stmt.execute("DROP USER 'sha256User'@'%'");
+      stmt.execute("DROP USER 'sha256User'" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     try {
-      stmt.execute("DROP USER 'cachingSha256User'@'%'");
+      stmt.execute("DROP USER 'cachingSha256User'" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
 
     if (minVersion(8, 0, 0)) {
-      stmt.execute("CREATE USER 'sha256User'@'%' IDENTIFIED WITH sha256_password BY 'password'");
-      stmt.execute("GRANT SELECT ON *.* TO 'sha256User'@'%'");
-    } else {
-      stmt.execute("CREATE USER 'sha256User'@'%'");
       stmt.execute(
-          "GRANT SELECT ON *.* TO 'sha256User'@'%' IDENTIFIED WITH "
+          "CREATE USER 'sha256User'"
+              + getHostSuffix()
+              + " IDENTIFIED WITH sha256_password BY 'password'");
+      stmt.execute("GRANT SELECT ON *.* TO 'sha256User'" + getHostSuffix());
+    } else {
+      stmt.execute("CREATE USER 'sha256User'" + getHostSuffix());
+      stmt.execute(
+          "GRANT SELECT ON *.* TO 'sha256User'"
+              + getHostSuffix()
+              + " IDENTIFIED WITH "
               + "sha256_password BY 'password'");
     }
     if (minVersion(8, 0, 0)) {
       stmt.execute(
-          "CREATE USER 'cachingSha256User'@'%'  IDENTIFIED WITH caching_sha2_password BY 'password'");
-      stmt.execute("GRANT SELECT ON *.* TO 'cachingSha256User'@'%'");
+          "CREATE USER 'cachingSha256User'"
+              + getHostSuffix()
+              + "  IDENTIFIED WITH caching_sha2_password BY 'password'");
+      stmt.execute("GRANT SELECT ON *.* TO 'cachingSha256User'" + getHostSuffix());
     } else {
       forceTls = "&enabledSslProtocolSuites=TLSv1.1,TLSv1.2";
     }
