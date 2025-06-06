@@ -6,6 +6,9 @@ on:
     branches: ['master', 'develop', 'feature/action']
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      should-run: ${{ steps.check-activity.outputs.should-run }}
     steps:
       - uses: actions/checkout@v4
       - id: set-matrix
