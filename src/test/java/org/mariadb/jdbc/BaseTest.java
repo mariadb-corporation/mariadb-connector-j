@@ -133,16 +133,20 @@ public class BaseTest {
       }
       try (Connection c = DriverManager.getConnection(mDefUrl + "&allowPublicKeyRetrieval=true")) {
         DatabaseMetaData meta = c.getMetaData();
-        if ("MySQL".equals(meta.getDatabaseProductName())
-            && meta.getDatabaseProductVersion().substring(0, 3).compareTo("8.4") >= 0) {
-          // choose to use allowPublicKeyRetrieval=true for testing
-          Statement stmt = c.createStatement();
-          ResultSet rs =
-              stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
-          if (rs.next()) {
-            mDefUrl += "&serverRsaPublicKeyFile=" + rs.getString(2);
+        if ("MySQL".equals(meta.getDatabaseProductName())) {
+          if (meta.getDatabaseProductVersion().substring(0, 3).compareTo("8.4") >= 0) {
+            // choose to use allowPublicKeyRetrieval=true for testing
+            Statement stmt = c.createStatement();
+            ResultSet rs =
+                stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
+            if (rs.next()) {
+              mDefUrl += "&serverRsaPublicKeyFile=" + rs.getString(2);
+            } else {
+              mDefUrl += "&allowPublicKeyRetrieval=true";
+            }
+          } else {
+            mDefUrl += "&allowPublicKeyRetrieval=true";
           }
-          // mDefUrl += "&allowPublicKeyRetrieval=true";
         }
       } catch (SQLException e) {
         // eat
