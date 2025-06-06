@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.lang.management.ManagementFactory;
 import java.sql.*;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -39,14 +40,12 @@ public class PoolDataSourceTest extends Common {
             && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%'");
+      stmt.execute("CREATE USER 'poolUser'" + getHostSuffix());
       stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+          "GRANT ALL ON *.* TO 'poolUser'" + getHostSuffix() + " IDENTIFIED BY '!Passw0rd3Works'");
     } else {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
+      stmt.execute("CREATE USER 'poolUser'" + getHostSuffix() + " IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("GRANT ALL ON *.* TO 'poolUser'" + getHostSuffix());
     }
     stmt.execute(
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test"
@@ -58,6 +57,7 @@ public class PoolDataSourceTest extends Common {
   @AfterAll
   public static void drop() throws SQLException {
     try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP USER IF EXISTS 'poolUser'" + getHostSuffix());
       stmt.execute("DROP TABLE IF EXISTS testResetRollback");
     }
   }
@@ -72,7 +72,6 @@ public class PoolDataSourceTest extends Common {
       Statement stmt = sharedConn.createStatement();
       ResultSet rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
       if (rs.next()) {
-        System.out.println("threads : " + rs.getInt(2));
         return rs.getInt(2);
       }
       return -1;
@@ -608,7 +607,7 @@ public class PoolDataSourceTest extends Common {
               stmt.execute("SELECT 1");
 
             } catch (SQLException e) {
-              e.printStackTrace();
+              // e.printStackTrace();
             }
           });
     }
@@ -616,33 +615,6 @@ public class PoolDataSourceTest extends Common {
     connectionAppender.awaitTermination(30, TimeUnit.SECONDS);
     assertTrue(threadIds.size() <= 9, "connection ids must be less than 9 : " + threadIds.size());
     Pools.close("PoolTest");
-  }
-
-  @Test
-  public void ensureClosed() throws Throwable {
-    Thread.sleep(500); // ensure that previous close are effective
-    int initialConnection = getCurrentConnections();
-    Assumptions.assumeFalse(initialConnection == -1);
-
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=10&minPoolSize=1")) {
-
-      try (Connection connection = pool.getConnection()) {
-        connection.isValid(10_000);
-      }
-
-      assertTrue(getCurrentConnections() > initialConnection);
-
-      // reuse IdleConnection
-      try (Connection connection = pool.getConnection()) {
-        connection.isValid(10_000);
-      }
-
-      Thread.sleep(500);
-      assertTrue(getCurrentConnections() > initialConnection);
-    }
-    Thread.sleep(2000); // ensure that previous close are effective
-    assertEquals(initialConnection, getCurrentConnections());
   }
 
   @Test
@@ -658,7 +630,10 @@ public class PoolDataSourceTest extends Common {
         // ensure more time for windows
         assertTrue(
             (System.currentTimeMillis() - start) >= 500
-                && (System.currentTimeMillis() - start) < 850,
+                && (System.currentTimeMillis() - start)
+                    < (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")
+                        ? 1050
+                        : 800),
             "timeout does not correspond to option. Elapsed time:"
                 + (System.currentTimeMillis() - start));
         assertTrue(

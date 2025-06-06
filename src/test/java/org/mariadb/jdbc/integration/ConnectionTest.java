@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -8,10 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.Locale;
-import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -682,32 +679,39 @@ public class ConnectionTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
     }
     try {
-      stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+      stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     try {
       if (minVersion(10, 4, 0)) {
         stmt.execute(
-            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+                + getHostSuffix()
+                + " IDENTIFIED "
                 + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
       } else {
         stmt.execute(
-            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+                + getHostSuffix()
+                + " IDENTIFIED "
                 + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
       }
     } catch (SQLException sqle) {
       // already existing
     }
     stmt.execute(
-        "GRANT SELECT on " + sharedConn.getCatalog() + ".* to verificationEd25519AuthPlugin");
+        "GRANT SELECT on "
+            + sharedConn.getCatalog()
+            + ".* to verificationEd25519AuthPlugin"
+            + getHostSuffix());
 
     try (Connection connection =
         createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord")) {
       // must have succeeded
       connection.getCatalog();
     }
-    stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+    stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
   }
 
   @Test
@@ -732,12 +736,13 @@ public class ConnectionTest extends Common {
     String pamUser = System.getenv("TEST_PAM_USER");
     String pamPwd = System.getenv("TEST_PAM_PWD");
     try {
-      stmt.execute("DROP USER '" + pamUser + "'@'%'");
+      stmt.execute("DROP USER '" + pamUser + "'" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     stmt.execute("CREATE USER '" + pamUser + "'@'%' IDENTIFIED VIA pam USING 'mariadb'");
-    stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
+    stmt.execute(
+        "GRANT SELECT ON *.* TO '" + pamUser + "'" + getHostSuffix() + " IDENTIFIED VIA pam");
 
     stmt.execute("FLUSH PRIVILEGES");
 
@@ -765,7 +770,7 @@ public class ConnectionTest extends Common {
         () -> DriverManager.getConnection(connStr + "&restrictedAuth=other"),
         "Client restrict authentication plugin to a limited set of authentication");
 
-    stmt.execute("drop user " + pamUser + "@'%'");
+    stmt.execute("drop user " + pamUser + getHostSuffix());
   }
 
   @Test
@@ -928,8 +933,8 @@ public class ConnectionTest extends Common {
       // eat
     }
     boolean useOldNotation =
-            (!isMariaDBServer() || !minVersion(10, 2, 0))
-                    && (isMariaDBServer() || !minVersion(8, 0, 0));
+        (!isMariaDBServer() || !minVersion(10, 2, 0))
+            && (isMariaDBServer() || !minVersion(8, 0, 0));
     if (useOldNotation) {
       stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
       stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
@@ -939,17 +944,26 @@ public class ConnectionTest extends Common {
     }
     stmt.execute("FLUSH PRIVILEGES");
 
-    String url =
+    try (java.sql.Connection connection =
+        DriverManager.getConnection(
             String.format(
-                    "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
-                    sharedConn.getCatalog(), path);
-
-    try (java.sql.Connection connection = DriverManager.getConnection(url)) {
+                "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
+                sharedConn.getCatalog(), path))) {
       connection.setNetworkTimeout(null, 300);
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
     }
 
+    // host format
+    try (java.sql.Connection connection =
+        DriverManager.getConnection(
+            String.format(
+                "jdbc:mariadb://address=(localSocket=%s)/%s?user=testSocket&password=heyPassw!µ20§rd&tcpAbortiveClose&tcpKeepAlive",
+                path, sharedConn.getCatalog()))) {
+      connection.setNetworkTimeout(null, 300);
+      rs = connection.createStatement().executeQuery("select 1");
+      assertTrue(rs.next());
+    }
     Common.assertThrowsContains(
             SQLException.class,
             () ->
@@ -963,14 +977,14 @@ public class ConnectionTest extends Common {
       String serverCertPath = SslTest.retrieveCertificatePath();
       if (serverCertPath != null) {
         try (Connection con =
-                     DriverManager.getConnection(
-                             "jdbc:mariadb:///"
-                                     + sharedConn.getCatalog()
-                                     + "?sslMode=verify-full&user=testSocket&password=heyPassw!µ20§rd"
-                                     + "&serverSslCert="
-                                     + serverCertPath
-                                     + "&localSocket="
-                                     + path)) {
+            DriverManager.getConnection(
+                "jdbc:mariadb:///"
+                    + sharedConn.getCatalog()
+                    + "?sslMode=verify-full&user=testSocket&password=heyPassw!µ20§rd"
+                    + "&serverSslCert="
+                    + serverCertPath
+                    + "&localSocket="
+                    + path)) {
           rs = con.createStatement().executeQuery("select 1");
           assertTrue(rs.next());
         }
