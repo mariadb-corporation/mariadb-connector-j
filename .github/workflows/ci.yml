@@ -1,0 +1,96 @@
+---
+name: Run CI Tests
+
+on:
+  push:
+    branches: ['master', 'develop', 'feature/action']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TEST_DB_HOST: mariadb.example.com
+  TEST_DB_PORT: 3306
+  TEST_DB_USER: root
+  TEST_DB_PASSWORD: "heyPassw-!*20oRd"
+  TEST_DB_DATABASE: testj
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-matrix
+        run: |
+          # Fetch base matrix from remote URL and add Java 21 for all configurations
+          base_matrix=$(curl -sL https://github.com/rusher/action-setup-mariadb/raw/master/test-matrix.json | jq '[.include[] | . + {"java": 21}]')
+          
+          # Additional Java versions for Ubuntu + MariaDB 11.4
+          additional_java='[
+            {"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 8},
+            {"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 11},
+            {"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17}
+          ]'
+          
+          # Combine both matrices and output as compact JSON
+          combined_matrix=$(echo "$base_matrix" "$additional_java" | jq -s -c 'add | {"include": .}')
+          echo "matrix=$combined_matrix" >> $GITHUB_OUTPUT
+
+  ci:
+    name: ${{ matrix.name }}${{ matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
+    needs: setup
+    timeout-minutes: 50
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.continue-on-error || false }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add hosts entry
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            echo "127.0.0.1 mariadb.example.com" >> /c/Windows/System32/drivers/etc/hosts
+          else
+            echo "127.0.0.1 mariadb.example.com" | sudo tee -a /etc/hosts
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          cache: maven
+          distribution: 'adopt'
+
+      - name: Setup MariaDB
+        id: mariadb-install
+        if: matrix.db-type != 'mysql'
+        uses: rusher/action-setup-mariadb@master
+        with:
+          tag: ${{ matrix.db-tag }}
+          root-password: ${{ env.TEST_DB_PASSWORD }}
+          database: ${{ env.TEST_DB_DATABASE }}
+          registry: ${{ matrix.db-type == 'enterprise' && 'docker.mariadb.com/enterprise-server' || (matrix.db-type == 'dev' && 'quay.io/mariadb-foundation/mariadb-devel' || '') }}
+          registry-user: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_USER || '' }}
+          registry-password: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_TOKEN || '' }}
+          local: ${{ matrix.java == '8' && matrix.db-tag == '11.4' && '1' || '' }}
+          additional-conf: ${{ matrix.additional-conf || '' }}
+
+      - name: Setup MySQL
+        if: matrix.db-type == 'mysql'
+        uses: mirromutth/mysql-action@v1.1
+        with:
+          mysql version: ${{ matrix.db-tag }}
+          mysql database: ${{ env.TEST_DB_DATABASE }}
+          mysql root password: ${{ env.TEST_DB_PASSWORD }}
+
+      - name: Run Tests
+        run: mvn clean test ${{ matrix.java == '8' && '-P java8' || '' }} ${{ matrix.java == '11' && '-P java11' || '' }}
+        env:
+          LOCAL_DB: ${{ steps.mariadb-install.outputs.database-type }}
