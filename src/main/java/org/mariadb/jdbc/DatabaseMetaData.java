@@ -1300,7 +1300,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     java.sql.Statement st = connection.createStatement();
     ResultSet rs = st.executeQuery("SELECT @@READ_ONLY");
     rs.next();
-    return rs.getInt(1) == 1;
+    String readOnly = rs.getString(1);
+    return "ON".equals(readOnly) || "1".equals(readOnly);
   }
 
   public boolean nullsAreSortedHigh() {
