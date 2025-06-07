@@ -25,35 +25,14 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-      should-run: ${{ steps.check-activity.outputs.should-run }}
+      matrix: ${{ steps.set-matrix.outputs.final-matrix }}
     steps:
       - uses: actions/checkout@v4
       - id: set-matrix
-        run: |
-          # Fetch base matrix from remote URL and add Java 21 for all configurations
-          base_matrix=$(curl -sL https://github.com/rusher/action-setup-mariadb/raw/master/test-matrix.json | jq '[.include[] | . + {"java": 21}]')
-          
-          # Additional Java versions for Ubuntu + MariaDB 11.4
-          additional_java='[
-            {"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 8},
-            {"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 11},
-            {"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17}
-          ]'
-          
-          # Combine both matrices
-          combined_matrix=$(echo "$base_matrix" "$additional_java" | jq -s 'add')
-          
-          # Filter out enterprise entries for pull requests
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            filtered_matrix=$(echo "$combined_matrix" | jq '[.[] | select(.["db-type"] != "enterprise")]')
-          else
-            filtered_matrix="$combined_matrix"
-          fi
-          
-          # Output as compact JSON
-          final_matrix=$(echo "$filtered_matrix" | jq -c '{"include": .}')
-          echo "matrix=$final_matrix" >> $GITHUB_OUTPUT
+        name: build matrix
+        uses: rusher/mariadb-test-build-matrix@main
+        with:
+          additional-matrix: '[{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 8},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 11},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17}]'
 
   ci:
     name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
