@@ -14,7 +14,6 @@ import org.junit.jupiter.api.*;
 public class LocalInfileTest extends Common {
   @BeforeAll
   public static void beforeAll2() throws SQLException {
-    Assumptions.assumeTrue(!isXpand());
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE LocalInfileInputStreamTest(id int, test varchar(100))");
@@ -111,8 +110,6 @@ public class LocalInfileTest extends Common {
   @Test
   public void streamInBatch() throws SQLException {
     Assumptions.assumeFalse((!isMariaDBServer() && minVersion(8, 0, 3)));
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     String batch_update =
         "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest2 (id, test)";
     String builder = "1\thello\n2\tworld\n";
@@ -165,13 +162,7 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void throwExceptions() throws Exception {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-
-    // https://jira.mariadb.org/browse/XPT-270
-    Assumptions.assumeFalse(isXpand());
+    Assumptions.assumeTrue((isMariaDBServer() || !minVersion(8, 0, 3)));
 
     try (Connection con = createCon("&allowLocalInfile=false")) {
       Statement stmt = con.createStatement();
@@ -220,8 +211,6 @@ public class LocalInfileTest extends Common {
   @Test
   public void wrongFile() throws Exception {
     Assumptions.assumeTrue(checkLocal());
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     try (Connection con = createCon("allowLocalInfile")) {
       Statement stmt = con.createStatement();
@@ -239,10 +228,7 @@ public class LocalInfileTest extends Common {
   @Test
   public void unReadableFile() throws Exception {
     Assumptions.assumeTrue(checkLocal());
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+    Assumptions.assumeTrue(!System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
 
     try (Connection con = createCon("allowLocalInfile")) {
       File tempFile = File.createTempFile("hello", ".tmp");
@@ -264,8 +250,6 @@ public class LocalInfileTest extends Common {
   @Test
   public void loadDataBasic() throws Exception {
     Assumptions.assumeTrue(checkLocal());
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("dummyloadDataBasic", ".txt");
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
       bw.write("1\thello2\n2\tworld\n");
@@ -363,8 +347,6 @@ public class LocalInfileTest extends Common {
   @Test
   public void loadDataBasicWindows() throws Exception {
     Assumptions.assumeTrue(checkLocal());
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("dummyloadDataBasic", ".txt");
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
       bw.write("1\thello2\n2\tworld\n");
@@ -468,10 +450,7 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void loadDataInfileEmpty() throws SQLException, IOException {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue((isMariaDBServer() || !minVersion(8, 0, 3)));
     // Create temp file.
     File temp = File.createTempFile("validateInfile", ".tmp");
     try (Connection connection = createCon("&allowLocalInfile=true")) {
@@ -535,28 +514,19 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void testSmallBigLocalInfileInputStream() throws Exception {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue((isMariaDBServer() || !minVersion(8, 0, 3)));
     checkBigLocalInfile(256);
   }
 
   @Test
   public void test2xBigLocalInfileInputStream() throws Exception {
-    Assumptions.assumeTrue(
-        ((isMariaDBServer() || !minVersion(8, 0, 3)) && runLongTest())
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(((isMariaDBServer() || !minVersion(8, 0, 3)) && runLongTest()));
     checkBigLocalInfile(16777216 * 2);
   }
 
   @Test
   public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue((isMariaDBServer() || !minVersion(8, 0, 3)));
     Assumptions.assumeTrue(runLongTest());
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");

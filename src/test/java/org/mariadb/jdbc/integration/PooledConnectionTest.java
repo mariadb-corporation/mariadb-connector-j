@@ -61,9 +61,6 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPoolFailover() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try {
@@ -97,12 +94,7 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPoolKillConnection() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"galera".equals(System.getenv("srv"))
-            && !isXpand());
+    Assumptions.assumeTrue(!isMaxscale());
 
     File.createTempFile("log", ".tmp");
 
@@ -127,12 +119,6 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPooledConnectionException() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"galera".equals(System.getenv("srv"))
-            && !isXpand());
-
     ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
     PooledConnection pc = null;
     try {
@@ -159,8 +145,6 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPooledConnectionException2() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Pool pool = Pools.retrievePool(Configuration.parse(mDefUrl + "&maxPoolSize=2"))) {
       MariaDbInnerPoolConnection pooledConnection = pool.getPoolConnection();
       org.mariadb.jdbc.Connection con = pooledConnection.getConnection();
@@ -178,8 +162,7 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPooledConnectionStatementError() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP USER IF EXISTS 'StatementErrorUser'" + getHostSuffix());
 

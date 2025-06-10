@@ -62,8 +62,7 @@ public class PreparedStatementParametersTest extends Common {
   public void validateParameters() throws Exception {
     // error crashing maxscale 6.1.x
     Assumptions.assumeTrue(
-        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.1.")
-            && !"skysql-ha".equals(System.getenv("srv")));
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.1."));
     validateParameters(sharedConn);
     validateParameters(sharedConnBinary);
   }
@@ -166,26 +165,22 @@ public class PreparedStatementParametersTest extends Common {
         ps -> ps.setDate(1, Date.valueOf("2010-05-25")),
         rs -> assertEquals(Date.valueOf("2010-05-25").getTime(), rs.getDate(1).getTime()),
         con);
-    if (isXpand()) {
-      // skip due to error https://jira.mariadb.org/browse/XPT-265
+    if (text) {
+      Common.assertThrowsContains(
+          SQLException.class,
+          () ->
+              checkSendTimestamp(
+                  ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
+                  rs ->
+                      assertEquals(
+                          Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
+                  con),
+          "Incorrect datetime value: '18:16:01.123'");
     } else {
-      if (text) {
-        Common.assertThrowsContains(
-            SQLException.class,
-            () ->
-                checkSendTimestamp(
-                    ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
-                    rs ->
-                        assertEquals(
-                            Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
-                    con),
-            "Incorrect datetime value: '18:16:01.123'");
-      } else {
-        checkSendTimestamp(
-            ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
-            rs -> assertEquals(Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
-            con);
-      }
+      checkSendTimestamp(
+          ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
+          rs -> assertEquals(Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
+          con);
     }
 
     checkSendTimestamp(
@@ -576,10 +571,7 @@ public class PreparedStatementParametersTest extends Common {
 
   @Test
   public void bigSendErrorMax() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
 
     int maxAllowedPacket = getMaxAllowedPacket();
     Assumptions.assumeTrue(

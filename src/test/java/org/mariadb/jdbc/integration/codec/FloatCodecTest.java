@@ -692,12 +692,9 @@ public class FloatCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.REAL, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    // https://jira.mariadb.org/browse/XPT-276
-    if (!isXpand()) {
-      assertEquals(12, meta.getPrecision(1));
-      assertEquals(12, meta.getColumnDisplaySize(1));
-      assertEquals(31, meta.getScale(1));
-    }
+    assertEquals(12, meta.getPrecision(1));
+    assertEquals(12, meta.getColumnDisplaySize(1));
+    assertEquals(31, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
   }
 

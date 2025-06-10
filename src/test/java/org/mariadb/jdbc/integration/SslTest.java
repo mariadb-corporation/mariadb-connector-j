@@ -97,9 +97,7 @@ public class SslTest extends Common {
     }
 
     // try local server
-    if (serverCertificatePath == null
-        && !"skysql".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (serverCertificatePath == null) {
 
       try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@ssl_cert")) {
         assertTrue(rs.next());
@@ -135,7 +133,7 @@ public class SslTest extends Common {
 
   private String getSslVersion(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
-    if ("maxscale".equals(System.getenv("srv")) || "skysql-ha".equals(System.getenv("srv"))) {
+    if (isMaxscale()) {
       return "ok";
     } else {
       ResultSet rs = stmt.executeQuery("show STATUS  LIKE 'Ssl_version'");
@@ -158,8 +156,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatorySsl() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
@@ -171,8 +168,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatoryEphemeralSsl() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
     try (Connection con = createCon(baseOptions + "&sslMode=verify-ca", sslPort)) {
       assertNotNull(getSslVersion(con));
@@ -212,8 +208,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatoryEphemeralSsled25519() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
 
     Statement stmt = sharedConn.createStatement();
@@ -254,7 +249,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatoryEphemeralSslParsec() throws SQLException {
-    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 6, 1) && getJavaVersion() >= 15);
 
     Statement stmt = sharedConn.createStatement();
@@ -323,8 +318,7 @@ public class SslTest extends Common {
 
   @Test
   public void enabledSslProtocolSuites() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     try {
       List<String> protocols =
           Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
@@ -352,8 +346,7 @@ public class SslTest extends Common {
 
   @Test
   public void enabledSslCipherSuites() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     try (Connection con =
         createCon(
             baseOptions
@@ -372,8 +365,7 @@ public class SslTest extends Common {
 
   @Test
   public void errorUsingWrongTypeOfKeystore() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     String pkcsFile = System.getenv("TEST_DB_CLIENT_PKCS");
     Assumptions.assumeTrue(pkcsFile != null);
 
@@ -395,8 +387,7 @@ public class SslTest extends Common {
 
   @Test
   public void mutualAuthSsl() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
 
     // without password
@@ -517,8 +508,7 @@ public class SslTest extends Common {
 
   @Test
   public void certificateMandatorySsl() throws Throwable {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     String serverCertPath = retrieveCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
 
@@ -608,7 +598,7 @@ public class SslTest extends Common {
 
   @Test
   public void trustStoreParameter() throws Throwable {
-    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     String serverCertPath = retrieveCertificatePath();
     String caCertPath = retrieveCaCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");

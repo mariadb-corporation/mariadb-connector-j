@@ -159,11 +159,8 @@ public class DecimalCodecTest extends CommonCodecTest {
   public void getStringPrepare() throws SQLException {
     getString(getPrepare(sharedConn));
     getString(getPrepare(sharedConnBinary));
-    // Xpand doesn't support zerofill https://jira.mariadb.org/browse/XPT-286
-    if (!isXpand()) {
-      getStringZerofill(getPrepare(sharedConn, true));
-      getStringZerofill(getPrepare(sharedConnBinary, true));
-    }
+    getStringZerofill(getPrepare(sharedConn, true));
+    getStringZerofill(getPrepare(sharedConnBinary, true));
   }
 
   public void getString(ResultSet rs) throws SQLException {
@@ -179,12 +176,12 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getStringZerofill(ResultSet rs) throws SQLException {
-    assertEquals(isXpand() ? "0" : "0000000000", rs.getString(1));
+    assertEquals("0000000000", rs.getString(1));
     assertFalse(rs.wasNull());
-    assertEquals(isXpand() ? "105.210000" : "0105.210000", rs.getString(2));
-    assertEquals(isXpand() ? "105.210000" : "0105.210000", rs.getString("t2alias"));
+    assertEquals("0105.210000", rs.getString(2));
+    assertEquals("0105.210000", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals(isXpand() ? "1.600" : "0000001.600", rs.getString(3));
+    assertEquals("0000001.600", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());

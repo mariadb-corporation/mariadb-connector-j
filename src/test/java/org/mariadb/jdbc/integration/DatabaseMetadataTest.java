@@ -406,7 +406,6 @@ public class DatabaseMetadataTest extends Common {
     // cancel for MySQL 8.0, since CASCADE with I_S give importedKeySetDefault, not
     // importedKeyCascade
     //    Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 0, 0));
-    Assumptions.assumeFalse(isXpand());
     java.sql.Statement st = con.createStatement();
     st.execute("USE " + database);
     st.execute("DROP TABLE IF EXISTS `product order 1`");
@@ -848,7 +847,7 @@ public class DatabaseMetadataTest extends Common {
         haveInformationSchema = true;
       }
     }
-    if (!isXpand()) assertTrue(haveMysql);
+    assertTrue(haveMysql);
     assertTrue(haveInformationSchema);
     try (Connection con = createCon("&useCatalogTerm=Schema")) {
       dbmd = con.getMetaData();
@@ -913,7 +912,6 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void testGetTables2() throws SQLException {
     DatabaseMetaData dbmd = sharedConn.getMetaData();
-    Assumptions.assumeTrue(!isXpand());
     ResultSet rs =
         dbmd.getTables(
             "information_schema", null, "TABLE_PRIVILEGES", new String[] {"SYSTEM VIEW"});
@@ -964,8 +962,6 @@ public class DatabaseMetadataTest extends Common {
   public void testGetColumns() throws SQLException {
     // mysql 5.6 doesn't permit VIRTUAL keyword
     Assumptions.assumeTrue(isMariaDBServer() || !isMariaDBServer() && minVersion(5, 7, 0));
-    // Xpand doesn't support PERSISTENT keyword
-    Assumptions.assumeFalse(isXpand());
 
     Statement stmt = sharedConn.createStatement();
     if (minVersion(10, 2, 0) || !isMariaDBServer()) {
@@ -1093,8 +1089,6 @@ public class DatabaseMetadataTest extends Common {
   public void testGetColumnsSchema() throws SQLException {
     // mysql 5.6 doesn't permit VIRTUAL keyword
     Assumptions.assumeTrue(isMariaDBServer() || !isMariaDBServer() && minVersion(5, 7, 0));
-    // Xpand doesn't support PERSISTENT keyword
-    Assumptions.assumeFalse(isXpand());
     try (Connection con = createCon("&useCatalogTerm=Schema")) {
       System.out.println(con.getSchema());
       java.sql.Statement stmt = con.createStatement();
@@ -1467,8 +1461,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void identifierCaseSensitivity() throws Exception {
-    // https://jira.mariadb.org/browse/XPT-281
-    Assumptions.assumeFalse(isXpand());
     java.sql.Statement stmt = sharedConn.createStatement();
     try {
       if (sharedConn.getMetaData().supportsMixedCaseIdentifiers()) {
@@ -1549,7 +1541,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getBestRowIdentifier() throws SQLException {
-    Assumptions.assumeFalse(isXpand());
     DatabaseMetaData meta = sharedConn.getMetaData();
     Common.assertThrowsContains(
         SQLException.class,
@@ -1690,7 +1681,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnsBasic() throws SQLException {
-    Assumptions.assumeFalse(isXpand());
     cancelForVersion(10, 1); // due to server error MDEV-8984
     if (minVersion(10, 2, 0)) {
       testResultSetColumns(
@@ -1719,7 +1709,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getProcedureColumnsBasic() throws SQLException {
-    Assumptions.assumeTrue(!isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getProcedureColumns(null, null, null, null),
         "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String"
@@ -1731,8 +1720,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getFunctionColumnsBasic() throws SQLException {
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getFunctionColumns(null, null, null, null),
         "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME"
@@ -1743,7 +1730,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnPrivilegesBasic() throws SQLException {
-    Assumptions.assumeFalse(isXpand());
     Common.assertThrowsContains(
         SQLException.class,
         () -> sharedConn.getMetaData().getColumnPrivileges(null, null, null, null),
@@ -1789,7 +1775,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getImportedKeysBasic() throws SQLException {
-    Assumptions.assumeFalse(isXpand());
     assertThrowsContains(
         SQLException.class,
         () -> sharedConn.getMetaData().getImportedKeys(null, null, ""),
@@ -1804,7 +1789,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getExportedKeysBasic() throws SQLException {
-    Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getExportedKeys(null, null, "cross1"),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME"
@@ -1815,7 +1799,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getCrossReferenceBasic() throws SQLException {
-    Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getCrossReference(null, null, "", null, null, ""),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME"
@@ -2205,9 +2188,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnsTest() throws SQLException {
-    // https://jira.mariadb.org/browse/XPT-280
-    Assumptions.assumeTrue(!isXpand());
-
     DatabaseMetaData dmd = sharedConn.getMetaData();
     ResultSet rs = dmd.getColumns(sharedConn.getCatalog(), null, "manycols", null);
     while (rs.next()) {
@@ -2363,19 +2343,19 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(0, rsmd.getScale(2));
     // datetime(6)
     assertEquals(26, rsmd.getPrecision(3));
-    if (!isXpand()) assertEquals(6, rsmd.getScale(3));
+    assertEquals(6, rsmd.getScale(3));
     // timestamp(0)
     assertEquals(19, rsmd.getPrecision(4));
     assertEquals(0, rsmd.getScale(4));
     // timestamp(6)
     assertEquals(26, rsmd.getPrecision(5));
-    if (!isXpand()) assertEquals(6, rsmd.getScale(5));
+    assertEquals(6, rsmd.getScale(5));
     // time(0)
     assertEquals(10, rsmd.getPrecision(6));
     assertEquals(0, rsmd.getScale(6));
     // time(6)
     assertEquals(17, rsmd.getPrecision(7));
-    if (!isXpand()) assertEquals(6, rsmd.getScale(7));
+    assertEquals(6, rsmd.getScale(7));
   }
 
   @Test
@@ -2392,19 +2372,19 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(19, rs.getInt(columnSizeField));
     // datetime(6)
     assertTrue(rs.next());
-    if (!isXpand()) assertEquals(26, rs.getInt(columnSizeField));
+    assertEquals(26, rs.getInt(columnSizeField));
     // timestamp(0)
     assertTrue(rs.next());
     assertEquals(19, rs.getInt(columnSizeField));
     // timestamp(6)
     assertTrue(rs.next());
-    if (!isXpand()) assertEquals(26, rs.getInt(columnSizeField));
+    assertEquals(26, rs.getInt(columnSizeField));
     // time(0)
     assertTrue(rs.next());
     assertEquals(10, rs.getInt(columnSizeField));
     // time(6)
     assertTrue(rs.next());
-    if (!isXpand()) assertEquals(17, rs.getInt(columnSizeField));
+    assertEquals(17, rs.getInt(columnSizeField));
 
     assertFalse(rs.next());
   }
@@ -2416,7 +2396,6 @@ public class DatabaseMetadataTest extends Common {
    */
   @Test
   public void metaTimeNoPrecisionProcedureResultSet() throws SQLException {
-    Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE PROCEDURE getProcTimePrecision2(IN  I date, "
@@ -2462,7 +2441,6 @@ public class DatabaseMetadataTest extends Common {
    */
   @Test
   public void metaTimeProcedureResultSet() throws SQLException {
-    Assumptions.assumeTrue(!isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE PROCEDURE getProcTimePrecision"
@@ -2917,7 +2895,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getTypeMetaData() throws SQLException {
-    Assumptions.assumeTrue(!isXpand());
     //            "create table text_types_text (varchar100           varchar(100),\n" +
     //                    "  varchar255           varchar(255),\n" +
     //                    "  text                 text,\n" +

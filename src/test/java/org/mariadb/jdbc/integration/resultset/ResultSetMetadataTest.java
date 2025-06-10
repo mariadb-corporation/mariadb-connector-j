@@ -50,10 +50,8 @@ public class ResultSetMetadataTest extends Common {
             "select id_col, nullable_col, unikey_col as something, char_col,us from test_rsmd");
     assertTrue(rs.next());
     ResultSetMetaData rsmd = rs.getMetaData();
-    if (!isXpand()) {
-      assertTrue(rsmd.isAutoIncrement(1));
-      assertFalse(rsmd.isAutoIncrement(2));
-    }
+    assertTrue(rsmd.isAutoIncrement(1));
+    assertFalse(rsmd.isAutoIncrement(2));
     assertEquals(5, rsmd.getColumnCount());
     assertEquals(ResultSetMetaData.columnNullable, rsmd.isNullable(2));
     assertEquals(ResultSetMetaData.columnNoNulls, rsmd.isNullable(1));
@@ -64,9 +62,7 @@ public class ResultSetMetadataTest extends Common {
     assertEquals("nullable_col", rsmd.getColumnLabel(2));
     assertEquals("something", rsmd.getColumnLabel(3));
     assertEquals("unikey_col", rsmd.getColumnName(3));
-    if (!isXpand()) {
-      assertEquals(Types.CHAR, rsmd.getColumnType(4));
-    }
+    assertEquals(Types.CHAR, rsmd.getColumnType(4));
     assertEquals(Types.SMALLINT, rsmd.getColumnType(5));
     assertFalse(rsmd.isReadOnly(1));
     assertFalse(rsmd.isReadOnly(2));

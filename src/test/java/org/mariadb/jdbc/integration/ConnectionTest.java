@@ -65,11 +65,7 @@ public class ConnectionTest extends Common {
 
   @Test
   void socketTimeout() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
+    Assumptions.assumeTrue(!isMaxscale());
 
     try (Connection con = createCon("&socketTimeout=50")) {
       assertEquals(50, con.getNetworkTimeout());
@@ -734,12 +730,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && isMariaDBServer()
-            && minVersion(10, 2, 0));
+    Assumptions.assumeTrue(!isMaxscale() && isMariaDBServer() && minVersion(10, 2, 0));
     Statement stmt = sharedConn.createStatement();
 
     try {
@@ -785,8 +776,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void parsecAuthPlugin() throws Throwable {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && isMariaDBServer() && minVersion(10, 6, 1));
+    Assumptions.assumeTrue(!isMaxscale() && isMariaDBServer() && minVersion(10, 6, 1));
     Statement stmt = sharedConn.createStatement();
 
     try {
@@ -840,11 +830,7 @@ public class ConnectionTest extends Common {
     // only test on travis, because only work on Unix-like operating systems.
     // /etc/pam.d/mariadb pam configuration is created beforehand
 
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && System.getenv("TEST_PAM_USER") != null
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer() && System.getenv("TEST_PAM_USER") != null);
 
     Statement stmt = sharedConn.createStatement();
     try {
@@ -933,9 +919,7 @@ public class ConnectionTest extends Common {
       stmt.execute("CREATE DATABASE IF NOT EXISTS someDb");
       con.setCatalog("someDb");
       stmt.execute("DROP DATABASE someDb");
-      if (minVersion(10, 4, 0)
-          && !"maxscale".equals(System.getenv("srv"))
-          && !"skysql-ha".equals(System.getenv("srv"))) {
+      if (minVersion(10, 4, 0) && !isMaxscale()) {
         assertNull(con.getCatalog());
       }
     }
@@ -1188,8 +1172,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void sslNotSet() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 4, 0));
     Assumptions.assumeFalse(haveSsl());
     Common.assertThrowsContains(
@@ -1202,8 +1184,6 @@ public class ConnectionTest extends Common {
         System.getenv("local") != null
             && "1".equals(System.getenv("local"))
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try (Connection con = createCon("localSocketAddress=" + hostAddress.host)) {
@@ -1249,9 +1229,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void createDatabaseIfNotExist() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     // ensure connecting without DB
     String connStr =
         String.format(
@@ -1289,9 +1266,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void loopHost() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     // ensure connecting without DB
     String connStr =
         String.format(

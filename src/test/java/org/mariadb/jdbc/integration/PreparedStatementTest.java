@@ -309,8 +309,6 @@ public class PreparedStatementTest extends Common {
   }
 
   private void executeQuery(Connection con) throws SQLException {
-    // https://jira.mariadb.org/browse/XPT-282
-    Assumptions.assumeFalse(isXpand());
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS prepare10");
     stmt.execute("CREATE TABLE prepare10 (t1 int not null primary key auto_increment, t2 int)");
@@ -359,8 +357,7 @@ public class PreparedStatementTest extends Common {
   public void clearParameters() throws Exception {
     // error crashing maxscale 6.1.x
     Assumptions.assumeTrue(
-        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.1.")
-            && !"skysql-ha".equals(System.getenv("srv")));
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.1."));
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts=false")) {
       clearParameters(con);
     }
@@ -495,8 +492,6 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeBatchMultiple() throws SQLException {
-    // xpand don't support DO command
-    Assumptions.assumeFalse(isXpand());
     try (Connection con =
         createCon("allowMultiQueries&useBulkStmts=false&useBulkStmtsForInserts=false")) {
       executeBatchMultiple(con);

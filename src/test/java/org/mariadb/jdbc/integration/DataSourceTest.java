@@ -128,10 +128,7 @@ public class DataSourceTest extends Common {
 
   @Test
   public void switchUser() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Statement stmt = sharedConn.createStatement();
     try {
       stmt.execute("DROP USER 'dsUser'" + getHostSuffix());

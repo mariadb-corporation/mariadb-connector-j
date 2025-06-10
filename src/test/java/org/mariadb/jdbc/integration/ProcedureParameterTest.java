@@ -38,8 +38,6 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
 
     CallableStatement stmt = sharedConn.prepareCall("{call useParameterName(?)}");
     stmt.setInt("a", 1);
@@ -54,8 +52,6 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
 
     CallableStatement stmt = sharedConn.prepareCall("call useParameterName(?)");
     stmt.setInt(1, 1);
@@ -70,9 +66,6 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
 
     try (CallableStatement call = sharedConn.prepareCall("{call withStrangeParameter(?)}")) {
       double expected = 5.43;
@@ -94,13 +87,16 @@ public class ProcedureParameterTest extends Common {
 
   @Test
   public void basicProcedure() throws SQLException {
+    basicProcedure(sharedConn);
+    basicProcedure(sharedConnBinary);
+  }
+
+  private void basicProcedure(Connection con) throws SQLException {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
-        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
+        !con.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
 
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt = (Statement) con.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc2");
     stmt.execute(
         "CREATE PROCEDURE basic_proc2 (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3),"
@@ -110,9 +106,9 @@ public class ProcedureParameterTest extends Common {
             + "set t4 = 'return data';\n"
             + "set t6 = true;\n"
             + "END");
-    try (CallableStatement callableStatement =
-        sharedConn.prepareCall("{call basic_proc2(?,?,?,?)}")) {
+    try (CallableStatement callableStatement = con.prepareCall("{call basic_proc2(?,?,?,?)}")) {
       ParameterMetaData meta = callableStatement.getParameterMetaData();
+      callableStatement.getParameterMetaData();
       assertEquals(6, meta.getParameterCount());
       assertEquals("int", meta.getParameterClassName(1));
       assertEquals("int", meta.getParameterClassName(2));
@@ -185,9 +181,6 @@ public class ProcedureParameterTest extends Common {
 
   @Test
   public void getParameterTypeProcedure() throws SQLException {
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
-
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS procType");
     stmt.execute(
@@ -366,11 +359,12 @@ public class ProcedureParameterTest extends Common {
   @Test
   public void failStoredProcedureTest2() throws Exception {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP PROCEDURE IF EXISTS workingStoreProcedure");
-    stmt.execute("DROP TABLE IF EXISTS saveData");
-    stmt.execute("CREATE TABLE saveData(i int PRIMARY KEY)");
+    stmt.execute("DROP PROCEDURE IF EXISTS saveDataProc");
+    stmt.execute("DROP TABLE IF EXISTS workingStoreProcedure");
+    stmt.execute("CREATE TABLE workingStoreProcedure(i int PRIMARY KEY)");
     stmt.execute(
-        "CREATE PROCEDURE saveDataProc(val int) begin INSERT INTO saveData(i) VALUE (val); end");
+        "CREATE PROCEDURE saveDataProc(val int) begin INSERT INTO workingStoreProcedure(i) VALUE"
+            + " (val); end");
 
     try (CallableStatement call1 = sharedConn.prepareCall("{call saveDataProc(?)}")) {
       call1.setInt(1, 1);

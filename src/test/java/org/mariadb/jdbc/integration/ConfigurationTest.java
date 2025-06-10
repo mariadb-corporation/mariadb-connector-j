@@ -41,49 +41,44 @@ public class ConfigurationTest extends Common {
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertTrue(rs.next());
-      if (!"galera".equals(System.getenv("srv"))) {
-        assertEquals(5, rs.getInt(1));
-      }
+      assertEquals(5, rs.getInt(1));
       assertFalse(rs.next());
       assertFalse(stmt.getMoreResults());
       rs.clearWarnings();
     }
 
-    // Xpand doesn't support session_track_system_variables
-    if (!isXpand()) {
-      try (Connection connection =
-          createCon("sessionVariables=session_track_system_variables='some\\';f,\"ff'")) {
-        Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
-        assertTrue(rs.next());
-      } catch (SQLException e) {
-        // in case server check variable validity
-        Assertions.assertTrue(
-            e.getCause().getMessage().contains("Unknown system variable 'some';f'"));
-      }
-      try (Connection connection =
-          createCon("sessionVariables=session_track_system_variables=\"some\\\";f,'ff'\"")) {
-        Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
-        assertTrue(rs.next());
-      } catch (SQLException e) {
-        // in case server check variable validity
-        Assertions.assertTrue(
-            e.getCause().getMessage().contains("Unknown system variable 'some\";f'"));
-      }
-      try (Connection connection =
-          createCon("sessionVariables=session_track_system_variables=connect_timeout")) {
-        Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
-        assertTrue(rs.next());
-      }
+    try (Connection connection =
+        createCon("sessionVariables=session_track_system_variables='some\\';f,\"ff'")) {
+      Statement stmt = connection.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
+      assertTrue(rs.next());
+    } catch (SQLException e) {
+      // in case server check variable validity
+      Assertions.assertTrue(
+          e.getCause().getMessage().contains("Unknown system variable 'some';f'"));
+    }
+    try (Connection connection =
+        createCon("sessionVariables=session_track_system_variables=\"some\\\";f,'ff'\"")) {
+      Statement stmt = connection.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
+      assertTrue(rs.next());
+    } catch (SQLException e) {
+      // in case server check variable validity
+      Assertions.assertTrue(
+          e.getCause().getMessage().contains("Unknown system variable 'some\";f'"));
+    }
+    try (Connection connection =
+        createCon("sessionVariables=session_track_system_variables=connect_timeout")) {
+      Statement stmt = connection.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
+      assertTrue(rs.next());
     }
   }
 
   @Test
   void connectionAttributes() throws SQLException {
     // xpand doesn't support @@performance_schema variable
-    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")) && !isXpand());
+    Assumptions.assumeTrue(!isMaxscale());
 
     try (org.mariadb.jdbc.Connection conn =
         createCon("&connectionAttributes=test:test1,test2:test2Val,test3")) {

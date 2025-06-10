@@ -678,12 +678,9 @@ public class DoubleCodecTest extends CommonCodecTest {
     assertEquals(Types.DOUBLE, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals("", meta.getSchemaName(1));
-    // https://jira.mariadb.org/browse/XPT-276
-    if (!isXpand()) {
-      assertEquals(22, meta.getColumnDisplaySize(1));
-      assertEquals(22, meta.getPrecision(1));
-      assertEquals(31, meta.getScale(1));
-    }
+    assertEquals(22, meta.getColumnDisplaySize(1));
+    assertEquals(22, meta.getPrecision(1));
+    assertEquals(31, meta.getScale(1));
   }
 
   @Test

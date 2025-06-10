@@ -1473,11 +1473,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals(4, meta.getColumnCount());
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    // https://jira.mariadb.org/browse/XPT-273
-    if (!isXpand()) {
-      assertEquals(19, meta.getPrecision(1));
-      assertEquals(19, meta.getColumnDisplaySize(1));
-    }
+    assertEquals(19, meta.getPrecision(1));
+    assertEquals(19, meta.getColumnDisplaySize(1));
   }
 
   @Test

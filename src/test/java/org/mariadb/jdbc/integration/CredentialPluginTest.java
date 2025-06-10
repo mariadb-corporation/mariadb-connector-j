@@ -122,10 +122,7 @@ public class CredentialPluginTest extends Common {
   @Test
   @SuppressWarnings("unchecked")
   public void noEnvsIdentityTest() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
 
     Common.assertThrowsContains(
         SQLException.class,
@@ -193,10 +190,7 @@ public class CredentialPluginTest extends Common {
   @SetEnvironmentVariable(key = "MARIADB2_PWD", value = "!Passw0rd3Works")
   @SuppressWarnings("unchecked")
   public void envTestsIdentityTest() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && haveSsl());
     if (!minVersion(11, 4, 1)) {
       // Self-signed certificates error
