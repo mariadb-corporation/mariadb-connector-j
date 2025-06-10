@@ -42,6 +42,20 @@ public interface Context {
   void setAutoIncrement(long autoIncrement);
 
   /**
+   * Set Maxscale version.
+   *
+   * @param maxscaleVersion maxscale version
+   */
+  void setMaxscaleVersion(String maxscaleVersion);
+
+  /**
+   * Retrieve maxscaleVersion or null if not the case
+   *
+   * @return maxscale version
+   */
+  String getMaxscaleVersion();
+
+  /**
    * Set server redirection url
    *
    * @param redirectUrl redirect url

@@ -253,7 +253,7 @@ public class BatchTest extends Common {
 
   @Test
   public void differentParameterType() throws SQLException {
-    boolean expectUnknown = isMariaDBServer() && !isXpand() && !minVersion(11, 5, 0);
+    boolean expectUnknown = isMariaDBServer() && !minVersion(11, 5, 0);
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false);
     }
@@ -690,7 +690,7 @@ public class BatchTest extends Common {
 
   @Test
   public void ensureCalendarSync() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer() && !isXpand());
+    Assumptions.assumeTrue(isMariaDBServer());
     // to ensure that calendar is use at the same time, using BULK command
     TimestampCal[] t1 = new TimestampCal[50];
     for (int i = 0; i < 50; i++) {

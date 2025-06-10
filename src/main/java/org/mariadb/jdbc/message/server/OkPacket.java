@@ -33,6 +33,7 @@ public class OkPacket implements Completion {
   static byte[] THREAD_CONNECTED = "threads_Connected".getBytes(StandardCharsets.UTF_8);
   static byte[] AUTO_INCREMENT_INCREMENT =
       "auto_increment_increment".getBytes(StandardCharsets.UTF_8);
+  static byte[] MAXSCALE = "maxscale".getBytes(StandardCharsets.UTF_8);
   static byte[] REDIRECT_URL = "redirect_url".getBytes(StandardCharsets.UTF_8);
   static byte[] TX_ISOLATION = "tx_isolation".getBytes(StandardCharsets.UTF_8);
   static byte[] TRANSACTION_ISOLATION = "transaction_isolation".getBytes(StandardCharsets.UTF_8);
@@ -93,6 +94,8 @@ public class OkPacket implements Completion {
                     context.setTreadsConnected(Long.parseLong(new String(valueBytes, 0, lenSv)));
                   } else if (Arrays.equals(AUTO_INCREMENT_INCREMENT, variableBytes)) {
                     context.setAutoIncrement(Long.parseLong(new String(valueBytes, 0, lenSv)));
+                  } else if (Arrays.equals(MAXSCALE, variableBytes)) {
+                    context.setMaxscaleVersion(new String(valueBytes, 0, lenSv));
                   } else if (Arrays.equals(REDIRECT_URL, variableBytes)) {
                     if (lenSv != null && lenSv > 0)
                       context.setRedirectUrl(new String(valueBytes, 0, lenSv));

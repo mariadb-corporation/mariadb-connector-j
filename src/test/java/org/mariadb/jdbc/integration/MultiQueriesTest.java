@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Connection;
@@ -93,9 +92,6 @@ public class MultiQueriesTest extends Common {
   @Test
   @SuppressWarnings("try")
   public void quitWhileStreaming() throws SQLException {
-    // XPAND doesn't support DO command
-    Assumptions.assumeFalse(isXpand());
-
     Connection connection = createCon("&allowMultiQueries=true");
     Statement stmt = connection.createStatement();
     stmt.setFetchSize(1);

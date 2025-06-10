@@ -41,8 +41,6 @@ public class PoolDataSourceTest extends Common {
   @BeforeAll
   public static void beforeClassDataSourceTest() throws SQLException {
     drop();
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     boolean useOldNotation =
         (!isMariaDBServer() || !minVersion(10, 2, 0))
             && (isMariaDBServer() || !minVersion(8, 0, 0));

@@ -35,6 +35,7 @@ public class Common {
   public static TcpProxy proxy;
   public static String mDefUrl;
   private static Instant initialTest;
+  private static String maxscaleVersion = null;
 
   static {
     try (InputStream inputStream =
@@ -61,14 +62,6 @@ public class Common {
                   "jdbc:mariadb://%s:%s/%s?user=%s&password=%s%s",
                   hostname, port, database, user, password, defaultOther);
 
-      String srv = System.getenv("srv");
-      String version = System.getenv("v");
-      double versionInt = 0;
-      try {
-        versionInt = Double.parseDouble(version);
-      } catch (NumberFormatException | NullPointerException e) {
-        // eat
-      }
       try (Connection c =
           (Connection) DriverManager.getConnection(mDefUrl + "&allowPublicKeyRetrieval=true")) {
         DatabaseMetaData meta = c.getMetaData();
@@ -120,6 +113,18 @@ public class Common {
     }
   }
 
+  public static boolean isMaxscale() {
+    if (maxscaleVersion == null) {
+      maxscaleVersion = sharedConn.getContext().getMaxscaleVersion();
+      if (maxscaleVersion == null) {
+        return "maxscale".equals(System.getenv("srv"))
+            || "maxscale".equals(System.getenv("DB_TYPE"));
+      }
+    }
+    return true;
+  }
+  ;
+
   public static boolean isMariaDBServer() {
     return sharedConn.getContext().getVersion().isMariaDBServer();
   }
@@ -138,15 +143,6 @@ public class Common {
       return Boolean.parseBoolean(runLongTest);
     }
     return false;
-  }
-
-  public static boolean isXpand() {
-    String srv = System.getenv("srv");
-    if (srv != null) {
-      return "xpand".equals(srv);
-    }
-    return sharedConn.getContext().getVersion().isMariaDBServer()
-        && sharedConn.getContext().getVersion().getQualifier().toLowerCase().contains("xpand");
   }
 
   public static boolean minVersion(int major, int minor, int patch) {
@@ -315,7 +311,14 @@ public class Common {
 
   public static int getMaxScaleVersion() throws SQLException {
     int version = 0;
-    if ("maxscale".equals(System.getenv("srv"))) {
+    if (isMaxscale()) {
+      if (maxscaleVersion != null) {
+        try {
+          return Integer.parseInt(maxscaleVersion.substring(0, maxscaleVersion.indexOf(".")));
+        } catch (NumberFormatException e) {
+          // eat
+        }
+      }
       java.sql.Statement st = sharedConn.createStatement();
       /**
        * The test system must either create the maxscale_version() function that returns the

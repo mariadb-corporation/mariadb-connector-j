@@ -25,8 +25,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void failoverReadonlyToMaster() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
       long primaryThreadId = con.getThreadId();
       con.setReadOnly(true);
@@ -47,7 +45,7 @@ public class MultiHostTest extends Common {
   @Test
   public void ensureReadOnlyOnReplica() throws Exception {
     // mariadb1.example.com, mariadb2.example.com and mariadb3.example.com DNS alias must be defined
-    Assumptions.assumeFalse("maxscale".equals(System.getenv("srv")));
+    Assumptions.assumeFalse(isMaxscale());
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -92,10 +90,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void readOnly() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
     try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
       Statement stmt = con.createStatement();
       stmt.executeUpdate("DROP TABLE IF EXISTS testReadOnly");
@@ -113,8 +107,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void syncState() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyConKeep("")) {
       Statement stmt = con.createStatement();
       stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS sync");
@@ -142,9 +134,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void replicaNotSet() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     String url = mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
     try (java.sql.Connection con = DriverManager.getConnection(url + "&waitReconnectTimeout=20")) {
       con.isValid(1);
@@ -158,9 +147,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void closedConnectionMulti() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     String url =
@@ -230,10 +216,7 @@ public class MultiHostTest extends Common {
 
   @Test
   public void masterFailover() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -391,9 +374,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void masterStreamingFailover() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try {
@@ -458,9 +438,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void masterReplicationFailover() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try {
@@ -518,10 +495,7 @@ public class MultiHostTest extends Common {
 
   @Test
   public void masterReplicationStreamingFailover() throws Exception {
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer());
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);

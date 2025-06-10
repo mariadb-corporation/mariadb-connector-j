@@ -946,11 +946,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
     assertEquals(3, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    // https://jira.mariadb.org/browse/XPT-276
-    if (!isXpand()) {
-      assertEquals(3, meta.getPrecision(1));
-      assertEquals(3, meta.getColumnDisplaySize(1));
-    }
+    assertEquals(3, meta.getPrecision(1));
+    assertEquals(3, meta.getColumnDisplaySize(1));
 
     try (org.mariadb.jdbc.Connection conn =
         createCon("&resultSetMetaDataUnsignedCompatibility=true")) {

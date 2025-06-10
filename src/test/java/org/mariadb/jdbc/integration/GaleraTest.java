@@ -12,7 +12,7 @@ public class GaleraTest extends Common {
 
   @Test
   public void galeraAllowedStatesTest() throws SQLException {
-    if ("galera".equals(System.getenv("srv"))) {
+    if ("galera".equals(System.getenv("DB_TYPE"))) {
       try (Connection con = createCon("galeraAllowedState=4,5,6")) {
         con.isValid(1);
       }

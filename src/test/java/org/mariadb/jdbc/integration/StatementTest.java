@@ -60,14 +60,14 @@ public class StatementTest extends Common {
             "INSERT INTO key_test(id) VALUES(5)", Statement.RETURN_GENERATED_KEYS)) {
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
-      if (!isXpand()) assertFalse(rs.next());
+      assertFalse(rs.next());
     }
     try (PreparedStatement ps =
         sharedConn.prepareStatement(
             "UPDATE key_test set id=7 WHERE id=5", Statement.RETURN_GENERATED_KEYS)) {
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
-      if (!isXpand()) assertFalse(rs.next());
+      assertFalse(rs.next());
     }
 
     stmt.execute("DROP TABLE key_test");
@@ -281,13 +281,11 @@ public class StatementTest extends Common {
     assertEquals(-1, stmt.getUpdateCount());
     assertFalse(stmt.getMoreResults());
     assertEquals(-1, stmt.getUpdateCount());
-    if (!isXpand()) {
-      assertFalse(stmt.execute("DO 1"));
-      Assertions.assertNull(stmt.getResultSet());
-      assertEquals(0, stmt.getUpdateCount());
-      assertFalse(stmt.getMoreResults());
-      assertEquals(-1, stmt.getUpdateCount());
-    }
+    assertFalse(stmt.execute("DO 1"));
+    Assertions.assertNull(stmt.getResultSet());
+    assertEquals(0, stmt.getUpdateCount());
+    assertFalse(stmt.getMoreResults());
+    assertEquals(-1, stmt.getUpdateCount());
 
     assertTrue(stmt.execute("SELECT 1", new int[] {1, 2}));
     rs = stmt.getGeneratedKeys();
@@ -489,9 +487,7 @@ public class StatementTest extends Common {
           sqle.getMessage()
               .contains("the given SQL statement produces an unexpected ResultSet object"));
     }
-    if (!isXpand()) {
-      assertEquals(0, stmt.executeUpdate("DO 1"));
-    }
+    assertEquals(0, stmt.executeUpdate("DO 1"));
   }
 
   @Test
@@ -523,9 +519,7 @@ public class StatementTest extends Common {
           sqle.getMessage()
               .contains("the given SQL statement produces an unexpected ResultSet object"));
     }
-    if (!isXpand()) {
-      assertEquals(0, stmt.executeLargeUpdate("DO 1"));
-    }
+    assertEquals(0, stmt.executeLargeUpdate("DO 1"));
   }
 
   @Test
@@ -533,10 +527,8 @@ public class StatementTest extends Common {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT 1");
     assertTrue(rs.next());
-    if (!isXpand()) {
-      stmt.executeUpdate("DO 1");
-      assertNull(stmt.getResultSet());
-    }
+    stmt.executeUpdate("DO 1");
+    assertNull(stmt.getResultSet());
   }
 
   @Test
@@ -869,9 +861,7 @@ public class StatementTest extends Common {
 
   @Test
   public void testWarnings() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeTrue(isMariaDBServer() && !isXpand());
+    Assumptions.assumeTrue(isMariaDBServer());
 
     Statement stmt = sharedConn.createStatement();
 
@@ -904,11 +894,7 @@ public class StatementTest extends Common {
 
   @Test
   public void cancel() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
+    Assumptions.assumeTrue(!isMaxscale());
     Statement stmt = sharedConn.createStatement();
     stmt.cancel(); // will do nothing
 
@@ -1226,9 +1212,7 @@ public class StatementTest extends Common {
   @Test
   public void testAffectedRow() throws SQLException {
     testAffectedRow(false);
-    if (!isXpand()) {
-      testAffectedRow(true);
-    }
+    testAffectedRow(true);
   }
 
   @Test

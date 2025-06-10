@@ -41,6 +41,7 @@ public class BaseContext implements Context {
 
   private Long autoIncrement;
 
+  private String maxscaleVersion = null;
   private long threadId;
   private String charset;
 
@@ -138,8 +139,17 @@ public class BaseContext implements Context {
     return database;
   }
 
+  @Override
+  public void setMaxscaleVersion(String maxscaleVersion) {
+    this.maxscaleVersion = maxscaleVersion;
+  }
+
   public void setDatabase(String database) {
     this.database = database;
+  }
+
+  public String getMaxscaleVersion() {
+    return maxscaleVersion;
   }
 
   public ServerVersion getVersion() {
