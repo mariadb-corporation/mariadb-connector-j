@@ -59,6 +59,7 @@ public class Configuration {
   private static final Set<String> SENSITIVE_FIELDS;
   private static final String CATALOG_TERM = "CATALOG";
   private static final String SCHEMA_TERM = "SCHEMA";
+  private static Codec<?>[] cachedCodecs = null;
 
   static {
     EXCLUDED_FIELDS = new HashSet<>();
@@ -79,6 +80,7 @@ public class Configuration {
     PROPERTIES_TO_SKIP.add("$jacocoData");
     PROPERTIES_TO_SKIP.add("CATALOG_TERM");
     PROPERTIES_TO_SKIP.add("SCHEMA_TERM");
+    PROPERTIES_TO_SKIP.add("cachedCodecs");
 
     SENSITIVE_FIELDS = new HashSet<>();
     SENSITIVE_FIELDS.add("password");
@@ -120,6 +122,7 @@ public class Configuration {
   private String initSql;
   private boolean pinGlobalTxToPhysicalConnection;
   private boolean permitNoResults;
+  private boolean cacheCodecs;
 
   // socket
   private String socketFactory;
@@ -391,6 +394,7 @@ public class Configuration {
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
     this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
+    this.cacheCodecs = builder.cacheCodecs != null && builder.cacheCodecs;
     this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
     this.disconnectOnExpiredPasswords =
         builder.disconnectOnExpiredPasswords == null || builder.disconnectOnExpiredPasswords;
@@ -561,6 +565,7 @@ public class Configuration {
             .permitRedirect(this.permitRedirect)
             .pinGlobalTxToPhysicalConnection(this.pinGlobalTxToPhysicalConnection)
             .permitNoResults(this.permitNoResults)
+            .cacheCodecs(this.cacheCodecs)
             .transactionIsolation(
                 transactionIsolation == null ? null : this.transactionIsolation.getValue())
             .defaultFetchSize(this.defaultFetchSize)
@@ -2277,11 +2282,24 @@ public class Configuration {
 
   @SuppressWarnings("rawtypes")
   private void loadCodecs() {
+    if (cacheCodecs && cachedCodecs != null) {
+      codecs = cachedCodecs;
+      return;
+    }
+
     ServiceLoader<Codec> loader =
         ServiceLoader.load(Codec.class, Configuration.class.getClassLoader());
     List<Codec<?>> result = new ArrayList<>();
     loader.iterator().forEachRemaining(result::add);
     codecs = result.toArray(new Codec<?>[0]);
+
+    if (cacheCodecs) {
+      synchronized (Configuration.class) {
+        if (cachedCodecs == null) {
+          cachedCodecs = codecs;
+        }
+      }
+    }
   }
 
   @Override
@@ -2319,6 +2337,7 @@ public class Configuration {
     private Boolean permitRedirect;
     private Boolean pinGlobalTxToPhysicalConnection;
     private Boolean permitNoResults;
+    private Boolean cacheCodecs;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -3295,6 +3314,17 @@ public class Configuration {
      */
     public Builder permitNoResults(Boolean permitNoResults) {
       this.permitNoResults = permitNoResults;
+      return this;
+    }
+
+    /**
+     * Permit caching codecs
+     *
+     * @param cacheCodecs can codec load be cached
+     * @return this {@link Builder}
+     */
+    public Builder cacheCodecs(Boolean cacheCodecs) {
+      this.cacheCodecs = cacheCodecs;
       return this;
     }
 
