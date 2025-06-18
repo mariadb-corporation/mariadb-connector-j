@@ -388,7 +388,9 @@ public class SslTest extends Common {
   @Test
   public void mutualAuthSsl() throws Exception {
     Assumptions.assumeTrue(!isMaxscale());
-    Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
+    Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null
+            && !"".equals(System.getenv("TEST_DB_CLIENT_PKCS")));
+    System.out.println("TEST_DB_CLIENT_PKCS:" + System.getenv("TEST_DB_CLIENT_PKCS"));
 
     // without password
     try {
