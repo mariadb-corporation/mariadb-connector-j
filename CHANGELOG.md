@@ -1,5 +1,26 @@
 # Change Log
 
+## [3.5.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.4) (Jun 2025)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.3...3.5.4)
+
+#### Key Enhancements
+
+* CONJ-1261 - Added caching option for loadCodecs results to improve performance
+
+#### Issues Resolved
+
+* CONJ-1234 - Fixed incorrect type definitions in DatabaseMetaData.getTypeInfo()
+* CONJ-1247 - Resolved potential race condition that could cause NullPointerException
+* CONJ-1250 - avoids redundant queries for CallableStatement.getParameterMetaData()
+* CONJ-1251 - Fixed SSL configuration issue where zero SSL settings only functioned without explicit SSL configuration
+* CONJ-1252 - Resolved GSSAPI authentication error when server exchanges begin with 0x01 byte
+* CONJ-1254 - Corrected DatabaseMetadata.getTypeInfo() returning incorrect values for AUTO_INCREMENT, FIXED_PREC_SCALE, and CASE_SENSITIVE fields
+* CONJ-1255 - Fixed getString method on BIT(1) fields to properly honor transformedBitIsBoolean configuration
+* CONJ-1259 - Enhanced metadata compatibility with MariaDB version 12.0
+* CONJ-1260 - Improved performance of DatabaseMetaData.getExportedKeys method
+* CONJ-1256 - Fixed issue to ensure correct catalog name is returned
+
+
 ## [3.5.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.3) (Mar 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.2...3.5.3)
 
