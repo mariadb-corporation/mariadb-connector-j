@@ -16,6 +16,7 @@ import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
+import org.mariadb.jdbc.util.constants.MetaExportedKeys;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
@@ -123,6 +124,7 @@ public class Configuration {
   private boolean pinGlobalTxToPhysicalConnection;
   private boolean permitNoResults;
   private boolean cacheCodecs;
+  private MetaExportedKeys metaExportedKeys;
 
   // socket
   private String socketFactory;
@@ -263,6 +265,10 @@ public class Configuration {
     this.credentialType = CredentialPluginLoader.get(builder.credentialType);
     this.user = builder.user;
     this.password = builder.password;
+    this.metaExportedKeys =
+        builder.metaExportedKeys != null
+            ? MetaExportedKeys.from(builder.metaExportedKeys)
+            : MetaExportedKeys.Auto;
   }
 
   private void initializeSslConfig(Builder builder) {
@@ -568,6 +574,7 @@ public class Configuration {
             .cacheCodecs(this.cacheCodecs)
             .transactionIsolation(
                 transactionIsolation == null ? null : this.transactionIsolation.getValue())
+            .metaExportedKeys(metaExportedKeys == null ? null : this.metaExportedKeys.name())
             .defaultFetchSize(this.defaultFetchSize)
             .maxQuerySizeToLog(this.maxQuerySizeToLog)
             .maxAllowedPacket(this.maxAllowedPacket)
@@ -1099,6 +1106,7 @@ public class Configuration {
       case "Boolean":
       case "HaMode":
       case "TransactionIsolation":
+      case "MetaExportedKeys":
       case "Integer":
       case "SslMode":
       case "CatalogTerm":
@@ -1726,6 +1734,15 @@ public class Configuration {
   }
 
   /**
+   * Default metadata getExportedKeys implementation.
+   *
+   * @return default implementation
+   */
+  public MetaExportedKeys metaExportedKeys() {
+    return metaExportedKeys;
+  }
+
+  /**
    * autorized cipher list.
    *
    * @return list of permitted ciphers
@@ -2345,6 +2362,7 @@ public class Configuration {
     private String restrictedAuth;
     private String initSql;
     private String transactionIsolation;
+    private String metaExportedKeys;
 
     // socket
     private String socketFactory;
@@ -2962,6 +2980,18 @@ public class Configuration {
      */
     public Builder transactionIsolation(String transactionIsolation) {
       this.transactionIsolation = nullOrEmpty(transactionIsolation);
+      return this;
+    }
+
+    /**
+     * Indicate what implementation to use for metadata getExportedKeys. choice are
+     * "UseInformationSchema", "UseShowCreate" or "Auto"
+     *
+     * @param metaExportedKeys indicate implementation to use for metadata getExportedKeys
+     * @return this {@link Builder}
+     */
+    public Builder metaExportedKeys(String metaExportedKeys) {
+      this.metaExportedKeys = nullOrEmpty(metaExportedKeys);
       return this;
     }
 

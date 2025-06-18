@@ -13,6 +13,7 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
+import org.mariadb.jdbc.util.constants.MetaExportedKeys;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Mariadb Database metadata */
@@ -963,21 +964,25 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       throw new SQLException("'table' parameter in getExportedKeys cannot be null");
     }
 
-    boolean getExportedKeysUsingIs =
-        Boolean.parseBoolean(
-            conf.nonMappedOptions().getProperty("getExportedKeysUsingIs", "false"));
+    MetaExportedKeys implType = conf.metaExportedKeys();
 
-    if (getExportedKeysUsingIs)
-      return getExportedKeysUsingInformationSchema(catalog, schema, table);
+    // keep for compatibility but to be removed in 3.6
+    String useIs = conf.nonMappedOptions().getProperty("getExportedKeysUsingIs");
+    if ("true".equals(useIs)) implType = MetaExportedKeys.UseInformationSchema;
 
-    try {
-      return getExportedKeysUsingShowCreateTable(catalog, schema, table);
-    } catch (Exception e) {
-      // since 3.4.1 show create is now used by default, and there is no reason to have parsing
-      // exception, but cannot remove that try-catch in a correction release.
-      // TODO to be removed next minor version
-      return getExportedKeysUsingInformationSchema(catalog, schema, table);
+    if (implType == MetaExportedKeys.UseShowCreate
+        || (implType == MetaExportedKeys.Auto
+            && Boolean.TRUE.equals(connection.getContext().isLoopbackAddress()))) {
+      // getExportedKeysUsingShowCreateTable performs better locally but worse over network
+      try {
+        return getExportedKeysUsingShowCreateTable(catalog, schema, table);
+      } catch (Exception e) {
+        // eat
+      }
     }
+
+    // default behavior
+    return getExportedKeysUsingInformationSchema(catalog, schema, table);
   }
 
   private ResultSet getExportedKeysUsingShowCreateTable(String catalog, String schema, String table)
