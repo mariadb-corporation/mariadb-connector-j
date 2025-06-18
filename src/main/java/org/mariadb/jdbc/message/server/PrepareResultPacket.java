@@ -84,10 +84,10 @@ public class PrepareResultPacket implements Completion, Prepare {
         // skipping packet, since there is no metadata information.
         // might change when https://jira.mariadb.org/browse/MDEV-15031 is done
         parameters[i] = CONSTANT_PARAMETER;
-        reader.skipPacket();
+        reader.readReusablePacket();
       }
       if (!context.isEofDeprecated()) {
-        reader.skipPacket();
+        reader.readReusablePacket();
       }
     }
     if (numColumns > 0) {
@@ -98,7 +98,7 @@ public class PrepareResultPacket implements Completion, Prepare {
                 .apply(new StandardReadableByteBuf(reader.readPacket(trace)));
       }
       if (!context.isEofDeprecated()) {
-        reader.skipPacket();
+        reader.readReusablePacket();
       }
     }
   }

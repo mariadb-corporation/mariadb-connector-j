@@ -4,10 +4,10 @@
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.2...3.5.3)
 
 #### Bugs Fixed
-* 
+
 * CONJ-1226 Fixed issue where dates containing zero day or month resulted in a DateTimeException
 * CONJ-1232 Resolved timestamp string representation incompatibility between versions 2.7 and 3.x
-  * see new option oldModeNoPrecisionTimestamp
+	* see new option oldModeNoPrecisionTimestamp
 * CONJ-1226 Fixed incorrect values returned by ResultSet.getColumnType() for unsigned values
 * CONJ-1241 Corrected regression in 3.x affecting column metadata for unsigned types
 * CONJ-1243 Fixed CallableStatement.getParameterMetadata() returning wrong java.sql.Type for boolean values

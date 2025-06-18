@@ -301,7 +301,7 @@ public class GeometryTest {
         SQLException.class,
         () ->
             Geometry.getGeometry(
-                readBuf, ptBytes.length, ColumnDecoder.create("test", DataType.GEOMETRY, 0)));
+                readBuf, ptBytes.length, ColumnDecoder.create("db", "test", DataType.GEOMETRY, 0)));
     assertNull(Geometry.getGeometry(new StandardReadableByteBuf(new byte[0], 0), 0, null));
   }
 }

@@ -90,7 +90,9 @@ public class FloatArray implements Array {
     }
 
     return new CompleteResult(
-        new ColumnDecoder[] {ColumnDecoder.create("Array", DataType.FLOAT, ColumnFlags.NOT_NULL)},
+        new ColumnDecoder[] {
+          ColumnDecoder.create(context.getDatabase(), "Array", DataType.FLOAT, ColumnFlags.NOT_NULL)
+        },
         rows,
         context,
         ResultSet.TYPE_SCROLL_INSENSITIVE);

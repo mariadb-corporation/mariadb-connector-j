@@ -3,7 +3,7 @@ name: Run CI Tests
 
 on:
   push:
-    branches: ['master', 'develop', 'feature/**', 'maintenance/**']
+    branches: ['master', 'develop', 'maintenance/*']
   pull_request:
   workflow_dispatch:
   schedule:
@@ -57,8 +57,8 @@ jobs:
           test-db-database: ${{ env.TEST_DB_DATABASE }}
           test-db-port: ${{ env.TEST_DB_PORT }}
           additional-conf: ${{ matrix.additional-conf || '' }}
-          registry-user: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_USER || '' }}
-          registry-password: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_TOKEN || '' }}
+          registry-user: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_USER || (secrets.DOCKER_PWD != '' && 'mariadbtest' || '') }}
+          registry-password: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_TOKEN || secrets.DOCKER_PWD }}
           os: ${{ matrix.os }}
 
       - uses: actions/setup-java@v4
@@ -73,6 +73,8 @@ jobs:
           LOCAL_DB: ${{ steps.setup-env.outputs.database-type }}
           DB_TYPE: ${{ matrix.db-type }}
           TEST_DB_SERVER_CERT: ${{ matrix.db-type == 'container' && './.github/workflows/certs/server.crt' || '' }}
+          TEST_DB_SERVER_CA_CERT: ${{ matrix.db-type == 'container' && './.github/workflows/certs/ca.crt' || '' }}
+          TEST_DB_CLIENT_PKCS: ${{ matrix.db-type == 'container' && './.github/workflows/certs/client.p12' || '' }}
           DB_VERSION: ${{ matrix.db-tag }}
 
       - name: Generate Coverage Report

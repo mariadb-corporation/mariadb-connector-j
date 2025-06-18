@@ -21,6 +21,13 @@ public interface Context {
   long getThreadId();
 
   /**
+   * return if host is a local address
+   *
+   * @return true if host is local
+   */
+  Boolean isLoopbackAddress();
+
+  /**
    * Indicate server connection Id (not truncated)
    *
    * @param connectionId connection id

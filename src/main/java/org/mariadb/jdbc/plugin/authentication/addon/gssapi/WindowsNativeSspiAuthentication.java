@@ -46,6 +46,12 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
 
       // Step 2: read server response token
       ReadableByteBuf buf = in.readReusablePacket();
+
+      // server cannot allow plugin data packet to start with 0, 255 or 254,
+      // as connectors would treat it as an OK, Error or authentication switch packet
+      // server then these bytes with 0x001. Consequently, it escaped 0x01 byte too.
+      if (buf.getByte() == 0x01) buf.skip();
+
       byte[] tokenForTheClientOnTheServer = new byte[buf.readableBytes()];
       buf.readBytes(tokenForTheClientOnTheServer);
       Sspi.SecBufferDesc continueToken =

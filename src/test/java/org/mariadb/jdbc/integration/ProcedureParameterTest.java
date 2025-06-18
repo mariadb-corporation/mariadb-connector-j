@@ -177,6 +177,19 @@ public class ProcedureParameterTest extends Common {
       assertTrue(meta.isWrapperFor(ParameterMetaData.class));
       assertFalse(meta.isWrapperFor(String.class));
     }
+    try (CallableStatement callableStatement = con.prepareCall("{call basic_proc2(?,?,?,?)}")) {
+      ParameterMetaData meta = callableStatement.getParameterMetaData();
+      callableStatement.getParameterMetaData();
+      assertEquals(6, meta.getParameterCount());
+      assertEquals("int", meta.getParameterClassName(1));
+      assertEquals("int", meta.getParameterClassName(2));
+      assertEquals("java.math.BigDecimal", meta.getParameterClassName(3));
+      assertEquals("java.lang.String", meta.getParameterClassName(4));
+      assertEquals("short", meta.getParameterClassName(5));
+      assertEquals("boolean", meta.getParameterClassName(6));
+      Common.assertThrowsContains(
+          SQLException.class, () -> meta.getParameterClassName(7), "invalid parameter index 7");
+    }
   }
 
   @Test

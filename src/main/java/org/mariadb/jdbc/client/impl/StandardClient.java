@@ -321,12 +321,27 @@ public class StandardClient implements Client, AutoCloseable {
   private void initializeContext(InitialHandshakePacket handshake, long clientCapabilities) {
     PrepareCache cache =
         conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null;
+
+    Boolean isLoopback = null;
+    if (socket.getInetAddress() != null) isLoopback = socket.getInetAddress().isLoopbackAddress();
     this.context =
         conf.transactionReplay()
             ? new RedoContext(
-                hostAddress, handshake, clientCapabilities, conf, exceptionFactory, cache)
+                hostAddress,
+                handshake,
+                clientCapabilities,
+                conf,
+                exceptionFactory,
+                cache,
+                isLoopback)
             : new BaseContext(
-                hostAddress, handshake, clientCapabilities, conf, exceptionFactory, cache);
+                hostAddress,
+                handshake,
+                clientCapabilities,
+                conf,
+                exceptionFactory,
+                cache,
+                isLoopback);
   }
 
   private void handleAuthentication(InitialHandshakePacket handshake, long clientCapabilities)

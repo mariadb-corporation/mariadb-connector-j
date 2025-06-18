@@ -677,17 +677,30 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void exportedKeysTest() throws SQLException {
+    exportedKeysTest(sharedConn);
+    try (Connection conn = createCon("metaExportedKeys=UseInformationSchema")) {
+      exportedKeysTest(conn);
+    }
+    try (Connection conn = createCon("metaExportedKeys=UseShowCreate")) {
+      exportedKeysTest(conn);
+    }
+    try (Connection conn = createCon("metaExportedKeys=auto")) {
+      exportedKeysTest(conn);
+    }
+  }
 
-    DatabaseMetaData dbmd = sharedConn.getMetaData();
-    ResultSet rs = dbmd.getExportedKeys(sharedConn.getCatalog(), null, "cross1");
+  private void exportedKeysTest(Connection conn) throws SQLException {
+
+    DatabaseMetaData dbmd = conn.getMetaData();
+    ResultSet rs = dbmd.getExportedKeys(conn.getCatalog(), null, "cross1");
     Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
     Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
     assertTrue(rs.next());
-    assertEquals(sharedConn.getCatalog(), rs.getString("PKTABLE_CAT"));
+    assertEquals(conn.getCatalog(), rs.getString("PKTABLE_CAT"));
     assertNull(rs.getString("PKTABLE_SCHEM"));
     assertEquals("cross1", rs.getString("PKTABLE_NAME"));
     assertEquals("id", rs.getString("PKCOLUMN_NAME"));
-    assertEquals(sharedConn.getCatalog(), rs.getString("FKTABLE_CAT"));
+    assertEquals(conn.getCatalog(), rs.getString("FKTABLE_CAT"));
     assertNull(rs.getString("FKTABLE_SCHEM"));
     assertEquals("cross2", rs.getString("FKTABLE_NAME"));
     assertEquals("id_ref0", rs.getString("FKCOLUMN_NAME"));
@@ -700,13 +713,13 @@ public class DatabaseMetadataTest extends Common {
             || "__idx_cross1__PRIMARY".equals(rs.getString("PK_NAME")));
     assertFalse(rs.next());
 
-    rs = dbmd.getExportedKeys(sharedConn.getCatalog(), null, "cross2");
+    rs = dbmd.getExportedKeys(conn.getCatalog(), null, "cross2");
     assertTrue(rs.next());
-    assertEquals(sharedConn.getCatalog(), rs.getString("PKTABLE_CAT"));
+    assertEquals(conn.getCatalog(), rs.getString("PKTABLE_CAT"));
     assertNull(rs.getString("PKTABLE_SCHEM"));
     assertEquals("cross2", rs.getString("PKTABLE_NAME"));
     assertEquals("id", rs.getString("PKCOLUMN_NAME"));
-    assertEquals(sharedConn.getCatalog(), rs.getString("FKTABLE_CAT"));
+    assertEquals(conn.getCatalog(), rs.getString("FKTABLE_CAT"));
     assertNull(rs.getString("FKTABLE_SCHEM"));
     assertEquals("cross3", rs.getString("FKTABLE_NAME"));
     assertEquals("id_ref1", rs.getString("FKCOLUMN_NAME"));
@@ -719,11 +732,11 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("unik_name", rs.getString("PK_NAME"));
 
     assertTrue(rs.next());
-    assertEquals(sharedConn.getCatalog(), rs.getString("PKTABLE_CAT"));
+    assertEquals(conn.getCatalog(), rs.getString("PKTABLE_CAT"));
     assertNull(rs.getString("PKTABLE_SCHEM"));
     assertEquals("cross2", rs.getString("PKTABLE_NAME"));
     assertEquals("id2", rs.getString("PKCOLUMN_NAME"));
-    assertEquals(sharedConn.getCatalog(), rs.getString("FKTABLE_CAT"));
+    assertEquals(conn.getCatalog(), rs.getString("FKTABLE_CAT"));
     assertNull(rs.getString("FKTABLE_SCHEM"));
     assertEquals("cross3", rs.getString("FKTABLE_NAME"));
     assertEquals("id_ref2", rs.getString("FKCOLUMN_NAME"));
@@ -2037,11 +2050,10 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
-  public void testGetTypeInfoDataTYpe() throws SQLException {
+  public void testGetTypeInfoDataType() throws SQLException {
     String[] expectedTypes =
         new String[] {
           "BIT",
-          "BOOL",
           "TINYINT",
           "TINYINT UNSIGNED",
           "BIGINT",
@@ -2057,7 +2069,6 @@ public class DatabaseMetadataTest extends Common {
           "MEDIUMTEXT",
           "LONGTEXT",
           "TEXT",
-          "TINYTEXT",
           "CHAR",
           "NUMERIC",
           "DECIMAL",
@@ -2075,7 +2086,10 @@ public class DatabaseMetadataTest extends Common {
           "REAL",
           "VARCHAR",
           "ENUM",
+          "TINYTEXT",
           "SET",
+          "BOOL",
+          "BOOLEAN",
           "DATE",
           "TIME",
           "DATETIME",
@@ -2087,7 +2101,6 @@ public class DatabaseMetadataTest extends Common {
       expectedTypes =
           new String[] {
             "BIT",
-            "BOOL",
             "TINYINT",
             "TINYINT UNSIGNED",
             "BIGINT",
@@ -2103,7 +2116,6 @@ public class DatabaseMetadataTest extends Common {
             "MEDIUMTEXT",
             "LONGTEXT",
             "TEXT",
-            "TINYTEXT",
             "CHAR",
             "NUMERIC",
             "DECIMAL",
@@ -2121,20 +2133,23 @@ public class DatabaseMetadataTest extends Common {
             "REAL",
             "VARCHAR",
             "ENUM",
+            "TINYTEXT",
             "SET",
+            "BOOL",
+            "BOOLEAN",
             "DATE",
             "TIME",
             "DATETIME",
             "TIMESTAMP",
-            "UUID"
+            "UUID",
           };
+
       if (sharedConn.getContext().getVersion().isMariaDBServer()
           && sharedConn.getContext().getVersion().versionGreaterOrEqual(11, 7, 1)) {
         // add VECTOR
         expectedTypes =
             new String[] {
               "BIT",
-              "BOOL",
               "TINYINT",
               "TINYINT UNSIGNED",
               "BIGINT",
@@ -2151,7 +2166,6 @@ public class DatabaseMetadataTest extends Common {
               "MEDIUMTEXT",
               "LONGTEXT",
               "TEXT",
-              "TINYTEXT",
               "CHAR",
               "NUMERIC",
               "DECIMAL",
@@ -2169,12 +2183,15 @@ public class DatabaseMetadataTest extends Common {
               "REAL",
               "VARCHAR",
               "ENUM",
+              "TINYTEXT",
               "SET",
+              "BOOL",
+              "BOOLEAN",
               "DATE",
               "TIME",
               "DATETIME",
               "TIMESTAMP",
-              "UUID"
+              "UUID",
             };
       }
     }

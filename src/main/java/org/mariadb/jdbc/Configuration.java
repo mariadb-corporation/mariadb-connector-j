@@ -16,6 +16,7 @@ import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
+import org.mariadb.jdbc.util.constants.MetaExportedKeys;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
@@ -59,6 +60,7 @@ public class Configuration {
   private static final Set<String> SENSITIVE_FIELDS;
   private static final String CATALOG_TERM = "CATALOG";
   private static final String SCHEMA_TERM = "SCHEMA";
+  private static Codec<?>[] cachedCodecs = null;
 
   static {
     EXCLUDED_FIELDS = new HashSet<>();
@@ -79,6 +81,7 @@ public class Configuration {
     PROPERTIES_TO_SKIP.add("$jacocoData");
     PROPERTIES_TO_SKIP.add("CATALOG_TERM");
     PROPERTIES_TO_SKIP.add("SCHEMA_TERM");
+    PROPERTIES_TO_SKIP.add("cachedCodecs");
 
     SENSITIVE_FIELDS = new HashSet<>();
     SENSITIVE_FIELDS.add("password");
@@ -120,6 +123,8 @@ public class Configuration {
   private String initSql;
   private boolean pinGlobalTxToPhysicalConnection;
   private boolean permitNoResults;
+  private boolean cacheCodecs;
+  private MetaExportedKeys metaExportedKeys;
 
   // socket
   private String socketFactory;
@@ -260,6 +265,10 @@ public class Configuration {
     this.credentialType = CredentialPluginLoader.get(builder.credentialType);
     this.user = builder.user;
     this.password = builder.password;
+    this.metaExportedKeys =
+        builder.metaExportedKeys != null
+            ? MetaExportedKeys.from(builder.metaExportedKeys)
+            : MetaExportedKeys.Auto;
   }
 
   private void initializeSslConfig(Builder builder) {
@@ -391,6 +400,7 @@ public class Configuration {
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
     this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
+    this.cacheCodecs = builder.cacheCodecs != null && builder.cacheCodecs;
     this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
     this.disconnectOnExpiredPasswords =
         builder.disconnectOnExpiredPasswords == null || builder.disconnectOnExpiredPasswords;
@@ -561,8 +571,10 @@ public class Configuration {
             .permitRedirect(this.permitRedirect)
             .pinGlobalTxToPhysicalConnection(this.pinGlobalTxToPhysicalConnection)
             .permitNoResults(this.permitNoResults)
+            .cacheCodecs(this.cacheCodecs)
             .transactionIsolation(
                 transactionIsolation == null ? null : this.transactionIsolation.getValue())
+            .metaExportedKeys(metaExportedKeys == null ? null : this.metaExportedKeys.name())
             .defaultFetchSize(this.defaultFetchSize)
             .maxQuerySizeToLog(this.maxQuerySizeToLog)
             .maxAllowedPacket(this.maxAllowedPacket)
@@ -1094,6 +1106,7 @@ public class Configuration {
       case "Boolean":
       case "HaMode":
       case "TransactionIsolation":
+      case "MetaExportedKeys":
       case "Integer":
       case "SslMode":
       case "CatalogTerm":
@@ -1721,6 +1734,15 @@ public class Configuration {
   }
 
   /**
+   * Default metadata getExportedKeys implementation.
+   *
+   * @return default implementation
+   */
+  public MetaExportedKeys metaExportedKeys() {
+    return metaExportedKeys;
+  }
+
+  /**
    * autorized cipher list.
    *
    * @return list of permitted ciphers
@@ -2277,11 +2299,24 @@ public class Configuration {
 
   @SuppressWarnings("rawtypes")
   private void loadCodecs() {
+    if (cacheCodecs && cachedCodecs != null) {
+      codecs = cachedCodecs;
+      return;
+    }
+
     ServiceLoader<Codec> loader =
         ServiceLoader.load(Codec.class, Configuration.class.getClassLoader());
     List<Codec<?>> result = new ArrayList<>();
     loader.iterator().forEachRemaining(result::add);
     codecs = result.toArray(new Codec<?>[0]);
+
+    if (cacheCodecs) {
+      synchronized (Configuration.class) {
+        if (cachedCodecs == null) {
+          cachedCodecs = codecs;
+        }
+      }
+    }
   }
 
   @Override
@@ -2319,6 +2354,7 @@ public class Configuration {
     private Boolean permitRedirect;
     private Boolean pinGlobalTxToPhysicalConnection;
     private Boolean permitNoResults;
+    private Boolean cacheCodecs;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -2326,6 +2362,7 @@ public class Configuration {
     private String restrictedAuth;
     private String initSql;
     private String transactionIsolation;
+    private String metaExportedKeys;
 
     // socket
     private String socketFactory;
@@ -2947,6 +2984,18 @@ public class Configuration {
     }
 
     /**
+     * Indicate what implementation to use for metadata getExportedKeys. choice are
+     * "UseInformationSchema", "UseShowCreate" or "Auto"
+     *
+     * @param metaExportedKeys indicate implementation to use for metadata getExportedKeys
+     * @return this {@link Builder}
+     */
+    public Builder metaExportedKeys(String metaExportedKeys) {
+      this.metaExportedKeys = nullOrEmpty(metaExportedKeys);
+      return this;
+    }
+
+    /**
      * set possible cipher list (comma separated), not using default java cipher list
      *
      * @param enabledSslCipherSuites ssl cipher list
@@ -3295,6 +3344,17 @@ public class Configuration {
      */
     public Builder permitNoResults(Boolean permitNoResults) {
       this.permitNoResults = permitNoResults;
+      return this;
+    }
+
+    /**
+     * Permit caching codecs
+     *
+     * @param cacheCodecs can codec load be cached
+     * @return this {@link Builder}
+     */
+    public Builder cacheCodecs(Boolean cacheCodecs) {
+      this.cacheCodecs = cacheCodecs;
       return this;
     }
 

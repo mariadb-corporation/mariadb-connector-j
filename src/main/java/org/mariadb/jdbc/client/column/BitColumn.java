@@ -133,6 +133,10 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   public String decodeStringText(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
+    if (columnLength == 1 && context.getConf().transformedBitIsBoolean()) {
+      return String.valueOf(ByteCodec.parseBit(buf, length) != 0);
+    }
+
     byte[] bytes = new byte[length.get()];
     buf.readBytes(bytes);
     StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
@@ -155,6 +159,9 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   public String decodeStringBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
+    if (columnLength == 1 && context.getConf().transformedBitIsBoolean()) {
+      return String.valueOf(ByteCodec.parseBit(buf, length) != 0);
+    }
     byte[] bytes = new byte[length.get()];
     buf.readBytes(bytes);
     StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);

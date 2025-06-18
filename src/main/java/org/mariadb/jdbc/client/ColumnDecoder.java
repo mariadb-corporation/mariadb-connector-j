@@ -110,22 +110,23 @@ public interface ColumnDecoder extends Column {
    * @param flags column flags
    * @return Column
    */
-  static ColumnDecoder create(String name, DataType type, int flags) {
+  static ColumnDecoder create(String database, String name, DataType type, int flags) {
+    byte[] databaseBytes = (database == null ? "def" : database).getBytes(StandardCharsets.UTF_8);
     byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
-    byte[] arr = new byte[9 + 2 * nameBytes.length];
-    arr[0] = 3;
-    arr[1] = 'D';
-    arr[2] = 'E';
-    arr[3] = 'F';
+    byte[] arr = new byte[databaseBytes.length + 6 + 2 * nameBytes.length];
+
+    // write catalog
+    arr[0] = (byte) databaseBytes.length;
+    System.arraycopy(databaseBytes, 0, arr, 1, databaseBytes.length);
 
     int[] stringPos = new int[5];
-    stringPos[0] = 4; // schema pos
-    stringPos[1] = 5; // table alias pos
-    stringPos[2] = 6; // table pos
+    stringPos[0] = databaseBytes.length + 1; // schema pos
+    stringPos[1] = databaseBytes.length + 2; // table alias pos
+    stringPos[2] = databaseBytes.length + 3; // table pos
 
     // lenenc_str     name
     // lenenc_str     org_name
-    int pos = 7;
+    int pos = databaseBytes.length + 4;
     for (int i = 0; i < 2; i++) {
       stringPos[i + 3] = pos;
       arr[pos++] = (byte) nameBytes.length;

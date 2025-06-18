@@ -102,7 +102,7 @@ public class BitCodecTest extends CommonCodecTest {
   public void getObjectType(ResultSet rs) throws Exception {
     testObject(rs, Integer.class, 0);
     testObject(rs, Byte.class, Byte.valueOf("0"));
-    testObject(rs, String.class, "b''");
+    testObject(rs, String.class, "false");
     testObject(rs, Long.class, 0L);
     testObject(rs, Short.class, (short) 0);
     testObject(rs, BitSet.class, BitSet.valueOf(new byte[] {(byte) 0}));
@@ -141,7 +141,7 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getString(ResultSet rs) throws SQLException {
-    assertEquals("b''", rs.getString(1));
+    assertEquals("false", rs.getString(1));
     assertFalse(rs.wasNull());
     assertEquals("b'1'", rs.getString(2));
     assertEquals("b'1'", rs.getString("t2alias"));
@@ -164,7 +164,7 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs) throws SQLException {
-    assertEquals("b''", rs.getNString(1));
+    assertEquals("false", rs.getNString(1));
     assertFalse(rs.wasNull());
     assertEquals("b'1'", rs.getNString(2));
     assertEquals("b'1'", rs.getNString("t2alias"));
@@ -644,9 +644,11 @@ public class BitCodecTest extends CommonCodecTest {
 
   public void getURL(ResultSet rs) {
     Common.assertThrowsContains(
-        SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse 'b''' as URL");
+        SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse 'false' as URL");
     Common.assertThrowsContains(
-        SQLSyntaxErrorException.class, () -> rs.getURL("t1alias"), "Could not parse 'b''' as URL");
+        SQLSyntaxErrorException.class,
+        () -> rs.getURL("t1alias"),
+        "Could not parse 'false' as URL");
   }
 
   @Test
