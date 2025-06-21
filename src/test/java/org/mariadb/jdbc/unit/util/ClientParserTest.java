@@ -20,7 +20,25 @@ public class ClientParserTest {
       String[] expectedNoBackSlash,
       boolean isInsertDuplicate,
       boolean isMulti) {
-    ClientParser parser = ClientParser.parameterParts(sql, false);
+	  
+	  // perform test with regular parser
+	  ClientParser parser = ClientParser.parameterParts(sql, false);
+	  parse(parser, sql, expected, expectedNoBackSlash, isInsertDuplicate, isMulti);
+	  
+	  // perform test with rewritable parser
+	  ClientParser parser2 = ClientParser.rewritableParts(sql, false);
+	  parse(parser2, sql, expected, expectedNoBackSlash, isInsertDuplicate, isMulti);
+  }
+
+	
+  private void parse(
+      ClientParser parser,
+      String sql,
+      String[] expected,
+      String[] expectedNoBackSlash,
+      boolean isInsertDuplicate,
+      boolean isMulti) {
+	  
     assertEquals(expected.length, parser.getParamCount() + 1, displayErr(parser, expected));
 
     int pos = 0;
@@ -49,7 +67,7 @@ public class ClientParserTest {
     assertEquals(isInsertDuplicate, parser.isInsertDuplicate());
     assertEquals(isMulti, parser.isMultiQuery());
   }
-
+  
   private String displayErr(ClientParser parser, String[] exp) {
     StringBuilder sb = new StringBuilder();
     sb.append("is:\n");
@@ -119,12 +137,14 @@ public class ClientParserTest {
       })
   public void MultiQueryParser(String sql) {
     assertTrue(ClientParser.parameterParts(sql, false).isMultiQuery());
+    assertTrue(ClientParser.rewritableParts(sql, false).isMultiQuery());
   }
 
   @ParameterizedTest()
   @ValueSource(strings = {"DO 1;   ", "DO 1; \n ", "DO 1;"})
   public void NonMultiQueryParser(String sql) {
     assertFalse(ClientParser.parameterParts(sql, false).isMultiQuery());
+    assertFalse(ClientParser.rewritableParts(sql, false).isMultiQuery());
   }
 
   @Test
@@ -138,5 +158,15 @@ public class ClientParserTest {
     assertFalse(ClientParser.parameterParts("INSERT duplicate", true).isInsertDuplicate());
     assertFalse(ClientParser.parameterParts("INSERT _duplicate key", true).isInsertDuplicate());
     assertFalse(ClientParser.parameterParts("INSERT duplicate_ key", true).isInsertDuplicate());
+
+    assertFalse(ClientParser.rewritableParts("WRONG INSERT_COMMAND", true).isInsert());
+    assertFalse(ClientParser.rewritableParts("INSERT_COMMAND WRONG ", true).isInsert());
+    assertFalse(ClientParser.rewritableParts("WRONGINSERT COMMAND", true).isInsert());
+    assertFalse(ClientParser.rewritableParts("WRONG INSERT", true).isInsert());
+    assertFalse(ClientParser.rewritableParts("WRONG small insert", true).isInsert());
+    assertFalse(ClientParser.rewritableParts("INSERT DUPLICATE", true).isInsertDuplicate());
+    assertFalse(ClientParser.rewritableParts("INSERT duplicate", true).isInsertDuplicate());
+    assertFalse(ClientParser.rewritableParts("INSERT _duplicate key", true).isInsertDuplicate());
+    assertFalse(ClientParser.rewritableParts("INSERT duplicate_ key", true).isInsertDuplicate());
   }
 }
