@@ -30,6 +30,7 @@ public class BaseContext implements Context {
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
   private final boolean canUseTransactionIsolation;
+  private final Boolean loopbackAddress;
 
   /** LRU prepare cache object */
   private final PrepareCache prepareCache;
@@ -41,6 +42,7 @@ public class BaseContext implements Context {
 
   private Long autoIncrement;
 
+  private String maxscaleVersion = null;
   private long threadId;
   private String charset;
 
@@ -69,6 +71,7 @@ public class BaseContext implements Context {
    * @param conf connection configuration
    * @param exceptionFactory connection exception factory
    * @param prepareCache LRU prepare cache
+   * @param loopbackAddress is local address
    */
   @SuppressWarnings({"this-escape"})
   public BaseContext(
@@ -77,7 +80,8 @@ public class BaseContext implements Context {
       long clientCapabilities,
       Configuration conf,
       ExceptionFactory exceptionFactory,
-      PrepareCache prepareCache) {
+      PrepareCache prepareCache,
+      Boolean loopbackAddress) {
     this.hostAddress = hostAddress;
     this.threadId = handshake.getThreadId();
     this.seed = handshake.getSeed();
@@ -100,6 +104,12 @@ public class BaseContext implements Context {
             || (!version.isMariaDBServer()
                 && ((version.getMajorVersion() >= 8 && version.versionGreaterOrEqual(8, 0, 3))
                     || (version.getMajorVersion() < 8 && version.versionGreaterOrEqual(5, 7, 20))));
+    this.loopbackAddress = loopbackAddress;
+  }
+
+  @Override
+  public Boolean isLoopbackAddress() {
+    return loopbackAddress;
   }
 
   public long getThreadId() {
@@ -138,8 +148,17 @@ public class BaseContext implements Context {
     return database;
   }
 
+  @Override
+  public void setMaxscaleVersion(String maxscaleVersion) {
+    this.maxscaleVersion = maxscaleVersion;
+  }
+
   public void setDatabase(String database) {
     this.database = database;
+  }
+
+  public String getMaxscaleVersion() {
+    return maxscaleVersion;
   }
 
   public ServerVersion getVersion() {

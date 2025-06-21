@@ -925,16 +925,27 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertEquals("java.lang.Integer", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
-    assertEquals(Types.INTEGER, meta.getColumnType(1));
+    assertEquals(Types.SMALLINT, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(5, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
 
-    // https://jira.mariadb.org/browse/XPT-276
-    if (!isXpand()) {
-      assertEquals(5, meta.getPrecision(1));
-      assertEquals(5, meta.getColumnDisplaySize(1));
+    assertEquals(5, meta.getPrecision(1));
+    assertEquals(5, meta.getColumnDisplaySize(1));
+
+    try (org.mariadb.jdbc.Connection conn =
+        createCon("&resultSetMetaDataUnsignedCompatibility=true")) {
+      Statement stmt = conn.createStatement();
+      stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+      rs =
+          stmt.executeQuery(
+              "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                  + " SmallIntCodecUnsigned");
+      assertTrue(rs.next());
+      stmt.execute("COMMIT");
+      meta = rs.getMetaData();
+      assertEquals(Types.INTEGER, meta.getColumnType(1));
     }
   }
 

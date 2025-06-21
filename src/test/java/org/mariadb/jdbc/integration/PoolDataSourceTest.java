@@ -8,11 +8,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.lang.management.ManagementFactory;
 import java.sql.*;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -23,6 +30,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.pool.PoolThreadFactory;
 import org.mariadb.jdbc.pool.Pools;
@@ -33,21 +41,17 @@ public class PoolDataSourceTest extends Common {
   @BeforeAll
   public static void beforeClassDataSourceTest() throws SQLException {
     drop();
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     boolean useOldNotation =
         (!isMariaDBServer() || !minVersion(10, 2, 0))
             && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%'");
+      stmt.execute("CREATE USER 'poolUser'" + getHostSuffix());
       stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+          "GRANT ALL ON *.* TO 'poolUser'" + getHostSuffix() + " IDENTIFIED BY '!Passw0rd3Works'");
     } else {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
+      stmt.execute("CREATE USER 'poolUser'" + getHostSuffix() + " IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("GRANT ALL ON *.* TO 'poolUser'" + getHostSuffix());
     }
     stmt.execute(
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test"
@@ -59,6 +63,7 @@ public class PoolDataSourceTest extends Common {
   @AfterAll
   public static void drop() throws SQLException {
     try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP USER IF EXISTS 'poolUser'" + getHostSuffix());
       stmt.execute("DROP TABLE IF EXISTS testResetRollback");
     }
   }
@@ -73,7 +78,6 @@ public class PoolDataSourceTest extends Common {
       Statement stmt = sharedConn.createStatement();
       ResultSet rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
       if (rs.next()) {
-        System.out.println("threads : " + rs.getInt(2));
         return rs.getInt(2);
       }
       return -1;
@@ -620,33 +624,6 @@ public class PoolDataSourceTest extends Common {
   }
 
   @Test
-  public void ensureClosed() throws Throwable {
-    Thread.sleep(500); // ensure that previous close are effective
-    int initialConnection = getCurrentConnections();
-    Assumptions.assumeFalse(initialConnection == -1);
-
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=10&minPoolSize=1")) {
-
-      try (Connection connection = pool.getConnection()) {
-        connection.isValid(10_000);
-      }
-
-      assertTrue(getCurrentConnections() > initialConnection);
-
-      // reuse IdleConnection
-      try (Connection connection = pool.getConnection()) {
-        connection.isValid(10_000);
-      }
-
-      Thread.sleep(500);
-      assertTrue(getCurrentConnections() > initialConnection);
-    }
-    Thread.sleep(2000); // ensure that previous close are effective
-    assertEquals(initialConnection, getCurrentConnections());
-  }
-
-  @Test
   public void wrongUrlHandling() throws SQLException {
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
@@ -775,5 +752,41 @@ public class PoolDataSourceTest extends Common {
     xac.getConnection().close();
     assertFalse(xac.getConnection().isClosed());
     xac.close();
+  }
+
+  @Timeout(value = 5, unit = TimeUnit.SECONDS)
+  @Test
+  public void testConcurrentCreationForDifferentHosts() throws Exception {
+    CountDownLatch ready = new CountDownLatch(5);
+    CountDownLatch start = new CountDownLatch(1);
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      // When many pools are created concurrently
+      List<Future<MariaDbPoolDataSource>> futures =
+          IntStream.rangeClosed(1, 5)
+              .mapToObj(
+                  hostIndex ->
+                      executor.submit(
+                          () -> {
+                            ready.countDown();
+                            start.await();
+                            MariaDbPoolDataSource ds = new MariaDbPoolDataSource();
+                            ds.setUrl(
+                                "jdbc:mariadb://myhost" + hostIndex + ":5500/db?someOption=val");
+                            return ds;
+                          }))
+              .collect(Collectors.toList());
+
+      ready.await();
+      start.countDown();
+
+      // Then they should all be created in a timely manner
+      for (Future<MariaDbPoolDataSource> future : futures) {
+        future.get().close();
+      }
+
+    } finally {
+      executor.shutdown();
+    }
   }
 }

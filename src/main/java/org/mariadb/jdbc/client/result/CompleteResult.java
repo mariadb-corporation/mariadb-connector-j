@@ -179,7 +179,8 @@ public class CompleteResult extends Result {
     ColumnDecoder[] columns = new ColumnDecoder[columnNameLength];
 
     for (int i = 0; i < columnNameLength; i++) {
-      columns[i] = ColumnDecoder.create(columnNames[i], columnTypes[i], flags);
+      columns[i] =
+          ColumnDecoder.create(context.getDatabase(), columnNames[i], columnTypes[i], flags);
     }
 
     List<byte[]> rows = new ArrayList<>();

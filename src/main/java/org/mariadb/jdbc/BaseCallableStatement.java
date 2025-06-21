@@ -737,7 +737,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
 
   private int nameToIndex(String parameterName) throws SQLException {
     if (parameterName == null) throw exceptionFactory().create("parameter name cannot be null");
-    if (parameterMetaData == null) parameterMetaData = getParameterMetaData();
+    if (parameterMetaData == null) getParameterMetaData();
 
     int count = parameterMetaData.getParameterCount();
     for (int i = 1; i <= count; i++) {
@@ -2794,22 +2794,24 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
 
   @Override
   public CallableParameterMetaData getParameterMetaData() throws SQLException {
-    PreparedStatement prep =
-        new ClientPreparedStatement(
-            "SELECT * from information_schema.PARAMETERS "
-                + "WHERE SPECIFIC_NAME = ? "
-                + "AND SPECIFIC_SCHEMA = ? "
-                + "ORDER BY ORDINAL_POSITION",
-            con,
-            lock,
-            Statement.NO_GENERATED_KEYS,
-            ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_READ_ONLY,
-            0);
-    prep.setString(1, procedureName);
-    prep.setString(2, databaseName);
-    ResultSet rs = prep.executeQuery();
-    parameterMetaData = new CallableParameterMetaData(rs, isFunction());
+    if (parameterMetaData == null) {
+      PreparedStatement prep =
+          new ClientPreparedStatement(
+              "SELECT * from information_schema.PARAMETERS "
+                  + "WHERE SPECIFIC_NAME = ? "
+                  + "AND SPECIFIC_SCHEMA = ? "
+                  + "ORDER BY ORDINAL_POSITION",
+              con,
+              lock,
+              Statement.NO_GENERATED_KEYS,
+              ResultSet.TYPE_FORWARD_ONLY,
+              ResultSet.CONCUR_READ_ONLY,
+              0);
+      prep.setString(1, procedureName);
+      prep.setString(2, databaseName);
+      ResultSet rs = prep.executeQuery();
+      parameterMetaData = new CallableParameterMetaData(rs, isFunction());
+    }
     return parameterMetaData;
   }
 }

@@ -65,11 +65,7 @@ public class ConnectionTest extends Common {
 
   @Test
   void socketTimeout() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
+    Assumptions.assumeTrue(!isMaxscale());
 
     try (Connection con = createCon("&socketTimeout=50")) {
       assertEquals(50, con.getNetworkTimeout());
@@ -734,12 +730,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && isMariaDBServer()
-            && minVersion(10, 2, 0));
+    Assumptions.assumeTrue(!isMaxscale() && isMariaDBServer() && minVersion(10, 2, 0));
     Statement stmt = sharedConn.createStatement();
 
     try {
@@ -748,38 +739,44 @@ public class ConnectionTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
     }
     try {
-      stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+      stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     try {
       if (minVersion(10, 4, 0)) {
         stmt.execute(
-            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+                + getHostSuffix()
+                + " IDENTIFIED "
                 + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
       } else {
         stmt.execute(
-            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+                + getHostSuffix()
+                + " IDENTIFIED "
                 + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
       }
     } catch (SQLException sqle) {
       // already existing
     }
     stmt.execute(
-        "GRANT SELECT on " + sharedConn.getCatalog() + ".* to verificationEd25519AuthPlugin");
+        "GRANT SELECT on "
+            + sharedConn.getCatalog()
+            + ".* to verificationEd25519AuthPlugin"
+            + getHostSuffix());
 
     try (Connection connection =
         createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord")) {
       // must have succeeded
       connection.getCatalog();
     }
-    stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+    stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
   }
 
   @Test
   public void parsecAuthPlugin() throws Throwable {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && isMariaDBServer() && minVersion(10, 6, 1));
+    Assumptions.assumeTrue(!isMaxscale() && isMariaDBServer() && minVersion(10, 6, 1));
     Statement stmt = sharedConn.createStatement();
 
     try {
@@ -788,13 +785,16 @@ public class ConnectionTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have auth_parsec plugin, cancelling test");
     }
 
-    stmt.execute("drop user IF EXISTS verifParsec@'%'");
-    stmt.execute("drop user IF EXISTS verifParsec2@'%'");
+    stmt.execute("drop user IF EXISTS verifParsec" + getHostSuffix());
+    stmt.execute("drop user IF EXISTS verifParsec2" + getHostSuffix());
     stmt.execute(
-        "CREATE USER verifParsec@'%' IDENTIFIED VIA parsec USING PASSWORD('MySup8%rPassw@ord')");
-    stmt.execute("CREATE USER verifParsec2@'%' IDENTIFIED VIA parsec USING PASSWORD('')");
-    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec@'%'");
-    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec2@'%'");
+        "CREATE USER verifParsec"
+            + getHostSuffix()
+            + " IDENTIFIED VIA parsec USING PASSWORD('MySup8%rPassw@ord')");
+    stmt.execute(
+        "CREATE USER verifParsec2" + getHostSuffix() + " IDENTIFIED VIA parsec USING PASSWORD('')");
+    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec" + getHostSuffix());
+    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec2" + getHostSuffix());
 
     String version = System.getProperty("java.version");
     int majorVersion =
@@ -820,8 +820,8 @@ public class ConnectionTest extends Common {
         SQLException.class,
         () -> createCon("user=verifParsec2&password=MySup8%rPassw@ord&restrictedAuth=dialog"),
         "Client restrict authentication plugin to a limited set");
-    stmt.execute("drop user verifParsec@'%'");
-    stmt.execute("drop user verifParsec2@'%'");
+    stmt.execute("drop user verifParsec" + getHostSuffix());
+    stmt.execute("drop user verifParsec2" + getHostSuffix());
   }
 
   @Test
@@ -830,11 +830,7 @@ public class ConnectionTest extends Common {
     // only test on travis, because only work on Unix-like operating systems.
     // /etc/pam.d/mariadb pam configuration is created beforehand
 
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && System.getenv("TEST_PAM_USER") != null
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer() && System.getenv("TEST_PAM_USER") != null);
 
     Statement stmt = sharedConn.createStatement();
     try {
@@ -846,12 +842,13 @@ public class ConnectionTest extends Common {
     String pamUser = System.getenv("TEST_PAM_USER");
     String pamPwd = System.getenv("TEST_PAM_PWD");
     try {
-      stmt.execute("DROP USER '" + pamUser + "'@'%'");
+      stmt.execute("DROP USER '" + pamUser + "'" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     stmt.execute("CREATE USER '" + pamUser + "'@'%' IDENTIFIED VIA pam USING 'mariadb'");
-    stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
+    stmt.execute(
+        "GRANT SELECT ON *.* TO '" + pamUser + "'" + getHostSuffix() + " IDENTIFIED VIA pam");
 
     stmt.execute("FLUSH PRIVILEGES");
 
@@ -899,7 +896,7 @@ public class ConnectionTest extends Common {
         () -> DriverManager.getConnection(connStr + "&restrictedAuth=other"),
         "Client restrict authentication plugin to a limited set of authentication");
 
-    stmt.execute("drop user " + pamUser + "@'%'");
+    stmt.execute("drop user " + pamUser + getHostSuffix());
   }
 
   @Test
@@ -922,9 +919,7 @@ public class ConnectionTest extends Common {
       stmt.execute("CREATE DATABASE IF NOT EXISTS someDb");
       con.setCatalog("someDb");
       stmt.execute("DROP DATABASE someDb");
-      if (minVersion(10, 4, 0)
-          && !"maxscale".equals(System.getenv("srv"))
-          && !"skysql-ha".equals(System.getenv("srv"))) {
+      if (minVersion(10, 4, 0) && !isMaxscale()) {
         assertNull(con.getCatalog());
       }
     }
@@ -1177,8 +1172,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void sslNotSet() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 4, 0));
     Assumptions.assumeFalse(haveSsl());
     Common.assertThrowsContains(
@@ -1191,8 +1184,6 @@ public class ConnectionTest extends Common {
         System.getenv("local") != null
             && "1".equals(System.getenv("local"))
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try (Connection con = createCon("localSocketAddress=" + hostAddress.host)) {
@@ -1238,9 +1229,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void createDatabaseIfNotExist() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     // ensure connecting without DB
     String connStr =
         String.format(
@@ -1278,9 +1266,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void loopHost() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     // ensure connecting without DB
     String connStr =
         String.format(
@@ -1441,17 +1426,19 @@ public class ConnectionTest extends Common {
     Assumptions.assumeTrue(srvHasCapability(Capabilities.CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS));
     boolean forced = false;
     Statement stmt = sharedConn.createStatement();
+    System.out.println("getHostSuffix(): " + getHostSuffix());
     try {
-      stmt.execute("DROP USER IF EXISTS 'expired_pwd_user'");
-      stmt.execute("CREATE USER 'expired_pwd_user' IDENTIFIED by '!Passw0rd3Works'");
-      stmt.execute("GRANT all on *.* to 'expired_pwd_user'");
+      stmt.execute("DROP USER IF EXISTS 'expired_pwd_user'" + getHostSuffix());
+      stmt.execute(
+          "CREATE USER 'expired_pwd_user'" + getHostSuffix() + " IDENTIFIED by '!Passw0rd3Works'");
+      stmt.execute("GRANT all on *.* to 'expired_pwd_user'" + getHostSuffix());
 
       String connStr =
           String.format(
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s&allowPublicKeyRetrieval=true",
               hostname, port, database, "expired_pwd_user", "!Passw0rd3Works", defaultOther);
 
-      stmt.execute("ALTER USER 'expired_pwd_user' PASSWORD EXPIRE");
+      stmt.execute("ALTER USER 'expired_pwd_user'" + getHostSuffix() + " PASSWORD EXPIRE");
       stmt.execute("FLUSH PRIVILEGES");
       if (isMariaDBServer()) {
         // force
@@ -1483,5 +1470,26 @@ public class ConnectionTest extends Common {
       stmt.execute("DROP USER IF EXISTS 'expired_pwd_user'");
       if (forced) stmt.execute("set @@global.disconnect_on_expired_password=false");
     }
+  }
+
+  @Test
+  public void isClosed() throws SQLException {
+    Connection con = DriverManager.getConnection(mDefUrl);
+    Statement stmt = con.createStatement();
+    PreparedStatement preparedStatement = con.prepareStatement("SELECT ?");
+    assertFalse(stmt.isClosed());
+    assertFalse(preparedStatement.isClosed());
+
+    stmt.execute("SELECT 1");
+    preparedStatement.setInt(1, 1);
+    preparedStatement.execute();
+
+    assertFalse(stmt.isClosed());
+    assertFalse(preparedStatement.isClosed());
+
+    con.close();
+
+    assertTrue(stmt.isClosed());
+    assertTrue(preparedStatement.isClosed());
   }
 }

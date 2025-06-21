@@ -253,7 +253,7 @@ public class BatchTest extends Common {
 
   @Test
   public void differentParameterType() throws SQLException {
-    boolean expectUnknown = isMariaDBServer() && !isXpand() && !minVersion(11, 5, 0);
+    boolean expectUnknown = isMariaDBServer() && !minVersion(11, 5, 0);
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false);
     }
@@ -739,7 +739,7 @@ public class BatchTest extends Common {
 
   @Test
   public void ensureCalendarSync() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer() && !isXpand());
+    Assumptions.assumeTrue(isMariaDBServer());
     // to ensure that calendar is use at the same time, using BULK command
     TimestampCal[] t1 = new TimestampCal[50];
     for (int i = 0; i < 50; i++) {
@@ -804,6 +804,36 @@ public class BatchTest extends Common {
     @Override
     public String toString() {
       return "TimestampCal{" + "val=" + val + ", id=" + id + '}';
+    }
+  }
+
+  @Test
+  public void batchWithoutParameter() throws SQLException {
+    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=true")) {
+      batchWithoutParameter(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts=true&useBulkStmts=true")) {
+      batchWithoutParameter(con);
+    }
+  }
+
+  private void batchWithoutParameter(Connection con) throws SQLException {
+    Assumptions.assumeTrue(isMariaDBServer());
+    Statement stmt = con.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS batchWithoutParameter");
+    stmt.setFetchSize(3);
+    stmt.execute("CREATE TABLE batchWithoutParameter(val varchar(10))");
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO batchWithoutParameter VALUES ('')")) {
+      prep.addBatch();
+      prep.addBatch();
+      prep.addBatch();
+      prep.addBatch();
+      prep.executeBatch();
+
+      ResultSet rs = stmt.executeQuery("SELECT count(*) FROM batchWithoutParameter");
+      rs.next();
+      assertEquals(rs.getInt(1), 4);
     }
   }
 }

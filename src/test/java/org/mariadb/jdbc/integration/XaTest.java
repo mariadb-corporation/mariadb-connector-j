@@ -34,11 +34,6 @@ public class XaTest extends Common {
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
-
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS xatable");
     stmt.execute("CREATE TABLE xatable(i int)");
@@ -236,7 +231,6 @@ public class XaTest extends Common {
 
   @Test
   public void testCommit() throws Exception {
-    Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     testCommit(dataSource);
     testCommit(poolDataSource);
 
@@ -259,7 +253,6 @@ public class XaTest extends Common {
 
   @Test
   public void testRollback() throws Exception {
-    Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     testRollback(dataSource);
     testRollback(poolDataSource);
 
@@ -283,7 +276,6 @@ public class XaTest extends Common {
   }
 
   private void testRecover(XADataSource dataSource) throws Exception {
-    Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     XAConnection xaConnection = dataSource.getXAConnection();
     try {
       java.sql.Connection connection = xaConnection.getConnection();
@@ -317,8 +309,6 @@ public class XaTest extends Common {
   }
 
   private void resumeAndJoinTest(boolean pinnedConnection) throws Exception {
-
-    Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     Connection conn1;
     MariaDbDataSource ds =
         new MariaDbDataSource(

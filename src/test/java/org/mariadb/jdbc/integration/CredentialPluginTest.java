@@ -35,22 +35,18 @@ public class CredentialPluginTest extends Common {
             && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER 'identityUser'@'localhost'");
+      stmt.execute("CREATE USER 'identityUser'" + getHostSuffix());
       stmt.execute(
           "GRANT SELECT ON "
               + sharedConn.getCatalog()
-              + ".* TO 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("CREATE USER 'identityUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+              + ".* TO 'identityUser'"
+              + getHostSuffix()
+              + " IDENTIFIED BY '!Passw0rd3Works'");
     } else {
-      stmt.execute("CREATE USER 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
       stmt.execute(
-          "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'identityUser'@'localhost'");
-      stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'identityUser'@'%'");
+          "CREATE USER 'identityUser'" + getHostSuffix() + " IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute(
+          "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'identityUser'" + getHostSuffix());
     }
     stmt.execute("FLUSH PRIVILEGES");
   }
@@ -64,12 +60,7 @@ public class CredentialPluginTest extends Common {
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     try {
-      stmt.execute("DROP USER 'identityUser'@'%'");
-    } catch (SQLException e) {
-      // eat
-    }
-    try {
-      stmt.execute("DROP USER 'identityUser'@'localhost'");
+      stmt.execute("DROP USER 'identityUser'" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
@@ -131,10 +122,7 @@ public class CredentialPluginTest extends Common {
   @Test
   @SuppressWarnings("unchecked")
   public void noEnvsIdentityTest() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
 
     Common.assertThrowsContains(
         SQLException.class,
@@ -202,10 +190,7 @@ public class CredentialPluginTest extends Common {
   @SetEnvironmentVariable(key = "MARIADB2_PWD", value = "!Passw0rd3Works")
   @SuppressWarnings("unchecked")
   public void envTestsIdentityTest() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && haveSsl());
     if (!minVersion(11, 4, 1)) {
       // Self-signed certificates error

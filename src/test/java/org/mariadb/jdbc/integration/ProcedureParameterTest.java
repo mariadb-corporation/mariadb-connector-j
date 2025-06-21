@@ -38,8 +38,6 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
 
     CallableStatement stmt = sharedConn.prepareCall("{call useParameterName(?)}");
     stmt.setInt("a", 1);
@@ -54,8 +52,6 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
 
     CallableStatement stmt = sharedConn.prepareCall("call useParameterName(?)");
     stmt.setInt(1, 1);
@@ -70,9 +66,6 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
 
     try (CallableStatement call = sharedConn.prepareCall("{call withStrangeParameter(?)}")) {
       double expected = 5.43;
@@ -94,38 +87,44 @@ public class ProcedureParameterTest extends Common {
 
   @Test
   public void basicProcedure() throws SQLException {
+    basicProcedure(sharedConn);
+    basicProcedure(sharedConnBinary);
+  }
+
+  private void basicProcedure(Connection con) throws SQLException {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
-        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
+        !con.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
 
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt = (Statement) con.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc2");
     stmt.execute(
         "CREATE PROCEDURE basic_proc2 (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3),"
-            + " OUT t4 VARCHAR(20), IN t5 SMALLINT) BEGIN \n"
+            + " OUT t4 VARCHAR(20), IN t5 SMALLINT, IN t6 BOOLEAN) BEGIN \n"
             + "set t3 = t1 * t5;\n"
             + "set t1 = t2 * t1;\n"
             + "set t4 = 'return data';\n"
+            + "set t6 = true;\n"
             + "END");
-    try (CallableStatement callableStatement =
-        sharedConn.prepareCall("{call basic_proc2(?,?,?,?)}")) {
+    try (CallableStatement callableStatement = con.prepareCall("{call basic_proc2(?,?,?,?)}")) {
       ParameterMetaData meta = callableStatement.getParameterMetaData();
-      assertEquals(5, meta.getParameterCount());
+      callableStatement.getParameterMetaData();
+      assertEquals(6, meta.getParameterCount());
       assertEquals("int", meta.getParameterClassName(1));
       assertEquals("int", meta.getParameterClassName(2));
       assertEquals("java.math.BigDecimal", meta.getParameterClassName(3));
       assertEquals("java.lang.String", meta.getParameterClassName(4));
       assertEquals("short", meta.getParameterClassName(5));
+      assertEquals("boolean", meta.getParameterClassName(6));
       Common.assertThrowsContains(
-          SQLException.class, () -> meta.getParameterClassName(6), "invalid parameter index 6");
+          SQLException.class, () -> meta.getParameterClassName(7), "invalid parameter index 7");
 
       assertEquals("INT", meta.getParameterTypeName(1));
       assertEquals("MEDIUMINT", meta.getParameterTypeName(2));
       assertEquals("DECIMAL", meta.getParameterTypeName(3));
       assertEquals("VARCHAR", meta.getParameterTypeName(4));
       assertEquals("SMALLINT", meta.getParameterTypeName(5));
+      assertEquals("BOOLEAN", meta.getParameterTypeName(6));
       Common.assertThrowsContains(
           SQLException.class, () -> meta.getParameterTypeName(0), "invalid parameter index 0");
 
@@ -134,6 +133,7 @@ public class ProcedureParameterTest extends Common {
       assertEquals(Types.DECIMAL, meta.getParameterType(3));
       assertEquals(Types.VARCHAR, meta.getParameterType(4));
       assertEquals(Types.SMALLINT, meta.getParameterType(5));
+      assertEquals(Types.BOOLEAN, meta.getParameterType(6));
       Common.assertThrowsContains(
           SQLException.class, () -> meta.getParameterType(0), "invalid parameter index 0");
 
@@ -142,6 +142,7 @@ public class ProcedureParameterTest extends Common {
       assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(3));
       assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(4));
       assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(5));
+      assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(6));
       Common.assertThrowsContains(
           SQLException.class, () -> meta.getParameterMode(10), "invalid parameter index 10");
 
@@ -176,13 +177,23 @@ public class ProcedureParameterTest extends Common {
       assertTrue(meta.isWrapperFor(ParameterMetaData.class));
       assertFalse(meta.isWrapperFor(String.class));
     }
+    try (CallableStatement callableStatement = con.prepareCall("{call basic_proc2(?,?,?,?)}")) {
+      ParameterMetaData meta = callableStatement.getParameterMetaData();
+      callableStatement.getParameterMetaData();
+      assertEquals(6, meta.getParameterCount());
+      assertEquals("int", meta.getParameterClassName(1));
+      assertEquals("int", meta.getParameterClassName(2));
+      assertEquals("java.math.BigDecimal", meta.getParameterClassName(3));
+      assertEquals("java.lang.String", meta.getParameterClassName(4));
+      assertEquals("short", meta.getParameterClassName(5));
+      assertEquals("boolean", meta.getParameterClassName(6));
+      Common.assertThrowsContains(
+          SQLException.class, () -> meta.getParameterClassName(7), "invalid parameter index 7");
+    }
   }
 
   @Test
   public void getParameterTypeProcedure() throws SQLException {
-    // https://jira.mariadb.org/browse/XPT-267
-    Assumptions.assumeFalse(isXpand());
-
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS procType");
     stmt.execute(
@@ -322,6 +333,76 @@ public class ProcedureParameterTest extends Common {
         assertEquals(expectedType[i - 1], meta.getParameterType(i));
         assertEquals(expectedClass[i - 1], meta.getParameterClassName(i));
       }
+    }
+  }
+
+  @Test
+  public void failStoredProcedureTest() throws Exception {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP PROCEDURE IF EXISTS workingStoreProcedure");
+    stmt.execute("DROP PROCEDURE IF EXISTS failingStoreProcedure");
+    stmt.execute("CREATE PROCEDURE workingStoreProcedure(a int) begin Do 1; end");
+    stmt.execute(
+        "CREATE PROCEDURE failingStoreProcedure(a int) begin SIGNAL SQLSTATE '45000' SET"
+            + " MESSAGE_TEXT = 'Custom error'; end");
+
+    try (CallableStatement call1 = sharedConn.prepareCall("{call useParameterName(?)}")) {
+      call1.setInt(1, 1);
+      call1.execute();
+
+      try (CallableStatement call2 = sharedConn.prepareCall("{call failingStoreProcedure(?)}")) {
+        call2.setInt(1, 1);
+        assertThrows(SQLException.class, () -> call2.execute());
+
+        call2.setInt(1, 1);
+        call2.addBatch();
+        call2.setInt(1, 2);
+        call2.addBatch();
+        assertThrows(SQLException.class, () -> call2.executeBatch());
+
+        call1.setInt(1, 1);
+        call1.addBatch();
+        call1.setInt(1, 2);
+        call1.addBatch();
+        call1.executeBatch();
+      }
+    }
+  }
+
+  @Test
+  public void failStoredProcedureTest2() throws Exception {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP PROCEDURE IF EXISTS saveDataProc");
+    stmt.execute("DROP TABLE IF EXISTS workingStoreProcedure");
+    stmt.execute("CREATE TABLE workingStoreProcedure(i int PRIMARY KEY)");
+    stmt.execute(
+        "CREATE PROCEDURE saveDataProc(val int) begin INSERT INTO workingStoreProcedure(i) VALUE"
+            + " (val); end");
+
+    try (CallableStatement call1 = sharedConn.prepareCall("{call saveDataProc(?)}")) {
+      call1.setInt(1, 1);
+      call1.execute();
+
+      call1.setInt(1, 1);
+      assertThrows(SQLException.class, () -> call1.execute());
+
+      call1.setInt(1, 2);
+      call1.addBatch();
+      call1.setInt(1, 3);
+      call1.addBatch();
+      call1.executeBatch();
+
+      call1.setInt(1, 2);
+      call1.addBatch();
+      call1.setInt(1, 4);
+      call1.addBatch();
+      assertThrows(SQLException.class, () -> call1.executeBatch());
+
+      call1.setInt(1, 5);
+      call1.addBatch();
+      call1.setInt(1, 6);
+      call1.addBatch();
+      call1.executeBatch();
     }
   }
 }

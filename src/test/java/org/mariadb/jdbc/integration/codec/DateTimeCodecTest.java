@@ -34,6 +34,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
+
+    // ensure not setting NO_ZERO_DATE and NO_ZERO_IN_DATE
+    stmt.execute(
+        "set sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
+
     stmt.execute(
         "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4"
             + " DATETIME(6))");
@@ -42,6 +47,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
             + " '9999-12-31 18:30:12.55', null)"
             + (isMariaDBServer()
                 ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null)"
+                    + ",('1980-00-10 00:00:00', '1970-10-00 00:00:00.0123', null, null)"
                 : ""));
     stmt.execute(
         "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
@@ -216,6 +222,14 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertTrue(rs.wasNull());
       assertNull(rs.getObject(1, LocalTime.class));
       assertTrue(rs.wasNull());
+      rs.next();
+
+      assertEquals(
+          Timestamp.valueOf("1979-12-10 00:00:00").getTime(),
+          ((Timestamp) rs.getObject(1)).getTime());
+      assertEquals(
+          Timestamp.valueOf("1970-09-30 00:00:00.012300").getTime(),
+          ((Timestamp) rs.getObject(2)).getTime());
     }
   }
 
@@ -278,22 +292,31 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getString() throws SQLException {
-    getString(get(), true);
+    getString(get(), true, false);
   }
 
   @Test
   public void getStringPrepare() throws SQLException {
-    getString(getPrepare(sharedConn), true);
-    getString(getPrepare(sharedConnBinary), false);
+    getString(getPrepare(sharedConn), true, false);
+    getString(getPrepare(sharedConnBinary), false, false);
+    try (Connection con = createCon("&oldModeNoPrecisionTimestamp=true")) {
+      getString(getPrepare(con), true, true);
+    }
+    try (Connection con = createCon("&oldModeNoPrecisionTimestamp=true&useServerPrepStmts=true")) {
+      getString(getPrepare(con), false, true);
+    }
   }
 
-  public void getString(ResultSet rs, boolean text) throws SQLException {
-    assertEquals("2010-01-12 01:55:12", rs.getString(1));
+  public void getString(ResultSet rs, boolean text, boolean oldModeNoPrecisionTimestamp)
+      throws SQLException {
+    assertEquals(
+        "2010-01-12 01:55:12" + (oldModeNoPrecisionTimestamp ? ".0" : ""), rs.getString(1));
     assertFalse(rs.wasNull());
     assertEquals("1000-01-01 01:55:13.212345", rs.getString(2));
     assertEquals("1000-01-01 01:55:13.212345", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("9999-12-31 18:30:12.550000", rs.getString(3));
+    assertEquals(
+        "9999-12-31 18:30:12.55" + (oldModeNoPrecisionTimestamp ? "" : "0000"), rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
@@ -301,7 +324,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
       rs.next();
       assertEquals("0000-00-00 00:00:00", rs.getString(1));
       assertEquals("0000-00-00 00:00:00.000000", rs.getString(2));
-      assertEquals("9999-12-31 00:00:00.000000", rs.getString(3));
+      assertEquals(
+          "9999-12-31 00:00:00.0" + (oldModeNoPrecisionTimestamp ? "" : "00000"), rs.getString(3));
+      rs.next();
+      assertEquals("1980-00-10 00:00:00", rs.getString(1));
+      assertEquals("1970-10-00 00:00:00.012300", rs.getString(2));
     }
   }
 
@@ -1446,11 +1473,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals(4, meta.getColumnCount());
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    // https://jira.mariadb.org/browse/XPT-273
-    if (!isXpand()) {
-      assertEquals(19, meta.getPrecision(1));
-      assertEquals(19, meta.getColumnDisplaySize(1));
-    }
+    assertEquals(19, meta.getPrecision(1));
+    assertEquals(19, meta.getColumnDisplaySize(1));
   }
 
   @Test

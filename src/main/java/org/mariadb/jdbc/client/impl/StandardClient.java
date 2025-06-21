@@ -235,7 +235,7 @@ public class StandardClient implements Client, AutoCloseable {
       throws SQLException, IOException {
 
     try {
-      SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+      SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(
           socketPlugin.getKeyManager(conf, context.getExceptionFactory()), trustManagers, null);
 
@@ -321,12 +321,27 @@ public class StandardClient implements Client, AutoCloseable {
   private void initializeContext(InitialHandshakePacket handshake, long clientCapabilities) {
     PrepareCache cache =
         conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null;
+
+    Boolean isLoopback = null;
+    if (socket.getInetAddress() != null) isLoopback = socket.getInetAddress().isLoopbackAddress();
     this.context =
         conf.transactionReplay()
             ? new RedoContext(
-                hostAddress, handshake, clientCapabilities, conf, exceptionFactory, cache)
+                hostAddress,
+                handshake,
+                clientCapabilities,
+                conf,
+                exceptionFactory,
+                cache,
+                isLoopback)
             : new BaseContext(
-                hostAddress, handshake, clientCapabilities, conf, exceptionFactory, cache);
+                hostAddress,
+                handshake,
+                clientCapabilities,
+                conf,
+                exceptionFactory,
+                cache,
+                isLoopback);
   }
 
   private void handleAuthentication(InitialHandshakePacket handshake, long clientCapabilities)
@@ -432,6 +447,20 @@ public class StandardClient implements Client, AutoCloseable {
               authPluginFactory.initialize(
                   credential.getPassword(), authSwitchPacket.getSeed(), conf, hostAddress);
 
+          if (certFingerprint != null
+              && (!authPlugin.isMitMProof()
+                  || credential.getPassword() == null
+                  || credential.getPassword().isEmpty())) {
+            throw context
+                .getExceptionFactory()
+                .create(
+                    String.format(
+                        "Cannot use authentication plugin %s with a Self signed certificates."
+                            + " Either set sslMode=trust, use password with a MitM-Proof"
+                            + " authentication plugin or provide server certificate to client",
+                        authPluginFactory.type()));
+          }
+
           buf = authPlugin.process(writer, reader, context);
           break;
 
@@ -480,8 +509,9 @@ public class StandardClient implements Client, AutoCloseable {
             }
           }
 
-          if (context.getRedirectUrl() != null && conf.permitRedirect())
-            redirect(context.getRedirectUrl());
+          if (context.getRedirectUrl() != null
+              && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
+                  || conf.permitRedirect())) redirect(context.getRedirectUrl());
 
           break authentication_loop;
 
@@ -525,7 +555,9 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   public void redirect(String redirectUrl) {
-    if (this.conf.permitRedirect() && redirectUrl != null) {
+    if (redirectUrl != null
+        && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
+            || conf.permitRedirect())) {
       // redirect only if not in a transaction
       if ((this.context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0) {
         this.context.setRedirectUrl(null);

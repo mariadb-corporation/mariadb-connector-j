@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
@@ -35,8 +34,6 @@ public class LineStringCodecTest extends CommonCodecTest {
   @BeforeAll
   public static void beforeAll2() throws Exception {
     drop();
-    // xpand doesn't recognized LineString
-    Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE TABLE LineStringCodec (t1 LineString, t2 LineString, t3 LineString, t4"

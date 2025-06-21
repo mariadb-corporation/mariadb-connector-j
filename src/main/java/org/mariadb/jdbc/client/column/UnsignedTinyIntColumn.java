@@ -75,7 +75,12 @@ public class UnsignedTinyIntColumn extends ColumnDefinitionPacket implements Col
     if (conf.tinyInt1isBit() && columnLength == 1) {
       return conf.transformedBitIsBoolean() ? Types.BOOLEAN : Types.BIT;
     }
-    return Types.SMALLINT;
+    boolean resultSetMetaDataUnsignedCompatibility =
+        Boolean.parseBoolean(
+            conf.nonMappedOptions().getProperty("resultSetMetaDataUnsignedCompatibility", "false"));
+    // compatibility option to ensure compatibility
+    // to be removed in 4.0
+    return resultSetMetaDataUnsignedCompatibility ? Types.SMALLINT : Types.TINYINT;
   }
 
   public String getColumnTypeName(final Configuration conf) {

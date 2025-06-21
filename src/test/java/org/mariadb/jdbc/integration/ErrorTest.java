@@ -72,11 +72,7 @@ public class ErrorTest extends Common {
   }
 
   private void testPre41ErrorFormat(Connection con) throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !isXpand());
+    Assumptions.assumeTrue(!isMaxscale());
     SQLException exception = null;
     int max_connections;
     Statement stmt = con.createStatement();
@@ -125,7 +121,6 @@ public class ErrorTest extends Common {
       }
       stmt.execute("start transaction");
       stmt.execute("update deadlock set a = 2 where a <> 0");
-      Assumptions.assumeFalse(isXpand());
       try (Connection conn2 =
           createCon(
               "&includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {

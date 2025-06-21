@@ -1,0 +1,85 @@
+---
+name: Run CI Tests
+
+on:
+  push:
+    branches: ['master', 'develop', 'maintenance/*']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TEST_DB_HOST: mariadb.example.com
+  TEST_DB_PORT: 3306
+  TEST_DB_USER: root
+  TEST_DB_PASSWORD: "heyPassw-!*20oRd"
+  TEST_DB_DATABASE: testj
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.final-matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-matrix
+        name: build matrix
+        uses: rusher/mariadb-test-build-matrix@main
+        with:
+          additional-matrix: '[{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 8},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 11},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17}]'
+
+  ci:
+    name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
+    needs: setup
+    timeout-minutes: 50
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.continue-on-error || false }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Test Environment
+        id: setup-env
+        uses: rusher/mariadb-test-setup@master
+        with:
+          node-version: ${{ matrix.node }}
+          db-type: ${{ matrix.db-type }}
+          db-tag: ${{ matrix.db-tag }}
+          test-db-password: ${{ env.TEST_DB_PASSWORD }}
+          test-db-database: ${{ env.TEST_DB_DATABASE }}
+          test-db-port: ${{ env.TEST_DB_PORT }}
+          additional-conf: ${{ matrix.additional-conf || '' }}
+          registry-user: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_USER || (secrets.DOCKER_PWD != '' && 'mariadbtest' || '') }}
+          registry-password: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_TOKEN || secrets.DOCKER_PWD }}
+          os: ${{ matrix.os }}
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java || '21' }}
+          cache: maven
+          distribution: 'adopt'
+
+      - name: Run Tests
+        run: mvn clean test ${{ matrix.java == '8' && '-P java8' || '' }} ${{ matrix.java == '11' && '-P java11' || '' }}
+        env:
+          LOCAL_DB: ${{ steps.setup-env.outputs.database-type }}
+          DB_TYPE: ${{ matrix.db-type }}
+          TEST_DB_SERVER_CERT: ${{ matrix.db-type == 'container' && format('{0}/.github/workflows/certs/server.crt', github.workspace) || '' }}
+          TEST_DB_SERVER_CA_CERT: ${{ matrix.db-type == 'container' && format('{0}/.github/workflows/certs/ca.crt', github.workspace) || '' }}
+          TEST_DB_CLIENT_PKCS: ${{ matrix.db-type == 'container' && format('{0}/.github/workflows/certs/client.p12', github.workspace) || '' }}
+          DB_VERSION: ${{ matrix.db-tag }}
+
+      - name: Generate Coverage Report
+        shell: bash
+        run: |
+          bash <(curl -s https://codecov.io/bash)
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

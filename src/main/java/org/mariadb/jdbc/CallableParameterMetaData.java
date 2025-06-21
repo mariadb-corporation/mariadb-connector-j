@@ -147,6 +147,9 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "BIT":
         return Types.BIT;
       case "TINYINT":
+        if ("TINYINT(1)".equals(rs.getString("DTD_IDENTIFIER").toUpperCase(Locale.ROOT))) {
+          return Types.BOOLEAN;
+        }
         return Types.TINYINT;
       case "SMALLINT":
       case "YEAR":
@@ -211,6 +214,9 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public String getParameterTypeName(int index) throws SQLException {
     setIndex(index);
+    if ("TINYINT(1)".equals(rs.getString("DTD_IDENTIFIER").toUpperCase(Locale.ROOT))) {
+      return "BOOLEAN";
+    }
     return rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
   }
 
@@ -233,6 +239,9 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "BIT":
         return BitSet.class.getName();
       case "TINYINT":
+        if ("TINYINT(1)".equals(rs.getString("DTD_IDENTIFIER").toUpperCase(Locale.ROOT))) {
+          return boolean.class.getName();
+        }
         return byte.class.getName();
       case "SMALLINT":
       case "YEAR":

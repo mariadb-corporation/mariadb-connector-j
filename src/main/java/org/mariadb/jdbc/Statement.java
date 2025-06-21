@@ -1276,7 +1276,10 @@ public class Statement implements java.sql.Statement {
    * @return true if this <code>Statement</code> object is closed; false if it is still open
    */
   @Override
-  public boolean isClosed() {
+  public boolean isClosed() throws SQLException {
+    if (!closed && this.con.isClosed()) {
+      this.close();
+    }
     return closed;
   }
 

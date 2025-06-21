@@ -58,27 +58,35 @@ public class SslTest extends Common {
             && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS '" + user + "'@'%' " + requirement);
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS '" + user + "'" + getHostSuffix() + " " + requirement);
       stmt.execute(
           "GRANT SELECT ON *.* TO '"
               + user
-              + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
+              + "'"
+              + getHostSuffix()
+              + " IDENTIFIED BY '!Passw0rd3Works' "
               + requirement);
     } else {
       if (!isMariaDBServer() && minVersion(8, 0, 0)) {
         stmt.execute(
             "CREATE USER IF NOT EXISTS '"
                 + user
-                + "'@'%' IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
+                + "'"
+                + getHostSuffix()
+                + " IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
                 + requirement);
       } else {
         stmt.execute(
             "CREATE USER IF NOT EXISTS '"
                 + user
-                + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
+                + "'"
+                + getHostSuffix()
+                + " IDENTIFIED BY '!Passw0rd3Works' "
                 + requirement);
       }
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO '" + user + "'@'%' ");
+      stmt.execute(
+          "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO '" + user + "'" + getHostSuffix());
     }
   }
 
@@ -89,9 +97,7 @@ public class SslTest extends Common {
     }
 
     // try local server
-    if (serverCertificatePath == null
-        && !"skysql".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (serverCertificatePath == null) {
 
       try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@ssl_cert")) {
         assertTrue(rs.next());
@@ -127,7 +133,7 @@ public class SslTest extends Common {
 
   private String getSslVersion(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
-    if ("maxscale".equals(System.getenv("srv")) || "skysql-ha".equals(System.getenv("srv"))) {
+    if (isMaxscale()) {
       return "ok";
     } else {
       ResultSet rs = stmt.executeQuery("show STATUS  LIKE 'Ssl_version'");
@@ -150,8 +156,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatorySsl() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
@@ -163,8 +168,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatoryEphemeralSsl() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
     try (Connection con = createCon(baseOptions + "&sslMode=verify-ca", sslPort)) {
       assertNotNull(getSslVersion(con));
@@ -204,8 +208,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatoryEphemeralSsled25519() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
 
     Statement stmt = sharedConn.createStatement();
@@ -215,15 +218,20 @@ public class SslTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
     }
     try {
-      stmt.execute("drop user if exists verificationEd25519AuthPlugin@'%'");
+      stmt.execute("drop user if exists verificationEd25519AuthPlugin" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     stmt.execute(
-        "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+        "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin"
+            + getHostSuffix()
+            + " IDENTIFIED "
             + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord') REQUIRE SSL");
     stmt.execute(
-        "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO verificationEd25519AuthPlugin@'%' ");
+        "GRANT SELECT ON "
+            + sharedConn.getCatalog()
+            + ".* TO verificationEd25519AuthPlugin"
+            + getHostSuffix());
     try (Connection con =
         createCon(
             "user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord&sslMode=verify-ca",
@@ -241,7 +249,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatoryEphemeralSslParsec() throws SQLException {
-    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 6, 1) && getJavaVersion() >= 15);
 
     Statement stmt = sharedConn.createStatement();
@@ -251,15 +259,20 @@ public class SslTest extends Common {
       Assumptions.assumeTrue(false, "server doesn't have auth_parsec plugin, cancelling test");
     }
     try {
-      stmt.execute("drop user if exists verificationParsecAuthPlugin@'%'");
+      stmt.execute("drop user if exists verificationParsecAuthPlugin" + getHostSuffix());
     } catch (SQLException e) {
       // eat
     }
     stmt.execute(
-        "CREATE USER IF NOT EXISTS verificationParsecAuthPlugin@'%' IDENTIFIED "
+        "CREATE USER IF NOT EXISTS verificationParsecAuthPlugin"
+            + getHostSuffix()
+            + " IDENTIFIED "
             + "VIA parsec USING PASSWORD('MySup8%rPassw@ord') REQUIRE SSL");
     stmt.execute(
-        "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO verificationParsecAuthPlugin@'%' ");
+        "GRANT SELECT ON "
+            + sharedConn.getCatalog()
+            + ".* TO verificationParsecAuthPlugin"
+            + getHostSuffix());
     try (Connection con =
         createCon(
             "user=verificationParsecAuthPlugin&password=MySup8%rPassw@ord&sslMode=verify-ca",
@@ -305,8 +318,7 @@ public class SslTest extends Common {
 
   @Test
   public void enabledSslProtocolSuites() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     try {
       List<String> protocols =
           Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
@@ -334,8 +346,7 @@ public class SslTest extends Common {
 
   @Test
   public void enabledSslCipherSuites() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     try (Connection con =
         createCon(
             baseOptions
@@ -354,8 +365,7 @@ public class SslTest extends Common {
 
   @Test
   public void errorUsingWrongTypeOfKeystore() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     String pkcsFile = System.getenv("TEST_DB_CLIENT_PKCS");
     Assumptions.assumeTrue(pkcsFile != null);
 
@@ -377,9 +387,10 @@ public class SslTest extends Common {
 
   @Test
   public void mutualAuthSsl() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
+    Assumptions.assumeTrue(!isMaxscale());
+    Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null
+            && !"".equals(System.getenv("TEST_DB_CLIENT_PKCS")));
+    System.out.println("TEST_DB_CLIENT_PKCS:" + System.getenv("TEST_DB_CLIENT_PKCS"));
 
     // without password
     try {
@@ -499,8 +510,7 @@ public class SslTest extends Common {
 
   @Test
   public void certificateMandatorySsl() throws Throwable {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     String serverCertPath = retrieveCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
 
@@ -590,7 +600,7 @@ public class SslTest extends Common {
 
   @Test
   public void trustStoreParameter() throws Throwable {
-    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(!isMaxscale());
     String serverCertPath = retrieveCertificatePath();
     String caCertPath = retrieveCaCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");

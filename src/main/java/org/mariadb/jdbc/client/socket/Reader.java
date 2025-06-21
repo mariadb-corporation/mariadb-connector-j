@@ -50,13 +50,6 @@ public interface Reader {
   ReadableByteBuf readableBufFromArray(byte[] buf);
 
   /**
-   * Skip next MySQL packet. Packet is expected to have size &lt; 16M
-   *
-   * @throws IOException if socket exception occur.
-   */
-  void skipPacket() throws IOException;
-
-  /**
    * Get current sequence object
    *
    * @return current sequence

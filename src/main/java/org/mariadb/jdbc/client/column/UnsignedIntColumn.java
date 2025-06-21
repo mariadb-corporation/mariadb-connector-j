@@ -71,7 +71,12 @@ public class UnsignedIntColumn extends ColumnDefinitionPacket implements ColumnD
   }
 
   public int getColumnType(final Configuration conf) {
-    return Types.BIGINT;
+    boolean resultSetMetaDataUnsignedCompatibility =
+        Boolean.parseBoolean(
+            conf.nonMappedOptions().getProperty("resultSetMetaDataUnsignedCompatibility", "false"));
+    // compatibility option to ensure compatibility
+    // to be removed in 4.0
+    return resultSetMetaDataUnsignedCompatibility ? Types.BIGINT : Types.INTEGER;
   }
 
   public String getColumnTypeName(final Configuration conf) {
