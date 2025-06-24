@@ -72,9 +72,9 @@ jobs:
         env:
           LOCAL_DB: ${{ steps.setup-env.outputs.database-type }}
           DB_TYPE: ${{ matrix.db-type }}
-          TEST_DB_SERVER_CERT: ${{ matrix.db-type == 'container' && format('{0}/.github/workflows/certs/server.crt', github.workspace) || '' }}
-          TEST_DB_SERVER_CA_CERT: ${{ matrix.db-type == 'container' && format('{0}/.github/workflows/certs/ca.crt', github.workspace) || '' }}
-          TEST_DB_CLIENT_PKCS: ${{ matrix.db-type == 'container' && format('{0}/.github/workflows/certs/client.p12', github.workspace) || '' }}
+          TEST_DB_SERVER_CERT: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/server.crt', github.workspace) || '' }}
+          TEST_DB_SERVER_CA_CERT: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/ca.crt', github.workspace) || '' }}
+          TEST_DB_CLIENT_PKCS: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/client.p12', github.workspace) || '' }}
           DB_VERSION: ${{ matrix.db-tag }}
 
       - name: Generate Coverage Report
