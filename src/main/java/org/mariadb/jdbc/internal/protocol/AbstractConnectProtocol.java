@@ -872,7 +872,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void postConnectionQueries() throws SQLException {
     try {
-      int timeout = (options.connectTimeout > 0)
+      int timeout =
+          (options.connectTimeout > 0)
               ? options.connectTimeout
               : (options.socketTimeout != null ? options.socketTimeout : 0);
 
