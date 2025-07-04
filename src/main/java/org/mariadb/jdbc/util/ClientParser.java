@@ -34,11 +34,22 @@ public final class ClientParser implements PrepareResult {
   }
 
   /**
-   * Separate query in a String list and set flag isQueryMultipleRewritable. The resulting string
-   * list is separed by ? that are not in comments. isQueryMultipleRewritable flag is set if query
-   * can be rewrite in one query (all case but if using "-- comment"). example for query : "INSERT
-   * INTO tableName(id, name) VALUES (?, ?)" result list will be : {"INSERT INTO tableName(id, name)
-   * VALUES (", ", ", ")"}
+   * Separate a query in a String list and set flag isQueryMultipleRewritable. The resulting string
+   * list is separated by ? that are not in comments. isQueryMultipleRewritable flag is set if the query
+   * can be rewrite in one query (all cases but if using "-- comment").
+   * <p>
+   * Example for the query:
+   * <code>
+   * INSERT * INTO tableName(id, name) VALUES (?, ?)
+   * </code>
+   * result list will be:
+   * <code>
+   *     {
+   *     "INSERT INTO tableName(id, name) VALUES (",
+   *     ", ",
+   *     ")"
+   *     }
+   * </code>
    *
    * @param queryString query
    * @param noBackslashEscapes escape mode
@@ -75,8 +86,6 @@ public final class ClientParser implements PrepareResult {
         case (byte) '/':
           if (state == LexState.SlashStarComment && lastChar == (byte) '*') {
             state = LexState.Normal;
-          } else if (state == LexState.Normal && lastChar == (byte) '/') {
-            state = LexState.EOLComment;
           }
           break;
 
@@ -171,10 +180,7 @@ public final class ClientParser implements PrepareResult {
           break;
 
         case (byte) '\\':
-          if (noBackslashEscapes) {
-            break;
-          }
-          if (state == LexState.String) {
+          if (state == LexState.String && !noBackslashEscapes) {
             state = LexState.Escape;
           }
           break;
