@@ -819,7 +819,7 @@ public class StandardClient implements Client, AutoCloseable {
    * Creates a query string for setting session variables based on context and configuration.
    *
    * @param context the connection context
-   * @return query string for setting session variables, or null if no variables need to be set
+   * @return query string for setting session variables or null if no variables need to be set
    */
   public String createSessionVariableQuery(Context context) {
     List<String> sessionCommands = new ArrayList<>();
@@ -905,7 +905,8 @@ public class StandardClient implements Client, AutoCloseable {
     TimeZone connectionTz = context.getConnectionTimeZone();
     ZoneId connectionZoneId = connectionTz.toZoneId();
 
-    if (connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
+    if ("SERVER".equalsIgnoreCase(conf.connectionTimeZone())
+            && connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
       return;
     }
 
