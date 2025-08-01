@@ -642,6 +642,16 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void savepointNotExistingTest() throws SQLException {
+    try (Connection con = createCon()) {
+      Savepoint sp = con.setSavepoint("savepoint1");
+      con.setAutoCommit(false);
+      con.commit();
+      assertThrows(SQLSyntaxErrorException.class, () -> con.rollback(sp));
+    }
+  }
+
+  @Test
   public void netWorkTimeout() throws SQLException {
     Connection con = createCon();
     Common.assertThrowsContains(

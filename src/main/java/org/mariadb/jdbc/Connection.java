@@ -593,17 +593,15 @@ public class Connection implements java.sql.Connection {
   public void rollback(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
     try (ClosableLock ignore = lock.closeableLock()) {
-      if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        if (savepoint instanceof Connection.MariaDbSavepoint) {
-          client.execute(
-              new QueryPacket(
-                  "ROLLBACK TO SAVEPOINT `"
-                      + ((Connection.MariaDbSavepoint) savepoint).rawValue()
-                      + "`"),
-              true);
-        } else {
-          throw exceptionFactory.create("Unknown savepoint type");
-        }
+      if (savepoint instanceof Connection.MariaDbSavepoint) {
+        client.execute(
+            new QueryPacket(
+                "ROLLBACK TO SAVEPOINT `"
+                    + ((Connection.MariaDbSavepoint) savepoint).rawValue()
+                    + "`"),
+            true);
+      } else {
+        throw exceptionFactory.create("Unknown savepoint type");
       }
     }
   }
@@ -613,17 +611,15 @@ public class Connection implements java.sql.Connection {
   public void releaseSavepoint(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
     try (ClosableLock ignore = lock.closeableLock()) {
-      if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        if (savepoint instanceof Connection.MariaDbSavepoint) {
-          client.execute(
-              new QueryPacket(
-                  "RELEASE SAVEPOINT `"
-                      + ((Connection.MariaDbSavepoint) savepoint).rawValue()
-                      + "`"),
-              true);
-        } else {
-          throw exceptionFactory.create("Unknown savepoint type");
-        }
+      if (savepoint instanceof Connection.MariaDbSavepoint) {
+        client.execute(
+            new QueryPacket(
+                "RELEASE SAVEPOINT `"
+                    + ((Connection.MariaDbSavepoint) savepoint).rawValue()
+                    + "`"),
+            true);
+      } else {
+        throw exceptionFactory.create("Unknown savepoint type");
       }
     }
   }
@@ -840,10 +836,13 @@ public class Connection implements java.sql.Connection {
    * Reset connection set has it was after creating a "fresh" new connection.
    * defaultTransactionIsolation must have been initialized.
    *
-   * <p>BUT : - session variable state are reset only if option useResetConnection is set and - if
-   * using the option "useServerPrepStmts", PREPARE statement are still prepared
+   * <p>BUT:
+   * <ol>
+   * <li>session variable state is reset only if the option useResetConnection is set</li>
+   * <li>if using the option "useServerPrepStmts", the PREPARE statements are still prepared</li>
+   * </ol>
    *
-   * @throws SQLException if resetting operation failed
+   * @throws SQLException if the resetting operation failed
    */
   public void reset() throws SQLException {
     checkNotClosed();
