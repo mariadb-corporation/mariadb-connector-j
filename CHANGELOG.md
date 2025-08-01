@@ -1,5 +1,14 @@
 # Change Log
 
+## [3.5.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.4) (Aug 2025)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.4...3.5.5)
+
+#### Issues Resolved
+
+* CONJ-1265 - ensure rollback and release savepoint operation to be sent to server, even when there is no transaction in progress
+* CONJ-1270 - forceConnectionTimeZoneToSession doesn't always set the timezone to server
+
+
 ## [3.5.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.4) (Jun 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.3...3.5.4)
 

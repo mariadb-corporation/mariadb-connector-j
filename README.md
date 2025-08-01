@@ -29,13 +29,13 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>3.5.4</version>
+	<version>3.5.5</version>
 </dependency>
 ```
 
 ## Documentation
 
-For a Getting started guide, API docs, recipes, etc. see the
+For a Getting started guide, API docs, recipes, etc. see the following links
 
 * [About MariaDB connector/J](https://mariadb.com/kb/en/about-mariadb-connector-j/)
 * [Install driver](https://mariadb.com/kb/en/installing-mariadb-connectorj/)
