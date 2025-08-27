@@ -9,8 +9,8 @@ import java.util.BitSet;
 import java.util.Locale;
 
 /**
- * Callable parameter metadata. Server doesn't give detailled information about parameter, so even
- * if driver return those information, they are not completely accurate.
+ * Callable parameter metadata. Server doesn't give detailed information about parameter, so even
+ * if the driver returns that information, they are not completely accurate.
  */
 public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   private final ResultSet rs;
