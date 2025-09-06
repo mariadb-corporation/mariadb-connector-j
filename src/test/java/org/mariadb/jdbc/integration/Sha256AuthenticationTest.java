@@ -34,7 +34,9 @@ public class Sha256AuthenticationTest extends Common {
     // reason is that after nativePassword test, it sometime always return wrong authentication id
     // not cached
     // !? strange, but mysql server error.
-    if (haveSsl() && ((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0)))) {
+    if (haveSsl()
+        && ((isMariaDBServer() && minVersion(12, 1, 1))
+            || (!isMariaDBServer() && minVersion(8, 0, 0)))) {
       try (Connection con = createCon("sslMode=trust")) {
         con.createStatement().execute("DO 1");
       }
@@ -43,13 +45,22 @@ public class Sha256AuthenticationTest extends Common {
 
   @BeforeAll
   public static void init() throws Exception {
-    Assumptions.assumeTrue((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0)));
+    Assumptions.assumeTrue(
+        (isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0)));
     drop();
+
     Statement stmt = sharedConn.createStatement();
+
+    if (isMariaDBServer() && minVersion(12, 1, 1)) {
+      try {
+        stmt.execute("INSTALL SONAME 'auth_mysql_sha2'");
+      } catch (Exception e) {}
+    }
     rsaPublicKey = checkFileExists(System.getProperty("rsaPublicKey"));
     if (rsaPublicKey == null) {
       try {
-        ResultSet rs = stmt.executeQuery("SELECT @@caching_sha2_password_public_key_path, @@datadir");
+        ResultSet rs =
+            stmt.executeQuery("SELECT @@caching_sha2_password_public_key_path, @@datadir");
         rs.next();
         rsaPublicKey = checkFileExists(rs.getString(1));
 
@@ -82,25 +93,38 @@ public class Sha256AuthenticationTest extends Common {
       }
     }
     String keyword = isMariaDBServer() ? "VIA" : "WITH";
-    String password = isMariaDBServer() ? "USING PASSWORD('!Passw0rd3Works')" : "BY '!Passw0rd3Works'";
+    String password =
+        isMariaDBServer() ? "USING PASSWORD('!Passw0rd3Works')" : "BY '!Passw0rd3Works'";
     String passwordEmpty = isMariaDBServer() ? "USING PASSWORD('')" : "BY ''";
 
     stmt.execute(
         "CREATE USER 'cachingSha256User'"
             + getHostSuffix()
-            + " IDENTIFIED " + keyword + " caching_sha2_password " + password);
+            + " IDENTIFIED "
+            + keyword
+            + " caching_sha2_password "
+            + password);
     stmt.execute(
         "CREATE USER 'cachingSha256User2'"
             + getHostSuffix()
-            + " IDENTIFIED " + keyword + " caching_sha2_password " + passwordEmpty);
+            + " IDENTIFIED "
+            + keyword
+            + " caching_sha2_password "
+            + passwordEmpty);
     stmt.execute(
         "CREATE USER 'cachingSha256User3'"
             + getHostSuffix()
-            + " IDENTIFIED " + keyword + " caching_sha2_password " + password);
+            + " IDENTIFIED "
+            + keyword
+            + " caching_sha2_password "
+            + password);
     stmt.execute(
         "CREATE USER 'cachingSha256User4'"
             + getHostSuffix()
-            + " IDENTIFIED " + keyword + " caching_sha2_password " + password);
+            + " IDENTIFIED "
+            + keyword
+            + " caching_sha2_password "
+            + password);
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'" + getHostSuffix());
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User2'" + getHostSuffix());
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User3'" + getHostSuffix());
@@ -157,7 +181,10 @@ public class Sha256AuthenticationTest extends Common {
   @Test
   public void cachingSha256Empty() throws Exception {
     Assumptions.assumeTrue(
-        !isWindows() && rsaPublicKey != null && ((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0))));
+        !isWindows()
+            && rsaPublicKey != null
+            && ((isMariaDBServer() && minVersion(12, 1, 1))
+                || (!isMariaDBServer() && minVersion(8, 0, 0))));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval&password=")) {
       con.isValid(1);
@@ -167,7 +194,10 @@ public class Sha256AuthenticationTest extends Common {
   @Test
   public void wrongRsaPath() throws Exception {
     Assumptions.assumeTrue(
-        !isWindows() && rsaPublicKey != null && ((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0))));
+        !isWindows()
+            && rsaPublicKey != null
+            && ((isMariaDBServer() && minVersion(12, 1, 1))
+                || (!isMariaDBServer() && minVersion(8, 0, 0))));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     File tempFile = File.createTempFile("log", ".tmp");
     Common.assertThrowsContains(
@@ -182,7 +212,10 @@ public class Sha256AuthenticationTest extends Common {
 
   @Test
   public void cachingSha256Allow() throws Exception {
-    Assumptions.assumeTrue(rsaPublicKey != null && ((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0))));
+    Assumptions.assumeTrue(
+        rsaPublicKey != null
+            && ((isMariaDBServer() && minVersion(12, 1, 1))
+                || (!isMariaDBServer() && minVersion(8, 0, 0))));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon("user=cachingSha256User3&allowPublicKeyRetrieval&password=!Passw0rd3Works")) {
@@ -192,7 +225,10 @@ public class Sha256AuthenticationTest extends Common {
 
   @Test
   public void cachingSha256PluginTest() throws Exception {
-    Assumptions.assumeTrue(rsaPublicKey != null && ((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0))));
+    Assumptions.assumeTrue(
+        rsaPublicKey != null
+            && ((isMariaDBServer() && minVersion(12, 1, 1))
+                || (!isMariaDBServer() && minVersion(8, 0, 0))));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
 
     try (Connection con =
@@ -226,21 +262,25 @@ public class Sha256AuthenticationTest extends Common {
     }
   }
 
-
   @Test
   public void cachingSha256PluginTest2() throws Exception {
-    Assumptions.assumeTrue(((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0))));
+    Assumptions.assumeTrue(
+        ((isMariaDBServer() && minVersion(12, 1, 1))
+            || (!isMariaDBServer() && minVersion(8, 0, 0))));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
-             createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval&serverRsaPublicKeyFile=")) {
+        createCon(
+            "user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval&serverRsaPublicKeyFile=")) {
       con.isValid(1);
     }
-
   }
 
   @Test
   public void cachingSha256PluginTestWithoutServerRsaKey() throws Exception {
-    Assumptions.assumeTrue(!isWindows() && ((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0))));
+    Assumptions.assumeTrue(
+        !isWindows()
+            && ((isMariaDBServer() && minVersion(12, 1, 1))
+                || (!isMariaDBServer() && minVersion(8, 0, 0))));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
@@ -250,7 +290,8 @@ public class Sha256AuthenticationTest extends Common {
 
   @Test
   public void cachingSha256PluginTestException() throws Exception {
-    Assumptions.assumeTrue((isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0)));
+    Assumptions.assumeTrue(
+        (isMariaDBServer() && minVersion(12, 1, 1)) || (!isMariaDBServer() && minVersion(8, 0, 0)));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
 
     Common.assertThrowsContains(

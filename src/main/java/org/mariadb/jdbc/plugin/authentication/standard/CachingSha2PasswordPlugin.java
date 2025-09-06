@@ -209,7 +209,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
           byte lengthPrefix = buf.readByte();
           if (lengthPrefix != 0x01) {
             throw new SQLException(
-                "Protocol exchange error. Unexpected message value lengthPrefix:" +lengthPrefix,
+                "Protocol exchange error. Unexpected message value lengthPrefix:" + lengthPrefix,
                 "S1009");
           }
           authResult = buf.readByte();
@@ -259,7 +259,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
                   default:
                     // AuthMoreData packet
-                    if (buf.getByte(0) == (byte) 0x01) {buf.skip();}
+                    if (buf.getByte(0) == (byte) 0x01) {
+                      buf.skip();
+                    }
                     byte[] authMoreData = new byte[buf.readableBytes()];
                     buf.readBytes(authMoreData);
                     publicKey = generatePublicKey(authMoreData);
