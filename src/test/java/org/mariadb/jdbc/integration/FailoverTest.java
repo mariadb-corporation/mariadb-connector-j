@@ -213,7 +213,8 @@ public class FailoverTest extends Common {
   }
 
   private void transactionReplayPreparedStatementBatch(
-      boolean text, boolean useBulk, boolean transactionReplay, boolean useRewrite) throws SQLException {
+      boolean text, boolean useBulk, boolean transactionReplay, boolean useRewrite)
+      throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS transaction_failover_2");
     stmt.execute(

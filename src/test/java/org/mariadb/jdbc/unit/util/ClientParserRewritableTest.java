@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -87,30 +86,32 @@ public class ClientParserRewritableTest {
 
   static Stream<Arguments> rewriteTestData() {
     return Stream.of(
-        Arguments.of("INSERT INTO b VALUES (?)", 1, new int[]{22}, new int[]{21,23}),
-        Arguments.of("UPDATE b set a=?", 1, new int[]{15}, null),
-        Arguments.of("INSERT INTO b VALUES (?,? )", 2, new int[]{22, 24}, new int[]{21,26}),
-        Arguments.of("INSERT INTO b (SELECT a FROM b where c=? )", 1, new int[]{39}, null),
-        Arguments.of("INSERT INTO b VALUES (?,?), (?,?)", 4, new int[]{22, 24, 29, 31}, new int[]{21,32})
-    );
+        Arguments.of("INSERT INTO b VALUES (?)", 1, new int[] {22}, new int[] {21, 23}),
+        Arguments.of("UPDATE b set a=?", 1, new int[] {15}, null),
+        Arguments.of("INSERT INTO b VALUES (?,? )", 2, new int[] {22, 24}, new int[] {21, 26}),
+        Arguments.of("INSERT INTO b (SELECT a FROM b where c=? )", 1, new int[] {39}, null),
+        Arguments.of(
+            "INSERT INTO b VALUES (?,?), (?,?)",
+            4,
+            new int[] {22, 24, 29, 31},
+            new int[] {21, 32}));
   }
 
   @ParameterizedTest()
   @MethodSource("rewriteTestData")
-  public void rewritableParser(String sql, int paramCount, int[] paramPosition, int[] valuesBracketPositions) {
+  public void rewritableParser(
+      String sql, int paramCount, int[] paramPosition, int[] valuesBracketPositions) {
     ClientParser parser = ClientParser.rewritableParts(sql, false);
     assertEquals(parser.getSql(), sql);
     assertEquals(parser.getParamCount(), paramCount);
-    assertArrayEquals(parser.getParamPositions().stream()
-        .mapToInt(Integer::intValue)
-        .toArray(), paramPosition);
+    assertArrayEquals(
+        parser.getParamPositions().stream().mapToInt(Integer::intValue).toArray(), paramPosition);
     if (valuesBracketPositions == null) {
       assertNull(parser.getValuesBracketPositions());
     } else {
-      assertArrayEquals(parser.getValuesBracketPositions().stream()
-          .mapToInt(Integer::intValue)
-          .toArray(), valuesBracketPositions);
+      assertArrayEquals(
+          parser.getValuesBracketPositions().stream().mapToInt(Integer::intValue).toArray(),
+          valuesBracketPositions);
     }
   }
-
 }

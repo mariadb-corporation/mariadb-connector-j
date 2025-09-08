@@ -54,7 +54,8 @@ public class Sha256AuthenticationTest extends Common {
     if (isMariaDBServer() && minVersion(12, 1, 1)) {
       try {
         stmt.execute("INSTALL SONAME 'auth_mysql_sha2'");
-      } catch (Exception e) {}
+      } catch (Exception e) {
+      }
     }
     rsaPublicKey = checkFileExists(System.getProperty("rsaPublicKey"));
     if (rsaPublicKey == null) {
@@ -265,7 +266,7 @@ public class Sha256AuthenticationTest extends Common {
   @Test
   public void cachingSha256PluginTest2() throws Exception {
     Assumptions.assumeTrue(
-        ((isMariaDBServer() && minVersion(12, 1, 1))
+        ((rsaPublicKey != null && isMariaDBServer() && minVersion(12, 1, 1))
             || (!isMariaDBServer() && minVersion(8, 0, 0))));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
@@ -279,7 +280,7 @@ public class Sha256AuthenticationTest extends Common {
   public void cachingSha256PluginTestWithoutServerRsaKey() throws Exception {
     Assumptions.assumeTrue(
         !isWindows()
-            && ((isMariaDBServer() && minVersion(12, 1, 1))
+            && ((rsaPublicKey != null && isMariaDBServer() && minVersion(12, 1, 1))
                 || (!isMariaDBServer() && minVersion(8, 0, 0))));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =

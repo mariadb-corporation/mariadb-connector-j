@@ -1704,7 +1704,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       return handleBulkUnitResults(updates);
     }
 
-    if (shouldHandleBulkInsert(batchTypeState == BatchTypeState.Bulk || batchTypeState == BatchTypeState.Rewrite)) {
+    if (shouldHandleBulkInsert(
+        batchTypeState == BatchTypeState.Bulk || batchTypeState == BatchTypeState.Rewrite)) {
       int[] bulkInsertUpdates = handleBulkInsert(updates);
       if (bulkInsertUpdates != null) {
         return bulkInsertUpdates;
@@ -1876,7 +1877,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       return handleLongBulkUnitResults(updates);
     }
 
-    if (shouldHandleBulkInsert(batchTypeState == BatchTypeState.Bulk || batchTypeState == BatchTypeState.Rewrite)) {
+    if (shouldHandleBulkInsert(
+        batchTypeState == BatchTypeState.Bulk || batchTypeState == BatchTypeState.Rewrite)) {
       long[] bulkInsertUpdates = handleLongBulkInsert(updates);
       if (bulkInsertUpdates != null) {
         return bulkInsertUpdates;

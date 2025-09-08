@@ -429,7 +429,8 @@ public final class ClientParser implements PrepareResult {
         case '(':
           if (state == LexState.Normal) {
             isInParenthesis++;
-            if (afterValues == true && valuesBracketPositions.isEmpty()) {;
+            if (afterValues == true && valuesBracketPositions.isEmpty()) {
+              ;
               valuesBracketPositions.add(i);
             }
           }
@@ -451,7 +452,9 @@ public final class ClientParser implements PrepareResult {
           if (state == LexState.Normal) {
             paramPositions.add(i);
             // have parameter outside values parenthesis
-            if (valuesBracketPositions.size() == 1 && lastParenthesisPosition > 0 && isInParenthesis == 0) {
+            if (valuesBracketPositions.size() == 1
+                && lastParenthesisPosition > 0
+                && isInParenthesis == 0) {
               reWritablePrepare = false;
             }
           }

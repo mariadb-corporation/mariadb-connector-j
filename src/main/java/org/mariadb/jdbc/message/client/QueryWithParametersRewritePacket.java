@@ -123,13 +123,16 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
             break;
           }
           if (i > 0) {
-            parameterLength += parser.getParamPositions().get(i) - (parser.getParamPositions().get(i - 1) + 1);
+            parameterLength +=
+                parser.getParamPositions().get(i) - (parser.getParamPositions().get(i - 1) + 1);
           }
           parameterLength += paramSize;
         }
 
-        if (!knownParameterSize || writer.throwMaxAllowedLengthOr16M(writer.pos() + parameterLength)) {
-          writer.writeBytes(parser.getQuery(), parser.getValuesBracketPositions().get(1), endingPartLen );
+        if (!knownParameterSize
+            || writer.throwMaxAllowedLengthOr16M(writer.pos() + parameterLength)) {
+          writer.writeBytes(
+              parser.getQuery(), parser.getValuesBracketPositions().get(1), endingPartLen);
           writer.flush();
           break;
         }

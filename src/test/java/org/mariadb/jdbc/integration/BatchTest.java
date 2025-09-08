@@ -314,12 +314,14 @@ public class BatchTest extends Common {
       differentParameterType(con, false, false);
     }
     try (Connection con =
-             createCon("&useServerPrepStmts&rewriteBatchedStatements&useBulkStmtsForInserts=false&disablePipeline=true")) {
+        createCon(
+            "&useServerPrepStmts&rewriteBatchedStatements&useBulkStmtsForInserts=false&disablePipeline=true")) {
       differentParameterType(con, false, true);
     }
   }
 
-  public void differentParameterType(Connection con, boolean expectSuccessUnknown, boolean expectSuccessUnknownOnDup)
+  public void differentParameterType(
+      Connection con, boolean expectSuccessUnknown, boolean expectSuccessUnknownOnDup)
       throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
@@ -592,15 +594,22 @@ public class BatchTest extends Common {
   public void rewriteBatchPacketSplitHugeNbPacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket, true, (getMaxAllowedPacket() / 8000) + 1);
+    bulkPacketSplit(
+        getMaxAllowedPacket() / 8000,
+        20,
+        maxAllowedPacket,
+        true,
+        (getMaxAllowedPacket() / 8000) + 1);
     if (maxAllowedPacket >= 16 * 1024 * 1024)
-      bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, null, true, (getMaxAllowedPacket() / 8000) + 1);
+      bulkPacketSplit(
+          getMaxAllowedPacket() / 8000, 20, null, true, (getMaxAllowedPacket() / 8000) + 1);
   }
 
   @Test
   public void rewriteBatchPacketTooBig() throws SQLException {
     try {
-      bulkPacketSplit(2, 1000, 1000, true, 1); // can't fit a 1000-byte array into a 1000-byte packet
+      bulkPacketSplit(
+          2, 1000, 1000, true, 1); // can't fit a 1000-byte array into a 1000-byte packet
       fail("Expected SQLTransientConnectionException");
     } catch (BatchUpdateException e) {
       assertTrue(
@@ -661,7 +670,7 @@ public class BatchTest extends Common {
       stmt.execute("TRUNCATE BatchTest");
       stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
       try (PreparedStatement prep =
-               con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
+          con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
         for (int i = 1; i <= nb; i++) {
           prep.setInt(1, i);
           prep.setNull(2, NCHAR);
