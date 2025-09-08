@@ -207,6 +207,7 @@ public class FailoverTest extends Common {
   public void transactionReplayPreparedStatementBatch() throws Exception {
     Assumptions.assumeTrue(!isMaxscale());
     for (int i = 0; i < 16; i++) {
+      System.out.println("transactionReplayPreparedStatementBatch:" + i);
       transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0, (i & 4) > 0, (i & 8) > 0);
     }
   }
