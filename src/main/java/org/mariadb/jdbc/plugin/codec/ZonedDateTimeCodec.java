@@ -305,6 +305,11 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return ((ZonedDateTime) value).getNano() > 0 ? 28 : 21;
+  }
+
+  @Override
   public void encodeBinary(
       Writer encoder, Context context, Object value, Calendar calParam, Long maxLength)
       throws IOException {

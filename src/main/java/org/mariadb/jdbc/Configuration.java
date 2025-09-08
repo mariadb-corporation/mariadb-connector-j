@@ -345,21 +345,21 @@ public class Configuration {
   }
 
   private void initializeQueryConfig(Builder builder) {
-	this.dumpQueriesOnException =
+    this.dumpQueriesOnException =
         builder.dumpQueriesOnException != null && builder.dumpQueriesOnException;
     this.prepStmtCacheSize = builder.prepStmtCacheSize != null ? builder.prepStmtCacheSize : 250;
     this.useAffectedRows = builder.useAffectedRows != null && builder.useAffectedRows;
-    this.rewriteBatchedStatements = builder.rewriteBatchedStatements != null && builder.rewriteBatchedStatements;
+    this.rewriteBatchedStatements =
+        builder.rewriteBatchedStatements != null && builder.rewriteBatchedStatements;
     // disable use server prepare if using client rewrite
     if (this.rewriteBatchedStatements) {
-        this.useServerPrepStmts = false;
+      this.useServerPrepStmts = false;
     } else {
-        this.useServerPrepStmts = builder.useServerPrepStmts != null && builder.useServerPrepStmts;
+      this.useServerPrepStmts = builder.useServerPrepStmts != null && builder.useServerPrepStmts;
     }
     this.connectionAttributes = builder.connectionAttributes;
     this.allowLocalInfile = builder.allowLocalInfile == null || builder.allowLocalInfile;
     this.allowMultiQueries = builder.allowMultiQueries != null && builder.allowMultiQueries;
-    
   }
 
   private void initializeBulkConfig(Builder builder) {
@@ -1866,7 +1866,7 @@ public class Configuration {
   public boolean useAffectedRows() {
     return useAffectedRows;
   }
-  
+
   public boolean rewriteBatchedStatements() {
     return rewriteBatchedStatements;
   }
@@ -2948,8 +2948,7 @@ public class Configuration {
       this.rewriteBatchedStatements = rewriteBatchedStatements;
       return this;
     }
-    
-    
+
     /**
      * Indicate to compress exchanges with the database through gzip. This permits better
      * performance when the database is not in the same location.

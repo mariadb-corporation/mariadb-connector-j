@@ -82,6 +82,11 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return value.toString().length();
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

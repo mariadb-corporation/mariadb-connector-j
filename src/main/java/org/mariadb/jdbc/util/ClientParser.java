@@ -40,21 +40,23 @@ public final class ClientParser implements PrepareResult {
    * For a given <code>queryString</code>, get
    *
    * <ul>
-   * <li>query - a byte array containing the UTF8 representation of that string
-   * <li>paramPositions - the byte positions of any '?' positional parameters in <code>query</code>
+   *   <li>query - a byte array containing the UTF8 representation of that string
+   *   <li>paramPositions - the byte positions of any '?' positional parameters in <code>query
+   *       </code>
    * </ul>
    *
    * and set the following flags:
    *
    * <ul>
-   * <li>isInsert - queryString contains 'INSERT' outside of quotes, without one of the characters '();><=-+,' immediately preceding or following
-   * <li>isInsertDuplicate - isInsert && queryString contains 'DUPLICATE' outside of quotes, without one of the characters '();><=-+,' immediately preceding or following
-   * <li>isMulti - queryString contains text after the last ';' outside of quotes
-   * <li>
+   *   <li>isInsert - queryString contains 'INSERT' outside of quotes, without one of the characters
+   *       '();><=-+,' immediately preceding or following
+   *   <li>isInsertDuplicate - isInsert && queryString contains 'DUPLICATE' outside of quotes,
+   *       without one of the characters '();><=-+,' immediately preceding or following
+   *   <li>isMulti - queryString contains text after the last ';' outside of quotes
+   *   <li>
    *
    * @param queryString query
    * @param noBackslashEscapes escape mode
-   *
    * @return ClientParser
    */
   public static ClientParser parameterParts(String queryString, boolean noBackslashEscapes) {
@@ -221,19 +223,20 @@ public final class ClientParser implements PrepareResult {
   }
 
   /**
-   * For a given <code>queryString</code>, get the fields and flags from {@link #parameterParts(String, boolean)}, and
+   * For a given <code>queryString</code>, get the fields and flags from {@link
+   * #parameterParts(String, boolean)}, and
    *
    * <ul>
-   * <li>valuesBracketPositions - a two-element list containing the positions of the opening and closing parenthesis of the VALUES block
+   *   <li>valuesBracketPositions - a two-element list containing the positions of the opening and
+   *       closing parenthesis of the VALUES block
    * </ul>
    *
    * @param queryString query
    * @param noBackslashEscapes escape mode
-   *
    * @return ClientParser
    */
   public static ClientParser rewritableParts(String queryString, boolean noBackslashEscapes) {
-	boolean reWritablePrepare = true;
+    boolean reWritablePrepare = true;
     List<Integer> paramPositions = new ArrayList<>();
     List<Integer> valuesBracketPositions = new ArrayList<>();
 
@@ -243,7 +246,9 @@ public final class ClientParser implements PrepareResult {
     boolean singleQuotes = false;
     boolean isInsert = false;
     boolean isInsertDuplicate = false;
+    boolean afterValues = false;
     int isInParenthesis = 0;
+    int lastParenthesisPosition = 0;
     int multiQueryIdx = -1;
     byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
@@ -266,8 +271,6 @@ public final class ClientParser implements PrepareResult {
         case (byte) '/':
           if (state == LexState.SlashStarComment && lastChar == (byte) '*') {
             state = LexState.Normal;
-          } else if (state == LexState.Normal && lastChar == (byte) '/') {
-            state = LexState.EOLComment;
           }
           break;
 
@@ -363,7 +366,7 @@ public final class ClientParser implements PrepareResult {
         case 's':
         case 'S':
           if (state == LexState.Normal
-              && valuesBracketPositions.size() == 2
+              && !valuesBracketPositions.isEmpty()
               && queryLength > i + 7
               && (query[i + 1] == 'e' || query[i + 1] == 'E')
               && (query[i + 2] == 'l' || query[i + 2] == 'L')
@@ -395,8 +398,11 @@ public final class ClientParser implements PrepareResult {
               && (query[i + 4] == 'e' || query[i + 4] == 'E')
               && (query[i + 5] == 's' || query[i + 5] == 'S')
               && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
-        	valuesBracketPositions.add(i + 6);
-        	i = i + 5;
+            afterValues = true;
+            if (query[i + 6] == '(') {
+              valuesBracketPositions.add(i + 6);
+            }
+            i = i + 5;
           }
           break;
         case 'l':
@@ -421,31 +427,32 @@ public final class ClientParser implements PrepareResult {
           }
           break;
         case '(':
-            if (state == LexState.Normal) {
-              isInParenthesis++;
+          if (state == LexState.Normal) {
+            isInParenthesis++;
+            if (afterValues == true && valuesBracketPositions.isEmpty()) {;
+              valuesBracketPositions.add(i);
             }
-            break;
-        case (byte) '\\':
-          if (noBackslashEscapes) {
-            break;
           }
-          if (state == LexState.String) {
+          break;
+        case (byte) '\\':
+          if (state == LexState.String && !noBackslashEscapes) {
             state = LexState.Escape;
           }
           break;
         case ')':
-            if (state == LexState.Normal) {
-              isInParenthesis--;
-              if (isInParenthesis == 0 && valuesBracketPositions.size() == 1) {
-                valuesBracketPositions.add(i);
-              }
+          if (state == LexState.Normal) {
+            isInParenthesis--;
+            if (isInParenthesis == 0 && valuesBracketPositions.size() == 1) {
+              lastParenthesisPosition = i;
             }
-            break;
+          }
+          break;
         case (byte) '?':
           if (state == LexState.Normal) {
             paramPositions.add(i);
-            if (valuesBracketPositions.size() == 2) {
-            	reWritablePrepare = false;
+            // have parameter outside values parenthesis
+            if (valuesBracketPositions.size() == 1 && lastParenthesisPosition > 0 && isInParenthesis == 0) {
+              reWritablePrepare = false;
             }
           }
           break;
@@ -474,12 +481,23 @@ public final class ClientParser implements PrepareResult {
       }
       isMulti = hasAdditionalPart;
     }
+
+    if (valuesBracketPositions.size() == 1 && lastParenthesisPosition > 0) {
+      valuesBracketPositions.add(lastParenthesisPosition);
+    }
+
     if (isMulti || !isInsert || !reWritablePrepare || valuesBracketPositions.size() != 2) {
-    	valuesBracketPositions = null;
+      valuesBracketPositions = null;
     }
 
     return new ClientParser(
-        queryString, query, paramPositions, valuesBracketPositions, isInsert, isInsertDuplicate, isMulti);
+        queryString,
+        query,
+        paramPositions,
+        valuesBracketPositions,
+        isInsert,
+        isInsertDuplicate,
+        isMulti);
   }
 
   public String getSql() {
@@ -515,7 +533,7 @@ public final class ClientParser implements PrepareResult {
   }
 
   enum LexState {
-    Normal, /* inside  query */
+    Normal, /* inside query */
     String, /* inside string */
     SlashStarComment, /* inside slash-star comment */
     Escape, /* found backslash */

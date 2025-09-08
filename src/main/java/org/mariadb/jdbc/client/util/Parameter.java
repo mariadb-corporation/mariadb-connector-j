@@ -22,6 +22,13 @@ public interface Parameter {
   void encodeText(Writer encoder, Context context) throws IOException, SQLException;
 
   /**
+   * Get approximate text length, or -1 if unknown
+   *
+   * @return max length if known, -1 if unknown
+   */
+  int getApproximateTextProtocolLength();
+
+  /**
    * Encode parameter in binary format
    *
    * @param encoder packet writer

@@ -122,6 +122,14 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    if (length != null) {
+      return length.intValue() + 10;
+    }
+    return -1;
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

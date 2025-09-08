@@ -117,6 +117,11 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return -1;
+  }
+
+  @Override
   public void encodeBinary(
       Writer encoder, Context context, Object val, Calendar cal, Long maxLength)
       throws IOException {

@@ -107,6 +107,11 @@ public class ByteCodec implements Codec<Byte> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return 3;
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

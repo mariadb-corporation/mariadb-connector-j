@@ -102,6 +102,11 @@ public class TimestampCodec implements Codec<Timestamp> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return ((Timestamp) value).getNanos() > 0 ? 28 : 21;
+  }
+
+  @Override
   public void encodeBinary(
       Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {

@@ -100,6 +100,15 @@ public class InstantCodec implements Codec<Instant> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    Instant instant = (Instant) value;
+    if (instant.getNano() != 0) {
+      return 28;
+    }
+    return 21;
+  }
+
+  @Override
   public void encodeBinary(
       Writer encoder, Context context, Object value, Calendar calParam, Long maxLength)
       throws IOException {

@@ -206,13 +206,13 @@ public class FailoverTest extends Common {
   @Test
   public void transactionReplayPreparedStatementBatch() throws Exception {
     Assumptions.assumeTrue(!isMaxscale());
-    for (int i = 0; i < 8; i++) {
-      transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0, (i & 4) > 0);
+    for (int i = 0; i < 16; i++) {
+      transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0, (i & 4) > 0, (i & 8) > 0);
     }
   }
 
   private void transactionReplayPreparedStatementBatch(
-      boolean text, boolean useBulk, boolean transactionReplay) throws SQLException {
+      boolean text, boolean useBulk, boolean transactionReplay, boolean useRewrite) throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS transaction_failover_2");
     stmt.execute(
@@ -228,7 +228,9 @@ public class FailoverTest extends Common {
                 + "&useBulkStmts="
                 + useBulk
                 + "&transactionReplay="
-                + transactionReplay)) {
+                + transactionReplay
+                + "&rewriteBatchedStatements="
+                + useRewrite)) {
       con.setNetworkTimeout(Runnable::run, 500);
       long threadId = con.getContext().getThreadId();
       execute(con, transactionReplay, threadId);

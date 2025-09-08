@@ -906,7 +906,7 @@ public class StandardClient implements Client, AutoCloseable {
     ZoneId connectionZoneId = connectionTz.toZoneId();
 
     if ("SERVER".equalsIgnoreCase(conf.connectionTimeZone())
-            && connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
+        && connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
       return;
     }
 

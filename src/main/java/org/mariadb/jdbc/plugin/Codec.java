@@ -97,6 +97,15 @@ public interface Codec<T> {
       throws IOException, SQLException;
 
   /**
+   * Get approximate text length, or -1 if unknown
+   *
+   * @param value parameter object
+   * @param length max length
+   * @return max length if known, -1 if unknown
+   */
+  int getApproximateTextProtocolLength(Object value, Long length);
+
+  /**
    * Binary encode value to writer
    *
    * @param encoder writer

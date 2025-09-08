@@ -6,8 +6,13 @@ package org.mariadb.jdbc.unit.util;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mariadb.jdbc.util.ClientParser;
 
@@ -20,17 +25,16 @@ public class ClientParserTest {
       String[] expectedNoBackSlash,
       boolean isInsertDuplicate,
       boolean isMulti) {
-	  
-	  // perform test with regular parser
-	  ClientParser parser = ClientParser.parameterParts(sql, false);
-	  parse(parser, sql, expected, expectedNoBackSlash, isInsertDuplicate, isMulti);
-	  
-	  // perform test with rewritable parser
-	  ClientParser parser2 = ClientParser.rewritableParts(sql, false);
-	  parse(parser2, sql, expected, expectedNoBackSlash, isInsertDuplicate, isMulti);
+
+    // perform test with regular parser
+    ClientParser parser = ClientParser.parameterParts(sql, false);
+    parse(parser, sql, expected, expectedNoBackSlash, isInsertDuplicate, isMulti);
+
+    // perform test with rewritable parser
+    ClientParser parser2 = ClientParser.rewritableParts(sql, false);
+    parse(parser2, sql, expected, expectedNoBackSlash, isInsertDuplicate, isMulti);
   }
 
-	
   private void parse(
       ClientParser parser,
       String sql,
@@ -38,7 +42,7 @@ public class ClientParserTest {
       String[] expectedNoBackSlash,
       boolean isInsertDuplicate,
       boolean isMulti) {
-	  
+
     assertEquals(expected.length, parser.getParamCount() + 1, displayErr(parser, expected));
 
     int pos = 0;
@@ -67,7 +71,7 @@ public class ClientParserTest {
     assertEquals(isInsertDuplicate, parser.isInsertDuplicate());
     assertEquals(isMulti, parser.isMultiQuery());
   }
-  
+
   private String displayErr(ClientParser parser, String[] exp) {
     StringBuilder sb = new StringBuilder();
     sb.append("is:\n");

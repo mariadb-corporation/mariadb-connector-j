@@ -101,6 +101,11 @@ public class BitSetCodec implements Codec<BitSet> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return ((BitSet) value).length() + 3;
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

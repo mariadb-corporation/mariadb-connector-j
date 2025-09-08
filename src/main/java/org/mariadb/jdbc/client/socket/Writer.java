@@ -169,12 +169,20 @@ public interface Writer {
   void flushPipeline() throws IOException;
 
   /**
-   * must a max allowed length exception be thrown
+   * is length > to max allowed length
    *
    * @param length command length
    * @return true if too big
    */
   boolean throwMaxAllowedLength(int length);
+
+  /**
+   * is length > to max allowed length or 16M if unknown
+   *
+   * @param length command length
+   * @return true if too big
+   */
+  boolean throwMaxAllowedLengthOr16M(int length);
 
   /**
    * Get current command length

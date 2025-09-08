@@ -90,6 +90,13 @@ public class StringCodec implements Codec<String> {
     encoder.writeByte('\'');
   }
 
+  @Override
+  public int getApproximateTextProtocolLength(Object value, Long maxLen) {
+    return maxLen == null
+        ? value.toString().length() + 2
+        : Math.min(value.toString().length(), maxLen.intValue()) + 2;
+  }
+
   public void encodeBinary(
       Writer writer, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {

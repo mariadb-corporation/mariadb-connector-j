@@ -614,9 +614,7 @@ public class Connection implements java.sql.Connection {
       if (savepoint instanceof Connection.MariaDbSavepoint) {
         client.execute(
             new QueryPacket(
-                "RELEASE SAVEPOINT `"
-                    + ((Connection.MariaDbSavepoint) savepoint).rawValue()
-                    + "`"),
+                "RELEASE SAVEPOINT `" + ((Connection.MariaDbSavepoint) savepoint).rawValue() + "`"),
             true);
       } else {
         throw exceptionFactory.create("Unknown savepoint type");
@@ -837,9 +835,10 @@ public class Connection implements java.sql.Connection {
    * defaultTransactionIsolation must have been initialized.
    *
    * <p>BUT:
+   *
    * <ol>
-   * <li>session variable state is reset only if the option useResetConnection is set</li>
-   * <li>if using the option "useServerPrepStmts", the PREPARE statements are still prepared</li>
+   *   <li>session variable state is reset only if the option useResetConnection is set
+   *   <li>if using the option "useServerPrepStmts", the PREPARE statements are still prepared
    * </ol>
    *
    * @throws SQLException if the resetting operation failed
