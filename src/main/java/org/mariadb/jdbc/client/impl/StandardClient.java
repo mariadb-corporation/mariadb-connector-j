@@ -738,12 +738,8 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("USE `%s`", escapedDb));
     }
 
-    if (conf.initSql() != null) {
-      commands.add(conf.initSql());
-    }
-
-    if (conf.nonMappedOptions().containsKey("initSql")) {
-      String[] initialCommands = conf.nonMappedOptions().get("initSql").toString().split(";");
+    if (conf.initSql() != null && !conf.initSql().isEmpty()) {
+      String[] initialCommands = conf.initSql().split(";");
       Collections.addAll(commands, initialCommands);
     }
 

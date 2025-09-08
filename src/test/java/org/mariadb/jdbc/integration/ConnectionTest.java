@@ -114,6 +114,14 @@ public class ConnectionTest extends Common {
       assertTrue(rs.next());
       assertEquals("YourVar", rs.getString(1));
     }
+    try (Connection con = createCon("&initSql=SET @myVar='YourVar';SET @myVar2='YourVar2'")) {
+      Statement stmt = con.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT @myVar, @myVar2");
+      assertTrue(rs.next());
+      assertEquals("YourVar", rs.getString(1));
+      assertEquals("YourVar2", rs.getString(2));
+    }
+
   }
 
   @Test
