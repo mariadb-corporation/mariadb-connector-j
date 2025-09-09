@@ -101,10 +101,11 @@ public class FailoverTest extends Common {
 
   private void transactionReplayDuringCommit(boolean transactionReplay) throws SQLException {
     Statement st = sharedConn.createStatement();
-    st.execute("DROP TABLE IF EXISTS transaction_failover");
+    String tableName = "transaction_failover_" + (transactionReplay ? "1" : "2");
+    st.execute("DROP TABLE IF EXISTS " + tableName);
     st.execute(
-        "CREATE TABLE transaction_failover "
-            + "(id int not null primary key auto_increment, test varchar(20)) "
+        "CREATE TABLE " + tableName
+            + " (id int not null primary key auto_increment, test varchar(20)) "
             + "engine=innodb");
 
     try (Connection con =
@@ -115,10 +116,10 @@ public class FailoverTest extends Common {
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
 
-      stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
+      stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test0')");
       con.setAutoCommit(false);
-      stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test1')");
-      stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
+      stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test1')");
+      stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test2')");
       proxy.restart(300);
       if (transactionReplay) {
         Common.assertThrowsContains(
@@ -126,7 +127,7 @@ public class FailoverTest extends Common {
             con::commit,
             "Driver has reconnect connection after a communications failure");
 
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
         for (int i = 0; i < 1; i++) {
           assertTrue(rs.next());
           assertEquals("test" + i, rs.getString("test"));
