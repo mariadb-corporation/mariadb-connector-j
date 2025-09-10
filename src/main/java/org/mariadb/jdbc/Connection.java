@@ -701,7 +701,9 @@ public class Connection implements java.sql.Connection {
     if (timeout < 0) {
       throw exceptionFactory.create("the value supplied for timeout is negative");
     }
+    int initialSocketTimeout = client.getSocketTimeout();
     try (ClosableLock ignore = lock.closeableLock()) {
+      if (initialSocketTimeout != timeout * 1000) client.setSocketTimeout(timeout * 1000);
       client.execute(PingPacket.INSTANCE, true);
       return true;
     } catch (SQLException sqle) {
@@ -711,6 +713,14 @@ public class Connection implements java.sql.Connection {
         poolConnection.close();
       }
       return false;
+    } finally {
+      if (initialSocketTimeout != timeout * 1000) {
+        try {
+          client.setSocketTimeout(initialSocketTimeout);
+        }  catch (SQLException sqle) {
+          // eat
+        }
+      }
     }
   }
 

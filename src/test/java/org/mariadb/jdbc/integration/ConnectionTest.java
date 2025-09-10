@@ -8,12 +8,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.integration.util.SocketFactoryBasicTest;
 import org.mariadb.jdbc.integration.util.SocketFactoryTest;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -1509,5 +1512,24 @@ public class ConnectionTest extends Common {
 
     assertTrue(stmt.isClosed());
     assertTrue(preparedStatement.isClosed());
+  }
+
+  @Test
+  public void isValidTimeoutValidation() throws SQLException {
+    try (org.mariadb.jdbc.Connection con = createProxyCon(HaMode.NONE, "")) {
+      proxy.setDelay(2000);
+      Instant start = Instant.now();
+      try {
+        con.isValid(1);
+      } catch (SQLException e) {
+        // eat
+      }
+      Instant end = Instant.now();
+      Duration duration = Duration.between(start, end);
+      assertTrue(duration.toMillis() > 950);
+      assertTrue(duration.toMillis() < 1500);
+    } finally {
+      proxy.forceClose();
+    }
   }
 }
