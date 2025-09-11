@@ -1214,14 +1214,7 @@ public class PreparedStatementTest extends Common {
       for (int i = 1; i <= 100000; i++) {
         st.setInt(i, rnds[i - 1]);
       }
-      try {
-        st.executeQuery();
-        fail();
-      } catch (SQLException e) {
-        assertTrue(
-            e.getMessage().contains("memory exhausted near \",\"")
-                || e.getMessage().contains("Prepared statement contains too many placeholders"));
-      }
+      st.executeQuery();
     }
     assertTrue(sharedConnBinary.isValid(1));
   }
@@ -1564,6 +1557,63 @@ public class PreparedStatementTest extends Common {
         rs.next();
         assertEquals("db2", rs.getString(1));
       }
+    }
+  }
+
+  @Test
+  public void prepWithHugeNumerOfParameter() throws SQLException {
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT ?");
+    for (int i = 1; i < 100_000; i++) {
+      sb.append(",?");
+    }
+    try (PreparedStatement stmt = sharedConnBinary.prepareStatement(sb.toString())) {
+      for (int i = 0; i < 100_000; i++) {
+        stmt.setInt(i + 1, i);
+      }
+      ResultSet rs = stmt.executeQuery();
+      assertTrue(rs.next());
+      for (int i = 0; i < 100_000; i++) {
+        assertEquals(i, rs.getInt(i + 1));
+      }
+    }
+
+    Statement stmt = sharedConnBinary.createStatement();
+    sb = new StringBuilder();
+    StringBuilder sb2 = new StringBuilder();
+
+    sb.append("INSERT INTO prepare6 VALUES (?");
+    sb2.append("CREATE TABLE prepare6 (t0 int");
+    for (int i = 1; i < 1_000; i++) {
+      sb2.append(",t").append(i).append(" int");
+    }
+
+    for (int i = 1; i < 100_000; i++) {
+      sb.append(",?");
+      if (i % 1_000 == 999 && i != 99_999) {
+        sb.append("), (?");
+        i++;
+      }
+    }
+    sb.append(")");
+    sb2.append(")");
+    stmt.execute(sb2.toString());
+
+    try (PreparedStatement prepStmt = sharedConnBinary.prepareStatement(sb.toString())) {
+      for (int i = 0; i < 100_000; i++) {
+        prepStmt.setInt(i + 1, i);
+      }
+      assertEquals(prepStmt.executeUpdate(), 100);
+
+      ResultSet rs = stmt.executeQuery("SELECT * FROM prepare6");
+      for (int i = 0; i < 100; i++) {
+        assertTrue(rs.next());
+        for (int j = 0; j < 1_000; j++) {
+          assertEquals(j + i * 1000, rs.getInt(j + 1));
+        }
+      }
+    } finally {
+      stmt.execute("DROP TABLE IF EXISTS prepare6");
     }
   }
 }

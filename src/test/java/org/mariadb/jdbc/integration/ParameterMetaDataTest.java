@@ -122,17 +122,10 @@ public class ParameterMetaDataTest extends Common {
       }
     }
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts")) {
-      // statement that cannot be prepared
+      // statement that cannot be prepared must fail over to client side prepared statement
       try (PreparedStatement pstmt =
-          con.prepareStatement("select  TMP.field1 from (select ? from dual) TMP")) {
-        try {
-          pstmt.getParameterMetaData();
-          fail();
-        } catch (SQLSyntaxErrorException e) {
-          // eat
-        }
-      } catch (SQLSyntaxErrorException e) {
-        // eat
+          con.prepareStatement("select TMP.field1 from (select ? as field1 from dual) TMP")) {
+        pstmt.getParameterMetaData();
       }
     }
   }

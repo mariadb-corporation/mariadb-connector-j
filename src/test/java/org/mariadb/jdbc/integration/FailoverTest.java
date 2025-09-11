@@ -104,7 +104,8 @@ public class FailoverTest extends Common {
     String tableName = "transaction_failover_" + (transactionReplay ? "1" : "2");
     st.execute("DROP TABLE IF EXISTS " + tableName);
     st.execute(
-        "CREATE TABLE " + tableName
+        "CREATE TABLE "
+            + tableName
             + " (id int not null primary key auto_increment, test varchar(20)) "
             + "engine=innodb");
 
@@ -208,8 +209,8 @@ public class FailoverTest extends Common {
   public void transactionReplayPreparedStatementBatch() throws Exception {
     Assumptions.assumeTrue(!isMaxscale());
     for (int i = 0; i < 16; i++) {
-      System.out.println("transactionReplayPreparedStatementBatch:" + i);
-      transactionReplayPreparedStatementBatch(i, (i & 1) > 0, (i & 2) > 0, (i & 4) > 0, (i & 8) > 0);
+      transactionReplayPreparedStatementBatch(
+          i, (i & 1) > 0, (i & 2) > 0, (i & 4) > 0, (i & 8) > 0);
     }
   }
 
@@ -248,11 +249,14 @@ public class FailoverTest extends Common {
       throws SQLException {
     Statement stmt = con.createStatement();
 
-    stmt.executeUpdate("INSERT INTO transaction_failover_batch_"+idx+" (test) VALUES ('test0')");
+    stmt.executeUpdate(
+        "INSERT INTO transaction_failover_batch_" + idx + " (test) VALUES ('test0')");
     con.setAutoCommit(false);
-    stmt.executeUpdate("INSERT INTO transaction_failover_batch_"+idx+" (test) VALUES ('test1')");
+    stmt.executeUpdate(
+        "INSERT INTO transaction_failover_batch_" + idx + " (test) VALUES ('test1')");
     try (PreparedStatement p =
-        con.prepareStatement("INSERT INTO transaction_failover_batch_"+idx+" (test) VALUES (?)")) {
+        con.prepareStatement(
+            "INSERT INTO transaction_failover_batch_" + idx + " (test) VALUES (?)")) {
       p.setString(1, "test2");
       p.execute();
       p.setString(1, "test3");
@@ -271,7 +275,7 @@ public class FailoverTest extends Common {
         p.executeBatch();
         con.commit();
 
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_batch_"+idx);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_batch_" + idx);
         for (int i = 0; i < 6; i++) {
           assertTrue(rs.next());
           assertEquals("test" + i, rs.getString("test"));
@@ -293,12 +297,15 @@ public class FailoverTest extends Common {
         }
       }
     }
-    stmt.execute("TRUNCATE transaction_failover_batch_"+idx);
-    stmt.executeUpdate("INSERT INTO transaction_failover_batch_"+idx+" (test) VALUES ('test0')");
+    stmt.execute("TRUNCATE transaction_failover_batch_" + idx);
+    stmt.executeUpdate(
+        "INSERT INTO transaction_failover_batch_" + idx + " (test) VALUES ('test0')");
     con.setAutoCommit(false);
-    stmt.executeUpdate("INSERT INTO transaction_failover_batch_"+idx+" (test) VALUES ('test1')");
+    stmt.executeUpdate(
+        "INSERT INTO transaction_failover_batch_" + idx + " (test) VALUES ('test1')");
     try (PreparedStatement p =
-        con.prepareStatement("INSERT INTO transaction_failover_batch_"+idx+" (test)  VALUES (?)")) {
+        con.prepareStatement(
+            "INSERT INTO transaction_failover_batch_" + idx + " (test)  VALUES (?)")) {
 
       proxy.restart(300);
       p.setString(1, "test2");
@@ -314,7 +321,7 @@ public class FailoverTest extends Common {
         p.executeBatch();
         con.commit();
 
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_batch_"+idx);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_batch_" + idx);
         for (int i = 0; i < 5; i++) {
           assertTrue(rs.next());
           assertEquals("test" + i, rs.getString("test"));

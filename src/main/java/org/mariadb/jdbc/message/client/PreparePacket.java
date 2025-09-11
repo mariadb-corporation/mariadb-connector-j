@@ -72,7 +72,11 @@ public final class PreparePacket implements ClientMessage {
       ErrorPacket errorPacket = new ErrorPacket(buf, context);
       throw exceptionFactory
           .withSql(this.description())
-          .create(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
+          .create(
+              errorPacket.getMessage(),
+              errorPacket.getSqlState(),
+              errorPacket.getErrorCode(),
+              true);
     }
     if (context.getConf().useServerPrepStmts()
         && context.getConf().cachePrepStmts()

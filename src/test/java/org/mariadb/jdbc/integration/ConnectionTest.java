@@ -124,7 +124,6 @@ public class ConnectionTest extends Common {
       assertEquals("YourVar", rs.getString(1));
       assertEquals("YourVar2", rs.getString(2));
     }
-
   }
 
   @Test

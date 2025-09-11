@@ -255,7 +255,7 @@ public class ExceptionFactory {
   }
 
   private SQLException createException(
-      String initialMessage, String sqlState, int errorCode, Exception cause) {
+      String initialMessage, String sqlState, int errorCode, Exception cause, boolean isPrepare) {
 
     String msg = buildMsgText(initialMessage, threadId, conf, getSql(), errorCode, connection);
 
@@ -286,7 +286,11 @@ public class ExceptionFactory {
       case "20":
       case "42":
       case "XA":
-        returnEx = new SQLSyntaxErrorException(msg, sqlState, errorCode, cause);
+        if (isPrepare) {
+          returnEx = new SQLPrepareException(msg, sqlState, errorCode, cause);
+        } else {
+          returnEx = new SQLSyntaxErrorException(msg, sqlState, errorCode, cause);
+        }
         break;
       case "25":
       case "28":
@@ -303,7 +307,11 @@ public class ExceptionFactory {
         returnEx = new SQLTransactionRollbackException(msg, sqlState, errorCode, cause);
         break;
       case "HY":
-        returnEx = new SQLException(msg, sqlState, errorCode, cause);
+        if (isPrepare) {
+          returnEx = new SQLPrepareException(msg, sqlState, errorCode, cause);
+        } else {
+          returnEx = new SQLException(msg, sqlState, errorCode, cause);
+        }
         break;
       default:
         returnEx = new SQLTransientConnectionException(msg, sqlState, errorCode, cause);
@@ -330,7 +338,7 @@ public class ExceptionFactory {
    * @return exception to be thrown
    */
   public SQLException notSupported(String message) {
-    return createException(message, "0A000", -1, null);
+    return createException(message, "0A000", -1, null, false);
   }
 
   /**
@@ -340,7 +348,7 @@ public class ExceptionFactory {
    * @return exception to be thrown
    */
   public SQLException create(String message) {
-    return createException(message, "42000", -1, null);
+    return createException(message, "42000", -1, null, false);
   }
 
   /**
@@ -351,7 +359,7 @@ public class ExceptionFactory {
    * @return exception to be thrown
    */
   public SQLException create(String message, String sqlState) {
-    return createException(message, sqlState, -1, null);
+    return createException(message, sqlState, -1, null, false);
   }
 
   /**
@@ -363,7 +371,7 @@ public class ExceptionFactory {
    * @return exception to be thrown
    */
   public SQLException create(String message, String sqlState, Exception cause) {
-    return createException(message, sqlState, -1, cause);
+    return createException(message, sqlState, -1, cause, false);
   }
 
   /**
@@ -375,7 +383,19 @@ public class ExceptionFactory {
    * @return exception to be thrown
    */
   public SQLException create(String message, String sqlState, int errorCode) {
-    return createException(message, sqlState, errorCode, null);
+    return createException(message, sqlState, errorCode, null, false);
+  }
+
+  /**
+   * Creation of an exception
+   *
+   * @param message error message
+   * @param sqlState sql state
+   * @param errorCode error code
+   * @return exception to be thrown
+   */
+  public SQLException create(String message, String sqlState, int errorCode, boolean isPrepare) {
+    return createException(message, sqlState, errorCode, null, isPrepare);
   }
 
   /**
