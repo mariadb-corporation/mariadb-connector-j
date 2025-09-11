@@ -155,10 +155,12 @@ public class FailoverTest extends Common {
   private void transactionReplayPreparedStatement(boolean binary, boolean transactionReplay)
       throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS transaction_failover_3");
+    String tableSuffix = (binary ? "b1_" : "b0_") + (transactionReplay ? "r1" : "r0");
+    stmt.execute("DROP TABLE IF EXISTS transaction_failover_" + tableSuffix);
     stmt.execute(
-        "CREATE TABLE transaction_failover_3 "
-            + "(id int not null primary key auto_increment, test varchar(20)) "
+        "CREATE TABLE transaction_failover_"
+            + tableSuffix
+            + " (id int not null primary key auto_increment, test varchar(20)) "
             + "engine=innodb");
 
     try (Connection con =
@@ -169,11 +171,14 @@ public class FailoverTest extends Common {
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
 
-      stmt.executeUpdate("INSERT INTO transaction_failover_3 (test) VALUES ('test0')");
+      stmt.executeUpdate(
+          "INSERT INTO transaction_failover_" + tableSuffix + " (test) VALUES ('test0')");
       con.setAutoCommit(false);
-      stmt.executeUpdate("INSERT INTO transaction_failover_3 (test) VALUES ('test1')");
+      stmt.executeUpdate(
+          "INSERT INTO transaction_failover_" + tableSuffix + " (test) VALUES ('test1')");
       try (PreparedStatement p =
-          con.prepareStatement("INSERT INTO transaction_failover_3 (test) VALUES (?)")) {
+          con.prepareStatement(
+              "INSERT INTO transaction_failover_" + tableSuffix + " (test) VALUES (?)")) {
         p.setString(1, "test2");
         p.execute();
         p.setAsciiStream(1, new ByteArrayInputStream("test3".getBytes()));
@@ -192,7 +197,7 @@ public class FailoverTest extends Common {
       }
       if (transactionReplay) {
         con.commit();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_3");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_" + tableSuffix);
 
         for (int i = 0; i < 5; i++) {
           assertTrue(rs.next());
