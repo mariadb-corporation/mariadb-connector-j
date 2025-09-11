@@ -1,6 +1,23 @@
 # Change Log
 
-## [3.5.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.4) (Aug 2025)
+
+## [3.5.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.6) (Sep 2025)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.5...3.5.6)
+
+#### Key Enhancements
+
+* CONJ-1238 - rewriteBatchStatements implementation
+* CONJ-1274 - server prepared statement client failover to client prepared statement
+
+#### Issues Resolved
+
+* CONJ-1278 - prepared statement caching enablement	correction, same than 2.x	
+* CONJ-1279 - metadata table name addition for 12.1 after MDEV-28933		
+* CONJ-1280 - permit having multiple command with initSql option		
+* CONJ-1276 - Connection#isValid(int timeout) does not obey the passed in timeout if the network is down.
+
+
+## [3.5.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.5) (Aug 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.4...3.5.5)
 
 #### Issues Resolved
