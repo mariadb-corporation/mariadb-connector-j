@@ -230,6 +230,11 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return ((BigDecimal) value).toPlainString().length();
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

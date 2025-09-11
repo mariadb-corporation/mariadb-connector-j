@@ -21,9 +21,9 @@ public class CredentialPluginTest extends Common {
    */
   @BeforeAll
   public static void beforeTest() throws SQLException {
-    String version = System.getProperty("java.version");
+    String version = System.getProperty("java.version").replaceAll("[^.\\d]", "");
     int majorVersion =
-        (version.indexOf(".") >= 0)
+        (version.contains("."))
             ? Integer.parseInt(version.substring(0, version.indexOf(".")))
             : Integer.parseInt(version);
     Assumptions.assumeTrue(majorVersion < 17);

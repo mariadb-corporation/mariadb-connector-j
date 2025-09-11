@@ -27,6 +27,11 @@ public class Parameter<T> implements org.mariadb.jdbc.client.util.Parameter {
         public boolean isNull() {
           return true;
         }
+
+        @Override
+        public int getApproximateTextProtocolLength() {
+          return 4;
+        }
       };
 
   protected final Codec<T> codec;
@@ -50,6 +55,14 @@ public class Parameter<T> implements org.mariadb.jdbc.client.util.Parameter {
       encoder.writeAscii("null");
     } else {
       codec.encodeText(encoder, context, this.value, null, length);
+    }
+  }
+
+  public int getApproximateTextProtocolLength() {
+    if (value == null) {
+      return 4;
+    } else {
+      return codec.getApproximateTextProtocolLength(this.value, length);
     }
   }
 

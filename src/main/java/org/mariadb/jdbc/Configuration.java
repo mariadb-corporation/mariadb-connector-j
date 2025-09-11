@@ -159,6 +159,7 @@ public class Configuration {
   // protocol
   private boolean allowMultiQueries;
   private boolean allowLocalInfile;
+  private boolean rewriteBatchedStatements;
   private boolean useCompression;
   private boolean useAffectedRows;
   private boolean useBulkStmts;
@@ -348,7 +349,14 @@ public class Configuration {
         builder.dumpQueriesOnException != null && builder.dumpQueriesOnException;
     this.prepStmtCacheSize = builder.prepStmtCacheSize != null ? builder.prepStmtCacheSize : 250;
     this.useAffectedRows = builder.useAffectedRows != null && builder.useAffectedRows;
-    this.useServerPrepStmts = builder.useServerPrepStmts != null && builder.useServerPrepStmts;
+    this.rewriteBatchedStatements =
+        builder.rewriteBatchedStatements != null && builder.rewriteBatchedStatements;
+    // disable use server prepare if using client rewrite
+    if (this.rewriteBatchedStatements) {
+      this.useServerPrepStmts = false;
+    } else {
+      this.useServerPrepStmts = builder.useServerPrepStmts != null && builder.useServerPrepStmts;
+    }
     this.connectionAttributes = builder.connectionAttributes;
     this.allowLocalInfile = builder.allowLocalInfile == null || builder.allowLocalInfile;
     this.allowMultiQueries = builder.allowMultiQueries != null && builder.allowMultiQueries;
@@ -1859,6 +1867,10 @@ public class Configuration {
     return useAffectedRows;
   }
 
+  public boolean rewriteBatchedStatements() {
+    return rewriteBatchedStatements;
+  }
+
   /**
    * Use server prepared statement. IF false, using client prepared statement.
    *
@@ -2397,6 +2409,7 @@ public class Configuration {
     // protocol
     private Boolean allowMultiQueries;
     private Boolean allowLocalInfile;
+    private Boolean rewriteBatchedStatements;
     private Boolean useCompression;
     private Boolean useAffectedRows;
     private Boolean useBulkStmts;
@@ -2912,6 +2925,27 @@ public class Configuration {
      */
     public Builder allowLocalInfile(Boolean allowLocalInfile) {
       this.allowLocalInfile = allowLocalInfile;
+      return this;
+    }
+
+    /**
+     * For insert queries, rewrite batchedStatement to execute in a single executeQuery.
+     *
+     * <p>example: "insert into ab (i) values (?)" with first batch values = 1, second = 2 will be
+     * rewritten "insert into ab (i) values (1), (2)".
+     *
+     * <p>If query cannot be rewriten in "multi-values", rewrite will use multi-queries : "INSERT
+     * INTO TABLE(col1) VALUES (?) ON DUPLICATE KEY UPDATE col2=?" with values [1,2] and [3,4] will
+     * be rewritten "INSERT INTO TABLE(col1) VALUES (1) ON DUPLICATE KEY UPDATE col2=2;INSERT INTO
+     * TABLE(col1) VALUES (3) ON DUPLICATE KEY UPDATE col2=4"
+     *
+     * <p>when active, the useServerPrepStmts option is set to false
+     *
+     * @param rewriteBatchedStatements to enable/disable rewrite
+     * @return this {@link Builder}
+     */
+    public Builder rewriteBatchedStatements(Boolean rewriteBatchedStatements) {
+      this.rewriteBatchedStatements = rewriteBatchedStatements;
       return this;
     }
 

@@ -314,6 +314,20 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    LocalTime val = (LocalTime) value;
+    int microseconds = val.getNano() / 1000;
+    if (microseconds > 0) {
+      if (microseconds % 1000 == 0) {
+        return 14;
+      } else {
+        return 17;
+      }
+    }
+    return 10;
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

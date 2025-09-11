@@ -77,6 +77,11 @@ public class PolygonCodec implements Codec<Polygon> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return -1;
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

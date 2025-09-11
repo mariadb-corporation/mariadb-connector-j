@@ -1665,7 +1665,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
         null);
   }
 
-  protected abstract boolean executeInternalPreparedBatch() throws SQLException;
+  protected abstract BatchTypeState executeInternalPreparedBatch() throws SQLException;
 
   @Override
   @SuppressWarnings("try")
@@ -1690,15 +1690,22 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     return batchParameters == null || batchParameters.isEmpty();
   }
 
+  protected enum BatchTypeState {
+    Normal,
+    Bulk,
+    Rewrite
+  }
+
   private int[] executeBatchInternal() throws SQLException {
-    boolean wasBulk = executeInternalPreparedBatch();
+    BatchTypeState batchTypeState = executeInternalPreparedBatch();
     int[] updates = new int[batchParameters.size()];
 
-    if (shouldHandleBulkUnitResults(wasBulk)) {
+    if (shouldHandleBulkUnitResults(batchTypeState == BatchTypeState.Bulk)) {
       return handleBulkUnitResults(updates);
     }
 
-    if (shouldHandleBulkInsert(wasBulk)) {
+    if (shouldHandleBulkInsert(
+        batchTypeState == BatchTypeState.Bulk || batchTypeState == BatchTypeState.Rewrite)) {
       int[] bulkInsertUpdates = handleBulkInsert(updates);
       if (bulkInsertUpdates != null) {
         return bulkInsertUpdates;
@@ -1863,14 +1870,15 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   private long[] executeLongBatchInternal() throws SQLException {
-    boolean wasBulk = executeInternalPreparedBatch();
+    BatchTypeState batchTypeState = executeInternalPreparedBatch();
     long[] updates = new long[batchParameters.size()];
 
-    if (shouldHandleBulkUnitResults(wasBulk)) {
+    if (shouldHandleBulkUnitResults(batchTypeState == BatchTypeState.Bulk)) {
       return handleLongBulkUnitResults(updates);
     }
 
-    if (shouldHandleBulkInsert(wasBulk)) {
+    if (shouldHandleBulkInsert(
+        batchTypeState == BatchTypeState.Bulk || batchTypeState == BatchTypeState.Rewrite)) {
       long[] bulkInsertUpdates = handleLongBulkInsert(updates);
       if (bulkInsertUpdates != null) {
         return bulkInsertUpdates;

@@ -11,6 +11,11 @@ public class ParameterList implements Parameters, Cloneable {
   Parameter[] elementData;
   int length;
 
+  public ParameterList(Parameter[] parameters) {
+    elementData = parameters;
+    length = parameters.length;
+  }
+
   public ParameterList(int defaultSize) {
     elementData = new Parameter[defaultSize];
     length = 0;

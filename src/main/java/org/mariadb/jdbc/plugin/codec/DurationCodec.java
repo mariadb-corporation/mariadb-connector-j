@@ -216,6 +216,16 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    long s = ((Duration) value).getSeconds();
+    long microSecond = ((Duration) value).getNano() / 1000;
+    if (microSecond != 0) {
+      return String.valueOf(s / 3600).length() + 13;
+    }
+    return String.valueOf(s / 3600).length() + 6;
+  }
+
+  @Override
   public void encodeBinary(
       Writer encoder, Context context, Object val, Calendar cal, Long maxLength)
       throws IOException {

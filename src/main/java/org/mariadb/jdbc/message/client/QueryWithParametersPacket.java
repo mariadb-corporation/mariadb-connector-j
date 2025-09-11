@@ -82,14 +82,17 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
     return 1;
   }
 
+  @Override
   public int batchUpdateLength() {
     return 1;
   }
 
+  @Override
   public boolean validateLocalFileName(String fileName, Context context) {
     return ClientMessage.validateLocalFileName(parser.getSql(), parameters, fileName, context);
   }
 
+  @Override
   public InputStream getLocalInfileInputStream() {
     return localInfileInputStream;
   }

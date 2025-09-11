@@ -199,12 +199,26 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
       default:
         // fast authentication result
-        byte[] authResult = new byte[buf.readIntLengthEncodedNotNull()];
-        buf.readBytes(authResult);
-        switch (authResult[0]) {
-          case 3:
+
+        // mysql change the protocol with https://github.com/mysql/mysql-server/commit/2a8ce5e5c606
+        // so expected response can be either 0x03, 0x04, 0x0103 or, 0x0104
+        int authResult = 0;
+        if (buf.readableBytes() == 1) {
+          authResult = buf.readByte();
+        } else if (buf.readableBytes() == 2) {
+          byte lengthPrefix = buf.readByte();
+          if (lengthPrefix != 0x01) {
+            throw new SQLException(
+                "Protocol exchange error. Unexpected message value lengthPrefix:" + lengthPrefix,
+                "S1009");
+          }
+          authResult = buf.readByte();
+        }
+
+        switch (authResult) {
+          case 0x03:
             return in.readReusablePacket();
-          case 4:
+          case 0x04:
             SslMode sslMode = hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
             if (sslMode != SslMode.DISABLE) {
               // send clear password
@@ -245,7 +259,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
                   default:
                     // AuthMoreData packet
-                    buf.skip();
+                    if (buf.getByte(0) == (byte) 0x01) {
+                      buf.skip();
+                    }
                     byte[] authMoreData = new byte[buf.readableBytes()];
                     buf.readBytes(authMoreData);
                     publicKey = generatePublicKey(authMoreData);

@@ -239,6 +239,10 @@ public class MultiPrimaryClient implements Client {
         } else {
           // transaction is lost, but connection is now up again.
           // changing exception to SQLTransientConnectionException
+          oldClient
+              .getContext()
+              .setServerStatus(
+                  oldClient.getContext().getServerStatus() & ~ServerStatus.IN_TRANSACTION);
           throw new SQLTransientConnectionException(
               String.format(
                   "Driver has reconnect connection after a communications link failure with %s. In"

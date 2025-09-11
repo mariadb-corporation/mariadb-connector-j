@@ -738,12 +738,8 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("USE `%s`", escapedDb));
     }
 
-    if (conf.initSql() != null) {
-      commands.add(conf.initSql());
-    }
-
-    if (conf.nonMappedOptions().containsKey("initSql")) {
-      String[] initialCommands = conf.nonMappedOptions().get("initSql").toString().split(";");
+    if (conf.initSql() != null && !conf.initSql().isEmpty()) {
+      String[] initialCommands = conf.initSql().split(";");
       Collections.addAll(commands, initialCommands);
     }
 
@@ -906,7 +902,7 @@ public class StandardClient implements Client, AutoCloseable {
     ZoneId connectionZoneId = connectionTz.toZoneId();
 
     if ("SERVER".equalsIgnoreCase(conf.connectionTimeZone())
-            && connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
+        && connectionZoneId.normalized().equals(TimeZone.getDefault().toZoneId())) {
       return;
     }
 
@@ -1092,7 +1088,7 @@ public class StandardClient implements Client, AutoCloseable {
         results.add(null);
         // read remaining results
         perMsgCounter++;
-        for (; perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
+        for (; readCounter > 0 && perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
           try {
             results.addAll(
                 readResponse(

@@ -154,7 +154,10 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
         throw exceptionFactory
             .withSql(this.description())
             .create(
-                errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
+                errorPacket.getMessage(),
+                errorPacket.getSqlState(),
+                errorPacket.getErrorCode(),
+                true);
       }
       if (context.getConf().useServerPrepStmts()
           && context.getConf().cachePrepStmts()

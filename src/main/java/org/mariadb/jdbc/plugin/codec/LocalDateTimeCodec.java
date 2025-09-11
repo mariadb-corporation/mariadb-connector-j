@@ -165,6 +165,11 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return ((LocalDateTime) value).getNano() > 0 ? 28 : 21;
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

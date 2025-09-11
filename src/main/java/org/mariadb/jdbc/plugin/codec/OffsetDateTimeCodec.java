@@ -171,6 +171,11 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return ((OffsetDateTime) value).getNano() > 0 ? 28 : 21;
+  }
+
+  @Override
   public void encodeBinary(
       Writer encoder, Context context, Object value, Calendar calParam, Long maxLength)
       throws IOException {

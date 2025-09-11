@@ -112,6 +112,11 @@ public class ByteArrayCodec implements Codec<byte[]> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return ((byte[]) value).length + 10;
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

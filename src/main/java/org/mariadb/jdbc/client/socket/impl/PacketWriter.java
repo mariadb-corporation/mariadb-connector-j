@@ -760,6 +760,11 @@ public class PacketWriter implements Writer {
     return false;
   }
 
+  public boolean throwMaxAllowedLengthOr16M(int length) {
+    if (maxAllowedPacket != null) return cmdLength + length >= maxAllowedPacket;
+    return cmdLength + length >= 16 * 1024 * 1024;
+  }
+
   public void permitTrace(boolean permitTrace) {
     this.permitTrace = permitTrace;
   }

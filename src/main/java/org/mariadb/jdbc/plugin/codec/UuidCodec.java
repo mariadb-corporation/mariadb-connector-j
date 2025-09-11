@@ -64,6 +64,11 @@ public class UuidCodec implements Codec<UUID> {
     encoder.writeByte('\'');
   }
 
+  @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return value.toString().length() + 2;
+  }
+
   public void encodeBinary(
       Writer writer, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {

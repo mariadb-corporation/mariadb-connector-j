@@ -193,7 +193,7 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.FOUND_ROWS;
     }
 
-    if (configuration.allowMultiQueries()) {
+    if (configuration.allowMultiQueries() || (configuration.rewriteBatchedStatements())) {
       capabilities |= Capabilities.MULTI_STATEMENTS;
     }
 

@@ -90,6 +90,11 @@ public class TimeCodec implements Codec<Time> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long maxLen) {
+    return 14;
+  }
+
+  @Override
   public void encodeBinary(
       Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {

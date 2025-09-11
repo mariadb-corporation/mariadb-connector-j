@@ -86,6 +86,11 @@ public class DateCodec implements Codec<Date> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return 12;
+  }
+
+  @Override
   public void encodeBinary(
       Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {

@@ -124,6 +124,11 @@ public class FloatArrayCodec implements Codec<float[]> {
   }
 
   @Override
+  public int getApproximateTextProtocolLength(Object value, Long length) {
+    return ((float[]) value).length * 4 + 10;
+  }
+
+  @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,

@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
+import static java.sql.Types.NCHAR;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
@@ -255,66 +256,72 @@ public class BatchTest extends Common {
   public void differentParameterType() throws SQLException {
     boolean expectUnknown = isMariaDBServer() && !minVersion(11, 5, 0);
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con =
         createCon("&useServerPrepStmts=false&useBulkStmts&useBulkStmtsForInserts")) {
-      differentParameterType(con, expectUnknown);
+      differentParameterType(con, expectUnknown, false);
     }
     try (Connection con =
         createCon(
             "&useServerPrepStmts=false&useBulkStmtsForInserts&useBulkStmts&disablePipeline")) {
-      differentParameterType(con, expectUnknown);
+      differentParameterType(con, expectUnknown, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts=false")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con =
         createCon("&useServerPrepStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con =
         createCon(
             "&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
-      differentParameterType(con, expectUnknown);
+      differentParameterType(con, expectUnknown, false);
     }
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts&allowLocalInfile")) {
-      differentParameterType(con, expectUnknown);
+      differentParameterType(con, expectUnknown, false);
     }
     try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts=false")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts")) {
-      differentParameterType(con, expectUnknown);
+      differentParameterType(con, expectUnknown, false);
     }
     try (Connection con =
         createCon(
             "&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
-      differentParameterType(con, expectUnknown);
+      differentParameterType(con, expectUnknown, false);
     }
     try (Connection con =
         createCon("&useServerPrepStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
     }
     try (Connection con =
         createCon("&useServerPrepStmts&useBulkStmtsForInserts=false&disablePipeline=true")) {
-      differentParameterType(con, false);
+      differentParameterType(con, false, false);
+    }
+    try (Connection con =
+        createCon(
+            "&useServerPrepStmts&rewriteBatchedStatements&useBulkStmtsForInserts=false&disablePipeline=true")) {
+      differentParameterType(con, false, true);
     }
   }
 
-  public void differentParameterType(Connection con, boolean expectSuccessUnknown)
+  public void differentParameterType(
+      Connection con, boolean expectSuccessUnknown, boolean expectSuccessUnknownOnDup)
       throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
@@ -462,8 +469,13 @@ public class BatchTest extends Common {
       prep.addBatch();
       int[] res = prep.executeBatch();
       assertEquals(2, res.length);
-      assertEquals(1, res[0]);
-      assertEquals(2, res[1]);
+      if (expectSuccessUnknownOnDup) {
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+      } else {
+        assertEquals(1, res[0]);
+        assertEquals(2, res[1]);
+      }
     }
     rs = stmt.executeQuery("SELECT * FROM BatchTest");
     assertTrue(rs.next());
@@ -476,21 +488,23 @@ public class BatchTest extends Common {
 
   @Test
   public void largeBatch() throws SQLException {
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < 128; i++) {
       boolean useServerPrepStmts = (i & 2) > 0;
       boolean useBulkStmts = (i & 4) > 0;
       boolean allowLocalInfile = (i & 8) > 0;
       boolean useCompression = (i & 16) > 0;
       boolean useBulkStmtsForInserts = (i & 32) > 0;
+      boolean rewriteBatchedStatements = (i & 64) > 0;
 
       String confString =
           String.format(
-              "&useServerPrepStmts=%s&useBulkStmts=%s&allowLocalInfile=%s&useCompression=%s&useBulkStmtsForInserts=%s",
+              "&useServerPrepStmts=%s&useBulkStmts=%s&allowLocalInfile=%s&useCompression=%s&useBulkStmtsForInserts=%s&rewriteBatchedStatements=%s",
               useServerPrepStmts,
               useBulkStmts,
               allowLocalInfile,
               useCompression,
-              useBulkStmtsForInserts);
+              useBulkStmtsForInserts,
+              rewriteBatchedStatements);
       try (Connection con = createCon(confString)) {
         largeBatch(con);
       }
@@ -512,8 +526,13 @@ public class BatchTest extends Common {
       prep.addBatch();
       long[] res = prep.executeLargeBatch();
       assertEquals(2, res.length);
-      assertEquals(1, res[0]);
-      assertEquals(1, res[1]);
+      if (res[0] == Statement.SUCCESS_NO_INFO) {
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+      } else {
+        assertEquals(1, res[0]);
+        assertEquals(1, res[1]);
+      }
     }
     ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest");
     assertTrue(rs.next());
@@ -530,36 +549,99 @@ public class BatchTest extends Common {
   public void bulkPacketSplitMaxAllowedPacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(2, maxAllowedPacket - 40, maxAllowedPacket);
-    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(2, maxAllowedPacket - 40, null);
+    bulkPacketSplit(2, maxAllowedPacket - 40, maxAllowedPacket, false, null);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(2, maxAllowedPacket - 40, null, false, null);
   }
 
   @Test
   public void bulkPacketSplitMultiplePacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket);
-    if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(4, getMaxAllowedPacket() / 3, null);
+    bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket, false, null);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(4, getMaxAllowedPacket() / 3, null, false, null);
   }
 
   @Test
   public void bulkPacketSplitHugeNbPacket() throws SQLException {
     Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket);
+    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket, false, null);
     if (maxAllowedPacket >= 16 * 1024 * 1024)
-      bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, null);
+      bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, null, false, null);
   }
 
-  public void bulkPacketSplit(int nb, int len, Integer maxAllowedPacket) throws SQLException {
+  @Test
+  public void rewriteBatchPacketSplitMaxAllowedPacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
+    int maxAllowedPacket = getMaxAllowedPacket();
+    bulkPacketSplit(2, maxAllowedPacket - 53, maxAllowedPacket, true, null);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(2, (16 * 1024 * 1024) - 53, null, true, 3);
+  }
+
+  @Test
+  public void rewriteBatchPacketSplitMultiplePacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
+    int maxAllowedPacket = getMaxAllowedPacket();
+    bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket, true, null);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(4, (16 * 1024 * 1024) / 3, null, true, 5);
+  }
+
+  @Test
+  public void rewriteBatchPacketSplitHugeNbPacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
+    int maxAllowedPacket = getMaxAllowedPacket();
+    bulkPacketSplit(
+        getMaxAllowedPacket() / 8000,
+        20,
+        maxAllowedPacket,
+        true,
+        (getMaxAllowedPacket() / 8000) + 1);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(
+          getMaxAllowedPacket() / 8000, 20, null, true, (getMaxAllowedPacket() / 8000) + 1);
+  }
+
+  @Test
+  public void rewriteBatchPacketTooBig() throws SQLException {
+    try {
+      bulkPacketSplit(
+          2, 1000, 1000, true, 1); // can't fit a 1000-byte array into a 1000-byte packet
+      fail("Expected SQLTransientConnectionException");
+    } catch (BatchUpdateException e) {
+      assertTrue(
+          e.getMessage().contains("Packet too big for current server max_allowed_packet value"));
+    }
+  }
+
+  public void bulkPacketSplit(
+      int nb, int len, Integer maxAllowedPacket, boolean rewriteBatch, Integer expectedPacketCount)
+      throws SQLException {
     byte[] arr = new byte[Math.min(16 * 1024 * 1024, len)];
-    for (int pos = 0; pos < arr.length; pos++) {
-      arr[pos] = (byte) ((pos % 60) + 65);
+    if (rewriteBatch) {
+      for (int pos = 0; pos < arr.length; pos++) {
+        byte b = (byte) ((pos % 60) + 65);
+        b =
+            (b == 92)
+                ? 95
+                : b; // convert backslash to underscore, otherwise throws out packet lengths (
+        // backslash is escaped in writeBytesEscaped )
+        arr[pos] = b;
+      }
+    } else {
+      for (int pos = 0; pos < arr.length; pos++) {
+        arr[pos] = (byte) ((pos % 60) + 65);
+      }
     }
 
     try (Connection con =
         createCon(
-            "&useServerPrepStmts&useBulkStmts"
+            (rewriteBatch
+                    ? "rewriteBatchedStatements&useBulkStmtsForInserts=false"
+                    : "&useServerPrepStmts&useBulkStmts")
                 + (maxAllowedPacket != null ? "&maxAllowedPacket=" + maxAllowedPacket : ""))) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE BatchTest");
@@ -585,6 +667,29 @@ public class BatchTest extends Common {
         assertArrayEquals(arr, rs.getBytes(2));
       }
       assertFalse(rs.next());
+      stmt.execute("TRUNCATE BatchTest");
+      stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+      try (PreparedStatement prep =
+          con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
+        for (int i = 1; i <= nb; i++) {
+          prep.setInt(1, i);
+          prep.setNull(2, NCHAR);
+          prep.addBatch();
+        }
+
+        int[] res = prep.executeBatch();
+        assertEquals(nb, res.length);
+        for (int i = 0; i < nb; i++) {
+          assertTrue(res[i] == 1 || res[i] == Statement.SUCCESS_NO_INFO);
+        }
+      }
+      rs = stmt.executeQuery("SELECT * FROM BatchTest");
+      for (int i = 1; i <= nb; i++) {
+        assertTrue(rs.next());
+        assertEquals(i, rs.getInt(1));
+        assertNull(rs.getBytes(2));
+      }
+      assertFalse(rs.next());
 
       // check same ending with error
       stmt.execute("TRUNCATE BatchTest");
@@ -602,7 +707,8 @@ public class BatchTest extends Common {
         BatchUpdateException e =
             Assertions.assertThrows(BatchUpdateException.class, prep::executeBatch);
         int[] updateCounts = e.getUpdateCounts();
-        assertEquals(nb + 1, updateCounts.length);
+        assertEquals(
+            expectedPacketCount == null ? nb + 1 : expectedPacketCount, updateCounts.length);
       }
       con.rollback();
       con.rollback();
@@ -623,6 +729,9 @@ public class BatchTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=true")) {
       batchWithError(con);
     }
+    try (Connection con = createCon("&rewriteBatchedStatements")) {
+      batchWithError(con);
+    }
     try (Connection con =
         createCon("&useServerPrepStmts=false&useBulkStmts=false&allowLocalInfile")) {
       batchWithError(con);
@@ -635,6 +744,9 @@ public class BatchTest extends Common {
       batchWithError(con);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=true&allowLocalInfile")) {
+      batchWithError(con);
+    }
+    try (Connection con = createCon("&rewriteBatchedStatements&allowLocalInfile")) {
       batchWithError(con);
     }
   }
