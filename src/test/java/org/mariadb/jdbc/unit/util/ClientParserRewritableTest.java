@@ -67,6 +67,7 @@ public class ClientParserRewritableTest {
     assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) /*test* #/ ;`*/", 25, 37));
     assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) # EOL ", 25, 37));
     assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) -- EOL ", 25, 37));
+    assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) -- EOL ()", 25, 37));
   }
 
   private boolean checkRewritable(String query, int pos1, int pos2) {
@@ -94,7 +95,17 @@ public class ClientParserRewritableTest {
             "INSERT INTO b VALUES (?,?), (?,?)",
             4,
             new int[] {22, 24, 29, 31},
-            new int[] {21, 32}));
+            null),
+    	Arguments.of(
+            "INSERT INTO b VALUES (?,?) AS v ON DUPLICATE KEY UPDATE b.a=v.a",
+            2,
+            new int[] {22, 24},
+            new int[] {21, 25}),
+        Arguments.of(
+            "INSERT INTO b VALUES (?,?) AS v ON DUPLICATE KEY UPDATE b.a=(v.a)",
+            2,
+            new int[] {22, 24},
+            new int[] {21, 25}));
   }
 
   @ParameterizedTest()
