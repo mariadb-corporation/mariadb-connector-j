@@ -11,9 +11,9 @@
 
 #### Issues Resolved
 
-* CONJ-1278 - prepared statement caching enablement	correction, same than 2.x	
-* CONJ-1279 - metadata table name addition for 12.1 after MDEV-28933		
-* CONJ-1280 - permit having multiple command with initSql option		
+* CONJ-1278 - prepared statement caching enablement	correction, same than 2.x
+* CONJ-1279 - metadata table name addition for 12.1 after MDEV-28933
+* CONJ-1280 - permit having multiple command with initSql option
 * CONJ-1276 - Connection#isValid(int timeout) does not obey the passed in timeout if the network is down.
 
 
