@@ -302,6 +302,17 @@ public class FailoverTest extends Common {
         }
       }
     }
+    try {
+      stmt.execute("TRUNCATE transaction_failover_batch_" + idx);
+    } catch (SQLTransientConnectionException e) {
+      // might occur depending on socket detection
+      if (!transactionReplay) {
+        assertTrue(e.getMessage().contains("Driver has reconnect connection after a communications link failure"));
+      } else {
+        e.printStackTrace();
+        fail("must not have thrown error");
+      }
+    }
     stmt.execute("TRUNCATE transaction_failover_batch_" + idx);
     stmt.executeUpdate(
         "INSERT INTO transaction_failover_batch_" + idx + " (test) VALUES ('test0')");
