@@ -248,7 +248,6 @@ public final class ClientParser implements PrepareResult {
     boolean isInsertDuplicate = false;
     boolean afterValues = false;
     int isInParenthesis = 0;
-    int lastParenthesisPosition = 0;
     int multiQueryIdx = -1;
     byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
@@ -430,7 +429,6 @@ public final class ClientParser implements PrepareResult {
           if (state == LexState.Normal) {
             isInParenthesis++;
             if (afterValues == true && valuesBracketPositions.isEmpty()) {
-              ;
               valuesBracketPositions.add(i);
             }
           }
@@ -444,7 +442,7 @@ public final class ClientParser implements PrepareResult {
           if (state == LexState.Normal) {
             isInParenthesis--;
             if (isInParenthesis == 0 && valuesBracketPositions.size() == 1) {
-              lastParenthesisPosition = i;
+              valuesBracketPositions.add(i);
             }
           }
           break;
@@ -452,9 +450,7 @@ public final class ClientParser implements PrepareResult {
           if (state == LexState.Normal) {
             paramPositions.add(i);
             // have parameter outside values parenthesis
-            if (valuesBracketPositions.size() == 1
-                && lastParenthesisPosition > 0
-                && isInParenthesis == 0) {
+            if (valuesBracketPositions.size() == 2) {
               reWritablePrepare = false;
             }
           }
@@ -483,10 +479,6 @@ public final class ClientParser implements PrepareResult {
         }
       }
       isMulti = hasAdditionalPart;
-    }
-
-    if (valuesBracketPositions.size() == 1 && lastParenthesisPosition > 0) {
-      valuesBracketPositions.add(lastParenthesisPosition);
     }
 
     if (isMulti || !isInsert || !reWritablePrepare || valuesBracketPositions.size() != 2) {
