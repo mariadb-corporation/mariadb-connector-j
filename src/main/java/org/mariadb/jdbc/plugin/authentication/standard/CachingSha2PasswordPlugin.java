@@ -203,15 +203,10 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
         // mysql change the protocol with https://github.com/mysql/mysql-server/commit/2a8ce5e5c606
         // so expected response can be either 0x03, 0x04, 0x0103 or, 0x0104
         int authResult = 0;
+
+        if (buf.getByte() == 0x01) buf.skip();
+
         if (buf.readableBytes() == 1) {
-          authResult = buf.readByte();
-        } else if (buf.readableBytes() == 2) {
-          byte lengthPrefix = buf.readByte();
-          if (lengthPrefix != 0x01) {
-            throw new SQLException(
-                "Protocol exchange error. Unexpected message value lengthPrefix:" + lengthPrefix,
-                "S1009");
-          }
           authResult = buf.readByte();
         }
 

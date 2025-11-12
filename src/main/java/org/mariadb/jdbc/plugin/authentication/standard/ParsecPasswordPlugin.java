@@ -60,6 +60,9 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
 
     byte firstByte = 0;
     int iterations = 100;
+
+    if (buf.getByte() == 0x01) buf.skip();
+
     if (buf.readableBytes() > 2) {
       firstByte = buf.readByte();
       iterations = buf.readByte();
