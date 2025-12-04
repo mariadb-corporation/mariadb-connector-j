@@ -2003,7 +2003,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       return Collections.emptyList();
     }
 
-    List<String[]> insertIds = new ArrayList<>();
+    List<String[]> insertIds = new ArrayList<>(results.size() + 1); // results + currResult
     List<Completion> allResults = getAllResults();
 
     for (Completion completion : allResults) {

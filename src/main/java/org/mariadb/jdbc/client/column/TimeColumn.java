@@ -3,7 +3,11 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
-import java.sql.*;
+import java.sql.Date;
+import java.sql.SQLDataException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
@@ -226,10 +230,17 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
   }
 
   private String padZeros(long number, int targetLength) {
-    StringBuilder result = new StringBuilder(String.valueOf(number));
-    while (result.length() < targetLength) {
-      result.insert(0, "0");
+    String numStr = String.valueOf(number);
+    int numLen = numStr.length();
+    if (numLen >= targetLength) {
+      return numStr;
     }
+    StringBuilder result = new StringBuilder(targetLength);
+    int zerosToAdd = targetLength - numLen;
+    for (int i = 0; i < zerosToAdd; i++) {
+      result.append('0');
+    }
+    result.append(numStr);
     return result.toString();
   }
 

@@ -8,7 +8,10 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -81,20 +84,21 @@ public class StringCodec implements Codec<String> {
     return column.decodeStringBinary(buf, length, cal, context);
   }
 
+  @Override
   public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
+    String str = value.toString();
     encoder.writeStringEscaped(
-        maxLen == null ? value.toString() : value.toString().substring(0, maxLen.intValue()),
+        maxLen == null ? str : str.substring(0, maxLen.intValue()),
         (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     encoder.writeByte('\'');
   }
 
   @Override
   public int getApproximateTextProtocolLength(Object value, Long maxLen) {
-    return maxLen == null
-        ? value.toString().length() + 2
-        : Math.min(value.toString().length(), maxLen.intValue()) + 2;
+    int len = value.toString().length();
+    return maxLen == null ? len + 2 : Math.min(len, maxLen.intValue()) + 2;
   }
 
   public void encodeBinary(

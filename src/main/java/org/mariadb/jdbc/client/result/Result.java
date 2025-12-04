@@ -11,11 +11,33 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
-import java.util.*;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.RowId;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
+import java.sql.SQLType;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Completion;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.result.rowdecoder.BinaryRowDecoder;
 import org.mariadb.jdbc.client.result.rowdecoder.RowDecoder;
@@ -26,7 +48,15 @@ import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.array.FloatArray;
-import org.mariadb.jdbc.plugin.codec.*;
+import org.mariadb.jdbc.plugin.codec.BigDecimalCodec;
+import org.mariadb.jdbc.plugin.codec.BigIntegerCodec;
+import org.mariadb.jdbc.plugin.codec.BlobCodec;
+import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
+import org.mariadb.jdbc.plugin.codec.ClobCodec;
+import org.mariadb.jdbc.plugin.codec.FloatArrayCodec;
+import org.mariadb.jdbc.plugin.codec.ReaderCodec;
+import org.mariadb.jdbc.plugin.codec.StreamCodec;
+import org.mariadb.jdbc.plugin.codec.StringCodec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Result-set common */
@@ -208,7 +238,7 @@ public abstract class Result implements ResultSet, Completion {
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
-        if ((context.isEofDeprecated() && buf.length < 16777215)
+        if ((context.isEofDeprecated() && buf.length < 0xFFFFFF)
             || (!context.isEofDeprecated() && buf.length < 8)) {
           ReadableByteBuf readBuf = reader.readableBufFromArray(buf);
           readBuf.skip(); // skip header
@@ -300,7 +330,7 @@ public abstract class Result implements ResultSet, Completion {
 
   /** Grow data array. */
   private void growDataArray() {
-    int newCapacity = Math.max(10, data.length + (data.length >> 1));
+    int newCapacity = Math.max(10, data.length << 1); // 2x growth for fewer reallocations
     byte[][] newData = new byte[newCapacity][];
     System.arraycopy(data, 0, newData, 0, data.length);
     data = newData;
@@ -1741,7 +1771,7 @@ public abstract class Result implements ResultSet, Completion {
   public int findColumn(String label) throws SQLException {
     if (label == null) throw new SQLException("null is not a valid label value");
     if (mapper == null) {
-      mapper = new HashMap<>();
+      mapper = new HashMap<>((int) (maxIndex * 2.5)); // capacity for column + table.column aliases
       for (int i = 0; i < maxIndex; i++) {
         Column ci = metadataList[i];
         String columnAlias = ci.getColumnAlias();

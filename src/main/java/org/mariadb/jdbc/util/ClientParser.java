@@ -61,7 +61,7 @@ public final class ClientParser implements PrepareResult {
    */
   public static ClientParser parameterParts(String queryString, boolean noBackslashEscapes) {
 
-    List<Integer> paramPositions = new ArrayList<>();
+    List<Integer> paramPositions = new ArrayList<>(20);
     LexState state = LexState.Normal;
     byte lastChar = 0x00;
 
@@ -81,43 +81,43 @@ public final class ClientParser implements PrepareResult {
         continue;
       }
       switch (car) {
-        case (byte) '*':
-          if (state == LexState.Normal && lastChar == (byte) '/') {
+        case '*':
+          if (state == LexState.Normal && lastChar == '/') {
             state = LexState.SlashStarComment;
           }
           break;
 
-        case (byte) '/':
-          if (state == LexState.SlashStarComment && lastChar == (byte) '*') {
+        case '/':
+          if (state == LexState.SlashStarComment && lastChar == '*') {
             state = LexState.Normal;
           }
           break;
 
-        case (byte) ';':
+        case ';':
           if (state == LexState.Normal && multiQueryIdx == -1) {
             multiQueryIdx = i;
           }
           break;
 
-        case (byte) '#':
+        case '#':
           if (state == LexState.Normal) {
             state = LexState.EOLComment;
           }
           break;
 
-        case (byte) '-':
-          if (state == LexState.Normal && lastChar == (byte) '-') {
+        case '-':
+          if (state == LexState.Normal && lastChar == '-') {
             state = LexState.EOLComment;
           }
           break;
 
-        case (byte) '\n':
+        case '\n':
           if (state == LexState.EOLComment) {
             state = LexState.Normal;
           }
           break;
 
-        case (byte) '"':
+        case '"':
           if (state == LexState.Normal) {
             state = LexState.String;
             singleQuotes = false;
@@ -128,7 +128,7 @@ public final class ClientParser implements PrepareResult {
           }
           break;
 
-        case (byte) '\'':
+        case '\'':
           if (state == LexState.Normal) {
             state = LexState.String;
             singleQuotes = true;
@@ -139,43 +139,43 @@ public final class ClientParser implements PrepareResult {
           }
           break;
 
-        case (byte) 'I':
-        case (byte) 'i':
+        case 'I':
+        case 'i':
           if (state == LexState.Normal
               && !isInsert
               && i + 6 < queryLength
-              && (query[i + 1] == (byte) 'n' || query[i + 1] == (byte) 'N')
-              && (query[i + 2] == (byte) 's' || query[i + 2] == (byte) 'S')
-              && (query[i + 3] == (byte) 'e' || query[i + 3] == (byte) 'E')
-              && (query[i + 4] == (byte) 'r' || query[i + 4] == (byte) 'R')
-              && (query[i + 5] == (byte) 't' || query[i + 5] == (byte) 'T')) {
-            if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) {
+              && equalsIgnoreCase(query[i + 1], (byte) 'n')
+              && equalsIgnoreCase(query[i + 2], (byte) 's')
+              && equalsIgnoreCase(query[i + 3], (byte) 'e')
+              && equalsIgnoreCase(query[i + 4], (byte) 'r')
+              && equalsIgnoreCase(query[i + 5], (byte) 't')) {
+            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 6] > ' ' && "();><=-+,".indexOf(query[i + 6]) == -1) {
+            if (query[i + 6] > ' ' && !isDelimiter(query[i + 6])) {
               break;
             }
             i += 5;
             isInsert = true;
           }
           break;
-        case (byte) 'D':
-        case (byte) 'd':
+        case 'D':
+        case 'd':
           if (isInsert
               && state == LexState.Normal
               && i + 9 < queryLength
-              && (query[i + 1] == (byte) 'u' || query[i + 1] == (byte) 'U')
-              && (query[i + 2] == (byte) 'p' || query[i + 2] == (byte) 'P')
-              && (query[i + 3] == (byte) 'l' || query[i + 3] == (byte) 'L')
-              && (query[i + 4] == (byte) 'i' || query[i + 4] == (byte) 'I')
-              && (query[i + 5] == (byte) 'c' || query[i + 5] == (byte) 'C')
-              && (query[i + 6] == (byte) 'a' || query[i + 6] == (byte) 'A')
-              && (query[i + 7] == (byte) 't' || query[i + 7] == (byte) 'T')
-              && (query[i + 8] == (byte) 'e' || query[i + 8] == (byte) 'E')) {
-            if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) {
+              && equalsIgnoreCase(query[i + 1], (byte) 'u')
+              && equalsIgnoreCase(query[i + 2], (byte) 'p')
+              && equalsIgnoreCase(query[i + 3], (byte) 'l')
+              && equalsIgnoreCase(query[i + 4], (byte) 'i')
+              && equalsIgnoreCase(query[i + 5], (byte) 'c')
+              && equalsIgnoreCase(query[i + 6], (byte) 'a')
+              && equalsIgnoreCase(query[i + 7], (byte) 't')
+              && equalsIgnoreCase(query[i + 8], (byte) 'e')) {
+            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 9] > ' ' && "();><=-+,".indexOf(query[i + 9]) == -1) {
+            if (query[i + 9] > ' ' && !isDelimiter(query[i + 9])) {
               break;
             }
             i += 9;
@@ -183,17 +183,17 @@ public final class ClientParser implements PrepareResult {
           }
           break;
 
-        case (byte) '\\':
+        case '\\':
           if (state == LexState.String && !noBackslashEscapes) {
             state = LexState.Escape;
           }
           break;
-        case (byte) '?':
+        case '?':
           if (state == LexState.Normal) {
             paramPositions.add(i);
           }
           break;
-        case (byte) '`':
+        case '`':
           if (state == LexState.Backtick) {
             state = LexState.Normal;
           } else if (state == LexState.Normal) {
@@ -210,8 +210,7 @@ public final class ClientParser implements PrepareResult {
       // ensure there is not only empty
       boolean hasAdditionalPart = false;
       for (int i = multiQueryIdx + 1; i < queryLength; i++) {
-        byte car = query[i];
-        if (car != (byte) ' ' && car != (byte) '\n' && car != (byte) '\r' && car != (byte) '\t') {
+        if (!isWhitespace(query[i])) {
           hasAdditionalPart = true;
           break;
         }
@@ -237,8 +236,8 @@ public final class ClientParser implements PrepareResult {
    */
   public static ClientParser rewritableParts(String queryString, boolean noBackslashEscapes) {
     boolean reWritablePrepare = true;
-    List<Integer> paramPositions = new ArrayList<>();
-    List<Integer> valuesBracketPositions = new ArrayList<>();
+    List<Integer> paramPositions = new ArrayList<>(20);
+    List<Integer> valuesBracketPositions = new ArrayList<>(2);
 
     LexState state = LexState.Normal;
     byte lastChar = 0x00;
@@ -262,43 +261,43 @@ public final class ClientParser implements PrepareResult {
         continue;
       }
       switch (car) {
-        case (byte) '*':
-          if (state == LexState.Normal && lastChar == (byte) '/') {
+        case '*':
+          if (state == LexState.Normal && lastChar == '/') {
             state = LexState.SlashStarComment;
           }
           break;
 
-        case (byte) '/':
-          if (state == LexState.SlashStarComment && lastChar == (byte) '*') {
+        case '/':
+          if (state == LexState.SlashStarComment && lastChar == '*') {
             state = LexState.Normal;
           }
           break;
 
-        case (byte) ';':
+        case ';':
           if (state == LexState.Normal && multiQueryIdx == -1) {
             multiQueryIdx = i;
           }
           break;
 
-        case (byte) '#':
+        case '#':
           if (state == LexState.Normal) {
             state = LexState.EOLComment;
           }
           break;
 
-        case (byte) '-':
-          if (state == LexState.Normal && lastChar == (byte) '-') {
+        case '-':
+          if (state == LexState.Normal && lastChar == '-') {
             state = LexState.EOLComment;
           }
           break;
 
-        case (byte) '\n':
+        case '\n':
           if (state == LexState.EOLComment) {
             state = LexState.Normal;
           }
           break;
 
-        case (byte) '"':
+        case '"':
           if (state == LexState.Normal) {
             state = LexState.String;
             singleQuotes = false;
@@ -309,7 +308,7 @@ public final class ClientParser implements PrepareResult {
           }
           break;
 
-        case (byte) '\'':
+        case '\'':
           if (state == LexState.Normal) {
             state = LexState.String;
             singleQuotes = true;
@@ -320,43 +319,43 @@ public final class ClientParser implements PrepareResult {
           }
           break;
 
-        case (byte) 'I':
-        case (byte) 'i':
+        case 'I':
+        case 'i':
           if (state == LexState.Normal
               && !isInsert
               && i + 6 < queryLength
-              && (query[i + 1] == (byte) 'n' || query[i + 1] == (byte) 'N')
-              && (query[i + 2] == (byte) 's' || query[i + 2] == (byte) 'S')
-              && (query[i + 3] == (byte) 'e' || query[i + 3] == (byte) 'E')
-              && (query[i + 4] == (byte) 'r' || query[i + 4] == (byte) 'R')
-              && (query[i + 5] == (byte) 't' || query[i + 5] == (byte) 'T')) {
-            if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) {
+              && equalsIgnoreCase(query[i + 1], (byte) 'n')
+              && equalsIgnoreCase(query[i + 2], (byte) 's')
+              && equalsIgnoreCase(query[i + 3], (byte) 'e')
+              && equalsIgnoreCase(query[i + 4], (byte) 'r')
+              && equalsIgnoreCase(query[i + 5], (byte) 't')) {
+            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 6] > ' ' && "();><=-+,".indexOf(query[i + 6]) == -1) {
+            if (query[i + 6] > ' ' && !isDelimiter(query[i + 6])) {
               break;
             }
             i += 5;
             isInsert = true;
           }
           break;
-        case (byte) 'D':
-        case (byte) 'd':
+        case 'D':
+        case 'd':
           if (isInsert
               && state == LexState.Normal
               && i + 9 < queryLength
-              && (query[i + 1] == (byte) 'u' || query[i + 1] == (byte) 'U')
-              && (query[i + 2] == (byte) 'p' || query[i + 2] == (byte) 'P')
-              && (query[i + 3] == (byte) 'l' || query[i + 3] == (byte) 'L')
-              && (query[i + 4] == (byte) 'i' || query[i + 4] == (byte) 'I')
-              && (query[i + 5] == (byte) 'c' || query[i + 5] == (byte) 'C')
-              && (query[i + 6] == (byte) 'a' || query[i + 6] == (byte) 'A')
-              && (query[i + 7] == (byte) 't' || query[i + 7] == (byte) 'T')
-              && (query[i + 8] == (byte) 'e' || query[i + 8] == (byte) 'E')) {
-            if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) {
+              && equalsIgnoreCase(query[i + 1], (byte) 'u')
+              && equalsIgnoreCase(query[i + 2], (byte) 'p')
+              && equalsIgnoreCase(query[i + 3], (byte) 'l')
+              && equalsIgnoreCase(query[i + 4], (byte) 'i')
+              && equalsIgnoreCase(query[i + 5], (byte) 'c')
+              && equalsIgnoreCase(query[i + 6], (byte) 'a')
+              && equalsIgnoreCase(query[i + 7], (byte) 't')
+              && equalsIgnoreCase(query[i + 8], (byte) 'e')) {
+            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 9] > ' ' && "();><=-+,".indexOf(query[i + 9]) == -1) {
+            if (query[i + 9] > ' ' && !isDelimiter(query[i + 9])) {
               break;
             }
             i += 9;
@@ -368,17 +367,17 @@ public final class ClientParser implements PrepareResult {
           if (state == LexState.Normal
               && !valuesBracketPositions.isEmpty()
               && queryLength > i + 7
-              && (query[i + 1] == 'e' || query[i + 1] == 'E')
-              && (query[i + 2] == 'l' || query[i + 2] == 'L')
-              && (query[i + 3] == 'e' || query[i + 3] == 'E')
-              && (query[i + 4] == 'c' || query[i + 4] == 'C')
-              && (query[i + 5] == 't' || query[i + 5] == 'T')) {
+              && equalsIgnoreCase(query[i + 1], (byte) 'e')
+              && equalsIgnoreCase(query[i + 2], (byte) 'l')
+              && equalsIgnoreCase(query[i + 3], (byte) 'e')
+              && equalsIgnoreCase(query[i + 4], (byte) 'c')
+              && equalsIgnoreCase(query[i + 5], (byte) 't')) {
 
             // field/table name might contain 'select'
-            if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) {
+            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 6] > ' ' && "();><=-+,".indexOf(query[i + 6]) == -1) {
+            if (query[i + 6] > ' ' && !isDelimiter(query[i + 6])) {
               break;
             }
 
@@ -392,11 +391,11 @@ public final class ClientParser implements PrepareResult {
               && valuesBracketPositions.isEmpty()
               && (lastChar == ')' || ((byte) lastChar <= 40))
               && queryLength > i + 7
-              && (query[i + 1] == 'a' || query[i + 1] == 'A')
-              && (query[i + 2] == 'l' || query[i + 2] == 'L')
-              && (query[i + 3] == 'u' || query[i + 3] == 'U')
-              && (query[i + 4] == 'e' || query[i + 4] == 'E')
-              && (query[i + 5] == 's' || query[i + 5] == 'S')
+              && equalsIgnoreCase(query[i + 1], (byte) 'a')
+              && equalsIgnoreCase(query[i + 2], (byte) 'l')
+              && equalsIgnoreCase(query[i + 3], (byte) 'u')
+              && equalsIgnoreCase(query[i + 4], (byte) 'e')
+              && equalsIgnoreCase(query[i + 5], (byte) 's')
               && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
             afterValues = true;
             if (query[i + 6] == '(') {
@@ -409,19 +408,19 @@ public final class ClientParser implements PrepareResult {
         case 'L':
           if (state == LexState.Normal
               && queryLength > i + 14
-              && (query[i + 1] == 'a' || query[i + 1] == 'A')
-              && (query[i + 2] == 's' || query[i + 2] == 'S')
-              && (query[i + 3] == 't' || query[i + 3] == 'T')
+              && equalsIgnoreCase(query[i + 1], (byte) 'a')
+              && equalsIgnoreCase(query[i + 2], (byte) 's')
+              && equalsIgnoreCase(query[i + 3], (byte) 't')
               && query[i + 4] == '_'
-              && (query[i + 5] == 'i' || query[i + 5] == 'I')
-              && (query[i + 6] == 'n' || query[i + 6] == 'N')
-              && (query[i + 7] == 's' || query[i + 7] == 'S')
-              && (query[i + 8] == 'e' || query[i + 8] == 'E')
-              && (query[i + 9] == 'r' || query[i + 9] == 'R')
-              && (query[i + 10] == 't' || query[i + 10] == 'T')
+              && equalsIgnoreCase(query[i + 5], (byte) 'i')
+              && equalsIgnoreCase(query[i + 6], (byte) 'n')
+              && equalsIgnoreCase(query[i + 7], (byte) 's')
+              && equalsIgnoreCase(query[i + 8], (byte) 'e')
+              && equalsIgnoreCase(query[i + 9], (byte) 'r')
+              && equalsIgnoreCase(query[i + 10], (byte) 't')
               && query[i + 11] == '_'
-              && (query[i + 12] == 'i' || query[i + 12] == 'I')
-              && (query[i + 13] == 'd' || query[i + 13] == 'D')
+              && equalsIgnoreCase(query[i + 12], (byte) 'i')
+              && equalsIgnoreCase(query[i + 13], (byte) 'd')
               && query[i + 14] == '(') {
             reWritablePrepare = false;
           }
@@ -429,8 +428,7 @@ public final class ClientParser implements PrepareResult {
         case '(':
           if (state == LexState.Normal) {
             isInParenthesis++;
-            if (afterValues == true && valuesBracketPositions.isEmpty()) {
-              ;
+            if (afterValues && valuesBracketPositions.isEmpty()) {
               valuesBracketPositions.add(i);
             }
           }
@@ -533,6 +531,25 @@ public final class ClientParser implements PrepareResult {
 
   public boolean isMultiQuery() {
     return isMultiQuery;
+  }
+
+  /** Fast check if byte is a delimiter character: ();><=-+, Avoids String.indexOf() overhead */
+  private static boolean isDelimiter(byte b) {
+    return b == '(' || b == ')' || b == ';' || b == '>' || b == '<' || b == '=' || b == '-'
+        || b == '+' || b == ',';
+  }
+
+  /** Fast check if byte is whitespace: space, \n, \r, \t */
+  private static boolean isWhitespace(byte b) {
+    return b == ' ' || b == '\n' || b == '\r' || b == '\t';
+  }
+
+  /**
+   * Fast case-insensitive byte comparison for ASCII letters. Uses bitwise OR to convert to
+   * lowercase before comparison.
+   */
+  private static boolean equalsIgnoreCase(byte b, byte lower) {
+    return (b | 0x20) == lower;
   }
 
   enum LexState {

@@ -66,7 +66,7 @@ public class UuidCodec implements Codec<UUID> {
 
   @Override
   public int getApproximateTextProtocolLength(Object value, Long length) {
-    return value.toString().length() + 2;
+    return 38; // UUID string length is always 36 chars + 2 quotes
   }
 
   public void encodeBinary(

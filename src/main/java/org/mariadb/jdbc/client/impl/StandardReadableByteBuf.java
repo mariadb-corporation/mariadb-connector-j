@@ -167,8 +167,13 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
    * @return current pos
    */
   public int skipIdentifier() {
-    int len = readIntLengthEncodedNotNull();
-    pos += len;
+    int l = (buf[pos++] & 0xff);
+    if (l < 251) {
+      pos += l;
+      return pos;
+    }
+    int val = readUnsignedShort();
+    pos += val;
     return pos;
   }
 

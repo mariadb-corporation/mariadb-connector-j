@@ -4,10 +4,20 @@
 package org.mariadb.jdbc.client.tls;
 
 import java.net.Socket;
-import java.security.*;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
+import java.security.PrivateKey;
+import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.security.auth.x500.X500Principal;
@@ -48,7 +58,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
   @Override
   public String[] getClientAliases(String keyType, Principal[] issuers) {
     List<String> accurateAlias = searchAccurateAliases(new String[] {keyType}, issuers);
-    if (accurateAlias.size() == 0) {
+    if (accurateAlias.isEmpty()) {
       return null;
     }
     return accurateAlias.toArray(new String[0]);

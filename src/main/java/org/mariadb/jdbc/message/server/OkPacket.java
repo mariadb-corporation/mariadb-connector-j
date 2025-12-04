@@ -28,20 +28,22 @@ public class OkPacket implements Completion {
     this.info = info;
   }
 
-  static byte[] CHARACTER_SET_CLIENT = "character_set_client".getBytes(StandardCharsets.UTF_8);
-  static byte[] CONNECTION_ID = "connection_id".getBytes(StandardCharsets.UTF_8);
-  static byte[] THREAD_CONNECTED = "threads_Connected".getBytes(StandardCharsets.UTF_8);
-  static byte[] AUTO_INCREMENT_INCREMENT =
+  static final byte[] CHARACTER_SET_CLIENT =
+      "character_set_client".getBytes(StandardCharsets.UTF_8);
+  static final byte[] CONNECTION_ID = "connection_id".getBytes(StandardCharsets.UTF_8);
+  static final byte[] THREAD_CONNECTED = "threads_Connected".getBytes(StandardCharsets.UTF_8);
+  static final byte[] AUTO_INCREMENT_INCREMENT =
       "auto_increment_increment".getBytes(StandardCharsets.UTF_8);
-  static byte[] MAXSCALE = "maxscale".getBytes(StandardCharsets.UTF_8);
-  static byte[] REDIRECT_URL = "redirect_url".getBytes(StandardCharsets.UTF_8);
-  static byte[] TX_ISOLATION = "tx_isolation".getBytes(StandardCharsets.UTF_8);
-  static byte[] TRANSACTION_ISOLATION = "transaction_isolation".getBytes(StandardCharsets.UTF_8);
+  static final byte[] MAXSCALE = "maxscale".getBytes(StandardCharsets.UTF_8);
+  static final byte[] REDIRECT_URL = "redirect_url".getBytes(StandardCharsets.UTF_8);
+  static final byte[] TX_ISOLATION = "tx_isolation".getBytes(StandardCharsets.UTF_8);
+  static final byte[] TRANSACTION_ISOLATION =
+      "transaction_isolation".getBytes(StandardCharsets.UTF_8);
 
-  static byte[] REPEATABLE_READ = "REPEATABLE-READ".getBytes(StandardCharsets.UTF_8);
-  static byte[] READ_UNCOMMITTED = "READ-UNCOMMITTED".getBytes(StandardCharsets.UTF_8);
-  static byte[] READ_COMMITTED = "READ-COMMITTED".getBytes(StandardCharsets.UTF_8);
-  static byte[] SERIALIZABLE = "SERIALIZABLE".getBytes(StandardCharsets.UTF_8);
+  static final byte[] REPEATABLE_READ = "REPEATABLE-READ".getBytes(StandardCharsets.UTF_8);
+  static final byte[] READ_UNCOMMITTED = "READ-UNCOMMITTED".getBytes(StandardCharsets.UTF_8);
+  static final byte[] READ_COMMITTED = "READ-COMMITTED".getBytes(StandardCharsets.UTF_8);
+  static final byte[] SERIALIZABLE = "SERIALIZABLE".getBytes(StandardCharsets.UTF_8);
 
   /**
    * Parser

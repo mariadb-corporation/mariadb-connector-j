@@ -307,7 +307,9 @@ public class FailoverTest extends Common {
     } catch (SQLTransientConnectionException e) {
       // might occur depending on socket detection
       if (!transactionReplay) {
-        assertTrue(e.getMessage().contains("Driver has reconnect connection after a communications link failure"));
+        assertTrue(
+            e.getMessage()
+                .contains("Driver has reconnect connection after a communications link failure"));
       } else {
         e.printStackTrace();
         fail("must not have thrown error");

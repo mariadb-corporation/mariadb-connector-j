@@ -6,7 +6,11 @@ package org.mariadb.jdbc.message.server;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.BasePreparedStatement;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.Client;
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Completion;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.export.Prepare;
@@ -20,39 +24,37 @@ import org.mariadb.jdbc.util.log.Loggers;
  *     packet</a>
  */
 public class PrepareResultPacket implements Completion, Prepare {
-  static final ColumnDecoder CONSTANT_PARAMETER;
+  private static final byte[] CONSTANT_PARAMETER_BYTES =
+      new byte[] {
+        0x03,
+        0x64,
+        0x65,
+        0x66,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x3F,
+        0x00,
+        0x00,
+        0x0C,
+        0x3F,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x06,
+        (byte) 0x80,
+        0x00,
+        0x00,
+        0x00,
+        0x00
+      };
+  static final ColumnDecoder CONSTANT_PARAMETER =
+      ColumnDecoder.decode(
+          new StandardReadableByteBuf(CONSTANT_PARAMETER_BYTES, CONSTANT_PARAMETER_BYTES.length));
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
-
-  static {
-    byte[] bytes =
-        new byte[] {
-          0x03,
-          0x64,
-          0x65,
-          0x66,
-          0x00,
-          0x00,
-          0x00,
-          0x01,
-          0x3F,
-          0x00,
-          0x00,
-          0x0C,
-          0x3F,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x06,
-          (byte) 0x80,
-          0x00,
-          0x00,
-          0x00,
-          0x00
-        };
-    CONSTANT_PARAMETER = ColumnDecoder.decode(new StandardReadableByteBuf(bytes, bytes.length));
-  }
 
   private final ColumnDecoder[] parameters;
 

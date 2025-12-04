@@ -49,7 +49,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
   public void decrementUse(Client con, BasePreparedStatement preparedStatement)
       throws SQLException {
     statements.remove(preparedStatement);
-    if (statements.size() == 0 && !cached.get()) {
+    if (statements.isEmpty() && !cached.get()) {
       close(con);
     }
   }

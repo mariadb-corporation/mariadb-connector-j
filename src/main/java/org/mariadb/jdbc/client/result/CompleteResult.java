@@ -5,6 +5,7 @@ package org.mariadb.jdbc.client.result;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -68,7 +69,6 @@ public class CompleteResult extends Result {
         0);
     this.mightBeBulkResult = mightBeBulkResult;
 
-    this.data = new byte[10][];
     if (maxRows > 0) {
       this.data = new byte[10][];
       do {
@@ -78,13 +78,13 @@ public class CompleteResult extends Result {
     } else {
       // avoiding creating array of array since
       byte[] buf = reader.readPacket(traceEnable);
-      if (buf[0] == (byte) 0xFF || (buf[0] == (byte) 0xFE && buf.length < 16777215)) {
+      if (buf[0] == (byte) 0xFF || (buf[0] == (byte) 0xFE && buf.length < 0xFFFFFF)) {
         // no rows
         this.data = new byte[0][];
         readNext(buf);
       } else {
         byte[] buf2 = reader.readPacket(traceEnable);
-        if (buf2[0] == (byte) 0xFF || (buf2[0] == (byte) 0xFE && buf2.length < 16777215)) {
+        if (buf2[0] == (byte) 0xFF || (buf2[0] == (byte) 0xFE && buf2.length < 0xFFFFFF)) {
           // one row
           this.data = new byte[1][];
           this.data[0] = buf;
@@ -183,22 +183,37 @@ public class CompleteResult extends Result {
           ColumnDecoder.create(context.getDatabase(), columnNames[i], columnTypes[i], flags);
     }
 
-    List<byte[]> rows = new ArrayList<>();
+    int estimatedRowSize = columnNameLength * 20; // estimate ~20 bytes per column
+    List<byte[]> rows = new ArrayList<>(data.length);
     for (String[] rowData : data) {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      ByteArrayOutputStream baos = new ByteArrayOutputStream(estimatedRowSize);
 
       for (String rowDatum : rowData) {
 
         if (rowDatum != null) {
-          byte[] bb = rowDatum.getBytes();
+          byte[] bb = rowDatum.getBytes(StandardCharsets.UTF_8);
           int len = bb.length;
           if (len < 251) {
             baos.write((byte) len);
-          } else {
-            // assume length cannot be > 65536
+          } else if (len < 65536) {
             baos.write((byte) 0xfc);
             baos.write((byte) len);
             baos.write((byte) (len >>> 8));
+          } else if (len < 0xFFFFFF) {
+            baos.write((byte) 0xfd);
+            baos.write((byte) len);
+            baos.write((byte) (len >>> 8));
+            baos.write((byte) (len >>> 16));
+          } else {
+            baos.write((byte) 0xfe);
+            baos.write((byte) len);
+            baos.write((byte) (len >>> 8));
+            baos.write((byte) (len >>> 16));
+            baos.write((byte) (len >>> 24));
+            baos.write((byte) ((long) len >>> 32));
+            baos.write((byte) ((long) len >>> 40));
+            baos.write((byte) ((long) len >>> 48));
+            baos.write((byte) ((long) len >>> 56));
           }
           baos.write(bb, 0, bb.length);
         } else {

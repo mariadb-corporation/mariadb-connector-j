@@ -13,7 +13,10 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Completion;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.StreamingResult;
@@ -29,6 +32,16 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public interface ClientMessage {
 
+  /** Precompiled pattern for LOAD DATA LOCAL INFILE with parameter placeholder */
+  Pattern LOAD_LOCAL_PATTERN_PARAM =
+      Pattern.compile(
+          "^((\\s[--]|#).*(\\r"
+              + "\\n"
+              + "|\\r"
+              + "|\\n"
+              + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+          Pattern.CASE_INSENSITIVE);
+
   /**
    * Check that file requested correspond to request.
    *
@@ -40,13 +53,15 @@ public interface ClientMessage {
    */
   static boolean validateLocalFileName(
       String sql, Parameters parameters, String fileName, Context context) {
+    // Check for direct filename match in SQL
+    String escapedFileName = Pattern.quote(fileName.replace("\\", "\\\\"));
     String reg =
         "^((\\s[--]|#).*(\\r"
             + "\\n"
             + "|\\r"
             + "|\\n"
             + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
-            + Pattern.quote(fileName.replace("\\", "\\\\"))
+            + escapedFileName
             + "'";
 
     Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
@@ -54,16 +69,9 @@ public interface ClientMessage {
       return true;
     }
 
+    // Check for parameterized query
     if (parameters != null) {
-      pattern =
-          Pattern.compile(
-              "^((\\s[--]|#).*(\\r"
-                  + "\\n"
-                  + "|\\r"
-                  + "|\\n"
-                  + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
-              Pattern.CASE_INSENSITIVE);
-      if (pattern.matcher(sql).find() && parameters.size() > 0) {
+      if (LOAD_LOCAL_PATTERN_PARAM.matcher(sql).find() && parameters.size() > 0) {
         String paramString = parameters.get(0).bestEffortStringValue(context);
         if (paramString != null) {
           return paramString.equalsIgnoreCase("'" + fileName.replace("\\", "\\\\") + "'");
@@ -166,11 +174,12 @@ public interface ClientMessage {
         // *********************************************************************************************************
         // * OK response
         // *********************************************************************************************************
-      case (byte) 0x00:
+      case 0x00:
         OkPacket ok = OkPacket.parse(buf, context);
+        int serverStatus = context.getServerStatus();
         if (context.getRedirectUrl() != null
-            && (context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0
-            && (context.getServerStatus() & ServerStatus.MORE_RESULTS_EXISTS) == 0) {
+            && (serverStatus & (ServerStatus.IN_TRANSACTION | ServerStatus.MORE_RESULTS_EXISTS))
+                == 0) {
           redirectFct.accept(context.getRedirectUrl());
         }
         return ok;
@@ -220,7 +229,7 @@ public interface ClientMessage {
         // sending stream
         if (is != null) {
           try {
-            byte[] fileBuf = new byte[8192];
+            byte[] fileBuf = new byte[65536];
             int len;
             while ((len = is.read(fileBuf)) > 0) {
               writer.writeBytes(fileBuf, 0, len);
@@ -307,8 +316,9 @@ public interface ClientMessage {
         }
 
         if (fetchSize != 0) {
-          if ((context.getServerStatus() & ServerStatus.MORE_RESULTS_EXISTS) > 0) {
-            context.setServerStatus(context.getServerStatus() - ServerStatus.MORE_RESULTS_EXISTS);
+          int status = context.getServerStatus();
+          if ((status & ServerStatus.MORE_RESULTS_EXISTS) != 0) {
+            context.setServerStatus(status & ~ServerStatus.MORE_RESULTS_EXISTS);
           }
 
           return new StreamingResult(

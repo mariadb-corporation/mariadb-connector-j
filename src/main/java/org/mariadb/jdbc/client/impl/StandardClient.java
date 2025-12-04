@@ -7,7 +7,12 @@ import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslCipherSuit
 import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslProtocolSuites;
 import static org.mariadb.jdbc.util.constants.Capabilities.SSL;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -24,12 +29,19 @@ import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.net.ssl.*;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -43,7 +55,12 @@ import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
-import org.mariadb.jdbc.client.socket.impl.*;
+import org.mariadb.jdbc.client.socket.impl.CompressInputStream;
+import org.mariadb.jdbc.client.socket.impl.CompressOutputStream;
+import org.mariadb.jdbc.client.socket.impl.PacketReader;
+import org.mariadb.jdbc.client.socket.impl.PacketWriter;
+import org.mariadb.jdbc.client.socket.impl.ReadAheadBufferedStream;
+import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
 import org.mariadb.jdbc.client.tls.MariaDbX509EphemeralTrustingManager;
 import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.MutableByte;
@@ -52,9 +69,21 @@ import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.ClientMessage;
-import org.mariadb.jdbc.message.client.*;
-import org.mariadb.jdbc.message.server.*;
-import org.mariadb.jdbc.plugin.*;
+import org.mariadb.jdbc.message.client.ClosePreparePacket;
+import org.mariadb.jdbc.message.client.HandshakeResponse;
+import org.mariadb.jdbc.message.client.QueryPacket;
+import org.mariadb.jdbc.message.client.QuitPacket;
+import org.mariadb.jdbc.message.client.SslRequestPacket;
+import org.mariadb.jdbc.message.server.AuthSwitchPacket;
+import org.mariadb.jdbc.message.server.ErrorPacket;
+import org.mariadb.jdbc.message.server.InitialHandshakePacket;
+import org.mariadb.jdbc.message.server.OkPacket;
+import org.mariadb.jdbc.message.server.PrepareResultPacket;
+import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
+import org.mariadb.jdbc.plugin.Credential;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
+import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPlugin;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
@@ -714,7 +743,7 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   private void postConnectionQueries() throws SQLException {
-    List<String> commands = new ArrayList<>();
+    List<String> commands = new ArrayList<>(8); // typical: timezone, session vars, init sql
 
     List<String> galeraAllowedStates =
         conf.galeraAllowedState() == null
@@ -818,7 +847,7 @@ public class StandardClient implements Client, AutoCloseable {
    * @return query string for setting session variables or null if no variables need to be set
    */
   public String createSessionVariableQuery(Context context) {
-    List<String> sessionCommands = new ArrayList<>();
+    List<String> sessionCommands = new ArrayList<>(8); // autocommit, truncation, tracking, etc.
 
     addAutoCommitCommand(context, sessionCommands);
     addTruncationCommand(sessionCommands);
@@ -1045,7 +1074,7 @@ public class StandardClient implements Client, AutoCloseable {
       boolean closeOnCompletion,
       boolean canRedo)
       throws SQLException {
-    List<Completion> results = new ArrayList<>();
+    List<Completion> results = new ArrayList<>(messages.length); // one result per message
     int perMsgCounter = 0;
     int readCounter = 0;
     int[] responseMsg = new int[messages.length];
@@ -1168,7 +1197,7 @@ public class StandardClient implements Client, AutoCloseable {
         streamStmt.fetchRemaining();
         streamStmt = null;
       }
-      List<Completion> completions = new ArrayList<>();
+      List<Completion> completions = new ArrayList<>(1); // typically single completion
       try {
         while (nbResp-- > 0) {
           readResults(
@@ -1230,7 +1259,7 @@ public class StandardClient implements Client, AutoCloseable {
       streamStmt.fetchRemaining();
       streamStmt = null;
     }
-    List<Completion> completions = new ArrayList<>();
+    List<Completion> completions = new ArrayList<>(1); // single message execution
     readResults(
         stmt,
         message,
@@ -1255,7 +1284,7 @@ public class StandardClient implements Client, AutoCloseable {
       streamStmt.fetchRemaining();
       streamStmt = null;
     }
-    List<Completion> completions = new ArrayList<>();
+    List<Completion> completions = new ArrayList<>(1); // single message execution
     readResults(
         null,
         message,

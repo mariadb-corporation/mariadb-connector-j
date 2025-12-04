@@ -5,7 +5,11 @@ package org.mariadb.jdbc.client.column;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
-import java.sql.*;
+import java.sql.Date;
+import java.sql.SQLDataException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.DateTimeException;
@@ -30,6 +34,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
   private static final DecimalFormat oldDecimalFormat =
       new DecimalFormat(".0#####", DecimalFormatSymbols.getInstance(Locale.US));
+  private static final int[] POWERS_OF_10 = {1, 10, 100, 1000, 10000, 100000, 1000000};
 
   /**
    * TIMESTAMP metadata type decoder
@@ -242,16 +247,16 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
 
       if (getDecimals() == 0) return sb.toString();
       sb.append(".");
-      fill((int) (microseconds / Math.pow(10, 6 - getDecimals())), getDecimals(), sb);
+      fill((int) (microseconds / POWERS_OF_10[6 - getDecimals()]), getDecimals(), sb);
       return sb.toString();
     }
   }
 
   private void fill(int val, int size, StringBuilder sb) {
     String valSt = String.valueOf(val);
-    long zeroToAdd = size - valSt.length();
-    while (zeroToAdd-- > 0) {
-      sb.append("0");
+    int zeroToAdd = size - valSt.length();
+    for (int i = 0; i < zeroToAdd; i++) {
+      sb.append('0');
     }
     sb.append(valSt);
   }

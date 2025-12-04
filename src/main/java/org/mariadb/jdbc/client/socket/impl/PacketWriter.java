@@ -297,7 +297,7 @@ public class PacketWriter implements Writer {
       return;
     }
 
-    if (length < 16777216) {
+    if (length < 0xFFFFFF) {
 
       if (4 > buf.length - pos) {
         // not enough space remaining
@@ -616,7 +616,7 @@ public class PacketWriter implements Writer {
       for (int i = 0; i < len; i++) {
         if (bytes[i] == QUOTE
             || bytes[i] == BACKSLASH
-            || bytes[i] == '"'
+            || bytes[i] == DBL_QUOTE
             || bytes[i] == ZERO_BYTE) {
           buf[pos++] = BACKSLASH; // add escape slash
         }
@@ -762,7 +762,7 @@ public class PacketWriter implements Writer {
 
   public boolean throwMaxAllowedLengthOr16M(int length) {
     if (maxAllowedPacket != null) return cmdLength + length >= maxAllowedPacket;
-    return cmdLength + length >= 16 * 1024 * 1024;
+    return cmdLength + length >= 0xFFFFFF;
   }
 
   public void permitTrace(boolean permitTrace) {
