@@ -49,7 +49,7 @@ public class Pool implements AutoCloseable, PoolMBean {
   private int waitTimeout;
 
   /**
-   * Create pool from configuration.
+   * Create a pool from configuration.
    *
    * @param conf configuration parser
    * @param poolIndex pool index to permit distinction of thread name
@@ -202,35 +202,35 @@ public class Pool implements AutoCloseable, PoolMBean {
           public void connectionClosed(ConnectionEvent event) {
             MariaDbInnerPoolConnection item = (MariaDbInnerPoolConnection) event.getSource();
             if (poolState.get() == POOL_STATE_OK) {
-              try {
-                if (!idleConnections.contains(item)) {
-                  item.getConnection().setPoolConnection(null);
-                  item.getConnection().reset();
-                  idleConnections.addFirst(item);
-                  item.getConnection().setPoolConnection(item);
-                }
-              } catch (SQLException sqle) {
-
-                // sql exception during reset, removing connection from pool
+              if (item.isClosed()) {
                 totalConnection.decrementAndGet();
                 silentCloseConnection(item.getConnection());
-                logger.debug(
-                    "connection {} removed from pool {} due to error during reset (total:{},"
-                        + " active:{}, pending:{})",
-                    item.getConnection().getThreadId(),
-                    poolTag,
-                    totalConnection.get(),
-                    getActiveConnections(),
-                    pendingRequestNumber.get());
+                if (idleConnections.contains(item)) {
+                  idleConnections.remove(item);
+                }
+              } else {
+                try {
+                  if (!idleConnections.contains(item)) {
+                    item.getConnection().setPoolConnection(null);
+                    item.getConnection().reset();
+                    idleConnections.addFirst(item);
+                    item.getConnection().setPoolConnection(item);
+                  }
+                } catch (SQLException sqle) {
+
+                  // sql exception during reset, removing connection from pool
+                  totalConnection.decrementAndGet();
+                  silentCloseConnection(item.getConnection());
+                  logger.debug(
+                      "connection {} removed from pool {} due to error during reset (total:{},"
+                          + " active:{}, pending:{})",
+                      item.getConnection().getThreadId(),
+                      poolTag,
+                      totalConnection.get(),
+                      getActiveConnections(),
+                      pendingRequestNumber.get());
+                }
               }
-            } else {
-              // pool is closed, should then not be rendered to pool, but closed.
-              try {
-                item.getConnection().close();
-              } catch (SQLException sqle) {
-                // eat
-              }
-              totalConnection.decrementAndGet();
             }
           }
 
@@ -368,7 +368,7 @@ public class Pool implements AutoCloseable, PoolMBean {
       // ask for new connection creation if max is not reached
       addConnectionRequest();
 
-      // try to create new connection if semaphore permit it
+      // try to create a new connection if semaphore permits it
       if ((poolConnection =
               getIdleConnection(
                   TimeUnit.MILLISECONDS.toNanos(conf.connectTimeout()), TimeUnit.NANOSECONDS))
@@ -463,7 +463,7 @@ public class Pool implements AutoCloseable, PoolMBean {
                 new LinkedBlockingQueue<>(conf.maxPoolSize()),
                 new PoolThreadFactory(poolTag + "-destroyer"));
 
-        // loop for up to 10 seconds to close not used connection
+        // loop for up to 10 seconds to close a not used connection
         long start = System.nanoTime();
         do {
           closeAll(idleConnections);
@@ -494,9 +494,20 @@ public class Pool implements AutoCloseable, PoolMBean {
   private void closeAll(Collection<MariaDbInnerPoolConnection> collection) {
     synchronized (collection) { // synchronized mandatory to iterate Collections.synchronizedList()
       for (MariaDbInnerPoolConnection item : collection) {
-        collection.remove(item);
-        totalConnection.decrementAndGet();
-        silentAbortConnection(item.getConnection());
+        if (!item.isClosed()) {
+          try {
+            item.close();
+            totalConnection.decrementAndGet();
+          } catch (SQLException e) {
+            // eat
+          }
+        } else {
+          if (idleConnections.contains(item)) {
+            silentCloseConnection(item.getConnection());
+            idleConnections.remove(item);
+            totalConnection.decrementAndGet();
+          }
+        }
       }
     }
   }

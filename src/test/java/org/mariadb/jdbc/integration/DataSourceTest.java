@@ -40,7 +40,6 @@ public class DataSourceTest extends Common {
     testDs(ds);
   }
 
-
   private void testDs(MariaDbDataSource ds) throws SQLException {
     try (Connection con1 = ds.getConnection()) {
       try (Connection con2 = ds.getConnection()) {

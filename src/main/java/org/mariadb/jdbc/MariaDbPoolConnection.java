@@ -16,11 +16,12 @@ import javax.transaction.xa.Xid;
 import org.mariadb.jdbc.util.StringUtils;
 
 /** MariaDB pool connection implementation */
-public class MariaDbPoolConnection implements PooledConnection, XAConnection {
+public class MariaDbPoolConnection implements XAConnection {
 
   private final Connection connection;
   private final List<ConnectionEventListener> connectionEventListeners;
   private final List<StatementEventListener> statementEventListeners;
+  private boolean closed;
 
   /**
    * Constructor.
@@ -33,6 +34,7 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     this.connection.setPoolConnection(this);
     statementEventListeners = new CopyOnWriteArrayList<>();
     connectionEventListeners = new CopyOnWriteArrayList<>();
+    closed = false;
   }
 
   /**
@@ -130,10 +132,11 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
    */
   @Override
   public void close() throws SQLException {
+    closed = true;
+    if (connection.isClosed()) {
+      return;
+    }
     fireConnectionClosed(new ConnectionEvent(this));
-  }
-
-  protected void realClose() throws SQLException {
     connection.setPoolConnection(null);
     connection.close();
   }
@@ -197,6 +200,10 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
       default:
         return "";
     }
+  }
+
+  public boolean isClosed() {
+    return closed;
   }
 
   private class MariaDbXAResource implements XAResource {

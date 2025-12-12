@@ -21,7 +21,6 @@ import org.mariadb.jdbc.message.client.PingPacket;
 import org.mariadb.jdbc.message.client.QueryPacket;
 import org.mariadb.jdbc.message.client.ResetPacket;
 import org.mariadb.jdbc.plugin.array.FloatArray;
-import org.mariadb.jdbc.pool.MariaDbInnerPoolConnection;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
@@ -242,13 +241,7 @@ public class Connection implements java.sql.Connection {
       // pool connection must only be closed when pooledConnection.close method is called.
       // see
       // https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/javax/sql/PooledConnection.html
-
-      if (poolConnection instanceof MariaDbInnerPoolConnection) {
-        // specific case, when using mariadb pool
-        // when executing, MariadbPoolDataSource.getConnection(),
-        // connection has still to be given back to pool
-        poolConnection.fireConnectionClosed(new ConnectionEvent(poolConnection));
-      }
+      poolConnection.fireConnectionClosed(new ConnectionEvent(poolConnection));
       return;
     }
     client.close();

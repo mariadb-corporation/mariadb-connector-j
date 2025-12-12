@@ -212,7 +212,6 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
         conf.pinGlobalTxToPhysicalConnection()
             ? new MariaDbPoolPinnedConnection(conn)
             : new MariaDbPoolConnection(conn);
-    setConnectionCloseListener(poolConnection);
     return poolConnection;
   }
 
@@ -226,26 +225,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
         conf.pinGlobalTxToPhysicalConnection()
             ? new MariaDbPoolPinnedConnection(conn)
             : new MariaDbPoolConnection(conn);
-    setConnectionCloseListener(poolConnection);
     return poolConnection;
-  }
-
-  private void setConnectionCloseListener(MariaDbPoolConnection mariaDbPoolConnection) {
-    mariaDbPoolConnection.addConnectionEventListener(
-        new ConnectionEventListener() {
-
-          @Override
-          public void connectionClosed(ConnectionEvent event) {
-            try {
-              mariaDbPoolConnection.realClose();
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
-            }
-          }
-
-          @Override
-          public void connectionErrorOccurred(ConnectionEvent event) {}
-        });
   }
 
   @Override
