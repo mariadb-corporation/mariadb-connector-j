@@ -454,4 +454,8 @@ public class MariaDbBlob implements Blob, Serializable {
       write(buf, 0, buf.length);
     }
   }
+
+  public void close() throws SQLException {
+    data = null;
+  }
 }
