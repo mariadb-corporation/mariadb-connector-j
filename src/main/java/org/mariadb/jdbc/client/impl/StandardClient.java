@@ -38,10 +38,8 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManager;
+import javax.net.ssl.*;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -88,6 +86,7 @@ import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPlugin;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
+import org.mariadb.jdbc.util.IPUtility;
 import org.mariadb.jdbc.util.Security;
 import org.mariadb.jdbc.util.StringUtils;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -286,12 +285,23 @@ public class StandardClient implements Client, AutoCloseable {
 
   private void handleSslHandshake(SSLSocket sslSocket, TrustManager[] trustManagers)
       throws IOException {
+    // Set SNI hostname
+    if (this.hostAddress != null && !IPUtility.isInetAddress(this.hostAddress.host)) {
+      SSLParameters params = sslSocket.getSSLParameters();
+      SNIHostName serverName = new SNIHostName(this.hostAddress.host);
+      params.setServerNames(Collections.singletonList(serverName));
+      sslSocket.setSSLParameters(params);
+    }
+
     sslSocket.startHandshake();
     if (trustManagers.length > 0
         && trustManagers[0] instanceof MariaDbX509EphemeralTrustingManager) {
       certFingerprint = ((MariaDbX509EphemeralTrustingManager) trustManagers[0]).getFingerprint();
     }
   }
+
+
+
 
   private boolean requiresHostnameVerification(SslMode sslMode) {
     return certFingerprint == null && sslMode == SslMode.VERIFY_FULL && hostAddress.host != null;
