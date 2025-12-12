@@ -103,6 +103,18 @@ public class DataSourceTest extends BaseTest {
   }
 
   @Test
+  public void testDataSourceTimeoutZero() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
+
+    MariaDbDataSource ds =
+        new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
+    ds.setLoginTimeout(0);
+    try (Connection connection = ds.getConnection(username, password)) {
+      assertEquals(connection.isValid(0), true);
+    }
+  }
+
+  @Test
   public void testDataSource2() throws SQLException {
     Assume.assumeFalse(options.useSsl != null && options.useSsl);
     MariaDbDataSource ds =

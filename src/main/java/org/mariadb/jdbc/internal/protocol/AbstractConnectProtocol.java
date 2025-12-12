@@ -872,8 +872,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void postConnectionQueries() throws SQLException {
     try {
-      Integer timeout = options.connectTimeout > 0 ? options.connectTimeout : options.socketTimeout;
-      if (options.usePipelineAuth && (timeout == null || timeout == 0 || timeout > 30000)) {
+      int timeout = (options.connectTimeout > 0)
+              ? options.connectTimeout
+              : (options.socketTimeout != null ? options.socketTimeout : 0);
+
+      if (options.usePipelineAuth && (timeout == 0 || timeout > 30000)) {
         // set a timeout to avoid hang in case server doesn't support pipelining
         socket.setSoTimeout(30000);
       }
