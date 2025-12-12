@@ -148,7 +148,7 @@ public class StreamingResult extends Result {
    * When protocol has a current Streaming result (this) fetch all to permit another query is
    * executing.
    *
-   * @throws SQLException if any error occur
+   * @throws SQLException if any error occurs
    */
   public void fetchRemaining() throws SQLException {
     if (!loaded) {

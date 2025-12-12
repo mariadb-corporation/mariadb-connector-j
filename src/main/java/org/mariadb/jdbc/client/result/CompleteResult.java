@@ -215,7 +215,7 @@ public class CompleteResult extends Result {
             baos.write((byte) ((long) len >>> 48));
             baos.write((byte) ((long) len >>> 56));
           }
-          baos.write(bb, 0, bb.length);
+          baos.write(bb, 0, len);
         } else {
           baos.write((byte) 0xfb);
         }
@@ -232,8 +232,9 @@ public class CompleteResult extends Result {
    * @return Result-set with metadata using alias as name
    */
   public CompleteResult newResultsetWithUseAliasAsName() {
-    ColumnDecoder[] newMeta = new ColumnDecoder[metadataList.length];
-    for (int i = 0; i < metadataList.length; i++) {
+    int length = metadataList.length;
+    ColumnDecoder[] newMeta = new ColumnDecoder[length];
+    for (int i = 0; i < length; i++) {
       newMeta[i] = metadataList[i].useAliasAsName();
     }
     return new CompleteResult(newMeta, this);

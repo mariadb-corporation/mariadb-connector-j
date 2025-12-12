@@ -300,7 +300,7 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   private boolean requiresHostnameVerification(SslMode sslMode) {
-    return certFingerprint == null && sslMode == SslMode.VERIFY_FULL && hostAddress.host != null;
+    return sslMode == SslMode.VERIFY_FULL && certFingerprint == null && hostAddress.host != null;
   }
 
   private void verifyHostname(SSLSocket sslSocket, TlsSocketPlugin socketPlugin)
