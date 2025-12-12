@@ -54,6 +54,7 @@ package org.mariadb.jdbc;
 
 import static org.junit.Assert.*;
 
+import com.sun.jna.Platform;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -61,8 +62,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
-
-import com.sun.jna.Platform;
 import org.junit.*;
 
 public class StoredProcedureTest extends BaseTest {
@@ -1669,8 +1668,8 @@ public class StoredProcedureTest extends BaseTest {
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 1, 2));
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("DROP USER IF EXISTS basicUser" + getHostSuffix());
-    stmt.execute("CREATE USER basicUser"+ getHostSuffix() +" IDENTIFIED BY '!Passw0rd3Works'");
-    stmt.execute("GRANT ALL ON *.* TO basicUser"+ getHostSuffix());
+    stmt.execute("CREATE USER basicUser" + getHostSuffix() + " IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute("GRANT ALL ON *.* TO basicUser" + getHostSuffix());
     stmt.execute("DROP PROCEDURE IF EXISTS p_r_d");
 
     stmt.execute(
@@ -1689,7 +1688,7 @@ public class StoredProcedureTest extends BaseTest {
       assertTrue(
           e.getMessage().contains("Query execution was interrupted (max_statement_time exceeded)"));
     } finally {
-      stmt.execute("DROP USER basicUser"+ getHostSuffix());
+      stmt.execute("DROP USER basicUser" + getHostSuffix());
       stmt.execute("DROP PROCEDURE p_r_d");
     }
   }

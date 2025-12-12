@@ -165,7 +165,8 @@ public class BaseTest {
   }
 
   public static String getHostSuffix() {
-    if (hostname.equals("localhost") || "local".equals(System.getenv().getOrDefault("LOCAL_DB", "container"))) {
+    if (hostname.equals("localhost")
+        || "local".equals(System.getenv().getOrDefault("LOCAL_DB", "container"))) {
       return "@'localhost'";
     }
     return "@'%'";

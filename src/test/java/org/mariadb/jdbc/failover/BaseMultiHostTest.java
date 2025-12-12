@@ -158,7 +158,7 @@ public class BaseMultiHostTest {
             // choose to use allowPublicKeyRetrieval=true for testing
             Statement stmt = c.createStatement();
             ResultSet rs =
-                    stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
+                stmt.executeQuery("SHOW STATUS LIKE 'Caching_sha2_password_rsa_public_key'");
             if (rs.next()) {
               mDefUrl += "&serverRsaPublicKeyFile=" + rs.getString(2);
             } else {
