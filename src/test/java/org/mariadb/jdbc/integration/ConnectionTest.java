@@ -816,11 +816,7 @@ public class ConnectionTest extends Common {
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec" + getHostSuffix());
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec2" + getHostSuffix());
 
-    String version = System.getProperty("java.version");
-    int majorVersion =
-        (version.indexOf(".") >= 0)
-            ? Integer.parseInt(version.substring(0, version.indexOf(".")))
-            : Integer.parseInt(version);
+    int majorVersion = getJavaVersion();
     if (majorVersion < 15) {
       // before java 15, Ed25519 is not supported
       // assuming, that BouncyCastle is not on test classpath

@@ -304,6 +304,11 @@ public class Common {
       int dot = version.indexOf(".");
       if (dot != -1) {
         version = version.substring(0, dot);
+      } else {
+          dot = version.indexOf("-");
+          if (dot != -1) {
+              version = version.substring(0, dot);
+          }
       }
     }
     return Integer.parseInt(version);
