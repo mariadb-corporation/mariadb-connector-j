@@ -300,9 +300,6 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
-
-
-
   private boolean requiresHostnameVerification(SslMode sslMode) {
     return certFingerprint == null && sslMode == SslMode.VERIFY_FULL && hostAddress.host != null;
   }

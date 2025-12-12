@@ -2606,7 +2606,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     if (conf.useCatalogTerm() == CatalogTerm.UseSchema) {
       return executeQuery(
           "SELECT SCHEMA_NAME as TABLE_SCHEM, CATALOG_NAME as TABLE_CATALOG FROM"
-              + " information_schema.SCHEMATA ORDER BY SCHEMA_NAME");
+              + " information_schema.SCHEMATA ORDER BY TABLE_CATALOG, SCHEMA_NAME");
     }
     return executeQuery("SELECT '' TABLE_SCHEM, '' TABLE_CATALOG  FROM DUAL WHERE 1=0");
   }
