@@ -19,15 +19,17 @@ public interface AuthenticationPlugin {
    * @param encoder out stream
    * @param decoder in stream
    * @param context connection context
+   * @param sslFingerPrintValidation true if SSL certificate fingerprint validation is enabled
    * @return response packet
    * @throws IOException if socket error
    * @throws SQLException if plugin exception
    */
-  ReadableByteBuf process(Writer encoder, Reader decoder, Context context)
+  ReadableByteBuf process(
+      Writer encoder, Reader decoder, Context context, boolean sslFingerPrintValidation)
       throws IOException, SQLException;
 
   /**
-   * Can plugins is MitM-proof, permitting returning HASH
+   * Can plugins are MitM-proof, permitting returning HASH
    *
    * @return true if permitted
    */

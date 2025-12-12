@@ -18,6 +18,6 @@ public class Ed25519PasswordPluginFactory implements AuthenticationPluginFactory
 
   public AuthenticationPlugin initialize(
       String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
-    return new Ed25519PasswordPlugin(authenticationData, seed, conf, hostAddress);
+    return new Ed25519PasswordPlugin(authenticationData, seed);
   }
 }

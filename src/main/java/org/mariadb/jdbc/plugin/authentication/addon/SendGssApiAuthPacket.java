@@ -31,8 +31,8 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     gssapiAuth = init;
   }
 
-  private byte[] seed;
-  private String optionServicePrincipalName;
+  private final byte[] seed;
+  private final String optionServicePrincipalName;
 
   /**
    * Initialization.
@@ -52,11 +52,13 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
    * @param out out stream
    * @param in in stream
    * @param context context
+   * @param sslFingerPrintValidation true if SSL certificate fingerprint validation is enabled
    * @return response packet
    * @throws IOException if socket error
    * @throws SQLException if plugin exception
    */
-  public ReadableByteBuf process(Writer out, Reader in, Context context)
+  public ReadableByteBuf process(
+      Writer out, Reader in, Context context, boolean sslFingerPrintValidation)
       throws IOException, SQLException {
     ReadableByteBuf buf = new StandardReadableByteBuf(seed, seed.length);
 

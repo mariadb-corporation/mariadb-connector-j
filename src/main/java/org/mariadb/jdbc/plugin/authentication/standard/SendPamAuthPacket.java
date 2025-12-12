@@ -19,8 +19,8 @@ import org.mariadb.jdbc.plugin.AuthenticationPlugin;
  */
 public class SendPamAuthPacket implements AuthenticationPlugin {
 
-  private String authenticationData;
-  private Configuration conf;
+  private final String authenticationData;
+  private final Configuration conf;
   private int counter = 0;
 
   /**
@@ -41,10 +41,12 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    * @param out out stream
    * @param in in stream
    * @param context connection context
+   * @param sslFingerPrintValidation true if SSL certificate fingerprint validation is enabled
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(Writer out, Reader in, Context context)
+  public ReadableByteBuf process(
+      Writer out, Reader in, Context context, boolean sslFingerPrintValidation)
       throws SQLException, IOException {
 
     while (true) {

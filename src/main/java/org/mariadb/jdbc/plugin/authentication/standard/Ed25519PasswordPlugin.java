@@ -9,8 +9,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
-import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -25,8 +23,8 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSAParamet
 /** ED25519 password plugin */
 public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 
-  private String authenticationData;
-  private byte[] seed;
+  private final String authenticationData;
+  private final byte[] seed;
 
   /**
    * Sign password
@@ -84,23 +82,24 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
     }
   }
 
-  public Ed25519PasswordPlugin(
-      String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
+  public Ed25519PasswordPlugin(String authenticationData, byte[] seed) {
     this.seed = seed;
     this.authenticationData = authenticationData;
   }
 
   /**
-   * Process Ed25519 password plugin authentication. see
-   * https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
+   * Process Ed25519 password plugin authentication. see <a
+   * href="https://mariadb.com/kb/en/library/authentication-plugin-ed25519/">authentication-plugin-ed25519</a>
    *
    * @param out out stream
    * @param in in stream
    * @param context connection context
+   * @param sslFingerPrintValidation true if SSL certificate fingerprint validation is enabled
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(Writer out, Reader in, Context context)
+  public ReadableByteBuf process(
+      Writer out, Reader in, Context context, boolean sslFingerPrintValidation)
       throws SQLException, IOException {
     if (authenticationData == null) {
       out.writeEmptyPacket();

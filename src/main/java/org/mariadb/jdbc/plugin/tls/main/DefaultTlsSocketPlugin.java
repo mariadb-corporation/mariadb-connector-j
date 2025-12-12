@@ -45,11 +45,11 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         char[] keyStorePasswordChars =
             keyStorePassword == null
                 ? null
-                : (keyStorePassword.equals("")) ? null : keyStorePassword.toCharArray();
+                : (keyStorePassword.isEmpty()) ? null : keyStorePassword.toCharArray();
         char[] keyStoreChars =
             (keyPassword == null)
                 ? keyStorePasswordChars
-                : (keyPassword.equals("")) ? null : keyPassword.toCharArray();
+                : (keyPassword.isEmpty()) ? null : keyPassword.toCharArray();
         KeyStore ks =
             KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
         ks.load(inStream, keyStorePasswordChars);
@@ -141,6 +141,26 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               // eat
             }
           }
+          try {
+            TrustManagerFactory tmf =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(ks);
+            for (TrustManager tm : tmf.getTrustManagers()) {
+              if (tm instanceof X509TrustManager) {
+                trustManager =
+                    new X509TrustManager[] {
+                      new MariaDbX509EphemeralTrustingManager((X509TrustManager) tm)
+                    };
+                break;
+              }
+            }
+
+          } catch (GeneralSecurityException generalSecurityEx) {
+            throw exceptionFactory.create(
+                "Failed to load certificates from serverSslCert/trustStore",
+                "08000",
+                generalSecurityEx);
+          }
         } else {
           try (InputStream inStream = getInputStreamFromPath(conf.serverSslCert())) {
             // generate a keyStore from the provided cert
@@ -162,27 +182,24 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
                 "08000",
                 generalSecurityEx);
           }
-        }
 
-        try {
-          TrustManagerFactory tmf =
-              TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-          tmf.init(ks);
-          for (TrustManager tm : tmf.getTrustManagers()) {
-            if (tm instanceof X509TrustManager) {
-              trustManager =
-                  new X509TrustManager[] {
-                    new MariaDbX509EphemeralTrustingManager((X509TrustManager) tm)
-                  };
-              break;
+          try {
+            TrustManagerFactory tmf =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(ks);
+            for (TrustManager tm : tmf.getTrustManagers()) {
+              if (tm instanceof X509TrustManager) {
+                trustManager = new X509TrustManager[] {(X509TrustManager) tm};
+                break;
+              }
             }
-          }
 
-        } catch (GeneralSecurityException generalSecurityEx) {
-          throw exceptionFactory.create(
-              "Failed to load certificates from serverSslCert/trustStore",
-              "08000",
-              generalSecurityEx);
+          } catch (GeneralSecurityException generalSecurityEx) {
+            throw exceptionFactory.create(
+                "Failed to load certificates from serverSslCert/trustStore",
+                "08000",
+                generalSecurityEx);
+          }
         }
       } else if (conf.fallbackToSystemTrustStore()) {
         // relying on default truststore

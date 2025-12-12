@@ -20,13 +20,13 @@ import org.mariadb.jdbc.plugin.Credential;
 /** Parsec password plugin */
 public class ParsecPasswordPlugin implements AuthenticationPlugin {
 
-  private static byte[] pkcs8Ed25519header =
+  private static final byte[] pkcs8Ed25519header =
       new byte[] {
         0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04,
         0x20
       };
-  private String authenticationData;
-  private byte[] seed;
+  private final String authenticationData;
+  private final byte[] seed;
   private byte[] hash;
 
   /**
@@ -41,16 +41,18 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
   }
 
   /**
-   * Process parsec password plugin authentication. see
-   * https://mariadb.com/kb/en/connection/#parsec-plugin
+   * Process parsec password plugin authentication. see <a
+   * href="https://mariadb.com/kb/en/connection/#parsec-plugin">parsec-plugin</a>
    *
    * @param out out stream
    * @param in in stream
    * @param context connection context
+   * @param sslFingerPrintValidation true if SSL certificate fingerprint validation is enabled
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(Writer out, Reader in, Context context)
+  public ReadableByteBuf process(
+      Writer out, Reader in, Context context, boolean sslFingerPrintValidation)
       throws SQLException, IOException {
 
     // request ext-salt

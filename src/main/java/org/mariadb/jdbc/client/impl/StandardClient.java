@@ -39,7 +39,6 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.*;
-
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -442,7 +441,7 @@ public class StandardClient implements Client, AutoCloseable {
       InitialHandshakePacket handshake, Credential credential, String authType) {
     authPlugin =
         "mysql_clear_password".equals(authType)
-            ? new ClearPasswordPlugin(credential.getPassword())
+            ? new ClearPasswordPlugin(credential.getPassword(), hostAddress, conf)
             : new NativePasswordPlugin(credential.getPassword(), handshake.getSeed());
   }
 
@@ -497,7 +496,7 @@ public class StandardClient implements Client, AutoCloseable {
                         authPluginFactory.type()));
           }
 
-          buf = authPlugin.process(writer, reader, context);
+          buf = authPlugin.process(writer, reader, context, certFingerprint != null);
           break;
 
         case 0xFF:

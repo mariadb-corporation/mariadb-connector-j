@@ -18,8 +18,8 @@ import org.mariadb.jdbc.plugin.Credential;
 /** Native password implementation */
 public class NativePasswordPlugin implements AuthenticationPlugin {
 
-  private String authenticationData;
-  private byte[] seed;
+  private final String authenticationData;
+  private final byte[] seed;
 
   /**
    * Encrypts a password.
@@ -80,16 +80,18 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
   }
 
   /**
-   * Process native password plugin authentication. see
-   * https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/
+   * Process native password plugin authentication. see <a
+   * href="https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/">authentication-plugin-mysql_native_password</a>
    *
    * @param out out stream
    * @param in in stream
    * @param context connection context
+   * @param sslFingerPrintValidation true if SSL certificate fingerprint validation is enabled
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(Writer out, Reader in, Context context) throws IOException {
+  public ReadableByteBuf process(
+      Writer out, Reader in, Context context, boolean sslFingerPrintValidation) throws IOException {
     if (authenticationData == null) {
       out.writeEmptyPacket();
     } else {

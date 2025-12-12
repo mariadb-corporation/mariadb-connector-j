@@ -30,9 +30,6 @@ import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 /** Mysql caching sha2 password plugin */
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
-  /** plugin name */
-  public static final String TYPE = "caching_sha2_password";
-
   private String authenticationData;
   private byte[] seed;
   private Configuration conf;
@@ -175,16 +172,18 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   }
 
   /**
-   * Process native password plugin authentication. see
-   * https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/
+   * Process native password plugin authentication. see <a
+   * href="https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/">authentication-plugin-mysql_native_password</a>
    *
    * @param out out stream
    * @param in in stream
    * @param context connection context
+   * @param sslFingerPrintValidation true if SSL certificate fingerprint validation is enabled
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(Writer out, Reader in, Context context)
+  public ReadableByteBuf process(
+      Writer out, Reader in, Context context, boolean sslFingerPrintValidation)
       throws IOException, SQLException {
     byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
     new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
@@ -200,8 +199,8 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       default:
         // fast authentication result
 
-        // mysql change the protocol with https://github.com/mysql/mysql-server/commit/2a8ce5e5c606
-        // so expected response can be either 0x03, 0x04, 0x0103 or, 0x0104
+        // mysql change the protocol with https://github.com/mysql/mysql-server/commit/2a8ce5e5c606,
+        // so the expected response can be either 0x03, 0x04, 0x0103 or, 0x0104
         int authResult = 0;
 
         if (buf.getByte() == 0x01) buf.skip();
@@ -216,8 +215,13 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
           case 0x04:
             SslMode sslMode = hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
             if (sslMode != SslMode.DISABLE) {
-              // send clear password
-
+              // send a clear password
+              if (sslMode != SslMode.TRUST && sslFingerPrintValidation) {
+                throw new SQLException(
+                    "Driver cannot send password in clear when using SSL when certificates are not"
+                        + " explicitly passed on configuration.",
+                    "S1010");
+              }
               byte[] bytePwd = authenticationData.getBytes();
               byte[] nullEndedValue = new byte[bytePwd.length + 1];
               System.arraycopy(bytePwd, 0, nullEndedValue, 0, bytePwd.length);

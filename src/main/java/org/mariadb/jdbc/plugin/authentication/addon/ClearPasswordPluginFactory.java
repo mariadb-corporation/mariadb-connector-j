@@ -31,6 +31,6 @@ public class ClearPasswordPluginFactory implements AuthenticationPluginFactory {
    */
   public AuthenticationPlugin initialize(
       String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress) {
-    return new ClearPasswordPlugin(authenticationData);
+    return new ClearPasswordPlugin(authenticationData, hostAddress, conf);
   }
 }
