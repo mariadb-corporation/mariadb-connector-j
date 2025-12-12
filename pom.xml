@@ -25,8 +25,8 @@
         <waffle-jna.version>3.5.1</waffle-jna.version>
         <waffle-jna-java8.version>3.3.0</waffle-jna-java8.version>
         <mysql-connector-java.version>9.5.0</mysql-connector-java.version>
-        <bnd-maven-plugin.version>7.1.0</bnd-maven-plugin.version>
-        <spotless.version>2.43.0</spotless.version>
+        <bnd-maven-plugin.version>6.4.0</bnd-maven-plugin.version>
+        <spotless.version>3.1.0</spotless.version>
     </properties>
 
     <licenses>
