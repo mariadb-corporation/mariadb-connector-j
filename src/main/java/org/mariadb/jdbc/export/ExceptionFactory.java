@@ -3,11 +3,24 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.export;
 
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.SQLInvalidAuthorizationSpecException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.SQLTimeoutException;
+import java.sql.SQLTransactionRollbackException;
+import java.sql.SQLTransientConnectionException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.HostAddress;
@@ -272,6 +285,10 @@ public class ExceptionFactory {
           sqlState,
           errorCode,
           cause);
+    }
+
+    if (errorCode == 1264 || errorCode == 1265 || errorCode == 1292 || errorCode == 1406) {
+      return new MariaDbDataTruncation(msg, sqlState, errorCode, cause);
     }
 
     SQLException returnEx;

@@ -121,7 +121,7 @@ public class ConfigurationTest extends Common {
     try {
       stmt.execute("INSERT INTO jdbcCompliantTruncation(val) VALUES ('12345678901234567890')");
       fail("expect sql_mode to have strict mode by default");
-    } catch (SQLException e) {
+    } catch (DataTruncation e) {
       assertEquals(1406, e.getErrorCode()); // Data too long for column 'val' at row 1
     }
     try {
