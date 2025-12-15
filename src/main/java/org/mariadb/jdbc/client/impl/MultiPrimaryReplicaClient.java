@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.Executor;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.Statement;
@@ -273,14 +274,19 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
     if (readOnly) {
       // changed ?
       if (!requestReadOnly) {
+        Client oldCli = currentClient;
         if (replicaClient != null) {
           currentClient = replicaClient;
-          syncNewState(primaryClient);
+          if (oldCli != null && oldCli != currentClient) {
+            syncNewState(oldCli);
+          }
         } else if (nextTryReplica < System.currentTimeMillis()) {
           try {
             replicaClient = connectHost(true, true);
             currentClient = replicaClient;
-            syncNewState(primaryClient);
+            if (oldCli != null && oldCli != currentClient) {
+              syncNewState(oldCli);
+            }
           } catch (SQLException e) {
             nextTryReplica = System.currentTimeMillis() + waitTimeout;
           }
@@ -289,14 +295,20 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
     } else {
       // changed ?
       if (requestReadOnly) {
+        Client oldCli = currentClient;
         if (primaryClient != null) {
           currentClient = primaryClient;
-          syncNewState(replicaClient);
+          if (oldCli != null && oldCli != currentClient) {
+            syncNewState(oldCli);
+          }
         } else if (nextTryPrimary < System.currentTimeMillis()) {
           try {
             primaryClient = connectHost(false, false);
             nextTryPrimary = -1;
-            syncNewState(replicaClient);
+            currentClient = primaryClient;
+            if (oldCli != null && oldCli != currentClient) {
+              syncNewState(oldCli);
+            }
           } catch (SQLException e) {
             nextTryPrimary = System.currentTimeMillis() + waitTimeout;
             throw new SQLNonTransientConnectionException(
