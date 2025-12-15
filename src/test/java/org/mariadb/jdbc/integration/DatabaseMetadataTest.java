@@ -1484,6 +1484,16 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
+  public void getSchemasColumnName() throws SQLException {
+    DatabaseMetaData dbmd = sharedConn.getMetaData();
+    try (ResultSet res = dbmd.getSchemas("*", "*")) {
+      ResultSetMetaData resultSetMetaData = res.getMetaData();
+      assertEquals("TABLE_SCHEM", resultSetMetaData.getColumnName(1));
+      assertEquals("TABLE_CATALOG", resultSetMetaData.getColumnName(2));
+    }
+  }
+
+  @Test
   public void getAttributesBasic() throws Exception {
     testResultSetColumns(
         sharedConn.getMetaData().getAttributes(null, null, null, null),

@@ -2621,7 +2621,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       sb.append(" ORDER BY SCHEMA_NAME");
       return executeQuery(sb.toString());
     }
-    return executeQuery("SELECT  '' table_schem, '' table_catalog FROM DUAL WHERE 1=0");
+    return executeQuery("SELECT  '' TABLE_SCHEM, '' TABLE_CATALOG FROM DUAL WHERE 1=0");
   }
 
   public ResultSet getCatalogs() throws SQLException {
