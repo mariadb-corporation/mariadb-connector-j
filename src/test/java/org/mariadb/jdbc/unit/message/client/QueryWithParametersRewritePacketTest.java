@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -45,6 +46,38 @@ public class QueryWithParametersRewritePacketTest {
                       new NonNullParameter<>(IntCodec.INSTANCE, 4)
                     })),
             "INSERT INTO b VALUES (1,2),(3,4)"),
+        Arguments.of(
+            "INSERT INTO b VALUES (?,?) AS v ON DUPLICATE KEY UPDATE b.a=(v.a)",
+            Arrays.asList(
+                new ParameterList(
+                    new Parameter[] {
+                      new NonNullParameter<>(IntCodec.INSTANCE, 1),
+                      new NonNullParameter<>(IntCodec.INSTANCE, 2)
+                    }),
+                new ParameterList(
+                    new Parameter[] {
+                      new NonNullParameter<>(IntCodec.INSTANCE, 3),
+                      new NonNullParameter<>(IntCodec.INSTANCE, 4)
+                    })),
+            "INSERT INTO b VALUES (1,2),(3,4) AS v ON DUPLICATE KEY UPDATE b.a=(v.a)"),
+        Arguments.of(
+                "INSERT INTO b VALUES (?,?), (?,?) AS v ON DUPLICATE KEY UPDATE b.a=(v.a)",
+                Arrays.asList(
+                        new ParameterList(
+                                new Parameter[] {
+                                        new NonNullParameter<>(IntCodec.INSTANCE, 1),
+                                        new NonNullParameter<>(IntCodec.INSTANCE, 2),
+                                        new NonNullParameter<>(IntCodec.INSTANCE, 3),
+                                        new NonNullParameter<>(IntCodec.INSTANCE, 4)
+                                }),
+                        new ParameterList(
+                                new Parameter[] {
+                                        new NonNullParameter<>(IntCodec.INSTANCE, 11),
+                                        new NonNullParameter<>(IntCodec.INSTANCE, 12),
+                                        new NonNullParameter<>(IntCodec.INSTANCE, 13),
+                                        new NonNullParameter<>(IntCodec.INSTANCE, 14)
+                                })),
+                "INSERT INTO b VALUES (1,2), (3,4),(11,12), (13,14) AS v ON DUPLICATE KEY UPDATE b.a=(v.a)"),
         Arguments.of(
             "INSERT INTO b VALUES (?, ?) # comment",
             Arrays.asList(

@@ -246,8 +246,8 @@ public final class ClientParser implements PrepareResult {
     boolean isInsert = false;
     boolean isInsertDuplicate = false;
     boolean afterValues = false;
+    boolean valuesClosed = false;
     int isInParenthesis = 0;
-    int lastParenthesisPosition = 0;
     int multiQueryIdx = -1;
     byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
@@ -441,8 +441,52 @@ public final class ClientParser implements PrepareResult {
         case ')':
           if (state == LexState.Normal) {
             isInParenthesis--;
-            if (isInParenthesis == 0 && valuesBracketPositions.size() == 1) {
-              lastParenthesisPosition = i;
+            if (afterValues
+                && !valuesClosed
+                && isInParenthesis == 0
+                && valuesBracketPositions.size() == 1) {
+              // This is the closing parenthesis of a VALUES tuple.
+              // Determine if VALUES contains multiple tuples
+              // or if this closes the (single) VALUES tuple list.
+              int j = i + 1;
+              while (j < queryLength) {
+                byte c = query[j];
+                if (isWhitespace(c)) {
+                  j++;
+                  continue;
+                }
+                // skip comments
+                if (c == '#' ) {
+                  j++;
+                  while (j < queryLength && query[j] != '\n') {
+                    j++;
+                  }
+                  continue;
+                }
+                if (c == '-' && j + 1 < queryLength && query[j + 1] == '-') {
+                  j += 2;
+                  while (j < queryLength && query[j] != '\n') {
+                    j++;
+                  }
+                  continue;
+                }
+                if (c == '/' && j + 1 < queryLength && query[j + 1] == '*') {
+                  j += 2;
+                  while (j + 1 < queryLength && !(query[j] == '*' && query[j + 1] == '/')) {
+                    j++;
+                  }
+                  j = Math.min(j + 2, queryLength);
+                  continue;
+                }
+                break;
+              }
+
+              if (j < queryLength && query[j] == ',') {
+                // VALUES contains multiple tuples. Keep parsing until the last tuple closes.
+              } else {
+                valuesBracketPositions.add(i);
+                valuesClosed = true;
+              }
             }
           }
           break;
@@ -450,9 +494,7 @@ public final class ClientParser implements PrepareResult {
           if (state == LexState.Normal) {
             paramPositions.add(i);
             // have parameter outside values parenthesis
-            if (valuesBracketPositions.size() == 1
-                && lastParenthesisPosition > 0
-                && isInParenthesis == 0) {
+            if (valuesClosed) {
               reWritablePrepare = false;
             }
           }
@@ -481,10 +523,6 @@ public final class ClientParser implements PrepareResult {
         }
       }
       isMulti = hasAdditionalPart;
-    }
-
-    if (valuesBracketPositions.size() == 1 && lastParenthesisPosition > 0) {
-      valuesBracketPositions.add(lastParenthesisPosition);
     }
 
     if (isMulti || !isInsert || !reWritablePrepare || valuesBracketPositions.size() != 2) {
