@@ -6,7 +6,7 @@
 
 # MariaDB java connector
 
-MariaDB java connector is a JDBC 4.2 compatible driver, used to connect applications developed in Java to MariaDB and
+MariaDB java connector is a JDBC 4.5 compatible driver, used to connect applications developed in Java to MariaDB and
 MySQL databases. MariaDB Connector/J is distributed under the LGPL license version 2.1 or later (LGPL-2.1-or-later)
 
 Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://jira.mariadb.org/projects/CONJ/issues/</a>
@@ -29,7 +29,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>3.5.6</version>
+	<version>3.5.7</version>
 </dependency>
 ```
 

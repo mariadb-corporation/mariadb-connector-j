@@ -1,6 +1,24 @@
 # Change Log
 
 
+## [3.5.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.7) (Dec 2025)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.6...3.5.7)
+
+#### Key Enhancements
+
+* CONJ-1282 - Added TLS SNI (Server Name Indication) support
+* CONJ-1271 - Added MariaDbDataTruncation exception that includes MariaDB error code and error message
+
+#### Issues Resolved
+
+* CONJ-1291 - Fixed ConnectionPoolDataSource incompatibility and connection leaks due to internal ConnectionEventListener in MariaDB Connector/J 3.5.x
+* CONJ-1286 - Fixed MariaDbPoolPinnedConnection thread-safety issue
+* CONJ-1283 - Fixed rewriteBatchedStatements introduced in 3.5.6 bug when having parentesis after VALUES parts
+* CONJ-1287 - Fixed authentication plugin multi-exchange prefix (0x01) handling introduced in MDEV-37554
+* CONJ-1290 - Fixed NullPointerException in MultiPrimaryReplicaClient
+* CONJ-1295 - Fixed MariaDbClob compilation with JDK 26+
+
+
 ## [3.5.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.6) (Sep 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.5...3.5.6)
 
