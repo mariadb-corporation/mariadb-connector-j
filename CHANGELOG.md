@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.7.13](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.13) (Dec 2025)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.12...2.7.13)
+
+* CONJ-661 Fixed intermittent NullPointerException when calling prepareStatement
+* CONJ-1167 Fixed possible ArrayIndexOutOfBoundsException when using CallableStatement
+* CONJ-1185 Fixed Android compatibility issue: Pattern CANON_EQ flag not supported
+* CONJ-1293 Fixed NullPointerException in MariaDbDataSource when setLoginTimeout(0) has been called
+* CONJ-1174 Fixed ResultSetMetaData precision for signed BIGINT (was reported as 20)
+
 ## [2.7.12](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.12) (Feb 2024)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.11...2.7.12)
 
