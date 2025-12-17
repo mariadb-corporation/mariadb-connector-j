@@ -156,8 +156,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
         // fast authentication result
       default:
-        byte[] authResult = buffer.getLengthEncodedBytes();
-        switch (authResult[0]) {
+        if (buffer.getByte() == 0x01) buffer.skipByte();
+
+        switch (buffer.getByte()) {
           case 3:
             buffer = in.getPacket(true);
             sequence.set(in.getLastPacketSeq());
