@@ -1019,7 +1019,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                 + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                 + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME");
+                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                + " AND KCU.TABLE_NAME = RC.TABLE_NAME ");
     boolean firstCondition = true;
     firstCondition = catalogCond(firstCondition, sb, "KCU.REFERENCED_TABLE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "KCU.REFERENCED_TABLE_NAME", table);
@@ -1067,7 +1068,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                 + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                 + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME");
+                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                + " AND KCU.TABLE_NAME = RC.TABLE_NAME ");
 
     boolean firstCondition = true;
     firstCondition = catalogCond(firstCondition, sb, "KCU.TABLE_SCHEMA", catalog);
@@ -2712,7 +2714,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + "FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                 + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                 + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME ");
+                + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                + " AND KCU.TABLE_NAME = RC.TABLE_NAME ");
 
     boolean firstCondition = true;
     firstCondition = catalogCond(firstCondition, sb, "KCU.REFERENCED_TABLE_SCHEMA", parentCatalog);

@@ -426,7 +426,11 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(1, rs.getInt("KEY_SEQ"));
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      assertEquals("product_order_ibfk_1", rs.getString("FK_NAME"));
+      if (isMariadbServer() && minVersion(12, 1, 1)) {
+        assertEquals("1", rs.getString("FK_NAME"));
+      } else {
+        assertEquals("product_order_ibfk_1", rs.getString("FK_NAME"));
+      }
       // with show, meta don't know contraint name
       assertEquals("unik_name", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
@@ -443,7 +447,11 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(2, rs.getInt("KEY_SEQ"));
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      assertEquals("product_order_ibfk_1", rs.getString("FK_NAME"));
+      if (isMariadbServer() && minVersion(12, 1, 1)) {
+        assertEquals("1", rs.getString("FK_NAME"));
+      } else {
+        assertEquals("product_order_ibfk_1", rs.getString("FK_NAME"));
+      }
       // with show, meta don't know contraint name
       assertEquals("unik_name", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
@@ -460,7 +468,11 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(1, rs.getInt("KEY_SEQ"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      assertEquals("product_order_ibfk_2", rs.getString("FK_NAME"));
+      if (isMariadbServer() && minVersion(12, 1, 1)) {
+        assertEquals("2", rs.getString("FK_NAME"));
+      } else {
+        assertEquals("product_order_ibfk_2", rs.getString("FK_NAME"));
+      }
       // with show, meta don't know contraint name
       assertEquals("PRIMARY", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
@@ -500,7 +512,11 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
+    if (isMariadbServer() && minVersion(12, 1, 1)) {
+      assertEquals("1", rs.getString("FK_NAME"));
+    } else {
+      assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
+    }
     assertEquals("PRIMARY", rs.getString("PK_NAME"));
 
     assertTrue(rs.next());
@@ -1224,7 +1240,11 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    assertEquals("cross2_ibfk_1", rs.getString(12));
+    if (isMariadbServer() && minVersion(12, 1, 1)) {
+      assertEquals("1", rs.getString(12));
+    } else {
+      assertEquals("cross2_ibfk_1", rs.getString(12));
+    }
 
     assertTrue(rs.next());
     assertEquals(database, rs.getString(1));
