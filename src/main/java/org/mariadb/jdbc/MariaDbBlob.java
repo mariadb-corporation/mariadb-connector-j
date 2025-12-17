@@ -394,4 +394,8 @@ public class MariaDbBlob implements Blob, Serializable {
     this.offset = 0;
     this.length = 0;
   }
+
+  public void close() {
+    this.data = null;
+  }
 }
