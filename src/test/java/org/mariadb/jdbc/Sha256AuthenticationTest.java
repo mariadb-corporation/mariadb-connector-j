@@ -292,6 +292,6 @@ public class Sha256AuthenticationTest extends BaseTest {
         SQLException.class,
         () ->
             setConnection(
-                "&user=cachingSha256User&password=!Passw0rd3Works&serverRsaPublicKeyFile="));
+                "&user=cachingSha256User&password=!Passw0rd3Works&serverRsaPublicKeyFile=&allowPublicKeyRetrieval=false"));
   }
 }
