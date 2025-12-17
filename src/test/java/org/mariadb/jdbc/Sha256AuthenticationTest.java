@@ -264,7 +264,7 @@ public class Sha256AuthenticationTest extends BaseTest {
     sharedConnection.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         setConnection(
-            "user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval&serverRsaPublicKeyFile=")) {
+            "&user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval&serverRsaPublicKeyFile=")) {
       con.isValid(1);
     }
   }
