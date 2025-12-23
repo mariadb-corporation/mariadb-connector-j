@@ -29,8 +29,6 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   public ReadAheadBufferedStream(InputStream in) {
     super(in);
     buf = new byte[BUF_SIZE];
-    end = 0;
-    pos = 0;
   }
 
   /**
@@ -51,7 +49,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
     while (true) {
 
       // read
-      if (end - pos <= 0) {
+      if (pos >= end) {
         if (len - totalReads >= buf.length) {
           // buf length is less than asked byte and buf is empty
           // => filling directly into external buf
@@ -101,8 +99,6 @@ public class ReadAheadBufferedStream extends FilterInputStream {
 
   public void close() throws IOException {
     super.close();
-    end = 0;
-    pos = 0;
   }
 
   public int available() throws IOException {
