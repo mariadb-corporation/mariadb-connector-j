@@ -38,8 +38,8 @@ public class GeometryColumn extends BlobColumn {
       final byte decimals,
       final int flags,
       final int[] stringPos,
-      final String extTypeName,
-      final String extTypeFormat) {
+      final byte[] extTypeName,
+      final byte[] extTypeFormat) {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
@@ -60,7 +60,8 @@ public class GeometryColumn extends BlobColumn {
   public String defaultClassname(final Configuration conf) {
     if (conf.geometryDefaultType() != null && "default".equals(conf.geometryDefaultType())) {
       if (extTypeName != null) {
-        switch (extTypeName) {
+        String typeName = new String(extTypeName, java.nio.charset.StandardCharsets.US_ASCII);
+        switch (typeName) {
           case "point":
             return Point.class.getName();
           case "linestring":
@@ -88,7 +89,7 @@ public class GeometryColumn extends BlobColumn {
 
   public String getColumnTypeName(final Configuration conf) {
     if (extTypeName != null) {
-      return extTypeName.toUpperCase(Locale.ROOT);
+      return new String(extTypeName, java.nio.charset.StandardCharsets.US_ASCII).toUpperCase(Locale.ROOT);
     }
     return "GEOMETRY";
   }

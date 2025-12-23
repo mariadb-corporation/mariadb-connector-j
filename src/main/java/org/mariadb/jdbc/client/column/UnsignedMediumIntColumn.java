@@ -37,8 +37,8 @@ public class UnsignedMediumIntColumn extends ColumnDefinitionPacket implements C
       final byte decimals,
       final int flags,
       final int[] stringPos,
-      final String extTypeName,
-      final String extTypeFormat) {
+      final byte[] extTypeName,
+      final byte[] extTypeFormat) {
     super(
         buf,
         charset,

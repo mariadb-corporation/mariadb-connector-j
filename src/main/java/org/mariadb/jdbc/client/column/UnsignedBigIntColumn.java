@@ -38,8 +38,8 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
       final byte decimals,
       final int flags,
       final int[] stringPos,
-      final String extTypeName,
-      final String extTypeFormat) {
+      final byte[] extTypeName,
+      final byte[] extTypeFormat) {
     super(
         buf,
         charset,

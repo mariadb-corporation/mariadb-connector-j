@@ -4,6 +4,7 @@
 package org.mariadb.jdbc.message.server;
 
 import java.util.Objects;
+
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -29,10 +30,10 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   protected final byte decimals;
 
   /** extended type name */
-  protected final String extTypeName;
+  protected final byte[] extTypeName;
 
   /** extended type format */
-  protected final String extTypeFormat;
+  protected final byte[] extTypeFormat;
 
   private final ReadableByteBuf buf;
 
@@ -69,8 +70,8 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       byte decimals,
       int flags,
       int[] stringPos,
-      String extTypeName,
-      String extTypeFormat,
+      byte[] extTypeName,
+      byte[] extTypeFormat,
       boolean useAliasAsName) {
     this.buf = buf;
     this.charset = charset;
@@ -167,10 +168,6 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   public int getFlags() {
     return flags;
-  }
-
-  public String getExtTypeName() {
-    return extTypeName;
   }
 
   @Override
