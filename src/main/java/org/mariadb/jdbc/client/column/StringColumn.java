@@ -3,13 +3,16 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
-import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.sql.*;
+import java.sql.Date;
+import java.sql.SQLDataException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
@@ -46,8 +49,8 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       final byte decimals,
       final int flags,
       final int[] stringPos,
-      final String extTypeName,
-      final String extTypeFormat) {
+      final byte[] extTypeName,
+      final byte[] extTypeFormat) {
     super(
         buf,
         charset,
