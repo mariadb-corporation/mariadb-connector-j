@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableByte;
@@ -48,7 +49,7 @@ public class PacketWriter implements Writer {
   /** buffer position */
   protected int pos = 4;
 
-  private long cmdLength;
+  private long cmdLength = 0;
   private boolean permitTrace = true;
   private String serverThreadLog = "";
   private int mark = -1;
@@ -72,7 +73,6 @@ public class PacketWriter implements Writer {
     this.out = out;
     this.buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;
-    this.cmdLength = 0;
     this.sequence = sequence;
     this.compressSequence = compressSequence;
     this.maxAllowedPacket = maxAllowedPacket;
@@ -650,7 +650,7 @@ public class PacketWriter implements Writer {
         newCapacity = maxPacketLength;
       }
     } else if (bufLength == MEDIUM_BUFFER_SIZE) {
-      if (len + pos < LARGE_BUFFER_SIZE) {
+      if (len + pos <= LARGE_BUFFER_SIZE) {
         newCapacity = LARGE_BUFFER_SIZE;
       } else {
         newCapacity = maxPacketLength;
@@ -756,13 +756,11 @@ public class PacketWriter implements Writer {
   }
 
   public boolean throwMaxAllowedLength(int length) {
-    if (maxAllowedPacket != null) return cmdLength + length >= maxAllowedPacket;
-    return false;
+    return maxAllowedPacket != null && cmdLength + length >= maxAllowedPacket;
   }
 
   public boolean throwMaxAllowedLengthOr16M(int length) {
-    if (maxAllowedPacket != null) return cmdLength + length >= maxAllowedPacket;
-    return cmdLength + length >= 0xFFFFFF;
+    return maxAllowedPacket != null ? cmdLength + length >= maxAllowedPacket : cmdLength + length >= 0xFFFFFF;
   }
 
   public void permitTrace(boolean permitTrace) {

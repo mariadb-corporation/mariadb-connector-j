@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
+
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
@@ -65,7 +66,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       Context context)
       throws SQLException;
 
@@ -82,7 +83,7 @@ public interface RowDecoder {
    */
   Object defaultDecode(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Context context)
@@ -100,7 +101,7 @@ public interface RowDecoder {
    */
   byte decodeByte(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
@@ -117,7 +118,7 @@ public interface RowDecoder {
    */
   boolean decodeBoolean(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
@@ -136,7 +137,7 @@ public interface RowDecoder {
    */
   Date decodeDate(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
@@ -157,7 +158,7 @@ public interface RowDecoder {
    */
   Time decodeTime(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
@@ -178,7 +179,7 @@ public interface RowDecoder {
    */
   Timestamp decodeTimestamp(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
@@ -197,7 +198,7 @@ public interface RowDecoder {
    */
   short decodeShort(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
@@ -214,7 +215,7 @@ public interface RowDecoder {
    */
   int decodeInt(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
@@ -232,7 +233,7 @@ public interface RowDecoder {
    */
   String decodeString(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Context context)
@@ -250,7 +251,7 @@ public interface RowDecoder {
    */
   long decodeLong(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
@@ -267,7 +268,7 @@ public interface RowDecoder {
    */
   float decodeFloat(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
@@ -284,7 +285,7 @@ public interface RowDecoder {
    */
   double decodeDouble(
       ColumnDecoder[] metadataList,
-      MutableInt fieldIndex,
+      int fieldIndex,
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
