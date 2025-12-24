@@ -4,9 +4,11 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
+
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_CLOSE;
 
 /**
  * Client mysql COM_STMT_CLOSE packet COM_STMT_CLOSE packet. See
@@ -30,7 +32,7 @@ public final class ClosePreparePacket implements ClientMessage {
   public int encode(Writer writer, Context context) throws IOException {
     assert statementId != 0;
     writer.initPacket();
-    writer.writeByte(0x19);
+    writer.writeByte(COM_STMT_CLOSE);
     writer.writeInt(statementId);
     writer.flush();
     return 0;

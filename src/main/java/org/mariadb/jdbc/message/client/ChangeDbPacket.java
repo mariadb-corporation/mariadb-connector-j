@@ -4,8 +4,10 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
+
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_INIT_DB;
 
 /** change database. See https://mariadb.com/kb/en/com_init_db/ protocol */
 public final class ChangeDbPacket implements RedoableClientMessage {
@@ -24,7 +26,7 @@ public final class ChangeDbPacket implements RedoableClientMessage {
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
-    writer.writeByte(0x02);
+    writer.writeByte(COM_INIT_DB);
     writer.writeString(this.database);
     writer.flush();
     return 1;

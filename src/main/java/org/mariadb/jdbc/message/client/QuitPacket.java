@@ -4,9 +4,11 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
+
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUIT;
 
 /**
  * ending connection packet COM_QUIT proper end of a connection. see
@@ -20,7 +22,7 @@ public final class QuitPacket implements ClientMessage {
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
-    writer.writeByte(0x01);
+    writer.writeByte(COM_QUIT);
     writer.flush();
     return 0;
   }

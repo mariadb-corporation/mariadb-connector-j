@@ -6,11 +6,13 @@ package org.mariadb.jdbc.message.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.message.ClientMessage;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 import org.mariadb.jdbc.util.ClientParser;
 
@@ -63,7 +65,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   @Override
   public int encode(Writer encoder, Context context) throws IOException, SQLException {
     encoder.initPacket();
-    encoder.writeByte(0x03);
+    encoder.writeByte(COM_QUERY);
     if (preSqlCmd != null) encoder.writeAscii(preSqlCmd);
     if (parser.getParamPositions().isEmpty()) {
       encoder.writeBytes(parser.getQuery());

@@ -6,6 +6,7 @@ package org.mariadb.jdbc.message.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -13,6 +14,9 @@ import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
+import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 
@@ -85,9 +89,9 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     }
 
     writer.initPacket();
-    writer.writeByte(0x17);
+    writer.writeByte(COM_STMT_EXECUTE);
     writer.writeInt(statementId);
-    writer.writeByte(0x00); // NO CURSOR
+    writer.writeByte(CURSOR_TYPE_NO_CURSOR);
     writer.writeInt(1); // Iteration pos
 
     if (parameterCount > 0) {
@@ -99,7 +103,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
       writer.pos(initialPos + nullCount);
 
       // Send Parameter type flag
-      writer.writeByte(0x01);
+      writer.writeByte(PARAMETER_TYPE_FLAG);
 
       // Store types of parameters in first package that is sent to the server.
       for (int i = 0; i < parameterCount; i++) {

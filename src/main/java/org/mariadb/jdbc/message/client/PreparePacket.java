@@ -6,6 +6,7 @@ package org.mariadb.jdbc.message.client;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.function.Consumer;
+
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
@@ -17,6 +18,7 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.ClientMessage;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_PREPARE;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
@@ -37,7 +39,7 @@ public final class PreparePacket implements ClientMessage {
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
-    writer.writeByte(0x16);
+    writer.writeByte(COM_STMT_PREPARE);
     writer.writeString(this.sql);
     writer.flush();
     return 1;
