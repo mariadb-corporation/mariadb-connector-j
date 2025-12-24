@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.function.Consumer;
+
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
@@ -21,6 +22,10 @@ import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_PREPARE;
+import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
@@ -65,7 +70,7 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
     if (newPrepareResult == null) {
 
       writer.initPacket();
-      writer.writeByte(0x16);
+      writer.writeByte(COM_STMT_PREPARE);
       writer.writeString(this.sql);
       writer.flushPipeline();
     } else {
@@ -82,9 +87,9 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
     }
 
     writer.initPacket();
-    writer.writeByte(0x17);
+    writer.writeByte(COM_STMT_EXECUTE);
     writer.writeInt(statementId);
-    writer.writeByte(0x00); // NO CURSOR
+    writer.writeByte(CURSOR_TYPE_NO_CURSOR);
     writer.writeInt(1); // Iteration pos
 
     if (parameterCount > 0) {
@@ -96,7 +101,7 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
       writer.pos(initialPos + nullCount);
 
       // Send Parameter type flag
-      writer.writeByte(0x01);
+      writer.writeByte(PARAMETER_TYPE_FLAG);
 
       // Store types of parameters in first package that is sent to the server.
       for (int i = 0; i < parameterCount; i++) {

@@ -9,10 +9,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 import org.mariadb.jdbc.util.ClientParser;
 
@@ -80,7 +82,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
       rewritePacketNo++;
 
       writer.initPacket();
-      writer.writeByte(0x03);
+      writer.writeByte(COM_QUERY);
       if (preSqlCmd != null) writer.writeAscii(preSqlCmd);
 
       int pos = 0;

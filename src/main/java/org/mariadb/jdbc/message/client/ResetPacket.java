@@ -4,9 +4,11 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
+
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_RESET_CONNECTION;
 
 /** Reset packet COM_RESET_CONNECTION see https://mariadb.com/kb/en/com_reset_connection/ */
 public final class ResetPacket implements ClientMessage {
@@ -17,7 +19,7 @@ public final class ResetPacket implements ClientMessage {
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
-    writer.writeByte(0x1f);
+    writer.writeByte(COM_RESET_CONNECTION);
     writer.flush();
     return 1;
   }

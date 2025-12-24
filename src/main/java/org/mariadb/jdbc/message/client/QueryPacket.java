@@ -5,9 +5,11 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.io.InputStream;
+
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
 
 /** Query client packet COM_QUERY see https://mariadb.com/kb/en/com_query/ */
 public final class QueryPacket implements RedoableClientMessage {
@@ -43,7 +45,7 @@ public final class QueryPacket implements RedoableClientMessage {
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
-    writer.writeByte(0x03);
+    writer.writeByte(COM_QUERY);
     writer.writeString(this.sql);
     writer.flush();
     return 1;
