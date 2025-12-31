@@ -56,6 +56,8 @@ public class PrepareResultPacket implements Completion, Prepare {
           new StandardReadableByteBuf(CONSTANT_PARAMETER_BYTES, CONSTANT_PARAMETER_BYTES.length));
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
 
+  private final long contextGeneration;
+
   private final ColumnDecoder[] parameters;
 
   /** prepare statement id */
@@ -74,6 +76,8 @@ public class PrepareResultPacket implements Completion, Prepare {
   public PrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
     boolean trace = logger.isTraceEnabled();
+
+    this.contextGeneration = context.getContextGeneration();
     buffer.readByte(); /* skip COM_STMT_PREPARE_OK */
     this.statementId = buffer.readInt();
     final int numColumns = buffer.readUnsignedShort();
@@ -146,5 +150,16 @@ public class PrepareResultPacket implements Completion, Prepare {
 
   public void setColumns(ColumnDecoder[] columns) {
     this.columns = columns;
+  }
+
+
+  /**
+   * Check if this prepares result is valid for the current context generation.
+   *
+   * @param currentGeneration current context generation
+   * @return true if valid
+   */
+  public boolean isValidForGeneration(long currentGeneration) {
+    return this.contextGeneration == currentGeneration;
   }
 }

@@ -3,19 +3,22 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.context;
 
-import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
-
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.function.Function;
-import org.mariadb.jdbc.BasePreparedStatement;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.PrepareCache;
+import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.Capabilities;
+import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 
 /** Context (current connection state) of a connection */
 public class BaseContext implements Context {
@@ -49,14 +52,17 @@ public class BaseContext implements Context {
   /** Server current database */
   private String database;
 
-  /** Server current transaction isolation level */
-  private Integer transactionIsolationLevel;
-
   /** Server current warning count */
   private int warning;
 
   /** Connection state use flag */
   private int stateFlag = 0;
+
+  /** Context generation - incremented on each failover */
+  private long contextGeneration = 0;
+
+  /** Server current transaction isolation level */
+  private Integer transactionIsolationLevel = null;
 
   private String redirectUrl = null;
 
@@ -201,17 +207,25 @@ public class BaseContext implements Context {
     this.transactionIsolationLevel = transactionIsolationLevel;
   }
 
-  public Prepare getPrepareCacheCmd(String sql, BasePreparedStatement preparedStatement) {
-    return prepareCache.get(database + "|" + sql, preparedStatement);
+  public Prepare getPrepareCacheCmd(String sql) {
+    return prepareCache.get(database + "|" + sql);
   }
 
-  public Prepare putPrepareCacheCmd(
-      String sql, Prepare result, BasePreparedStatement preparedStatement) {
-    return prepareCache.put(database + "|" + sql, result, preparedStatement);
+  public PrepareCache getPrepareCacheInstance() {
+    return prepareCache;
+  }
+
+  public Prepare putPrepareCacheCmd(String sql, Prepare result) {
+    return prepareCache.put(database + "|" + sql, result);
   }
 
   public void resetPrepareCache() {
+    contextGeneration++;  // Increment generation on failover
     if (prepareCache != null) prepareCache.reset();
+  }
+
+  public long getContextGeneration() {
+    return contextGeneration;
   }
 
   public int getStateFlag() {

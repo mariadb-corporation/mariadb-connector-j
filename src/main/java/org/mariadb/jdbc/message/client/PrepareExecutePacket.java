@@ -169,18 +169,16 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
           && sql.length() < 8192) {
         PrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
         PrepareResultPacket previousCached =
-            (PrepareResultPacket)
-                context.putPrepareCacheCmd(
-                    sql,
-                    prepare,
-                    stmt instanceof ServerPreparedStatement
-                        ? (ServerPreparedStatement) stmt
-                        : null);
-        if (stmt != null) {
-          ((BasePreparedStatement) stmt)
-              .setPrepareResult(previousCached != null ? previousCached : prepare);
+            (PrepareResultPacket) context.putPrepareCacheCmd(sql, prepare);
+        PrepareResultPacket result = previousCached != null ? previousCached : prepare;
+        // Increment use count for the prepare result being used
+        if (result instanceof CachedPrepareResultPacket) {
+          ((CachedPrepareResultPacket) result).incrementUse();
         }
-        this.prepareResult = previousCached != null ? previousCached : prepare;
+        if (stmt != null) {
+          ((BasePreparedStatement) stmt).setPrepareResult(result);
+        }
+        this.prepareResult = result;
         return this.prepareResult;
       }
       PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);

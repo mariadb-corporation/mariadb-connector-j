@@ -8,7 +8,6 @@ import java.sql.SQLException;
 import java.util.function.Consumer;
 
 import org.mariadb.jdbc.BasePreparedStatement;
-import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
@@ -85,16 +84,16 @@ public final class PreparePacket implements ClientMessage {
         && sql.length() < 8192) {
       PrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
       PrepareResultPacket previousCached =
-          (PrepareResultPacket)
-              context.putPrepareCacheCmd(
-                  sql,
-                  prepare,
-                  stmt instanceof ServerPreparedStatement ? (ServerPreparedStatement) stmt : null);
-      if (stmt != null) {
-        ((BasePreparedStatement) stmt)
-            .setPrepareResult(previousCached != null ? previousCached : prepare);
+          (PrepareResultPacket) context.putPrepareCacheCmd(sql, prepare);
+      PrepareResultPacket result = previousCached != null ? previousCached : prepare;
+      // Increment use count for the prepare result being used
+      if (result instanceof CachedPrepareResultPacket) {
+        ((CachedPrepareResultPacket) result).incrementUse();
       }
-      return previousCached != null ? previousCached : prepare;
+      if (stmt != null) {
+        ((BasePreparedStatement) stmt).setPrepareResult(result);
+      }
+      return result;
     }
     PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);
     if (stmt != null) {

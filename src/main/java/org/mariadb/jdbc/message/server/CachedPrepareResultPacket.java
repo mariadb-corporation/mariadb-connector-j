@@ -5,9 +5,9 @@ package org.mariadb.jdbc.message.server;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.Context;
@@ -19,7 +19,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
 
   private final AtomicBoolean closing = new AtomicBoolean();
   private final AtomicBoolean cached = new AtomicBoolean();
-  private final List<BasePreparedStatement> statements = new ArrayList<>();
+  private final AtomicInteger useCount = new AtomicInteger(0);
 
   /**
    * Cache prepare result with flag indicating use
@@ -46,24 +46,26 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
     }
   }
 
-  public void decrementUse(Client con, BasePreparedStatement preparedStatement)
-      throws SQLException {
-    statements.remove(preparedStatement);
-    if (statements.isEmpty() && !cached.get()) {
-      close(con);
+  /**
+   * Increment use count when a statement starts using this prepare result.
+   */
+  public void incrementUse() {
+    if (!closing.get()) {
+      useCount.incrementAndGet();
     }
   }
 
   /**
-   * Increment use of prepare statement.
+   * Decrement use count when a statement stops using this prepare result.
    *
-   * @param preparedStatement new statement using prepare result
+   * @param con current connection
+   * @param preparedStatement prepared statement (unused, kept for interface compatibility)
+   * @throws SQLException if close fails
    */
-  public void incrementUse(BasePreparedStatement preparedStatement) {
-    if (closing.get()) {
-      return;
+  public void decrementUse(Client con, BasePreparedStatement preparedStatement) throws SQLException {
+    if (useCount.decrementAndGet() <= 0 && !cached.get()) {
+      close(con);
     }
-    if (preparedStatement != null) statements.add(preparedStatement);
   }
 
   /**
@@ -73,7 +75,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
    */
   public void unCache(Client con) {
     cached.set(false);
-    if (statements.size() <= 0) {
+    if (useCount.get() <= 0) {
       try {
         close(con);
       } catch (SQLException e) {
@@ -103,11 +105,10 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
     return statementId;
   }
 
+
   /** Resetting cache in case of failover */
   public void reset() {
     statementId = -1;
-    for (BasePreparedStatement stmt : statements) {
-      stmt.reset();
-    }
+    useCount.set(0);
   }
 }

@@ -3,10 +3,6 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.impl;
 
-import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslCipherSuites;
-import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslProtocolSuites;
-import static org.mariadb.jdbc.util.constants.Capabilities.SSL;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -38,7 +34,14 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.net.ssl.*;
+
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -48,6 +51,8 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.BaseContext;
 import org.mariadb.jdbc.client.context.RedoContext;
+import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslCipherSuites;
+import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslProtocolSuites;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -89,6 +94,7 @@ import org.mariadb.jdbc.util.IPUtility;
 import org.mariadb.jdbc.util.Security;
 import org.mariadb.jdbc.util.StringUtils;
 import org.mariadb.jdbc.util.constants.Capabilities;
+import static org.mariadb.jdbc.util.constants.Capabilities.SSL;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
@@ -355,7 +361,7 @@ public class StandardClient implements Client, AutoCloseable {
 
   private void initializeContext(InitialHandshakePacket handshake, long clientCapabilities) {
     PrepareCache cache =
-        conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null;
+        conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this, conf.prepareThreshold()) : null;
 
     Boolean isLoopback = null;
     if (socket.getInetAddress() != null) isLoopback = socket.getInetAddress().isLoopbackAddress();
