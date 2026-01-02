@@ -3,7 +3,7 @@ name: Run CI Tests
 
 on:
   push:
-    branches: ['main', 'develop', 'maintenance/*']
+    branches: ['main', 'develop', 'maintenance/*', 'feature/*']
   pull_request:
   workflow_dispatch:
   schedule:
