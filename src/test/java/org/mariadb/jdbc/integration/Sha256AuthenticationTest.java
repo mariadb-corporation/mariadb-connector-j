@@ -94,9 +94,13 @@ public class Sha256AuthenticationTest extends Common {
         }
       }
     }
-    ResultSet rs = stmt.executeQuery("SELECT @@global.strict_password_validation");
-    rs.next();
-    strictPasswordValidation = rs.getBoolean(1);
+    try {
+      ResultSet rs = stmt.executeQuery("SELECT @@global.strict_password_validation");
+      rs.next();
+      strictPasswordValidation = rs.getBoolean(1);
+    } catch (SQLException e) {
+      strictPasswordValidation = false;
+    }
 
     String keyword = isMariaDBServer() ? "VIA" : "WITH";
     String password =
