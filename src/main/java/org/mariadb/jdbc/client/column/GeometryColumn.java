@@ -89,7 +89,8 @@ public class GeometryColumn extends BlobColumn {
 
   public String getColumnTypeName(final Configuration conf) {
     if (extTypeName != null) {
-      return new String(extTypeName, java.nio.charset.StandardCharsets.US_ASCII).toUpperCase(Locale.ROOT);
+      return new String(extTypeName, java.nio.charset.StandardCharsets.US_ASCII)
+          .toUpperCase(Locale.ROOT);
     }
     return "GEOMETRY";
   }

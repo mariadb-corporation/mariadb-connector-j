@@ -117,5 +117,4 @@ public interface Column {
    * @return metadata flag
    */
   int getFlags();
-
 }

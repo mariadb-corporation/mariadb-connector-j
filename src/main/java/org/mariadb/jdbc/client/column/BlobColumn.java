@@ -13,7 +13,6 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
 import java.util.Locale;
-
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
@@ -99,7 +98,8 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
      see https://mariadb.com/kb/en/library/data-types/
     */
     if (extTypeFormat != null) {
-      return new String(extTypeFormat, java.nio.charset.StandardCharsets.US_ASCII).toUpperCase(Locale.ROOT);
+      return new String(extTypeFormat, java.nio.charset.StandardCharsets.US_ASCII)
+          .toUpperCase(Locale.ROOT);
     }
     if (isBinary()) {
       if (columnLength < 0) {

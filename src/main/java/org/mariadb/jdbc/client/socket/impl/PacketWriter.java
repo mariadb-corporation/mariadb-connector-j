@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableByte;
@@ -760,7 +759,9 @@ public class PacketWriter implements Writer {
   }
 
   public boolean throwMaxAllowedLengthOr16M(int length) {
-    return maxAllowedPacket != null ? cmdLength + length >= maxAllowedPacket : cmdLength + length >= 0xFFFFFF;
+    return maxAllowedPacket != null
+        ? cmdLength + length >= maxAllowedPacket
+        : cmdLength + length >= 0xFFFFFF;
   }
 
   public void permitTrace(boolean permitTrace) {

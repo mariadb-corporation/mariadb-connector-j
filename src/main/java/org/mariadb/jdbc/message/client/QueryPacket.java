@@ -3,13 +3,13 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
+
 import java.io.IOException;
 import java.io.InputStream;
-
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
 
 /** Query client packet COM_QUERY see https://mariadb.com/kb/en/com_query/ */
 public final class QueryPacket implements RedoableClientMessage {
