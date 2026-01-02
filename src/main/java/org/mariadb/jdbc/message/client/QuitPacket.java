@@ -3,12 +3,12 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
-import java.io.IOException;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUIT;
 
+import java.io.IOException;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUIT;
 
 /**
  * ending connection packet COM_QUIT proper end of a connection. see

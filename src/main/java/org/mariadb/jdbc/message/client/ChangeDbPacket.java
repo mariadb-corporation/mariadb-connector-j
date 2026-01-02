@@ -3,11 +3,11 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
-import java.io.IOException;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_INIT_DB;
 
+import java.io.IOException;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_INIT_DB;
 
 /** change database. See https://mariadb.com/kb/en/com_init_db/ protocol */
 public final class ChangeDbPacket implements RedoableClientMessage {

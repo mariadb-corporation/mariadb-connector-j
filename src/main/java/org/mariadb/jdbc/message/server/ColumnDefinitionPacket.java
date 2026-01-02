@@ -4,7 +4,6 @@
 package org.mariadb.jdbc.message.server;
 
 import java.util.Objects;
-
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
