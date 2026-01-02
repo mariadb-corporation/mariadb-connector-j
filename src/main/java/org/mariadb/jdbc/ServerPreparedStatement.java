@@ -40,9 +40,6 @@ import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
  */
 public class ServerPreparedStatement extends BasePreparedStatement {
 
-  /** Server-side prepare result (shadows parent field with more specific type) */
-  protected PrepareResultPacket prepareResult = null;
-
   /**
    * Server prepare statement constructor
    *

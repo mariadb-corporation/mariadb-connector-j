@@ -17,6 +17,7 @@ import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
+import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 
@@ -207,7 +208,7 @@ public class BaseContext implements Context {
     this.transactionIsolationLevel = transactionIsolationLevel;
   }
 
-  public Prepare getPrepareCacheCmd(String sql) {
+  public PrepareResultPacket getPrepareCacheCmd(String sql) {
     return prepareCache.get(database + "|" + sql);
   }
 

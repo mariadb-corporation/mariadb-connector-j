@@ -10,6 +10,7 @@ import java.util.function.Function;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
+import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
 public interface Context {
 
@@ -217,7 +218,7 @@ public interface Context {
    * @param sql sql command
    * @return Prepare if found, null if not
    */
-  Prepare getPrepareCacheCmd(String sql);
+  PrepareResultPacket getPrepareCacheCmd(String sql);
 
   /**
    * Get prepare cache instance

@@ -48,7 +48,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   protected List<Parameters> batchParameters;
 
   /** PREPARE command result */
-  protected Prepare prepareResult = null;
+  protected PrepareResultPacket prepareResult = null;
 
   /**
    * Constructor
@@ -102,7 +102,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    *
    * @param prepareResult prepare result
    */
-  public void setPrepareResult(Prepare prepareResult) {
+  public void setPrepareResult(PrepareResultPacket prepareResult) {
     this.prepareResult = prepareResult;
   }
 

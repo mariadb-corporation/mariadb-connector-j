@@ -665,6 +665,7 @@ public class Configuration {
             .registerJmxPool(this.registerJmxPool)
             .poolValidMinDelay(this.poolValidMinDelay)
             .useResetConnection(this.useResetConnection)
+            .prepareThreshold(this.prepareThreshold)
             .serverRsaPublicKeyFile(this.serverRsaPublicKeyFile)
             .allowPublicKeyRetrieval(this.allowPublicKeyRetrieval);
     builder._nonMappedOptions = this.nonMappedOptions;
