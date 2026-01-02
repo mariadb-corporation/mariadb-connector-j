@@ -12,7 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.mariadb.jdbc.BasePreparedStatement;
-import org.mariadb.jdbc.Connection;
+import org.mariadb.jdbc.ClientPreparedStatement;
+import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ColumnDecoder;
@@ -435,6 +436,33 @@ public class UpdatableResult extends CompleteResult {
     updateObject(findColumn(columnLabel), x);
   }
 
+  private PreparedStatement buildQuery(String query, boolean isBinary) throws SQLException {
+    PreparedStatement preparedStatement;
+    if (isBinary) {
+      preparedStatement =
+          new ServerPreparedStatement(
+              query,
+              this.statement.getConnection(),
+              this.statement.getConnection().getLock(),
+              Statement.RETURN_GENERATED_KEYS,
+              ResultSet.TYPE_FORWARD_ONLY,
+              ResultSet.CONCUR_READ_ONLY,
+              -1,
+              null);
+    } else {
+      preparedStatement =
+          new ClientPreparedStatement(
+              query,
+              this.statement.getConnection(),
+              this.statement.getConnection().getLock(),
+              Statement.RETURN_GENERATED_KEYS,
+              ResultSet.TYPE_FORWARD_ONLY,
+              ResultSet.CONCUR_READ_ONLY,
+              -1);
+    }
+    return preparedStatement;
+  }
+
   @Override
   public void insertRow() throws SQLException {
     if (state == STATE_INSERT || state == STATE_INSERTED) {
@@ -446,14 +474,7 @@ public class UpdatableResult extends CompleteResult {
 
       String insertSql = buildInsertQuery();
       try (PreparedStatement insertPreparedStatement =
-          ((Connection) statement.getConnection())
-              .prepareInternal(
-                  insertSql,
-                  Statement.RETURN_GENERATED_KEYS,
-                  ResultSet.TYPE_FORWARD_ONLY,
-                  ResultSet.CONCUR_READ_ONLY,
-                  rowDecoder instanceof BinaryRowDecoder)) {
-
+          this.buildQuery(insertSql, rowDecoder instanceof BinaryRowDecoder)) {
         int paramPos = 0;
         for (int pos = 0; pos < metadataList.length; pos++) {
           Column colInfo = metadataList[pos];
@@ -604,13 +625,7 @@ public class UpdatableResult extends CompleteResult {
   private PreparedStatement prepareRefreshStmt() throws SQLException {
     // row's raw bytes must be encoded according to current resultSet type
     // so use Server or Client PrepareStatement accordingly
-    return ((Connection) statement.getConnection())
-        .prepareInternal(
-            refreshStmt(),
-            Statement.RETURN_GENERATED_KEYS,
-            ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_READ_ONLY,
-            rowDecoder instanceof BinaryRowDecoder);
+    return this.buildQuery(refreshStmt(), rowDecoder instanceof BinaryRowDecoder);
   }
 
   private byte[] refreshRawData() throws SQLException {
@@ -690,13 +705,7 @@ public class UpdatableResult extends CompleteResult {
       String updateQuery = updateQuery();
       if (updateQuery != null) {
         try (PreparedStatement preparedStatement =
-            ((Connection) statement.getConnection())
-                .prepareInternal(
-                    updateQuery,
-                    Statement.RETURN_GENERATED_KEYS,
-                    ResultSet.TYPE_FORWARD_ONLY,
-                    ResultSet.CONCUR_READ_ONLY,
-                    rowDecoder instanceof BinaryRowDecoder)) {
+            this.buildQuery(updateQuery, rowDecoder instanceof BinaryRowDecoder)) {
 
           int fieldsIndex = 0;
           for (int pos = 0; pos < metadataList.length; pos++) {
@@ -755,13 +764,7 @@ public class UpdatableResult extends CompleteResult {
     }
 
     try (PreparedStatement deletePreparedStatement =
-        ((Connection) statement.getConnection())
-            .prepareInternal(
-                deleteSql.toString(),
-                Statement.RETURN_GENERATED_KEYS,
-                ResultSet.TYPE_FORWARD_ONLY,
-                ResultSet.CONCUR_READ_ONLY,
-                false)) {
+        this.buildQuery(deleteSql.toString(), rowDecoder instanceof BinaryRowDecoder)) {
 
       int fieldsPrimaryIndex = 1;
       for (int pos = 0; pos < metadataList.length; pos++) {

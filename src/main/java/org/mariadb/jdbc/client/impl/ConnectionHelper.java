@@ -14,7 +14,7 @@ import java.sql.SQLTimeoutException;
 import java.util.Arrays;
 import java.util.List;
 import javax.net.SocketFactory;
-import javax.net.ssl.*;
+import javax.net.ssl.SSLSocket;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.SocketHelper;
@@ -245,7 +245,7 @@ public final class ConnectionHelper {
   }
 
   private static boolean shouldEnableMetadataCache(Configuration configuration) {
-    return configuration.useServerPrepStmts()
+    return configuration.prepareThreshold() >= 0
         && getBooleanProperty(configuration, "enableSkipMeta", true);
   }
 

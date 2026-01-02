@@ -98,7 +98,10 @@ public class Common {
   @BeforeAll
   public static void beforeAll() throws Exception {
     sharedConn = (Connection) DriverManager.getConnection(mDefUrl);
-    String binUrl = mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "useServerPrepStmts=true";
+    String binUrl =
+        mDefUrl
+            + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
+            + "useServerPrepStmts=true&prepareThreshold=0";
     sharedConnBinary = (Connection) DriverManager.getConnection(binUrl);
   }
 

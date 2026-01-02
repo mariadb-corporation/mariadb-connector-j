@@ -9,7 +9,18 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.ServiceLoader;
+import java.util.Set;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
@@ -168,7 +179,7 @@ public class Configuration {
   // prepare
   private boolean cachePrepStmts;
   private int prepStmtCacheSize;
-  private boolean useServerPrepStmts;
+  private int prepareThreshold;
 
   // authentication
   private CredentialPlugin credentialType;
@@ -349,13 +360,22 @@ public class Configuration {
         builder.dumpQueriesOnException != null && builder.dumpQueriesOnException;
     this.prepStmtCacheSize = builder.prepStmtCacheSize != null ? builder.prepStmtCacheSize : 250;
     this.useAffectedRows = builder.useAffectedRows != null && builder.useAffectedRows;
-    this.rewriteBatchedStatements =
-        builder.rewriteBatchedStatements != null && builder.rewriteBatchedStatements;
-    // disable use server prepare if using client rewrite
-    if (this.rewriteBatchedStatements) {
-      this.useServerPrepStmts = false;
+    // Handle prepareThreshold and useServerPrepStmts interaction
+    // prepareThreshold takes precedence if explicitly set
+    if (builder.prepareThreshold != null) {
+      this.prepareThreshold = builder.prepareThreshold;
+    } else if (builder.useServerPrepStmts != null) {
+      // Map useServerPrepStmts to prepareThreshold for backward compatibility
+      this.prepareThreshold = builder.useServerPrepStmts ? 0 : -1;
     } else {
-      this.useServerPrepStmts = builder.useServerPrepStmts != null && builder.useServerPrepStmts;
+      // Default: prepareThreshold = 5
+      this.prepareThreshold = 5;
+    }
+
+    // Disable server prepare if using client rewrite
+    if (builder.rewriteBatchedStatements != null && builder.rewriteBatchedStatements) {
+      this.prepareThreshold = -1;
+      this.rewriteBatchedStatements = true;
     }
     this.connectionAttributes = builder.connectionAttributes;
     this.allowLocalInfile = builder.allowLocalInfile == null || builder.allowLocalInfile;
@@ -536,7 +556,7 @@ public class Configuration {
       for (Field field : fields) {
         if (field.getType().equals(int.class)) {
           int val = field.getInt(this);
-          if (val < 0) {
+          if (val < 0 && !"prepareThreshold".equals(field.getName())) {
             throw new IllegalArgumentException(
                 String.format("Value for %s must be >= 1 (value is %s)", field.getName(), val));
           }
@@ -626,7 +646,7 @@ public class Configuration {
             .disablePipeline(this.disablePipeline)
             .cachePrepStmts(this.cachePrepStmts)
             .prepStmtCacheSize(this.prepStmtCacheSize)
-            .useServerPrepStmts(this.useServerPrepStmts)
+            .prepareThreshold(this.prepareThreshold)
             .credentialType(this.credentialType == null ? null : this.credentialType.type())
             .sessionVariables(this.sessionVariables)
             .connectionAttributes(this.connectionAttributes)
@@ -651,6 +671,7 @@ public class Configuration {
             .registerJmxPool(this.registerJmxPool)
             .poolValidMinDelay(this.poolValidMinDelay)
             .useResetConnection(this.useResetConnection)
+            .prepareThreshold(this.prepareThreshold)
             .serverRsaPublicKeyFile(this.serverRsaPublicKeyFile)
             .allowPublicKeyRetrieval(this.allowPublicKeyRetrieval);
     builder._nonMappedOptions = this.nonMappedOptions;
@@ -1872,12 +1893,13 @@ public class Configuration {
   }
 
   /**
-   * Use server prepared statement. IF false, using client prepared statement.
+   * Number of times a query must be executed before it is promoted to server-side preparation. When
+   * set to 0, queries are immediately prepared on the server. Default: 5
    *
-   * @return use server prepared statement
+   * @return prepare threshold
    */
-  public boolean useServerPrepStmts() {
-    return useServerPrepStmts;
+  public int prepareThreshold() {
+    return prepareThreshold;
   }
 
   /**
@@ -2418,6 +2440,7 @@ public class Configuration {
     // prepare
     private Boolean cachePrepStmts;
     private Integer prepStmtCacheSize;
+    private Integer prepareThreshold;
     private Boolean useServerPrepStmts;
 
     // authentication
@@ -3183,6 +3206,20 @@ public class Configuration {
      */
     public Builder useServerPrepStmts(Boolean useServerPrepStmts) {
       this.useServerPrepStmts = useServerPrepStmts;
+      return this;
+    }
+
+    /**
+     * Number of times a query must be executed before it is promoted to server-side preparation.
+     * When useServerPrepStmts and cachePrepStmts are enabled, queries are initially prepared
+     * client-side and only promoted to server-side after reaching this threshold. Setting to 0
+     * means queries are immediately prepared on the server. Default: 5
+     *
+     * @param prepareThreshold execution count threshold
+     * @return this {@link Builder}
+     */
+    public Builder prepareThreshold(Integer prepareThreshold) {
+      this.prepareThreshold = prepareThreshold;
       return this;
     }
 

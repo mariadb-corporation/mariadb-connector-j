@@ -14,7 +14,9 @@ import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
-import org.mariadb.jdbc.message.client.*;
+import org.mariadb.jdbc.message.client.PreparePacket;
+import org.mariadb.jdbc.message.client.RedoableClientMessage;
+import org.mariadb.jdbc.message.client.RedoableWithPrepareClientMessage;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
@@ -134,7 +136,7 @@ public class ReplayClient extends StandardClient {
           RedoableWithPrepareClientMessage redoable =
               ((RedoableWithPrepareClientMessage) querySaver);
           String cmd = redoable.getCommand();
-          prepare = context.getPrepareCacheCmd(cmd, redoable.prep());
+          prepare = context.getPrepareCacheCmd(cmd);
           if (prepare == null) {
             PreparePacket preparePacket = new PreparePacket(cmd);
             sendQuery(preparePacket);

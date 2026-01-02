@@ -32,7 +32,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ColumnDecoder;
@@ -117,7 +116,7 @@ public abstract class Result implements ResultSet, Completion {
   protected boolean closed;
 
   /** statement that initiate this result */
-  protected Statement statement;
+  protected org.mariadb.jdbc.Statement statement;
 
   /** row number limit */
   protected long maxRows;
@@ -569,7 +568,13 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        BigIntegerCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
+        BigIntegerCodec.INSTANCE,
+        null,
+        rowBuf,
+        fieldLength,
+        metadataList,
+        columnIndex - 1,
+        context);
   }
 
   /**
@@ -620,7 +625,13 @@ public abstract class Result implements ResultSet, Completion {
     }
     BigDecimal d =
         rowDecoder.decode(
-            BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
+            BigDecimalCodec.INSTANCE,
+            null,
+            rowBuf,
+            fieldLength,
+            metadataList,
+            columnIndex - 1,
+            context);
     if (d == null) return null;
     return d.setScale(scale, RoundingMode.HALF_DOWN);
   }
@@ -671,7 +682,8 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeTimestamp(metadataList, columnIndex - 1, rowBuf, fieldLength, null, context);
+    return rowDecoder.decodeTimestamp(
+        metadataList, columnIndex - 1, rowBuf, fieldLength, null, context);
   }
 
   @Override
@@ -866,7 +878,13 @@ public abstract class Result implements ResultSet, Completion {
       return null;
     }
     return rowDecoder.decode(
-        BigDecimalCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
+        BigDecimalCodec.INSTANCE,
+        null,
+        rowBuf,
+        fieldLength,
+        metadataList,
+        columnIndex - 1,
+        context);
   }
 
   @Override
@@ -1221,7 +1239,7 @@ public abstract class Result implements ResultSet, Completion {
    *
    * @param stmt statement
    */
-  public void setStatement(Statement stmt) {
+  public void setStatement(org.mariadb.jdbc.Statement stmt) {
     statement = stmt;
   }
 
@@ -1277,7 +1295,13 @@ public abstract class Result implements ResultSet, Completion {
     }
     float[] val =
         rowDecoder.decode(
-            FloatArrayCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
+            FloatArrayCodec.INSTANCE,
+            null,
+            rowBuf,
+            fieldLength,
+            metadataList,
+            columnIndex - 1,
+            context);
     return new FloatArray(val, context);
   }
 
@@ -1353,7 +1377,8 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decodeTimestamp(metadataList, columnIndex - 1, rowBuf, fieldLength, cal, context);
+    return rowDecoder.decodeTimestamp(
+        metadataList, columnIndex - 1, rowBuf, fieldLength, cal, context);
   }
 
   @Override
@@ -1373,7 +1398,13 @@ public abstract class Result implements ResultSet, Completion {
 
     String s =
         rowDecoder.decode(
-            StringCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
+            StringCodec.INSTANCE,
+            null,
+            rowBuf,
+            fieldLength,
+            metadataList,
+            columnIndex - 1,
+            context);
     if (s == null) return null;
     try {
       return new URI(s).toURL();
@@ -1708,7 +1739,8 @@ public abstract class Result implements ResultSet, Completion {
     ColumnDecoder column = metadataList[columnIndex - 1];
     // type generic, return "natural" java type
     if (Object.class.equals(type) || type == null) {
-      return (T) rowDecoder.defaultDecode(metadataList, columnIndex - 1, rowBuf, fieldLength, context);
+      return (T)
+          rowDecoder.defaultDecode(metadataList, columnIndex - 1, rowBuf, fieldLength, context);
     }
 
     Configuration conf = context.getConf();

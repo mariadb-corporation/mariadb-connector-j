@@ -3,11 +3,15 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_PREPARE;
+import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.function.Consumer;
-
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
@@ -22,10 +26,6 @@ import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_PREPARE;
-import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
-import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
@@ -164,23 +164,21 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
                 errorPacket.getErrorCode(),
                 true);
       }
-      if (context.getConf().useServerPrepStmts()
+      if (context.getConf().prepareThreshold() >= 0
           && context.getConf().cachePrepStmts()
           && sql.length() < 8192) {
         PrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
         PrepareResultPacket previousCached =
-            (PrepareResultPacket)
-                context.putPrepareCacheCmd(
-                    sql,
-                    prepare,
-                    stmt instanceof ServerPreparedStatement
-                        ? (ServerPreparedStatement) stmt
-                        : null);
-        if (stmt != null) {
-          ((BasePreparedStatement) stmt)
-              .setPrepareResult(previousCached != null ? previousCached : prepare);
+            (PrepareResultPacket) context.putPrepareCacheCmd(sql, prepare);
+        PrepareResultPacket result = previousCached != null ? previousCached : prepare;
+        // Increment use count for the prepare result being used
+        if (result instanceof CachedPrepareResultPacket) {
+          ((CachedPrepareResultPacket) result).incrementUse();
         }
-        this.prepareResult = previousCached != null ? previousCached : prepare;
+        if (stmt != null) {
+          ((BasePreparedStatement) stmt).setPrepareResult(result);
+        }
+        this.prepareResult = result;
         return this.prepareResult;
       }
       PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);

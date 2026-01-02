@@ -22,7 +22,6 @@ import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.export.ExceptionFactory;
-import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.BulkExecutePacket;
 import org.mariadb.jdbc.message.client.PreparePacket;
@@ -48,7 +47,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   protected List<Parameters> batchParameters;
 
   /** PREPARE command result */
-  protected Prepare prepareResult = null;
+  protected PrepareResultPacket prepareResult = null;
 
   /**
    * Constructor
@@ -102,7 +101,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    *
    * @param prepareResult prepare result
    */
-  public void setPrepareResult(Prepare prepareResult) {
+  public void setPrepareResult(PrepareResultPacket prepareResult) {
     this.prepareResult = prepareResult;
   }
 
@@ -1918,7 +1917,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   protected void executeBatchBulk(String cmd) throws SQLException {
     List<Completion> res;
     if (prepareResult == null && con.cachePrepStmts())
-      prepareResult = con.getContext().getPrepareCacheCmd(cmd, this);
+      prepareResult = con.getContext().getPrepareCacheCmd(cmd);
     try {
       if (prepareResult == null) {
         ClientMessage[] packets;

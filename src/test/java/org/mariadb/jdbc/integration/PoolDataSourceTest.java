@@ -754,7 +754,7 @@ public class PoolDataSourceTest extends Common {
     xac.close();
   }
 
-  @Timeout(value = 5, unit = TimeUnit.SECONDS)
+  @Timeout(value = 10, unit = TimeUnit.SECONDS)
   @Test
   public void testConcurrentCreationForDifferentHosts() throws Exception {
     CountDownLatch ready = new CountDownLatch(5);

@@ -38,7 +38,12 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.net.ssl.*;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -355,7 +360,9 @@ public class StandardClient implements Client, AutoCloseable {
 
   private void initializeContext(InitialHandshakePacket handshake, long clientCapabilities) {
     PrepareCache cache =
-        conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null;
+        conf.cachePrepStmts()
+            ? new PrepareCache(conf.prepStmtCacheSize(), this, conf.prepareThreshold())
+            : null;
 
     Boolean isLoopback = null;
     if (socket.getInetAddress() != null) isLoopback = socket.getInetAddress().isLoopbackAddress();

@@ -6,10 +6,10 @@ package org.mariadb.jdbc.client;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.function.Function;
-import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
+import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
 public interface Context {
 
@@ -207,31 +207,43 @@ public interface Context {
   /**
    * Set current connection transaction isolation level
    *
-   * @param transactionIsolationLevel new connection transaction isolation level
+   * @param transactionIsolationLevel transaction isolation level
    */
   void setTransactionIsolationLevel(Integer transactionIsolationLevel);
 
   /**
-   * Return cached prepare if key match
+   * Get prepare cache command
    *
    * @param sql sql command
-   * @param preparedStatement current statement
    * @return Prepare if found, null if not
    */
-  Prepare getPrepareCacheCmd(String sql, BasePreparedStatement preparedStatement);
+  PrepareResultPacket getPrepareCacheCmd(String sql);
 
   /**
-   * Put prepare result in cache
+   * Get prepare cache instance
+   *
+   * @return prepare cache instance
+   */
+  PrepareCache getPrepareCacheInstance();
+
+  /**
+   * Put prepare cache command
    *
    * @param sql sql command
    * @param result prepare result
-   * @param preparedStatement current statement
    * @return Prepare if was already cached
    */
-  Prepare putPrepareCacheCmd(String sql, Prepare result, BasePreparedStatement preparedStatement);
+  Prepare putPrepareCacheCmd(String sql, Prepare result);
 
   /** Reset prepare cache (after a failover) */
   void resetPrepareCache();
+
+  /**
+   * Get context generation number (incremented on each failover)
+   *
+   * @return generation number
+   */
+  long getContextGeneration();
 
   /**
    * return connection current state change flag

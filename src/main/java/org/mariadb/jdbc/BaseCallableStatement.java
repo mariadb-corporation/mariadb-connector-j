@@ -65,7 +65,8 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         Statement.RETURN_GENERATED_KEYS,
         resultSetType,
         resultSetConcurrency,
-        defaultFetchSize);
+        defaultFetchSize,
+        null);
     this.databaseName = databaseName;
     this.procedureName = procedureName;
   }

@@ -187,6 +187,15 @@ public class MultiHostTest extends Common {
   }
 
   private void testClosedConn(Connection con) throws SQLException {
+    try (PreparedStatement prep = con.prepareStatement("SELECT ?")) {
+      prep.setString(1, "1");
+      prep.execute();
+    }
+    try (PreparedStatement prep2 = con.prepareStatement("SELECT 1, ?")) {
+      prep2.setString(1, "1");
+      prep2.execute();
+    }
+
     PreparedStatement prep = con.prepareStatement("SELECT ?");
     PreparedStatement prep2 = con.prepareStatement("SELECT 1, ?");
     prep2.setString(1, "1");
