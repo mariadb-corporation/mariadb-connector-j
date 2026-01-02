@@ -3,10 +3,13 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
+import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
-
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -14,9 +17,6 @@ import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
-import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
-import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 

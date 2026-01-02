@@ -3,12 +3,16 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_BULK_EXECUTE;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_NOT_NULL;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_NULL;
+import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -16,11 +20,7 @@ import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.export.Prepare;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_BULK_EXECUTE;
-import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_NOT_NULL;
-import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_NULL;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
 
 /**
  * batch execution. This relies on COM_STMT_BULK_EXECUTE

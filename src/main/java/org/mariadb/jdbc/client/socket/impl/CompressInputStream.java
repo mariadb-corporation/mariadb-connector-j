@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
-
 import org.mariadb.jdbc.client.util.MutableByte;
 
 /**

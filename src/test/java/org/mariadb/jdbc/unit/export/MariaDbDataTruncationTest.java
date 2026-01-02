@@ -3,11 +3,11 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.export;
 
-import java.sql.DataTruncation;
-import java.sql.SQLException;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.sql.DataTruncation;
+import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
@@ -18,7 +18,8 @@ public class MariaDbDataTruncationTest {
 
   @Test
   public void testExceptionFactoryReturnDataTruncation() throws SQLException {
-    Configuration conf = new Configuration.Builder().database("test").addHost("localhost", 3306).build();
+    Configuration conf =
+        new Configuration.Builder().database("test").addHost("localhost", 3306).build();
     ExceptionFactory factory = new ExceptionFactory(conf, HostAddress.from("localhost", 3306));
 
     SQLException ex = factory.create("boom", "22003", 1264);

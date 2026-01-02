@@ -97,9 +97,12 @@ public interface ColumnDecoder extends Column {
     int flags = buf.readUnsignedShort();
     byte decimals = buf.readByte();
     DataType.ColumnConstructor constructor =
-        (extTypeName != null && extTypeName.length == 4
-            && extTypeName[0] == 'u' && extTypeName[1] == 'u'
-            && extTypeName[2] == 'i' && extTypeName[3] == 'd')
+        (extTypeName != null
+                && extTypeName.length == 4
+                && extTypeName[0] == 'u'
+                && extTypeName[1] == 'u'
+                && extTypeName[2] == 'i'
+                && extTypeName[3] == 'd')
             ? UuidColumn::new
             : (flags & ColumnFlags.UNSIGNED) == 0
                 ? dataType.getColumnConstructor()
