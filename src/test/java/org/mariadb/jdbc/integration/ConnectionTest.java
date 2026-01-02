@@ -810,9 +810,11 @@ public class ConnectionTest extends Common {
     stmt.execute(
         "CREATE USER verifParsec"
             + getHostSuffix()
-            + " IDENTIFIED VIA parsec USING PASSWORD('MySup8%rPassw@ord')");
+            + " IDENTIFIED VIA parsec USING PASSWORD('heyPassw-!*20oRd')");
     stmt.execute(
-        "CREATE USER verifParsec2" + getHostSuffix() + " IDENTIFIED VIA parsec USING PASSWORD('')");
+        "CREATE USER verifParsec2"
+            + getHostSuffix()
+            + " IDENTIFIED VIA parsec USING PASSWORD('heyPassw-!*20oRd')");
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec" + getHostSuffix());
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec2" + getHostSuffix());
 
@@ -822,11 +824,11 @@ public class ConnectionTest extends Common {
       // assuming, that BouncyCastle is not on test classpath
       assertThrowsContains(
           SQLException.class,
-          () -> createCon("user=verifParsec&password=MySup8%rPassw@ord"),
+          () -> createCon("user=verifParsec&password=heyPassw-!*20oRd"),
           "Parsec authentication not available. Either use Java 15+ or add BouncyCastle"
               + " dependency");
     } else {
-      try (Connection connection = createCon("user=verifParsec&password=MySup8%rPassw@ord")) {
+      try (Connection connection = createCon("user=verifParsec&password=heyPassw-!*20oRd")) {
         // must have succeeded
         connection.getCatalog();
       }
@@ -834,7 +836,7 @@ public class ConnectionTest extends Common {
 
     assertThrowsContains(
         SQLException.class,
-        () -> createCon("user=verifParsec2&password=MySup8%rPassw@ord&restrictedAuth=dialog"),
+        () -> createCon("user=verifParsec2&password=heyPassw-!*20oRd&restrictedAuth=dialog"),
         "Client restrict authentication plugin to a limited set");
     stmt.execute("drop user verifParsec" + getHostSuffix());
     stmt.execute("drop user verifParsec2" + getHostSuffix());
