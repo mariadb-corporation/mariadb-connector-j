@@ -5,6 +5,7 @@ package org.mariadb.jdbc.client.impl;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -111,11 +112,24 @@ public final class ConnectionHelper {
       socket = createSocket(conf, hostAddress);
       SocketHelper.setSocketOption(conf, socket);
       if (!socket.isConnected()) {
-        InetSocketAddress sockAddr =
-            hostAddress.pipe == null && hostAddress.localSocket == null
-                ? new InetSocketAddress(hostAddress.host, hostAddress.port)
-                : null;
-        socket.connect(sockAddr, conf.connectTimeout());
+        boolean isRemoteSocket = hostAddress.pipe == null && hostAddress.localSocket == null;
+        if (!isRemoteSocket) {
+          socket.connect(null, conf.connectTimeout());
+        } else {
+          InetAddress[] allAddress = InetAddress.getAllByName(hostAddress.host);
+          IOException lastException = null;
+          for (InetAddress address : allAddress) {
+              try {
+                socket.connect(new InetSocketAddress(address, hostAddress.port), conf.connectTimeout());
+                break;
+              }catch (IOException ignore) {
+                lastException = ignore;
+              }
+          }
+          if (lastException != null) {
+            throw lastException;
+          }
+        }
       }
       return socket;
 
