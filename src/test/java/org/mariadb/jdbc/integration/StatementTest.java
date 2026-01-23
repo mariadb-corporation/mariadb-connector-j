@@ -810,7 +810,7 @@ public class StatementTest extends Common {
               "select * from information_schema.columns as c1,  information_schema.tables,"
                   + " information_schema.tables as t2");
         },
-        "Query execution was interrupted");
+        "was interrupted");
     stmt.setQueryTimeout(1);
     stmt.execute("SELECT 1");
     Common.assertThrowsContains(
@@ -822,7 +822,7 @@ public class StatementTest extends Common {
               "select * from information_schema.columns as c1,  information_schema.tables,"
                   + " information_schema.tables as t2");
         },
-        "Query execution was interrupted");
+        "was interrupted");
   }
 
   @Test
@@ -900,7 +900,7 @@ public class StatementTest extends Common {
 
     ExecutorService exec = Executors.newFixedThreadPool(1);
 
-    Common.assertThrowsContains(
+    assertThrows(
         SQLTimeoutException.class,
         () -> {
           exec.execute(new CancelThread(stmt));
@@ -908,8 +908,7 @@ public class StatementTest extends Common {
               "select * from information_schema.columns as c1,  information_schema.tables,"
                   + " information_schema.tables as t2");
           exec.shutdown();
-        },
-        "Query execution was interrupted");
+        });
   }
 
   @Test

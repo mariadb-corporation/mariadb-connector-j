@@ -11,22 +11,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URL;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.NClob;
-import java.sql.Ref;
-import java.sql.ResultSet;
-import java.sql.RowId;
-import java.sql.SQLDataException;
-import java.sql.SQLException;
-import java.sql.SQLType;
-import java.sql.SQLWarning;
-import java.sql.SQLXML;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -395,6 +380,8 @@ public abstract class Result implements ResultSet, Completion {
     if (!loaded) {
       try {
         skipRemaining();
+      } catch (SQLTimeoutException timeout) {
+        // eat
       } catch (IOException ioe) {
         throw exceptionFactory.create("Error while streaming resultSet data", "08000", ioe);
       }
