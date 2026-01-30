@@ -67,8 +67,28 @@ jobs:
           cache: maven
           distribution: ${{ (matrix.java && matrix.java > 17) && 'oracle' || 'adopt' }}
 
-      - name: Run Tests
+      - name: Run Tests non windows
+        if: ${{ !startsWith(matrix.os, 'windows') }}
         run: mvn clean test ${{ matrix.java == '8' && '-P java8' || '' }} ${{ matrix.java == '11' && '-P java11' || '' }}
+        env:
+          LOCAL_DB: ${{ steps.setup-env.outputs.database-type }}
+          DB_TYPE: ${{ matrix.db-type }}
+          TEST_DB_SERVER_CERT: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/server.crt', github.workspace) || '' }}
+          TEST_DB_SERVER_CA_CERT: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/ca.crt', github.workspace) || '' }}
+          TEST_DB_CLIENT_PKCS: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/client.p12', github.workspace) || '' }}
+          DB_VERSION: ${{ matrix.db-tag }}
+
+      - name: Run tests windows
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        shell: powershell
+        run: |
+          $computerSystem = Get-WmiObject -Class Win32_ComputerSystem
+          if ($computerSystem.PartOfDomain) {
+            mvn clean test
+          } else {
+            Write-Host "Not domain-joined, skipping GSSAPI tests"
+            mvn clean test -Dtest='!*GssapiAuthenticationTest'
+          }
         env:
           LOCAL_DB: ${{ steps.setup-env.outputs.database-type }}
           DB_TYPE: ${{ matrix.db-type }}
