@@ -94,7 +94,7 @@ import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
 /** Connection client */
-public class StandardClient implements Client, AutoCloseable {
+public class StandardClient implements Client {
   private static final Logger logger = Loggers.getLogger(StandardClient.class);
 
   /** connection exception factory */
@@ -398,7 +398,23 @@ public class StandardClient implements Client, AutoCloseable {
     if (credPlugin != null && credPlugin.defaultAuthenticationPluginType() != null) {
       authType = credPlugin.defaultAuthenticationPluginType();
     }
+    // If user configured a preferred/default auth, propose it (like mysql --default-auth)
+    if (conf.defaultAuth() != null && !conf.defaultAuth().isEmpty()) {
+      // If restrictedAuth is set, ensure preferred is permitted
+      if (conf.restrictedAuth() == null
+          || Arrays.stream(conf.restrictedAuth().split(",")).anyMatch(s -> authTypeAllowed(conf.defaultAuth(), s))) {
+        // Enforce SSL requirement if proposing mysql_clear_password
+        if (!"mysql_clear_password".equals(conf.defaultAuth()) || context.hasClientCapability(SSL)) {
+          authType = conf.defaultAuth();
+        }
+      }
+    }
     return authType;
+  }
+
+  private static boolean authTypeAllowed(String preferred, String allowedEntry) {
+    // The loader checks contains(); mimic that leniency here
+    return preferred.contains(allowedEntry);
   }
 
   private void handleConnectionError(SQLException e) throws SQLException {
@@ -589,6 +605,7 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  @SuppressWarnings("resource")
   public void redirect(String redirectUrl) {
     if (redirectUrl != null
         && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)

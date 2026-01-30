@@ -120,6 +120,7 @@ public class Configuration {
   private Integer maxAllowedPacket;
   private String geometryDefaultType;
   private String restrictedAuth;
+  private String defaultAuth;
   private String initSql;
   private boolean pinGlobalTxToPhysicalConnection;
   private boolean permitNoResults;
@@ -457,6 +458,7 @@ public class Configuration {
         builder.transactionReplaySize != null ? builder.transactionReplaySize : 64;
     this.geometryDefaultType = builder.geometryDefaultType;
     this.restrictedAuth = builder.restrictedAuth;
+  this.defaultAuth = builder.defaultAuth;
     this.initSql = builder.initSql;
     this.codecs = null;
   }
@@ -589,6 +591,7 @@ public class Configuration {
             .geometryDefaultType(this.geometryDefaultType)
             .geometryDefaultType(this.geometryDefaultType)
             .restrictedAuth(this.restrictedAuth)
+            .defaultAuth(this.defaultAuth)
             .initSql(this.initSql)
             .socketFactory(this.socketFactory)
             .connectTimeout(this.connectTimeout)
@@ -1533,6 +1536,16 @@ public class Configuration {
     return enabledSslProtocolSuites;
   }
 
+  /**
+   * Preferred authentication plugin to propose to the server (e.g. mysql_clear_password).
+   * If unsupported by the server, the server may switch to another plugin.
+   *
+   * @return default authentication plugin name, or null
+   */
+  public String defaultAuth() {
+    return defaultAuth;
+  }
+
   // do not remove, used with reflection
   public String credentialType() {
     return credentialType == null ? null : credentialType.type();
@@ -2372,6 +2385,7 @@ public class Configuration {
     private Integer maxAllowedPacket;
     private String geometryDefaultType;
     private String restrictedAuth;
+  private String defaultAuth;
     private String initSql;
     private String transactionIsolation;
     private String metaExportedKeys;
@@ -2860,6 +2874,18 @@ public class Configuration {
      */
     public Builder restrictedAuth(String restrictedAuth) {
       this.restrictedAuth = restrictedAuth;
+      return this;
+    }
+
+    /**
+     * Preferred/default authentication plugin to propose to the server (like mysql --default-auth).
+     * The server may still switch to another plugin.
+     *
+     * @param defaultAuth plugin name (e.g., mysql_clear_password)
+     * @return this {@link Builder}
+     */
+    public Builder defaultAuth(String defaultAuth) {
+      this.defaultAuth = nullOrEmpty(defaultAuth);
       return this;
     }
 
