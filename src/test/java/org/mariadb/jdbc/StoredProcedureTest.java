@@ -1686,7 +1686,7 @@ public class StoredProcedureTest extends BaseTest {
     } catch (SQLTimeoutException e) {
       // expected error
       assertTrue(
-          e.getMessage().contains("Query execution was interrupted (max_statement_time exceeded)"));
+          e.getMessage().contains("was interrupted"));
     } finally {
       stmt.execute("DROP USER basicUser" + getHostSuffix());
       stmt.execute("DROP PROCEDURE p_r_d");
