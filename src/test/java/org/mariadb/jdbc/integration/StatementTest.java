@@ -900,7 +900,7 @@ public class StatementTest extends Common {
 
     ExecutorService exec = Executors.newFixedThreadPool(1);
 
-    assertThrows(
+    Common.assertThrowsContains(
         SQLTimeoutException.class,
         () -> {
           exec.execute(new CancelThread(stmt));
@@ -908,7 +908,8 @@ public class StatementTest extends Common {
               "select * from information_schema.columns as c1,  information_schema.tables,"
                   + " information_schema.tables as t2");
           exec.shutdown();
-        });
+        },
+        "was interrupted");
   }
 
   @Test

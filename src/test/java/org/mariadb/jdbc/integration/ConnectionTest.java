@@ -1066,7 +1066,7 @@ public class ConnectionTest extends Common {
                       + " information_schema.tables as t2");
               exec.shutdown();
             },
-            "Query execution was interrupted");
+            "was interrupted");
       }
     }
   }
