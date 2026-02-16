@@ -3,11 +3,15 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_PREPARE;
+import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.function.Consumer;
-
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
@@ -22,10 +26,6 @@ import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
-import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_PREPARE;
-import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
-import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
