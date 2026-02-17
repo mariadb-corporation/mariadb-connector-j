@@ -70,7 +70,7 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       iterations = buf.readByte();
     }
 
-    if (firstByte != 0x50 || iterations < 1 || iterations > 20) {
+    if (firstByte != 0x50 || iterations > 20) {
       // expected 'P' for KDF algorithm (PBKDF2) and maximum iteration of 8192
       throw new SQLException("Wrong parsec authentication format", "S1009");
     }
