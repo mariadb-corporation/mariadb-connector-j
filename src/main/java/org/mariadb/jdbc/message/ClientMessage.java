@@ -28,6 +28,16 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public interface ClientMessage {
 
+  /** Precompiled pattern for LOAD DATA LOCAL INFILE with parameter placeholder */
+  Pattern LOAD_LOCAL_PATTERN_PARAM =
+      Pattern.compile(
+          "^((\\s[-]|#).*(\\r"
+              + "\\n"
+              + "|\\r"
+              + "|\\n"
+              + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+          Pattern.CASE_INSENSITIVE);
+
   /**
    * Check that file requested correspond to request.
    *
@@ -39,9 +49,15 @@ public interface ClientMessage {
    */
   static boolean validateLocalFileName(
       String sql, Parameters parameters, String fileName, Context context) {
+    // Check for direct filename match in SQL
+    String escapedFileName = Pattern.quote(fileName.replace("\\", "\\\\"));
     String reg =
-        "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
-            + Pattern.quote(fileName.replace("\\", "\\\\"))
+        "^((\\s[-]|#).*(\\r"
+            + "\\n"
+            + "|\\r"
+            + "|\\n"
+            + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+            + escapedFileName
             + "'";
 
     Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
@@ -49,17 +65,12 @@ public interface ClientMessage {
       return true;
     }
 
+    // Check for parameterized query
     if (parameters != null) {
-      pattern =
-          Pattern.compile(
-              "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
-              Pattern.CASE_INSENSITIVE);
-      if (pattern.matcher(sql).find() && parameters.size() > 0) {
+      if (LOAD_LOCAL_PATTERN_PARAM.matcher(sql).find() && parameters.size() > 0) {
         String paramString = parameters.get(0).bestEffortStringValue(context);
         if (paramString != null) {
-          return paramString
-              .toLowerCase()
-              .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
+          return paramString.equalsIgnoreCase("'" + fileName.replace("\\", "\\\\") + "'");
         }
         return true;
       }
