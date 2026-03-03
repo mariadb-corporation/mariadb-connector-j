@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message;
 
 import java.io.FileInputStream;
@@ -29,6 +29,16 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public interface ClientMessage {
 
+  /** Precompiled pattern for LOAD DATA LOCAL INFILE with parameter placeholder */
+  Pattern LOAD_LOCAL_PATTERN_PARAM =
+      Pattern.compile(
+          "^((\\s[-]|#).*(\\r"
+              + "\\n"
+              + "|\\r"
+              + "|\\n"
+              + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+          Pattern.CASE_INSENSITIVE);
+
   /**
    * Check that file requested correspond to request.
    *
@@ -40,13 +50,15 @@ public interface ClientMessage {
    */
   static boolean validateLocalFileName(
       String sql, Parameters parameters, String fileName, Context context) {
+    // Check for direct filename match in SQL
+    String escapedFileName = Pattern.quote(fileName.replace("\\", "\\\\"));
     String reg =
-        "^((\\s[--]|#).*(\\r"
+        "^((\\s[-]|#).*(\\r"
             + "\\n"
             + "|\\r"
             + "|\\n"
             + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
-            + Pattern.quote(fileName.replace("\\", "\\\\"))
+            + escapedFileName
             + "'";
 
     Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
@@ -54,21 +66,12 @@ public interface ClientMessage {
       return true;
     }
 
+    // Check for parameterized query
     if (parameters != null) {
-      pattern =
-          Pattern.compile(
-              "^((\\s[--]|#).*(\\r"
-                  + "\\n"
-                  + "|\\r"
-                  + "|\\n"
-                  + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
-              Pattern.CASE_INSENSITIVE);
-      if (pattern.matcher(sql).find() && parameters.size() > 0) {
+      if (LOAD_LOCAL_PATTERN_PARAM.matcher(sql).find() && parameters.size() > 0) {
         String paramString = parameters.get(0).bestEffortStringValue(context);
         if (paramString != null) {
-          return paramString
-              .toLowerCase()
-              .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
+          return paramString.equalsIgnoreCase("'" + fileName.replace("\\", "\\\\") + "'");
         }
         return true;
       }
