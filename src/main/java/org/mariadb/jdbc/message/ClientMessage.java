@@ -35,7 +35,7 @@ public interface ClientMessage {
   /** Precompiled pattern for LOAD DATA LOCAL INFILE with parameter placeholder */
   Pattern LOAD_LOCAL_PATTERN_PARAM =
       Pattern.compile(
-          "^((\\s[--]|#).*(\\r"
+          "^((\\s[-]|#).*(\\r"
               + "\\n"
               + "|\\r"
               + "|\\n"
@@ -56,7 +56,7 @@ public interface ClientMessage {
     // Check for direct filename match in SQL
     String escapedFileName = Pattern.quote(fileName.replace("\\", "\\\\"));
     String reg =
-        "^((\\s[--]|#).*(\\r"
+        "^((\\s[-]|#).*(\\r"
             + "\\n"
             + "|\\r"
             + "|\\n"
