@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.unit.type.GeometryTest;
 
 public class ColumnDecoderTest {
@@ -34,7 +33,7 @@ public class ColumnDecoderTest {
                 + "69 74 43 6F 64 65 63 08  42 69 74 43 6F 64 65 63"
                 + "07 74 31 61 6C 69 61 73  02 74 31 00 0C 3F 00 01"
                 + "00 00 00 10 20 00 00 00  00");
-    ReadableByteBuf readBuf = new StandardReadableByteBuf(ptBytes, ptBytes.length);
+    ReadableByteBuf readBuf = new ReadableByteBuf(ptBytes, ptBytes.length);
     ColumnDecoder columnDecoder = ColumnDecoder.decodeStd(readBuf);
     assertEquals("t1", columnDecoder.getColumnName());
     assertEquals("t1alias", columnDecoder.getColumnAlias());

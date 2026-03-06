@@ -23,7 +23,6 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.result.rowdecoder.BinaryRowDecoder;
 import org.mariadb.jdbc.client.result.rowdecoder.RowDecoder;
 import org.mariadb.jdbc.client.result.rowdecoder.TextRowDecoder;
@@ -71,7 +70,7 @@ public abstract class Result implements ResultSet, Completion {
   protected final RowDecoder rowDecoder;
 
   /** reusable row buffer decoder */
-  protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
+  protected final ReadableByteBuf rowBuf = new ReadableByteBuf(null, 0);
 
   protected final boolean traceEnable;
   private final int maxIndex;

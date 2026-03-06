@@ -11,7 +11,6 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.column.UuidColumn;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -165,7 +164,7 @@ public interface ColumnDecoder extends Column {
             ? type.getColumnConstructor()
             : type.getUnsignedColumnConstructor();
     return constructor.create(
-        new StandardReadableByteBuf(arr, arr.length),
+        new ReadableByteBuf(arr, arr.length),
         33,
         len,
         type,

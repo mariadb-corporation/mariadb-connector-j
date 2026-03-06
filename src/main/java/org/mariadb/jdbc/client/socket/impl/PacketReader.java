@@ -9,7 +9,6 @@ import java.io.InputStream;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.util.log.Logger;
@@ -27,7 +26,7 @@ public class PacketReader implements Reader {
   private final InputStream inputStream;
   private final int maxQuerySizeToLog;
   private final MutableByte sequence;
-  private final StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
+  private final ReadableByteBuf readBuf = new ReadableByteBuf(null, 0);
   private String serverThreadLog = "";
 
   /**

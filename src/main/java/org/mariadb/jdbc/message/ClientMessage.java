@@ -17,7 +17,6 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
@@ -281,7 +280,7 @@ public interface ClientMessage {
               ci[i] =
                   context
                       .getColumnDecoderFunction()
-                      .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
+                      .apply(new ReadableByteBuf(reader.readPacket(traceEnable)));
             }
             ((BasePreparedStatement) stmt).updateMeta(ci);
           }
@@ -292,7 +291,7 @@ public interface ClientMessage {
             ci[i] =
                 context
                     .getColumnDecoderFunction()
-                    .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
+                    .apply(new ReadableByteBuf(reader.readPacket(traceEnable)));
           }
         }
 

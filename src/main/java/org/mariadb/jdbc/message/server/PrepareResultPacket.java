@@ -11,7 +11,6 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.util.log.Logger;
@@ -53,7 +52,7 @@ public class PrepareResultPacket implements Completion, Prepare {
       };
   static final ColumnDecoder CONSTANT_PARAMETER =
       ColumnDecoder.decode(
-          new StandardReadableByteBuf(CONSTANT_PARAMETER_BYTES, CONSTANT_PARAMETER_BYTES.length));
+          new ReadableByteBuf(CONSTANT_PARAMETER_BYTES, CONSTANT_PARAMETER_BYTES.length));
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
 
   private final ColumnDecoder[] parameters;
@@ -97,7 +96,7 @@ public class PrepareResultPacket implements Completion, Prepare {
         columns[i] =
             context
                 .getColumnDecoderFunction()
-                .apply(new StandardReadableByteBuf(reader.readPacket(trace)));
+                .apply(new ReadableByteBuf(reader.readPacket(trace)));
       }
       if (!context.isEofDeprecated()) {
         reader.readReusablePacket();

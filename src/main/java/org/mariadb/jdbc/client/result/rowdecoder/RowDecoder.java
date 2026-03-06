@@ -10,7 +10,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -41,7 +41,7 @@ public interface RowDecoder {
       int newIndex,
       MutableInt fieldIndex,
       int maxIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       byte[] nullBitmap,
       ColumnDecoder[] metadataList);
 
@@ -62,7 +62,7 @@ public interface RowDecoder {
   <T> T decode(
       Codec<T> codec,
       Calendar calendar,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       ColumnDecoder[] metadataList,
       int fieldIndex,
@@ -83,7 +83,7 @@ public interface RowDecoder {
   Object defaultDecode(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Context context)
       throws SQLException;
@@ -101,7 +101,7 @@ public interface RowDecoder {
   byte decodeByte(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
 
@@ -118,7 +118,7 @@ public interface RowDecoder {
   boolean decodeBoolean(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
 
@@ -137,7 +137,7 @@ public interface RowDecoder {
   Date decodeDate(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
       Context context)
@@ -158,7 +158,7 @@ public interface RowDecoder {
   Time decodeTime(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
       Context context)
@@ -179,7 +179,7 @@ public interface RowDecoder {
   Timestamp decodeTimestamp(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Calendar cal,
       Context context)
@@ -198,7 +198,7 @@ public interface RowDecoder {
   short decodeShort(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
 
@@ -215,7 +215,7 @@ public interface RowDecoder {
   int decodeInt(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
 
@@ -233,7 +233,7 @@ public interface RowDecoder {
   String decodeString(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength,
       Context context)
       throws SQLException;
@@ -251,7 +251,7 @@ public interface RowDecoder {
   long decodeLong(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
 
@@ -268,7 +268,7 @@ public interface RowDecoder {
   float decodeFloat(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
 
@@ -285,7 +285,7 @@ public interface RowDecoder {
   double decodeDouble(
       ColumnDecoder[] metadataList,
       int fieldIndex,
-      StandardReadableByteBuf rowBuf,
+      ReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
 }
