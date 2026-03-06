@@ -3,20 +3,24 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
-import static org.mariadb.jdbc.util.constants.Capabilities.*;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
-import org.mariadb.jdbc.client.socket.impl.PacketWriter;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.util.ThreadUtils;
 import org.mariadb.jdbc.util.VersionFactory;
+import static org.mariadb.jdbc.util.constants.Capabilities.CONNECT_ATTRS;
+import static org.mariadb.jdbc.util.constants.Capabilities.CONNECT_WITH_DB;
+import static org.mariadb.jdbc.util.constants.Capabilities.PLUGIN_AUTH;
+import static org.mariadb.jdbc.util.constants.Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA;
+import static org.mariadb.jdbc.util.constants.Capabilities.SECURE_CONNECTION;
+import static org.mariadb.jdbc.util.constants.Capabilities.SSL;
 
 /**
  * Server handshake response builder.
@@ -88,7 +92,7 @@ public final class HandshakeResponse implements ClientMessage {
   private static void writeConnectAttributes(
       Writer writer, String connectionAttributes, String host) throws IOException {
 
-    PacketWriter tmpWriter = new PacketWriter(null, 0, 0, null, null);
+    Writer tmpWriter = new Writer(null, 0, 0, null, null);
     tmpWriter.pos(0);
     writeStringLengthAscii(tmpWriter, _CLIENT_NAME);
     writeStringLength(tmpWriter, "MariaDB Connector/J");

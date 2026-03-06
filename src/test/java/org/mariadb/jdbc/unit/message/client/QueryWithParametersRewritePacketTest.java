@@ -7,11 +7,12 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mariadb.jdbc.client.socket.impl.PacketWriter;
+import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
@@ -109,8 +110,8 @@ public class QueryWithParametersRewritePacketTest {
         new QueryWithParametersRewritePacket(null, parser, parameters);
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    PacketWriter writer =
-        new PacketWriter(out, 0, 0x00ffffff, new MutableByte(), new MutableByte());
+    Writer writer =
+        new Writer(out, 0, 0x00ffffff, new MutableByte(), new MutableByte());
 
     packet.encode(writer, null);
 
