@@ -58,7 +58,10 @@ public class UtilDateCodec implements Codec<java.util.Date> {
    * @param val date value
    * @return microseconds
    */
-  protected int getMicroseconds(java.util.Date val) {
+  protected static int getMicroseconds(java.util.Date val) {
+    if (val instanceof Timestamp) {
+      return ((Timestamp) val).getNanos() / 1000;
+    }
     return (int) ((val.getTime() % 1000) * 1000);
   }
 
@@ -88,8 +91,17 @@ public class UtilDateCodec implements Codec<java.util.Date> {
     return ts == null ? null : new java.util.Date(ts.getTime());
   }
 
-  @Override
-  public void encodeText(
+  /**
+   * Shared text encoding for date/timestamp values.
+   *
+   * @param encoder writer
+   * @param context connection context
+   * @param val date value
+   * @param providedCal calendar
+   * @param maxLen max length
+   * @throws IOException if socket error
+   */
+  protected static void encodeTextDate(
       Writer encoder, Context context, java.util.Date val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? context.getDefaultCalendar() : providedCal;
@@ -112,13 +124,17 @@ public class UtilDateCodec implements Codec<java.util.Date> {
     encoder.writeByte('\'');
   }
 
-  @Override
-  public int getApproximateTextProtocolLength(java.util.Date value, Long length) {
-    return getMicroseconds(value) > 0 ? 28 : 21;
-  }
-
-  @Override
-  public void encodeBinary(
+  /**
+   * Shared binary encoding for date/timestamp values.
+   *
+   * @param encoder writer
+   * @param context connection context
+   * @param value date value
+   * @param providedCal calendar
+   * @param maxLength max length
+   * @throws IOException if socket error
+   */
+  protected static void encodeBinaryDate(
       Writer encoder, Context context, java.util.Date value, Calendar providedCal, Long maxLength)
       throws IOException {
 
@@ -171,6 +187,25 @@ public class UtilDateCodec implements Codec<java.util.Date> {
         }
       }
     }
+  }
+
+  @Override
+  public void encodeText(
+      Writer encoder, Context context, java.util.Date val, Calendar providedCal, Long maxLen)
+      throws IOException {
+    encodeTextDate(encoder, context, val, providedCal, maxLen);
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(java.util.Date value, Long length) {
+    return getMicroseconds(value) > 0 ? 28 : 21;
+  }
+
+  @Override
+  public void encodeBinary(
+      Writer encoder, Context context, java.util.Date value, Calendar providedCal, Long maxLength)
+      throws IOException {
+    encodeBinaryDate(encoder, context, value, providedCal, maxLength);
   }
 
   public int getBinaryEncodeType() {

@@ -3,16 +3,19 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.codec;
 
+import java.io.IOException;
 import java.sql.SQLDataException;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.plugin.Codec;
 
 /** Timestamp codec */
-public class TimestampCodec extends UtilDateCodec {
+public class TimestampCodec implements Codec<Timestamp> {
 
   /** default instance */
   public static final TimestampCodec INSTANCE = new TimestampCodec();
@@ -22,7 +25,8 @@ public class TimestampCodec extends UtilDateCodec {
   }
 
   public boolean canDecode(ColumnDecoder column, Class<?> type) {
-    return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Timestamp.class);
+    return UtilDateCodec.COMPATIBLE_TYPES.contains(column.getType())
+        && type.isAssignableFrom(Timestamp.class);
   }
 
   public boolean canEncode(Object value) {
@@ -30,16 +34,8 @@ public class TimestampCodec extends UtilDateCodec {
   }
 
   @Override
-  protected int getMicroseconds(java.util.Date val) {
-    if (val instanceof Timestamp) {
-      return ((Timestamp) val).getNanos() / 1000;
-    }
-    return super.getMicroseconds(val);
-  }
-
-  @Override
   @SuppressWarnings("fallthrough")
-  public java.util.Date decodeText(
+  public Timestamp decodeText(
       final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
@@ -51,7 +47,7 @@ public class TimestampCodec extends UtilDateCodec {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public java.util.Date decodeBinary(
+  public Timestamp decodeBinary(
       final ReadableByteBuf buf,
       final MutableInt length,
       final ColumnDecoder column,
@@ -59,5 +55,28 @@ public class TimestampCodec extends UtilDateCodec {
       final Context context)
       throws SQLDataException {
     return column.decodeTimestampBinary(buf, length, cal, context);
+  }
+
+  @Override
+  public void encodeText(
+      Writer encoder, Context context, Timestamp val, Calendar providedCal, Long maxLen)
+      throws IOException {
+    UtilDateCodec.encodeTextDate(encoder, context, val, providedCal, maxLen);
+  }
+
+  @Override
+  public int getApproximateTextProtocolLength(Timestamp value, Long length) {
+    return UtilDateCodec.getMicroseconds(value) > 0 ? 28 : 21;
+  }
+
+  @Override
+  public void encodeBinary(
+      Writer encoder, Context context, Timestamp value, Calendar providedCal, Long maxLength)
+      throws IOException {
+    UtilDateCodec.encodeBinaryDate(encoder, context, value, providedCal, maxLength);
+  }
+
+  public int getBinaryEncodeType() {
+    return UtilDateCodec.INSTANCE.getBinaryEncodeType();
   }
 }
