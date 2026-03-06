@@ -3,9 +3,13 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
-import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Date;
+import java.sql.SQLDataException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
@@ -145,7 +149,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   public String decodeStringBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
-    return BigInteger.valueOf(buf.readLong()).toString();
+    return Long.toString(buf.readLong());
   }
 
   @Override

@@ -3,16 +3,16 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.result.rowdecoder;
 
-import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
-
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
+
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -164,7 +164,8 @@ public class BinaryRowDecoder implements RowDecoder {
 
   public boolean wasNull(
       final byte[] nullBitmap, final MutableInt fieldIndex, final MutableInt fieldLength) {
-    return (nullBitmap[(fieldIndex.get() + 2) / 8] & (1 << ((fieldIndex.get() + 2) % 8))) > 0
+    int idx = fieldIndex.get() + 2;
+    return (nullBitmap[idx / 8] & (1 << (idx % 8))) > 0
         || fieldLength.get() == NULL_LENGTH;
   }
 
@@ -196,9 +197,11 @@ public class BinaryRowDecoder implements RowDecoder {
     }
 
     while (fieldIndex.get() < newIndex) {
-      if ((nullBitmap[(fieldIndex.get() + 2) / 8] & (1 << ((fieldIndex.get() + 2) % 8))) == 0) {
+      int fi = fieldIndex.get();
+      int idx = fi + 2;
+      if ((nullBitmap[idx / 8] & (1 << (idx % 8))) == 0) {
         // skip bytes
-        switch (metadataList[fieldIndex.get()].getType()) {
+        switch (metadataList[fi].getType()) {
           case BIGINT:
           case DOUBLE:
             rowBuf.skip(8);
@@ -227,12 +230,14 @@ public class BinaryRowDecoder implements RowDecoder {
       fieldIndex.incrementAndGet();
     }
 
-    if ((nullBitmap[(fieldIndex.get() + 2) / 8] & (1 << ((fieldIndex.get() + 2) % 8))) > 0) {
+    int fi = fieldIndex.get();
+    int idx = fi + 2;
+    if ((nullBitmap[idx / 8] & (1 << (idx % 8))) > 0) {
       return NULL_LENGTH;
     }
 
     // read asked field position and length
-    switch (metadataList[fieldIndex.get()].getType()) {
+    switch (metadataList[fi].getType()) {
       case BIGINT:
       case DOUBLE:
         return 8;

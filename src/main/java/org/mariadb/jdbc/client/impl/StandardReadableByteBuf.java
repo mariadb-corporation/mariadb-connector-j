@@ -4,6 +4,7 @@
 package org.mariadb.jdbc.client.impl;
 
 import java.nio.charset.StandardCharsets;
+
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 
@@ -110,7 +111,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
       result = result * 10 + buf[pos++] - 48;
     }
 
-    return (negate) ? -1 * result : result;
+    return negate ? -result : result;
   }
 
   public long atoull(int length) {
