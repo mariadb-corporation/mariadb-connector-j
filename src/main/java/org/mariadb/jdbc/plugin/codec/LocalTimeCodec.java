@@ -286,7 +286,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, LocalTime value, Calendar cal, Long maxLen)
+  public void encodeText(
+      Writer encoder, Context context, LocalTime value, Calendar cal, Long maxLen)
       throws IOException {
     LocalTime val = value;
     StringBuilder dateString = new StringBuilder(15);

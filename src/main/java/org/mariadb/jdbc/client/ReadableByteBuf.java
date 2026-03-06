@@ -4,7 +4,6 @@
 package org.mariadb.jdbc.client;
 
 import java.nio.charset.StandardCharsets;
-
 import org.mariadb.jdbc.MariaDbBlob;
 
 /** Packet buffer */
@@ -237,9 +236,9 @@ public final class ReadableByteBuf {
 
   public long readUnsignedInt() {
     return ((buf[pos++] & 0xff)
-            + ((buf[pos++] & 0xff) << 8)
-            + ((buf[pos++] & 0xff) << 16)
-            + ((long) (buf[pos++] & 0xff) << 24));
+        + ((buf[pos++] & 0xff) << 8)
+        + ((buf[pos++] & 0xff) << 16)
+        + ((long) (buf[pos++] & 0xff) << 24));
   }
 
   public long readLong() {

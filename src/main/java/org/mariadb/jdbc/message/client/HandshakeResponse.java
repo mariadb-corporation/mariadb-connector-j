@@ -3,10 +3,16 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.util.constants.Capabilities.CONNECT_ATTRS;
+import static org.mariadb.jdbc.util.constants.Capabilities.CONNECT_WITH_DB;
+import static org.mariadb.jdbc.util.constants.Capabilities.PLUGIN_AUTH;
+import static org.mariadb.jdbc.util.constants.Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA;
+import static org.mariadb.jdbc.util.constants.Capabilities.SECURE_CONNECTION;
+import static org.mariadb.jdbc.util.constants.Capabilities.SSL;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
-
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -15,12 +21,6 @@ import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.util.ThreadUtils;
 import org.mariadb.jdbc.util.VersionFactory;
-import static org.mariadb.jdbc.util.constants.Capabilities.CONNECT_ATTRS;
-import static org.mariadb.jdbc.util.constants.Capabilities.CONNECT_WITH_DB;
-import static org.mariadb.jdbc.util.constants.Capabilities.PLUGIN_AUTH;
-import static org.mariadb.jdbc.util.constants.Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA;
-import static org.mariadb.jdbc.util.constants.Capabilities.SECURE_CONNECTION;
-import static org.mariadb.jdbc.util.constants.Capabilities.SSL;
 
 /**
  * Server handshake response builder.

@@ -94,7 +94,8 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, InputStream value, Calendar cal, Long maxLen)
+  public void encodeText(
+      Writer encoder, Context context, InputStream value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
     byte[] array = new byte[4096];

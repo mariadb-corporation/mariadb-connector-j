@@ -94,9 +94,7 @@ public class PrepareResultPacket implements Completion, Prepare {
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
         columns[i] =
-            context
-                .getColumnDecoderFunction()
-                .apply(new ReadableByteBuf(reader.readPacket(trace)));
+            context.getColumnDecoderFunction().apply(new ReadableByteBuf(reader.readPacket(trace)));
       }
       if (!context.isEofDeprecated()) {
         reader.readReusablePacket();

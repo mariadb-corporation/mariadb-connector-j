@@ -155,7 +155,8 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, LocalDateTime value, Calendar cal, Long maxLen)
+  public void encodeText(
+      Writer encoder, Context context, LocalDateTime value, Calendar cal, Long maxLen)
       throws IOException {
     LocalDateTime val = value;
     encoder.writeByte('\'');

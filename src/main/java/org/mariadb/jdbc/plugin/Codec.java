@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
-
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;

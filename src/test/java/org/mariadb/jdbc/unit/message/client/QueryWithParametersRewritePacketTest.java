@@ -7,7 +7,6 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -110,8 +109,7 @@ public class QueryWithParametersRewritePacketTest {
         new QueryWithParametersRewritePacket(null, parser, parameters);
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    Writer writer =
-        new Writer(out, 0, 0x00ffffff, new MutableByte(), new MutableByte());
+    Writer writer = new Writer(out, 0, 0x00ffffff, new MutableByte(), new MutableByte());
 
     packet.encode(writer, null);
 

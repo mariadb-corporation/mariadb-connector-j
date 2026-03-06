@@ -69,8 +69,7 @@ public class UuidCodec implements Codec<UUID> {
     return 38; // UUID string length is always 36 chars + 2 quotes
   }
 
-  public void encodeBinary(
-      Writer writer, Context context, UUID value, Calendar cal, Long maxLength)
+  public void encodeBinary(Writer writer, Context context, UUID value, Calendar cal, Long maxLength)
       throws IOException {
     String valueSt = value.toString();
     writer.writeLength(valueSt.length());

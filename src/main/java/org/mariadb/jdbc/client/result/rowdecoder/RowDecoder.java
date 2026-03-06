@@ -99,10 +99,7 @@ public interface RowDecoder {
    * @throws SQLException if data type cannot be decoded to byte value
    */
   byte decodeByte(
-      ColumnDecoder[] metadataList,
-      int fieldIndex,
-      ReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      ColumnDecoder[] metadataList, int fieldIndex, ReadableByteBuf rowBuf, MutableInt fieldLength)
       throws SQLException;
 
   /**
@@ -116,10 +113,7 @@ public interface RowDecoder {
    * @throws SQLException if data type cannot be decoded to boolean value
    */
   boolean decodeBoolean(
-      ColumnDecoder[] metadataList,
-      int fieldIndex,
-      ReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      ColumnDecoder[] metadataList, int fieldIndex, ReadableByteBuf rowBuf, MutableInt fieldLength)
       throws SQLException;
 
   /**
@@ -196,10 +190,7 @@ public interface RowDecoder {
    * @throws SQLException if data type cannot be decoded to short value
    */
   short decodeShort(
-      ColumnDecoder[] metadataList,
-      int fieldIndex,
-      ReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      ColumnDecoder[] metadataList, int fieldIndex, ReadableByteBuf rowBuf, MutableInt fieldLength)
       throws SQLException;
 
   /**
@@ -213,10 +204,7 @@ public interface RowDecoder {
    * @throws SQLException if data type cannot be decoded to int value
    */
   int decodeInt(
-      ColumnDecoder[] metadataList,
-      int fieldIndex,
-      ReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      ColumnDecoder[] metadataList, int fieldIndex, ReadableByteBuf rowBuf, MutableInt fieldLength)
       throws SQLException;
 
   /**
@@ -249,10 +237,7 @@ public interface RowDecoder {
    * @throws SQLException if data type cannot be decoded to long value
    */
   long decodeLong(
-      ColumnDecoder[] metadataList,
-      int fieldIndex,
-      ReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      ColumnDecoder[] metadataList, int fieldIndex, ReadableByteBuf rowBuf, MutableInt fieldLength)
       throws SQLException;
 
   /**
@@ -266,10 +251,7 @@ public interface RowDecoder {
    * @throws SQLException if data type cannot be decoded to float value
    */
   float decodeFloat(
-      ColumnDecoder[] metadataList,
-      int fieldIndex,
-      ReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      ColumnDecoder[] metadataList, int fieldIndex, ReadableByteBuf rowBuf, MutableInt fieldLength)
       throws SQLException;
 
   /**
@@ -283,9 +265,6 @@ public interface RowDecoder {
    * @throws SQLException if data type cannot be decoded to double value
    */
   double decodeDouble(
-      ColumnDecoder[] metadataList,
-      int fieldIndex,
-      ReadableByteBuf rowBuf,
-      MutableInt fieldLength)
+      ColumnDecoder[] metadataList, int fieldIndex, ReadableByteBuf rowBuf, MutableInt fieldLength)
       throws SQLException;
 }

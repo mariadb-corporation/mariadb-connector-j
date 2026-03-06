@@ -3,16 +3,16 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.result.rowdecoder;
 
+import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
+
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -165,8 +165,7 @@ public class BinaryRowDecoder implements RowDecoder {
   public boolean wasNull(
       final byte[] nullBitmap, final MutableInt fieldIndex, final MutableInt fieldLength) {
     int idx = fieldIndex.get() + 2;
-    return (nullBitmap[idx / 8] & (1 << (idx % 8))) > 0
-        || fieldLength.get() == NULL_LENGTH;
+    return (nullBitmap[idx / 8] & (1 << (idx % 8))) > 0 || fieldLength.get() == NULL_LENGTH;
   }
 
   /**

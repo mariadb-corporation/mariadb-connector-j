@@ -10,7 +10,6 @@ import java.nio.ByteOrder;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
-
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
