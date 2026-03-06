@@ -156,9 +156,9 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object val, Calendar calParam, Long maxLen)
+      Writer encoder, Context context, OffsetDateTime val, Calendar calParam, Long maxLen)
       throws IOException {
-    OffsetDateTime zdt = (OffsetDateTime) val;
+    OffsetDateTime zdt = val;
     Calendar cal = calParam == null ? context.getDefaultCalendar() : calParam;
     encoder.writeByte('\'');
     encoder.writeAscii(
@@ -171,15 +171,15 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    return ((OffsetDateTime) value).getNano() > 0 ? 28 : 21;
+  public int getApproximateTextProtocolLength(OffsetDateTime value, Long length) {
+    return value.getNano() > 0 ? 28 : 21;
   }
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object value, Calendar calParam, Long maxLength)
+      Writer encoder, Context context, OffsetDateTime value, Calendar calParam, Long maxLength)
       throws IOException {
-    OffsetDateTime zdt = (OffsetDateTime) value;
+    OffsetDateTime zdt = value;
     Calendar cal = calParam == null ? context.getDefaultCalendar() : calParam;
     ZonedDateTime convertedZdt = zdt.atZoneSameInstant(cal.getTimeZone().toZoneId());
     int nano = convertedZdt.getNano();

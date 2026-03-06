@@ -68,7 +68,7 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final MultiPoint value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
@@ -76,7 +76,7 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(MultiPoint value, Long length) {
     return -1;
   }
 
@@ -84,11 +84,11 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final MultiPoint value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    MultiPoint mp = (MultiPoint) value;
+    MultiPoint mp = value;
     encoder.writeLength(13 + mp.getPoints().length * 21L);
     encoder.writeInt(0); // SRID
     encoder.writeByte(0x01); // LITTLE ENDIAN

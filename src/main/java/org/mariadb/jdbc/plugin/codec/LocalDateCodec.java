@@ -274,23 +274,23 @@ public class LocalDateCodec implements Codec<LocalDate> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object val, Calendar cal, Long maxLen)
+  public void encodeText(Writer encoder, Context context, LocalDate val, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
-    encoder.writeAscii(((LocalDate) val).format(DateTimeFormatter.ISO_LOCAL_DATE));
+    encoder.writeAscii(val.format(DateTimeFormatter.ISO_LOCAL_DATE));
     encoder.writeByte('\'');
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(LocalDate value, Long length) {
     return 12;
   }
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
+      Writer encoder, Context context, LocalDate value, Calendar providedCal, Long maxLength)
       throws IOException {
-    LocalDate val = (LocalDate) value;
+    LocalDate val = value;
     encoder.writeByte(7); // length
     encoder.writeShort((short) val.getYear());
     encoder.writeByte(val.getMonthValue());

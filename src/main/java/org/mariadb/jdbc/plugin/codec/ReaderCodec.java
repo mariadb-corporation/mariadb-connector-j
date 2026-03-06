@@ -88,9 +88,9 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object val, Calendar cal, Long maxLen)
+  public void encodeText(Writer encoder, Context context, Reader val, Calendar cal, Long maxLen)
       throws IOException {
-    Reader reader = (Reader) val;
+    Reader reader = val;
     encoder.writeByte('\'');
     char[] buf = new char[4096];
     int len;
@@ -117,19 +117,19 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(Reader value, Long length) {
     return -1;
   }
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object val, Calendar cal, Long maxLength)
+      Writer encoder, Context context, Reader val, Calendar cal, Long maxLength)
       throws IOException {
     // prefer use of encodeLongData, because length is unknown
     byte[] clobBytes = new byte[4096];
     int pos = 0;
     char[] buf = new char[4096];
-    Reader reader = (Reader) val;
+    Reader reader = val;
     int len;
 
     long maxLen = maxLength != null ? maxLength : Long.MAX_VALUE;

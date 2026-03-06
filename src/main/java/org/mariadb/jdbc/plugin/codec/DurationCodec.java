@@ -201,10 +201,10 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object val, Calendar cal, Long maxLen)
+  public void encodeText(Writer encoder, Context context, Duration val, Calendar cal, Long maxLen)
       throws IOException {
-    long s = ((Duration) val).getSeconds();
-    long microSecond = ((Duration) val).getNano() / 1000;
+    long s = val.getSeconds();
+    long microSecond = val.getNano() / 1000;
     encoder.writeByte('\'');
     if (microSecond != 0) {
       encoder.writeAscii(
@@ -216,9 +216,9 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    long s = ((Duration) value).getSeconds();
-    long microSecond = ((Duration) value).getNano() / 1000;
+  public int getApproximateTextProtocolLength(Duration value, Long length) {
+    long s = value.getSeconds();
+    long microSecond = value.getNano() / 1000;
     if (microSecond != 0) {
       return String.valueOf(s / 3600).length() + 13;
     }
@@ -227,16 +227,16 @@ public class DurationCodec implements Codec<Duration> {
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object val, Calendar cal, Long maxLength)
+      Writer encoder, Context context, Duration val, Calendar cal, Long maxLength)
       throws IOException {
-    int nano = ((Duration) val).getNano();
+    int nano = val.getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 12);
-      encodeDuration(encoder, ((Duration) val));
+      encodeDuration(encoder, val);
       encoder.writeInt(nano / 1000);
     } else {
       encoder.writeByte((byte) 8);
-      encodeDuration(encoder, ((Duration) val));
+      encodeDuration(encoder, val);
     }
   }
 

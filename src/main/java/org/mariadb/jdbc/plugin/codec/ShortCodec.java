@@ -7,7 +7,11 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.*;
+
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -76,13 +80,13 @@ public class ShortCodec implements Codec<Short> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
+  public void encodeText(Writer encoder, Context context, Short value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeAscii(value.toString());
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(Short value, Long length) {
     return value.toString().length();
   }
 
@@ -90,11 +94,11 @@ public class ShortCodec implements Codec<Short> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Short value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    encoder.writeShort((Short) value);
+    encoder.writeShort(value);
   }
 
   public int getBinaryEncodeType() {

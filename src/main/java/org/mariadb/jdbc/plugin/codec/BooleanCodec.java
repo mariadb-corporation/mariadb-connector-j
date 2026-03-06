@@ -76,15 +76,15 @@ public class BooleanCodec implements Codec<Boolean> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Boolean value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    encoder.writeAscii(((Boolean) value) ? "1" : "0");
+    encoder.writeAscii(value ? "1" : "0");
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(Boolean value, Long length) {
     return 1;
   }
 
@@ -92,11 +92,11 @@ public class BooleanCodec implements Codec<Boolean> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Boolean value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    encoder.writeByte(((Boolean) value) ? 1 : 0);
+    encoder.writeByte(value ? 1 : 0);
   }
 
   public int getBinaryEncodeType() {

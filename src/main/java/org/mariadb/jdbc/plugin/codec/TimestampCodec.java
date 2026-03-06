@@ -74,7 +74,7 @@ public class TimestampCodec implements Codec<Timestamp> {
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object val, Calendar providedCal, Long maxLen)
+      Writer encoder, Context context, Timestamp val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? context.getDefaultCalendar() : providedCal;
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -85,7 +85,7 @@ public class TimestampCodec implements Codec<Timestamp> {
     encoder.writeAscii(dateString);
     int microseconds = 0;
     if (val instanceof Timestamp) {
-      microseconds = ((Timestamp) val).getNanos() / 1000;
+      microseconds = val.getNanos() / 1000;
     } else if (val instanceof java.util.Date) {
       microseconds = (int) ((((java.util.Date) val).getTime() % 1000) * 1000);
     }
@@ -102,19 +102,19 @@ public class TimestampCodec implements Codec<Timestamp> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    return ((Timestamp) value).getNanos() > 0 ? 28 : 21;
+  public int getApproximateTextProtocolLength(Timestamp value, Long length) {
+    return value.getNanos() > 0 ? 28 : 21;
   }
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
+      Writer encoder, Context context, Timestamp value, Calendar providedCal, Long maxLength)
       throws IOException {
 
     int microseconds = 0;
     long timeInMillis = 0;
     if (value instanceof Timestamp) {
-      Timestamp ts = (Timestamp) value;
+      Timestamp ts = value;
       microseconds = ts.getNanos() / 1000;
       timeInMillis = ts.getTime();
     } else if (value instanceof java.util.Date) {

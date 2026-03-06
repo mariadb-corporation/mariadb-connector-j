@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
+
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
@@ -85,10 +86,10 @@ public class StringCodec implements Codec<String> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
+  public void encodeText(Writer encoder, Context context, String value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
-    String str = value.toString();
+    String str = value;
     encoder.writeStringEscaped(
         maxLen == null ? str : str.substring(0, maxLen.intValue()),
         (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
@@ -96,15 +97,15 @@ public class StringCodec implements Codec<String> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long maxLen) {
-    int len = value.toString().length();
+  public int getApproximateTextProtocolLength(String value, Long maxLen) {
+    int len = value.length();
     return maxLen == null ? len + 2 : Math.min(len, maxLen.intValue()) + 2;
   }
 
   public void encodeBinary(
-      Writer writer, Context context, Object value, Calendar cal, Long maxLength)
+      Writer writer, Context context, String value, Calendar cal, Long maxLength)
       throws IOException {
-    byte[] b = value.toString().getBytes(StandardCharsets.UTF_8);
+    byte[] b = value.getBytes(StandardCharsets.UTF_8);
     int len = maxLength != null ? Math.min(maxLength.intValue(), b.length) : b.length;
     writer.writeLength(len);
     writer.writeBytes(b, 0, len);

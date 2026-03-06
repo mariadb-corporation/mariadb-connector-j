@@ -155,9 +155,9 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
+  public void encodeText(Writer encoder, Context context, LocalDateTime value, Calendar cal, Long maxLen)
       throws IOException {
-    LocalDateTime val = (LocalDateTime) value;
+    LocalDateTime val = value;
     encoder.writeByte('\'');
     encoder.writeAscii(
         val.format(val.getNano() != 0 ? TIMESTAMP_FORMAT : TIMESTAMP_FORMAT_NO_FRACTIONAL));
@@ -165,19 +165,19 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    return ((LocalDateTime) value).getNano() > 0 ? 28 : 21;
+  public int getApproximateTextProtocolLength(LocalDateTime value, Long length) {
+    return value.getNano() > 0 ? 28 : 21;
   }
 
   @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final LocalDateTime value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    LocalDateTime val = (LocalDateTime) value;
+    LocalDateTime val = value;
     int nano = val.getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 11);

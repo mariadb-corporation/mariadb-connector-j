@@ -69,7 +69,7 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final MultiLineString value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
@@ -77,7 +77,7 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(MultiLineString value, Long length) {
     return -1;
   }
 
@@ -85,11 +85,11 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final MultiLineString value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    MultiLineString mp = (MultiLineString) value;
+    MultiLineString mp = value;
 
     int length = 13;
     for (LineString ls : mp.getLines()) {

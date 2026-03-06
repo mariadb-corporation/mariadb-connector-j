@@ -66,7 +66,7 @@ public class LineStringCodec implements Codec<LineString> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final LineString value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
@@ -74,7 +74,7 @@ public class LineStringCodec implements Codec<LineString> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(LineString value, Long length) {
     return -1;
   }
 
@@ -82,11 +82,11 @@ public class LineStringCodec implements Codec<LineString> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final LineString value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    LineString line = (LineString) value;
+    LineString line = value;
 
     encoder.writeLength(13 + line.getPoints().length * 16L);
     encoder.writeInt(0); // SRID
