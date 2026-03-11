@@ -61,27 +61,6 @@ jobs:
           registry-password: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_TOKEN || secrets.DOCKER_TOKEN }}
           os: ${{ matrix.os }}
 
-      - name: Wait for MariaDB to be ready
-        shell: bash
-        run: |
-          for i in {1..60}; do
-            if mysql -h localhost -u root -p"${{ env.TEST_DB_PASSWORD }}" -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MariaDB is up"
-              # Verify if the problematic variable exists and handle it if it does
-              VAR_EXISTS=$(mysql -h localhost -u root -p"${{ env.TEST_DB_PASSWORD }}" -Nse "SELECT COUNT(*) FROM information_schema.SYSTEM_VARIABLES WHERE VARIABLE_NAME='simple_password_check_digits'")
-              if [ "$VAR_EXISTS" -gt 0 ]; then
-                mysql -h localhost -u root -p"${{ env.TEST_DB_PASSWORD }}" -e "SET @@simple_password_check_digits=0;"
-              else
-                echo "Skipping simple_password_check_digits: variable not present."
-              fi
-              exit 0
-            fi
-            echo "Waiting for MariaDB (attempt $i)..."
-            sleep 2
-          done
-          echo "MariaDB did not come up in time"
-          exit 1
-
       - uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java || '21' }}
