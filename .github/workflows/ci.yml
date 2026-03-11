@@ -63,12 +63,14 @@ jobs:
 
       - name: Wait for MariaDB to be ready
         run: |
-          for i in {1..30}; do
-            if mysqladmin ping -h localhost --silent; then
+          for i in {1..60}; do
+            if mysql -h localhost -u root -p"${{ env.TEST_DB_PASSWORD }}" -e "SELECT 1;" > /dev/null 2>&1; then
               echo "MariaDB is up"
+              # Verify if the problematic variable exists and handle it if it does
+              mysql -h localhost -u root -p"${{ env.TEST_DB_PASSWORD }}" -e "SET @@simple_password_check_digits = IF(EXISTS(SELECT 1 FROM information_schema.SYSTEM_VARIABLES WHERE VARIABLE_NAME='simple_password_check_digits'), @@simple_password_check_digits, 0);" || echo "Skipping variable set"
               exit 0
             fi
-            echo "Waiting for MariaDB..."
+            echo "Waiting for MariaDB (attempt $i)..."
             sleep 2
           done
           echo "MariaDB did not come up in time"
