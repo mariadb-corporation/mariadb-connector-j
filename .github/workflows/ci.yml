@@ -62,6 +62,7 @@ jobs:
           os: ${{ matrix.os }}
 
       - name: Wait for MariaDB to be ready
+        shell: bash
         run: |
           for i in {1..60}; do
             if mysql -h localhost -u root -p"${{ env.TEST_DB_PASSWORD }}" -e "SELECT 1;" > /dev/null 2>&1; then
