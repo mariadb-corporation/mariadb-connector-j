@@ -70,7 +70,7 @@ public class FailoverTest extends Common {
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
-      proxy.restart(300);
+      proxy.restart(500);
       if (transactionReplay) {
         stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')");
         con.commit();
@@ -121,7 +121,7 @@ public class FailoverTest extends Common {
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test2')");
-      proxy.restart(300);
+      proxy.restart(500);
       if (transactionReplay) {
         Common.assertThrowsContains(
             SQLTransientConnectionException.class,
@@ -184,7 +184,7 @@ public class FailoverTest extends Common {
         p.setAsciiStream(1, new ByteArrayInputStream("test3".getBytes()));
         p.execute();
 
-        proxy.restart(300);
+        proxy.restart(500);
         p.setString(1, "test4");
         if (transactionReplay) {
           p.execute();
@@ -270,7 +270,7 @@ public class FailoverTest extends Common {
       p.addBatch();
       p.executeBatch();
 
-      proxy.restart(300);
+      proxy.restart(500);
       p.setString(1, "test5");
       p.addBatch();
       p.setString(1, "test6");
@@ -325,7 +325,7 @@ public class FailoverTest extends Common {
         con.prepareStatement(
             "INSERT INTO transaction_failover_batch_" + idx + " (test)  VALUES (?)")) {
 
-      proxy.restart(300);
+      proxy.restart(500);
       p.setString(1, "test2");
       p.addBatch();
       p.setString(1, "test3");
