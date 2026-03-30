@@ -1,5 +1,18 @@
 # Change Log
 
+## [3.5.8](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.8) (Apr 2026)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.7...3.5.8)
+
+
+#### Issues Resolved
+
+* CONJ-1305 - XAResource.isSameRM() incorrectly returns true when rewriteBatchedStatements differs between connections
+* CONJ-1303 - Statement.cancel() fails to kill running query during result streaming
+
+#### Other
+
+* CONJ-1298 - Performance improvement: avoid decoding extended format
+
 
 ## [3.5.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.7) (Dec 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.6...3.5.7)
