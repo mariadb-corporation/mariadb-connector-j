@@ -97,37 +97,37 @@ public class ByteArrayCodec implements Codec<byte[]> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final byte[] value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    int length = ((byte[]) value).length;
+    int length = value.length;
 
     encoder.writeBytes(BINARY_PREFIX);
     encoder.writeBytesEscaped(
-        ((byte[]) value),
+        value,
         maxLength == null ? length : Math.min(length, maxLength.intValue()),
         (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     encoder.writeByte('\'');
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    return ((byte[]) value).length + 10;
+  public int getApproximateTextProtocolLength(byte[] value, Long length) {
+    return value.length + 10;
   }
 
   @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final byte[] value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    int length = ((byte[]) value).length;
+    int length = value.length;
     if (maxLength != null) length = Math.min(length, maxLength.intValue());
     encoder.writeLength(length);
-    encoder.writeBytes(((byte[]) value), 0, length);
+    encoder.writeBytes(value, 0, length);
   }
 
   public int getBinaryEncodeType() {

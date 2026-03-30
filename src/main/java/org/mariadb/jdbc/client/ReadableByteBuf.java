@@ -3,290 +3,325 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
+import java.nio.charset.StandardCharsets;
 import org.mariadb.jdbc.MariaDbBlob;
 
-/** Packet buffer interface */
-public interface ReadableByteBuf {
+/** Packet buffer */
+public final class ReadableByteBuf {
+  /** buffer */
+  public byte[] buf;
+
+  /** current position reading buffer */
+  public int pos;
+
+  /** row data limit */
+  private int limit;
 
   /**
-   * buffer number of unread bytes
+   * Packet buffer constructor
    *
-   * @return remaining bytes number
-   */
-  int readableBytes();
-
-  /**
-   * Current buffer position
-   *
-   * @return position
-   */
-  int pos();
-
-  /**
-   * buffer
-   *
-   * @return buffer
-   */
-  byte[] buf();
-
-  /**
-   * Reset buffer
-   *
-   * @param buf new buffer
+   * @param buf buffer
    * @param limit buffer limit
-   * @param pos initial position
    */
-  void buf(byte[] buf, int limit, int pos);
+  public ReadableByteBuf(byte[] buf, int limit) {
+    this.pos = 0;
+    this.buf = buf;
+    this.limit = limit;
+  }
 
   /**
-   * Set position
+   * Packet buffer constructor, limit being the buffer length
    *
-   * @param pos new position
+   * @param buf buffer
    */
-  void pos(int pos);
+  public ReadableByteBuf(byte[] buf) {
+    this.pos = 0;
+    this.buf = buf;
+    this.limit = buf.length;
+  }
 
-  /** Skip one byte */
-  void skip();
+  public int readableBytes() {
+    return limit - pos;
+  }
+
+  public int pos() {
+    return pos;
+  }
+
+  public byte[] buf() {
+    return buf;
+  }
+
+  public void buf(byte[] buf, int limit, int pos) {
+    this.buf = buf;
+    this.limit = limit;
+    this.pos = pos;
+  }
+
+  public void pos(int pos) {
+    this.pos = pos;
+  }
+
+  public void skip() {
+    pos++;
+  }
+
+  public void skip(int length) {
+    pos += length;
+  }
+
+  public void skipLengthEncoded() {
+    byte len = buf[pos++];
+    switch (len) {
+      case (byte) 251:
+        return;
+      case (byte) 252:
+        skip(readUnsignedShort());
+        return;
+      case (byte) 253:
+        skip(readUnsignedMedium());
+        return;
+      case (byte) 254:
+        skip((int) (4 + readUnsignedInt()));
+        return;
+      default:
+        pos += len & 0xff;
+    }
+  }
+
+  public MariaDbBlob readBlob(int length) {
+    pos += length;
+    return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
+  }
+
+  public long atoll(int length) {
+    boolean negate = false;
+    int idx = 0;
+    long result = 0;
+
+    if (length > 0 && buf[pos] == 45) { // minus sign
+      negate = true;
+      pos++;
+      idx++;
+    }
+
+    while (idx++ < length) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+
+    return negate ? -result : result;
+  }
+
+  public long atoull(int length) {
+    long result = 0;
+    for (int idx = 0; idx < length; idx++) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+    return result;
+  }
+
+  public byte getByte() {
+    return buf[pos];
+  }
+
+  public byte getByte(int index) {
+    return buf[index];
+  }
+
+  public short getUnsignedByte() {
+    return (short) (buf[pos] & 0xff);
+  }
+
+  public long readLongLengthEncodedNotNull() {
+    int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
+    switch (type) {
+      case 252: // 0xfc
+        return readUnsignedShort();
+      case 253: // 0xfd
+        return readUnsignedMedium();
+      default: // 0xfe
+        return readLong();
+    }
+  }
+
+  public int readIntLengthEncodedNotNull() {
+    int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
+    switch (type) {
+      case 252:
+        return readUnsignedShort();
+      case 253:
+        return readUnsignedMedium();
+      case 254:
+        return (int) readLong();
+      default:
+        return type;
+    }
+  }
 
   /**
-   * Skip length value of bytes
+   * Identifier can have a max length of 256 (alias) So no need to check whole length encoding.
    *
-   * @param length number of position to skip
+   * @return current pos
    */
-  void skip(int length);
+  public int skipIdentifier() {
+    int l = (buf[pos++] & 0xff);
+    if (l < 251) {
+      pos += l;
+      return pos;
+    }
+    int val = readUnsignedShort();
+    pos += val;
+    return pos;
+  }
 
-  /** Skip length encoded value */
-  void skipLengthEncoded();
+  public Integer readLength() {
+    int type = readUnsignedByte();
+    switch (type) {
+      case 251:
+        return null;
+      case 252:
+        return readUnsignedShort();
+      case 253:
+        return readUnsignedMedium();
+      case 254:
+        return (int) readLong();
+      default:
+        return type;
+    }
+  }
 
-  /**
-   * Read Blob at current position
-   *
-   * @param length blob length
-   * @return Blob
-   */
-  MariaDbBlob readBlob(int length);
+  public byte readByte() {
+    return buf[pos++];
+  }
 
-  /**
-   * Read byte from buffer at current position, without changing position
-   *
-   * @return byte value
-   */
-  byte getByte();
+  public short readUnsignedByte() {
+    return (short) (buf[pos++] & 0xff);
+  }
 
-  /**
-   * Read byte from buffer at indicated index, without changing position
-   *
-   * @param index index
-   * @return byte value
-   */
-  byte getByte(int index);
+  public short readShort() {
+    return (short) ((buf[pos++] & 0xff) + (buf[pos++] << 8));
+  }
 
-  /**
-   * Read unsigned byte value at current position, without changing position
-   *
-   * @return short value
-   */
-  short getUnsignedByte();
+  public int readUnsignedShort() {
+    return ((buf[pos++] & 0xff) + (buf[pos++] << 8)) & 0xffff;
+  }
 
-  /**
-   * Read encoded length value that cannot be null
-   *
-   * @see <a href="https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers">length
-   *     encoded integer</a>
-   * @return encoded length
-   */
-  long readLongLengthEncodedNotNull();
+  public int readMedium() {
+    int value = readUnsignedMedium();
+    if ((value & 0x800000) != 0) {
+      value |= 0xff000000;
+    }
+    return value;
+  }
 
-  /**
-   * Read encoded length value that cannot be null
-   *
-   * @see <a href="https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers">length
-   *     encoded integer</a>
-   *     <p>this is readLongLengthEncodedNotNull limited to 32 bits
-   * @return encoded length
-   */
-  int readIntLengthEncodedNotNull();
+  public int readUnsignedMedium() {
+    return ((buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8) + ((buf[pos++] & 0xff) << 16));
+  }
 
-  /**
-   * Utility to skip length encoded string, returning initial position
-   *
-   * @return initial position
-   */
-  int skipIdentifier();
+  public int readInt() {
+    return ((buf[pos++] & 0xff)
+        + ((buf[pos++] & 0xff) << 8)
+        + ((buf[pos++] & 0xff) << 16)
+        + ((buf[pos++] & 0xff) << 24));
+  }
 
-  /**
-   * Fast signed long parsing
-   *
-   * @param length data length
-   * @return long value
-   */
-  long atoll(int length);
+  public int readIntBE() {
+    return (((buf[pos++] & 0xff) << 24)
+        + ((buf[pos++] & 0xff) << 16)
+        + ((buf[pos++] & 0xff) << 8)
+        + (buf[pos++] & 0xff));
+  }
 
-  /**
-   * Fast unsigned long parsing
-   *
-   * @param length data length
-   * @return long value
-   */
-  long atoull(int length);
+  public long readUnsignedInt() {
+    return ((buf[pos++] & 0xff)
+        + ((buf[pos++] & 0xff) << 8)
+        + ((buf[pos++] & 0xff) << 16)
+        + ((long) (buf[pos++] & 0xff) << 24));
+  }
 
-  /**
-   * Read encoded length value
-   *
-   * @see <a href="https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers">length
-   *     encoded integer</a>
-   * @return encoded length
-   */
-  Integer readLength();
+  public long readLong() {
+    return ((buf[pos++] & 0xffL)
+        + ((buf[pos++] & 0xffL) << 8)
+        + ((buf[pos++] & 0xffL) << 16)
+        + ((buf[pos++] & 0xffL) << 24)
+        + ((buf[pos++] & 0xffL) << 32)
+        + ((buf[pos++] & 0xffL) << 40)
+        + ((buf[pos++] & 0xffL) << 48)
+        + ((buf[pos++] & 0xffL) << 56));
+  }
 
-  /**
-   * Read byte at current position, incrementing position
-   *
-   * @return byte at current position
-   */
-  byte readByte();
+  public long readLongBE() {
+    return (((buf[pos++] & 0xffL) << 56)
+        + ((buf[pos++] & 0xffL) << 48)
+        + ((buf[pos++] & 0xffL) << 40)
+        + ((buf[pos++] & 0xffL) << 32)
+        + ((buf[pos++] & 0xffL) << 24)
+        + ((buf[pos++] & 0xffL) << 16)
+        + ((buf[pos++] & 0xffL) << 8)
+        + (buf[pos++] & 0xffL));
+  }
 
-  /**
-   * Read unsigned byte value at current position
-   *
-   * @return short value
-   */
-  short readUnsignedByte();
+  public void readBytes(byte[] dst) {
+    System.arraycopy(buf, pos, dst, 0, dst.length);
+    pos += dst.length;
+  }
 
-  /**
-   * Read signed 2 bytes value (little endian) at current position
-   *
-   * @return short value
-   */
-  short readShort();
+  public byte[] readBytesNullEnd() {
+    int initialPosition = pos;
+    int cnt = 0;
+    while (readableBytes() > 0 && (buf[pos++] != 0)) {
+      cnt++;
+    }
+    byte[] dst = new byte[cnt];
+    System.arraycopy(buf, initialPosition, dst, 0, dst.length);
+    return dst;
+  }
 
-  /**
-   * Read unsigned 2 bytes value (little endian) at current position
-   *
-   * @return short value
-   */
-  int readUnsignedShort();
+  public ReadableByteBuf readLengthBuffer() {
+    int len = this.readIntLengthEncodedNotNull();
 
-  /**
-   * Read signed 3 bytes value (little endian) at current position
-   *
-   * @return int value
-   */
-  int readMedium();
+    ReadableByteBuf b = new ReadableByteBuf(buf, pos + len);
+    b.pos = pos;
+    pos += len;
+    return b;
+  }
 
-  /**
-   * Read unsigned 3 bytes value (little endian) at current position
-   *
-   * @return int value
-   */
-  int readUnsignedMedium();
+  public String readString(int length) {
+    pos += length;
+    return new String(buf, pos - length, length, StandardCharsets.UTF_8);
+  }
 
-  /**
-   * Read signed 4 bytes value (little endian) at current position
-   *
-   * @return int value
-   */
-  int readInt();
+  public String readAscii(int length) {
+    pos += length;
+    return new String(buf, pos - length, length, StandardCharsets.US_ASCII);
+  }
 
-  /**
-   * Read signed 4 bytes value (big endian) at current position
-   *
-   * @return int value
-   */
-  int readIntBE();
+  public String readStringNullEnd() {
+    int initialPosition = pos;
+    int cnt = 0;
+    while (readableBytes() > 0 && (buf[pos++] != 0)) {
+      cnt++;
+    }
+    return new String(buf, initialPosition, cnt, StandardCharsets.UTF_8);
+  }
 
-  /**
-   * Read unsigned 4 bytes value (little endian) at current position
-   *
-   * @return long value
-   */
-  long readUnsignedInt();
+  public String readStringEof() {
+    int initialPosition = pos;
+    pos = limit;
+    return new String(buf, initialPosition, pos - initialPosition, StandardCharsets.UTF_8);
+  }
 
-  /**
-   * Read signed 8 bytes value (little endian) at current position
-   *
-   * @return long value
-   */
-  long readLong();
+  public float readFloat() {
+    return Float.intBitsToFloat(readInt());
+  }
 
-  /**
-   * Read unsigned 4 bytes value (big endian) at current position
-   *
-   * @return long value
-   */
-  long readLongBE();
+  public double readDouble() {
+    return Double.longBitsToDouble(readLong());
+  }
 
-  /**
-   * Read as many bytes to fill destination array
-   *
-   * @param dst destination array
-   */
-  void readBytes(byte[] dst);
-
-  /**
-   * Read null-ended encoded bytes. 0x00 null value won't be in return byte, so position is
-   * incremented to returned byte array length + 1
-   *
-   * @return byte array
-   */
-  byte[] readBytesNullEnd();
-
-  /**
-   * Return a length encoded buffer
-   *
-   * @return new buffer
-   */
-  ReadableByteBuf readLengthBuffer();
-
-  /**
-   * Read utf-8 encoded string from length bytes
-   *
-   * @param length length byte to read
-   * @return string value
-   */
-  String readString(int length);
-
-  /**
-   * Read ascii encoded string from length bytes
-   *
-   * @param length length byte to read
-   * @return string value
-   */
-  String readAscii(int length);
-
-  /**
-   * Read null-ended utf-8 encoded string. 0x00 = null represent string ending. Position is
-   * incremented to returned string corresponding bytes + 1
-   *
-   * @return corresponding string
-   */
-  String readStringNullEnd();
-
-  /**
-   * Return the utf-8 string represented by current position to the limit of buffer
-   *
-   * @return string value
-   */
-  String readStringEof();
-
-  /**
-   * Read float encoded on 4 bytes value at current position
-   *
-   * @return float value
-   */
-  float readFloat();
-
-  /**
-   * Read double encoded on 8 bytes value at current position
-   *
-   * @return double value
-   */
-  double readDouble();
-
-  /**
-   * Read double encoded on 8 bytes (big endian) value at current position
-   *
-   * @return double value
-   */
-  double readDoubleBE();
+  public double readDoubleBE() {
+    return Double.longBitsToDouble(readLongBE());
+  }
 }

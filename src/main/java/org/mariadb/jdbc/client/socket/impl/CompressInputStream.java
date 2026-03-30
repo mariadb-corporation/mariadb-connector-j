@@ -20,8 +20,8 @@ public class CompressInputStream extends InputStream {
 
   private final byte[] header = new byte[7];
 
-  private int end;
-  private int pos;
+  private int end = 0;
+  private int pos = 0;
   private volatile byte[] buf;
 
   /**
@@ -91,7 +91,7 @@ public class CompressInputStream extends InputStream {
 
     int totalReads = 0;
     do {
-      if (end - pos <= 0) {
+      if (pos >= end) {
         retrieveBuffer();
       }
       // copy internal value to buf.

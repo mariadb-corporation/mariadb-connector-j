@@ -3,6 +3,9 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_BULK_EXECUTE;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_NOT_NULL;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_NULL;
 import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
 
 import java.io.IOException;
@@ -90,7 +93,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
       bulkPacketNo++;
 
       writer.initPacket();
-      writer.writeByte(0xfa); // COM_STMT_BULK_EXECUTE
+      writer.writeByte(COM_STMT_BULK_EXECUTE);
       writer.writeInt(statementId);
       writer.writeShort(
           (short)
@@ -119,9 +122,9 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
         for (int i = 0; i < parameterCount; i++) {
           Parameter param = parameters.get(i);
           if (param.isNull()) {
-            writer.writeByte(0x01); // value is null
+            writer.writeByte(PARAMETER_NULL);
           } else {
-            writer.writeByte(0x00); // value follow
+            writer.writeByte(PARAMETER_NOT_NULL);
             param.encodeBinary(writer, context);
           }
         }

@@ -94,12 +94,13 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
+  public void encodeText(
+      Writer encoder, Context context, InputStream value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
     byte[] array = new byte[4096];
     int len;
-    InputStream stream = (InputStream) value;
+    InputStream stream = value;
 
     if (maxLen == null) {
       while ((len = stream.read(array)) > 0) {
@@ -119,7 +120,7 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(InputStream value, Long length) {
     return -1;
   }
 
@@ -127,7 +128,7 @@ public class StreamCodec implements Codec<InputStream> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final InputStream value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
@@ -135,7 +136,7 @@ public class StreamCodec implements Codec<InputStream> {
     byte[] blobBytes = new byte[4096];
     int pos = 0;
     byte[] array = new byte[4096];
-    InputStream stream = (InputStream) value;
+    InputStream stream = value;
 
     int len;
     if (maxLength == null) {

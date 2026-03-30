@@ -69,7 +69,7 @@ public class PolygonCodec implements Codec<Polygon> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Polygon value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
@@ -77,7 +77,7 @@ public class PolygonCodec implements Codec<Polygon> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(Polygon value, Long length) {
     return -1;
   }
 
@@ -85,11 +85,11 @@ public class PolygonCodec implements Codec<Polygon> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Polygon value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    Polygon poly = (Polygon) value;
+    Polygon poly = value;
 
     int length = 13;
     for (LineString ls : poly.getLines()) {

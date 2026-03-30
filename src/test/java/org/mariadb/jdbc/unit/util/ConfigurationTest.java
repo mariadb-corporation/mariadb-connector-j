@@ -3,7 +3,14 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.util;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -13,7 +20,10 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.TransactionIsolation;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.integration.Common;
@@ -88,11 +98,31 @@ public class ConfigurationTest {
         Configuration.parse(base).toBuilder().build().toString());
     String allOptionSet =
         "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&autocommit=false&useCatalogTerm=SCHEMA&createDatabaseIfNotExist=true&useLocalSessionState=true&returnMultiValuesGeneratedIds=true&permitRedirect=false&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
-            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
+            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&rewriteBatchedStatements=true&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
     assertEquals(
         normalizeConnectionString(Configuration.parse(allOptionSet).toString()),
         normalizeConnectionString(
             Configuration.parse(allOptionSet).toBuilder().build().toString()));
+  }
+
+  /**
+   * CONJ-1305 : toBuilder() must preserve rewriteBatchedStatements so that Configuration.clone()
+   * (used by XAResource.isSameRM()) does not lose the setting.
+   */
+  @Test
+  public void testToBuilderPreservesRewriteBatchedStatements() throws SQLException {
+    Configuration conf =
+        Configuration.parse("jdbc:mariadb://localhost/test?rewriteBatchedStatements=true");
+    assertTrue(conf.rewriteBatchedStatements());
+
+    Configuration cloned = conf.toBuilder().build();
+    assertTrue(cloned.rewriteBatchedStatements());
+
+    Configuration confDefault = Configuration.parse("jdbc:mariadb://localhost/test");
+    assertFalse(confDefault.rewriteBatchedStatements());
+
+    Configuration clonedDefault = confDefault.toBuilder().build();
+    assertFalse(clonedDefault.rewriteBatchedStatements());
   }
 
   @Test

@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_PING;
+
 import java.io.IOException;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -17,7 +19,7 @@ public final class PingPacket implements ClientMessage {
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
-    writer.writeByte(0x0e);
+    writer.writeByte(COM_PING);
     writer.flush();
     return 1;
   }

@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.Executor;
-
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.Statement;

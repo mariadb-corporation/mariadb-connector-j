@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_SEND_LONG_DATA;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.client.Context;
@@ -40,7 +42,7 @@ public final class LongDataPacket implements ClientMessage {
   @Override
   public int encode(Writer writer, Context context) throws IOException, SQLException {
     writer.initPacket();
-    writer.writeByte(0x18);
+    writer.writeByte(COM_STMT_SEND_LONG_DATA);
     writer.writeInt(statementId);
     writer.writeShort((short) index);
     parameter.encodeLongData(writer);

@@ -6,13 +6,13 @@ package org.mariadb.jdbc.unit.client.socket;
 import java.io.IOException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.client.socket.impl.PacketWriter;
+import org.mariadb.jdbc.client.socket.Writer;
 
 public class PacketWriterTest {
 
   @Test
   public void growBuffer() throws IOException {
-    PacketWriter pw = new PacketWriter(null, 0, 0xffffff, null, null);
+    Writer pw = new Writer(null, 0, 0xffffff, null, null);
     Assertions.assertEquals(4, pw.pos());
     pw.writeBytes(new byte[8190], 0, 8190);
     pw.writeAscii("abcdefghij");

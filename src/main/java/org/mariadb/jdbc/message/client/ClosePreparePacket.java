@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_CLOSE;
+
 import java.io.IOException;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -30,7 +32,7 @@ public final class ClosePreparePacket implements ClientMessage {
   public int encode(Writer writer, Context context) throws IOException {
     assert statementId != 0;
     writer.initPacket();
-    writer.writeByte(0x19);
+    writer.writeByte(COM_STMT_CLOSE);
     writer.writeInt(statementId);
     writer.flush();
     return 0;

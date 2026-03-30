@@ -290,9 +290,9 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object val, Calendar calParam, Long maxLen)
+      Writer encoder, Context context, ZonedDateTime val, Calendar calParam, Long maxLen)
       throws IOException {
-    ZonedDateTime zdt = (ZonedDateTime) val;
+    ZonedDateTime zdt = val;
     Calendar cal = calParam == null ? context.getDefaultCalendar() : calParam;
     encoder.writeByte('\'');
     encoder.writeAscii(
@@ -305,15 +305,15 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    return ((ZonedDateTime) value).getNano() > 0 ? 28 : 21;
+  public int getApproximateTextProtocolLength(ZonedDateTime value, Long length) {
+    return value.getNano() > 0 ? 28 : 21;
   }
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object value, Calendar calParam, Long maxLength)
+      Writer encoder, Context context, ZonedDateTime value, Calendar calParam, Long maxLength)
       throws IOException {
-    ZonedDateTime zdt = (ZonedDateTime) value;
+    ZonedDateTime zdt = value;
     Calendar cal = calParam == null ? context.getDefaultCalendar() : calParam;
     ZonedDateTime convertedZdt = zdt.withZoneSameInstant(cal.getTimeZone().toZoneId());
     int nano = convertedZdt.getNano();

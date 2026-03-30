@@ -84,7 +84,7 @@ public enum DataType {
         byte decimals,
         int flags,
         int[] stringPos,
-        String extTypeName,
-        String extTypeFormat);
+        byte[] extTypeName,
+        byte[] extTypeFormat);
   }
 }

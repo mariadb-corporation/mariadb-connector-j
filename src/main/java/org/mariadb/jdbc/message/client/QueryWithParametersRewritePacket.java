@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -80,7 +82,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
       rewritePacketNo++;
 
       writer.initPacket();
-      writer.writeByte(0x03);
+      writer.writeByte(COM_QUERY);
       if (preSqlCmd != null) writer.writeAscii(preSqlCmd);
 
       int pos = 0;

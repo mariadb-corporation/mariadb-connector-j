@@ -76,9 +76,9 @@ public class InstantCodec implements Codec<Instant> {
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object val, Calendar calParam, Long maxLen)
+      Writer encoder, Context context, Instant val, Calendar calParam, Long maxLen)
       throws IOException {
-    Instant instant = (Instant) val;
+    Instant instant = val;
 
     encoder.writeByte('\'');
     if (calParam == null && "UTC".equals(ZoneId.systemDefault().getId())) {
@@ -100,8 +100,8 @@ public class InstantCodec implements Codec<Instant> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    Instant instant = (Instant) value;
+  public int getApproximateTextProtocolLength(Instant value, Long length) {
+    Instant instant = value;
     if (instant.getNano() != 0) {
       return 28;
     }
@@ -110,9 +110,9 @@ public class InstantCodec implements Codec<Instant> {
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object value, Calendar calParam, Long maxLength)
+      Writer encoder, Context context, Instant value, Calendar calParam, Long maxLength)
       throws IOException {
-    Instant instant = (Instant) value;
+    Instant instant = value;
     ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault());
     if (calParam != null) {
       zonedDateTime = zonedDateTime.withZoneSameInstant(calParam.getTimeZone().toZoneId());

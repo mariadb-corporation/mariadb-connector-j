@@ -11,7 +11,6 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.column.UuidColumn;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -63,8 +62,8 @@ public interface ColumnDecoder extends Column {
     stringPos[4] = buf.skipIdentifier(); // column pos
     buf.skipIdentifier();
 
-    String extTypeName = null;
-    String extTypeFormat = null;
+    byte[] extTypeName = null;
+    byte[] extTypeFormat = null;
     // fast skipping extended info (usually not set)
     if (buf.readByte() != 0) {
       // revert position, because has extended info.
@@ -74,10 +73,14 @@ public interface ColumnDecoder extends Column {
       while (subPacket.readableBytes() > 0) {
         switch (subPacket.readByte()) {
           case 0:
-            extTypeName = subPacket.readAscii(subPacket.readLength());
+            int nameLen = subPacket.readLength();
+            extTypeName = new byte[nameLen];
+            subPacket.readBytes(extTypeName);
             break;
           case 1:
-            extTypeFormat = subPacket.readAscii(subPacket.readLength());
+            int formatLen = subPacket.readLength();
+            extTypeFormat = new byte[formatLen];
+            subPacket.readBytes(extTypeFormat);
             break;
           default: // skip data
             subPacket.skip(subPacket.readLength());
@@ -93,7 +96,12 @@ public interface ColumnDecoder extends Column {
     int flags = buf.readUnsignedShort();
     byte decimals = buf.readByte();
     DataType.ColumnConstructor constructor =
-        (extTypeName != null && extTypeName.equals("uuid"))
+        (extTypeName != null
+                && extTypeName.length == 4
+                && extTypeName[0] == 'u'
+                && extTypeName[1] == 'u'
+                && extTypeName[2] == 'i'
+                && extTypeName[3] == 'd')
             ? UuidColumn::new
             : (flags & ColumnFlags.UNSIGNED) == 0
                 ? dataType.getColumnConstructor()
@@ -156,7 +164,7 @@ public interface ColumnDecoder extends Column {
             ? type.getColumnConstructor()
             : type.getUnsignedColumnConstructor();
     return constructor.create(
-        new StandardReadableByteBuf(arr, arr.length),
+        new ReadableByteBuf(arr, arr.length),
         33,
         len,
         type,

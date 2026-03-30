@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.HostAddress;

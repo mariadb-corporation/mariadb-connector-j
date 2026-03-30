@@ -67,7 +67,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final GeometryCollection value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
@@ -75,7 +75,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(GeometryCollection value, Long length) {
     return -1;
   }
 
@@ -83,11 +83,11 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final GeometryCollection value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    GeometryCollection geometryCollection = (GeometryCollection) value;
+    GeometryCollection geometryCollection = value;
 
     int length = 13;
     for (Geometry geo : geometryCollection.getGeometries()) {

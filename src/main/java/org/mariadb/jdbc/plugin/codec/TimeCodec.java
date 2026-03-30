@@ -10,7 +10,10 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -77,7 +80,7 @@ public class TimeCodec implements Codec<Time> {
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object val, Calendar providedCal, Long maxLen)
+      Writer encoder, Context context, Time val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
     SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
@@ -90,18 +93,18 @@ public class TimeCodec implements Codec<Time> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long maxLen) {
+  public int getApproximateTextProtocolLength(Time value, Long maxLen) {
     return 14;
   }
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
+      Writer encoder, Context context, Time value, Calendar providedCal, Long maxLength)
       throws IOException {
     if (providedCal == null) {
       Calendar cal = Calendar.getInstance();
       cal.clear();
-      cal.setTime((Time) value);
+      cal.setTime(value);
       cal.set(Calendar.DAY_OF_MONTH, 1);
       if (cal.get(Calendar.MILLISECOND) > 0) {
         encoder.writeByte((byte) 12);
@@ -122,7 +125,7 @@ public class TimeCodec implements Codec<Time> {
     } else {
       synchronized (providedCal) {
         providedCal.clear();
-        providedCal.setTime((Time) value);
+        providedCal.setTime(value);
         providedCal.set(Calendar.DAY_OF_MONTH, 1);
         if (providedCal.get(Calendar.MILLISECOND) > 0) {
           encoder.writeByte((byte) 12);

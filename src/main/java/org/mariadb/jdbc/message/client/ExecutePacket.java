@@ -3,6 +3,10 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
+import static org.mariadb.jdbc.message.client.CommandConstants.CURSOR_TYPE_NO_CURSOR;
+import static org.mariadb.jdbc.message.client.CommandConstants.PARAMETER_TYPE_FLAG;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -85,9 +89,9 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     }
 
     writer.initPacket();
-    writer.writeByte(0x17);
+    writer.writeByte(COM_STMT_EXECUTE);
     writer.writeInt(statementId);
-    writer.writeByte(0x00); // NO CURSOR
+    writer.writeByte(CURSOR_TYPE_NO_CURSOR);
     writer.writeInt(1); // Iteration pos
 
     if (parameterCount > 0) {
@@ -99,7 +103,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
       writer.pos(initialPos + nullCount);
 
       // Send Parameter type flag
-      writer.writeByte(0x01);
+      writer.writeByte(PARAMETER_TYPE_FLAG);
 
       // Store types of parameters in first package that is sent to the server.
       for (int i = 0; i < parameterCount; i++) {

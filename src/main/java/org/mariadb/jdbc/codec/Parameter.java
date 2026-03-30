@@ -8,10 +8,10 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.socket.Writer;
-import org.mariadb.jdbc.client.socket.impl.PacketWriter;
 import org.mariadb.jdbc.plugin.Codec;
 
 public class Parameter<T> implements org.mariadb.jdbc.client.util.Parameter {
@@ -99,7 +99,7 @@ public class Parameter<T> implements org.mariadb.jdbc.client.util.Parameter {
       return "<" + typeParameter + ">";
     }
     try {
-      PacketWriter writer = new PacketWriter(null, 0, 0xffffff, null, null);
+      Writer writer = new Writer(null, 0, 0xffffff, null, null);
       codec.encodeText(writer, context, this.value, null, this.length);
       return new String(writer.buf(), 4, writer.pos() - 4, StandardCharsets.UTF_8);
     } catch (Throwable t) {

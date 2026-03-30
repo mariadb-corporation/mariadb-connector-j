@@ -93,7 +93,7 @@ public interface Codec<T> {
    * @throws IOException if any socket error occurs
    * @throws SQLException if encoding error occurs
    */
-  void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long length)
+  void encodeText(Writer encoder, Context context, T value, Calendar cal, Long length)
       throws IOException, SQLException;
 
   /**
@@ -103,7 +103,7 @@ public interface Codec<T> {
    * @param length max length
    * @return max length if known, -1 if unknown
    */
-  int getApproximateTextProtocolLength(Object value, Long length);
+  int getApproximateTextProtocolLength(T value, Long length);
 
   /**
    * Binary encode value to writer
@@ -116,7 +116,7 @@ public interface Codec<T> {
    * @throws IOException if any socket error occurs
    * @throws SQLException if encoding error occurs
    */
-  void encodeBinary(Writer encoder, Context context, Object value, Calendar cal, Long length)
+  void encodeBinary(Writer encoder, Context context, T value, Calendar cal, Long length)
       throws IOException, SQLException;
 
   /**

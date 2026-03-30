@@ -456,7 +456,7 @@ public final class ClientParser implements PrepareResult {
                   continue;
                 }
                 // skip comments
-                if (c == '#' ) {
+                if (c == '#') {
                   j++;
                   while (j < queryLength && query[j] != '\n') {
                     j++;

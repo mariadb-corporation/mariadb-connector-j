@@ -10,7 +10,10 @@ import java.math.RoundingMode;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -222,27 +225,27 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final BigDecimal value,
       final Calendar cal,
       final Long length)
       throws IOException {
-    encoder.writeAscii(((BigDecimal) value).toPlainString());
+    encoder.writeAscii(value.toPlainString());
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    return ((BigDecimal) value).toPlainString().length();
+  public int getApproximateTextProtocolLength(BigDecimal value, Long length) {
+    return value.toPlainString().length();
   }
 
   @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final BigDecimal value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    String asciiFormat = ((BigDecimal) value).toPlainString();
+    String asciiFormat = value.toPlainString();
     encoder.writeLength(asciiFormat.length());
     encoder.writeAscii(asciiFormat);
   }

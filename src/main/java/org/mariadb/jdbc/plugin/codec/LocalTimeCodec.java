@@ -286,9 +286,10 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
+  public void encodeText(
+      Writer encoder, Context context, LocalTime value, Calendar cal, Long maxLen)
       throws IOException {
-    LocalTime val = (LocalTime) value;
+    LocalTime val = value;
     StringBuilder dateString = new StringBuilder(15);
     dateString
         .append(val.getHour() < 10 ? "0" : "")
@@ -314,8 +315,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    LocalTime val = (LocalTime) value;
+  public int getApproximateTextProtocolLength(LocalTime value, Long length) {
+    LocalTime val = value;
     int microseconds = val.getNano() / 1000;
     if (microseconds > 0) {
       if (microseconds % 1000 == 0) {
@@ -331,11 +332,11 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final LocalTime value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    LocalTime val = (LocalTime) value;
+    LocalTime val = value;
     int nano = val.getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 12);

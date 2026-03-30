@@ -57,7 +57,7 @@ public class UuidCodec implements Codec<UUID> {
     return UUID.fromString(column.decodeStringBinary(buf, length, cal, context));
   }
 
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
+  public void encodeText(Writer encoder, Context context, UUID value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
     encoder.writeAscii(value.toString());
@@ -65,12 +65,11 @@ public class UuidCodec implements Codec<UUID> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(UUID value, Long length) {
     return 38; // UUID string length is always 36 chars + 2 quotes
   }
 
-  public void encodeBinary(
-      Writer writer, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(Writer writer, Context context, UUID value, Calendar cal, Long maxLength)
       throws IOException {
     String valueSt = value.toString();
     writer.writeLength(valueSt.length());

@@ -374,12 +374,12 @@ public class Statement implements java.sql.Statement {
   public void cancel() throws SQLException {
     checkNotClosed();
     boolean locked = lock.tryLock();
-    // if any query is active, lock is set.
-    // this avoids trying to execute a KILL QUERY if no query is running.
-    if (!locked) {
+    try {
       con.cancelCurrentQuery();
-    } else {
-      lock.unlock();
+    } finally {
+      if (locked) {
+        lock.unlock();
+      }
     }
   }
 

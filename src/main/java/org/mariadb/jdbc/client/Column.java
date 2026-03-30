@@ -117,11 +117,4 @@ public interface Column {
    * @return metadata flag
    */
   int getFlags();
-
-  /**
-   * retrieve extended metadata name if any
-   *
-   * @return extended metadata name
-   */
-  String getExtTypeName();
 }

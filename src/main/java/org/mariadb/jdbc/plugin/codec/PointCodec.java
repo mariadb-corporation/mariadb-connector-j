@@ -65,7 +65,7 @@ public class PointCodec implements Codec<Point> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Point value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
@@ -73,7 +73,7 @@ public class PointCodec implements Codec<Point> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(Point value, Long length) {
     return -1;
   }
 
@@ -81,11 +81,11 @@ public class PointCodec implements Codec<Point> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Point value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    Point pt = (Point) value;
+    Point pt = value;
     encoder.writeLength(25);
     encoder.writeInt(0); // SRID
     encoder.writeByte(0x01); // LITTLE ENDIAN

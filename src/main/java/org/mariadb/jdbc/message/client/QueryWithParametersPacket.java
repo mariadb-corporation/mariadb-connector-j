@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -63,7 +65,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   @Override
   public int encode(Writer encoder, Context context) throws IOException, SQLException {
     encoder.initPacket();
-    encoder.writeByte(0x03);
+    encoder.writeByte(COM_QUERY);
     if (preSqlCmd != null) encoder.writeAscii(preSqlCmd);
     if (parser.getParamPositions().isEmpty()) {
       encoder.writeBytes(parser.getQuery());

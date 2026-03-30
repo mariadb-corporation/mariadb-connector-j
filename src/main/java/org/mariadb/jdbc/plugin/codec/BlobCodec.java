@@ -109,13 +109,13 @@ public class BlobCodec implements Codec<Blob> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Blob value,
       final Calendar cal,
       final Long maxLength)
       throws IOException, SQLException {
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
     byte[] array = new byte[4096];
-    InputStream is = ((Blob) value).getBinaryStream();
+    InputStream is = value.getBinaryStream();
     int len;
 
     if (maxLength == null) {
@@ -137,7 +137,7 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(Blob value, Long length) {
     if (length != null) {
       return length.intValue() + 10;
     }
@@ -148,14 +148,14 @@ public class BlobCodec implements Codec<Blob> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Blob value,
       final Calendar cal,
       final Long maxLength)
       throws IOException, SQLException {
     long length;
-    InputStream is = ((Blob) value).getBinaryStream();
+    InputStream is = value.getBinaryStream();
     try {
-      length = ((Blob) value).length();
+      length = value.length();
       if (maxLength != null) length = Math.min(maxLength, length);
 
       // if not have thrown an error

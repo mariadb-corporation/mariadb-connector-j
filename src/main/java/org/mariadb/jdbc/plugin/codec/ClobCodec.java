@@ -102,11 +102,11 @@ public class ClobCodec implements Codec<Clob> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Clob value,
       final Calendar cal,
       final Long maxLength)
       throws IOException, SQLException {
-    Reader reader = ((Clob) value).getCharacterStream();
+    Reader reader = value.getCharacterStream();
     char[] buf = new char[4096];
     int len;
     long remainingLen = maxLength == null ? Long.MAX_VALUE : maxLength;
@@ -122,7 +122,7 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(Clob value, Long length) {
     if (length != null) {
       return length.intValue() + 10;
     }
@@ -133,12 +133,12 @@ public class ClobCodec implements Codec<Clob> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Clob value,
       final Calendar cal,
       final Long maxLength)
       throws IOException, SQLException {
     // prefer use of encodeLongData, because length is unknown
-    Reader reader = ((Clob) value).getCharacterStream();
+    Reader reader = value.getCharacterStream();
     byte[] clobBytes = new byte[4096];
     int pos = 0;
     char[] buf = new char[4096];

@@ -66,7 +66,7 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final MultiPolygon value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
@@ -74,7 +74,7 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(MultiPolygon value, Long length) {
     return -1;
   }
 
@@ -82,11 +82,11 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final MultiPolygon value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    MultiPolygon mariadbMultiPolygon = (MultiPolygon) value;
+    MultiPolygon mariadbMultiPolygon = value;
 
     int length = 13;
     for (Polygon poly : mariadbMultiPolygon.getPolygons()) {

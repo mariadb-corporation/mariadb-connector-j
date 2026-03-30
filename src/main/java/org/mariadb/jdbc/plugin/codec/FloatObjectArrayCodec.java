@@ -132,9 +132,9 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
   }
 
   @Override
-  public void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long maxLen)
+  public void encodeText(Writer encoder, Context context, Float[] value, Calendar cal, Long maxLen)
       throws IOException {
-    byte[] encoded = toByteArray((Float[]) value);
+    byte[] encoded = toByteArray(value);
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
     encoder.writeBytesEscaped(
         encoded,
@@ -144,19 +144,19 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    return ((Float[]) value).length * 4 + 10;
+  public int getApproximateTextProtocolLength(Float[] value, Long length) {
+    return value.length * 4 + 10;
   }
 
   @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final Float[] value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    byte[] arr = toByteArray((Float[]) value);
+    byte[] arr = toByteArray(value);
     encoder.writeLength(arr.length);
     encoder.writeBytes(arr);
   }

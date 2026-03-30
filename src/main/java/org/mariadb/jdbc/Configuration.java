@@ -9,7 +9,18 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.ServiceLoader;
+import java.util.Set;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
@@ -587,7 +598,6 @@ public class Configuration {
             .maxQuerySizeToLog(this.maxQuerySizeToLog)
             .maxAllowedPacket(this.maxAllowedPacket)
             .geometryDefaultType(this.geometryDefaultType)
-            .geometryDefaultType(this.geometryDefaultType)
             .restrictedAuth(this.restrictedAuth)
             .initSql(this.initSql)
             .socketFactory(this.socketFactory)
@@ -619,6 +629,7 @@ public class Configuration {
             .fallbackToSystemTrustStore(this.fallbackToSystemTrustStore)
             .allowMultiQueries(this.allowMultiQueries)
             .allowLocalInfile(this.allowLocalInfile)
+            .rewriteBatchedStatements(this.rewriteBatchedStatements)
             .useCompression(this.useCompression)
             .useAffectedRows(this.useAffectedRows)
             .useBulkStmts(this.useBulkStmts)

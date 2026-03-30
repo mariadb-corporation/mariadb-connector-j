@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_PREPARE;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.function.Consumer;
@@ -37,7 +39,7 @@ public final class PreparePacket implements ClientMessage {
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
-    writer.writeByte(0x16);
+    writer.writeByte(COM_STMT_PREPARE);
     writer.writeString(this.sql);
     writer.flush();
     return 1;

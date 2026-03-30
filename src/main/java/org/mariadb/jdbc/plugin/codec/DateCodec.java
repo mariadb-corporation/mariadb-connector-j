@@ -73,7 +73,7 @@ public class DateCodec implements Codec<Date> {
 
   @Override
   public void encodeText(
-      Writer encoder, Context context, Object val, Calendar providedCal, Long maxLen)
+      Writer encoder, Context context, Date val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? context.getDefaultCalendar() : providedCal;
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -86,13 +86,13 @@ public class DateCodec implements Codec<Date> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
+  public int getApproximateTextProtocolLength(Date value, Long length) {
     return 12;
   }
 
   @Override
   public void encodeBinary(
-      Writer encoder, Context context, Object value, Calendar providedCal, Long maxLength)
+      Writer encoder, Context context, Date value, Calendar providedCal, Long maxLength)
       throws IOException {
     if (providedCal == null) {
       Calendar cal = Calendar.getInstance();

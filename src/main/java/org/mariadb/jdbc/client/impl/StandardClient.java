@@ -38,7 +38,12 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.net.ssl.*;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -54,8 +59,6 @@ import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.CompressInputStream;
 import org.mariadb.jdbc.client.socket.impl.CompressOutputStream;
-import org.mariadb.jdbc.client.socket.impl.PacketReader;
-import org.mariadb.jdbc.client.socket.impl.PacketWriter;
 import org.mariadb.jdbc.client.socket.impl.ReadAheadBufferedStream;
 import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
 import org.mariadb.jdbc.client.tls.MariaDbX509EphemeralTrustingManager;
@@ -663,10 +666,10 @@ public class StandardClient implements Client, AutoCloseable {
 
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
     this.writer =
-        new PacketWriter(
+        new Writer(
             out, conf.maxQuerySizeToLog(), conf.maxAllowedPacket(), sequence, compressionSequence);
     this.writer.setServerThreadId(threadId, hostAddress);
-    this.reader = new PacketReader(in, conf, sequence);
+    this.reader = new Reader(in, conf, sequence);
     this.reader.setServerThreadId(threadId, hostAddress);
   }
 

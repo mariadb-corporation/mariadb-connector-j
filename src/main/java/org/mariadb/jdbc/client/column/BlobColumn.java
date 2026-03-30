@@ -5,7 +5,12 @@ package org.mariadb.jdbc.client.column;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Date;
+import java.sql.SQLDataException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
@@ -40,8 +45,8 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
       final byte decimals,
       final int flags,
       final int[] stringPos,
-      final String extTypeName,
-      final String extTypeFormat) {
+      final byte[] extTypeName,
+      final byte[] extTypeFormat) {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
@@ -93,7 +98,8 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
      see https://mariadb.com/kb/en/library/data-types/
     */
     if (extTypeFormat != null) {
-      return extTypeFormat.toUpperCase(Locale.ROOT);
+      return new String(extTypeFormat, java.nio.charset.StandardCharsets.US_ASCII)
+          .toUpperCase(Locale.ROOT);
     }
     if (isBinary()) {
       if (columnLength < 0) {

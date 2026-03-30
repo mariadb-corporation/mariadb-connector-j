@@ -8,7 +8,6 @@ import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
@@ -60,7 +59,7 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
   public ReadableByteBuf process(
       Writer out, Reader in, Context context, boolean sslFingerPrintValidation)
       throws IOException, SQLException {
-    ReadableByteBuf buf = new StandardReadableByteBuf(seed, seed.length);
+    ReadableByteBuf buf = new ReadableByteBuf(seed, seed.length);
 
     final String serverSpn = buf.readStringNullEnd();
     // using provided connection string SPN if set, or if not, using to server information

@@ -85,11 +85,11 @@ public class BitSetCodec implements Codec<BitSet> {
   public void encodeText(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final BitSet value,
       final Calendar cal,
       final Long length)
       throws IOException {
-    byte[] bytes = ((BitSet) value).toByteArray();
+    byte[] bytes = value.toByteArray();
     revertOrder(bytes);
 
     StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
@@ -101,19 +101,19 @@ public class BitSetCodec implements Codec<BitSet> {
   }
 
   @Override
-  public int getApproximateTextProtocolLength(Object value, Long length) {
-    return ((BitSet) value).length() + 3;
+  public int getApproximateTextProtocolLength(BitSet value, Long length) {
+    return value.length() + 3;
   }
 
   @Override
   public void encodeBinary(
       final Writer encoder,
       final Context context,
-      final Object value,
+      final BitSet value,
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    byte[] bytes = ((BitSet) value).toByteArray();
+    byte[] bytes = value.toByteArray();
     revertOrder(bytes);
     encoder.writeLength(bytes.length);
     encoder.writeBytes(bytes);
