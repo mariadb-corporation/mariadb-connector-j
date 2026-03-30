@@ -27,7 +27,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.final-matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: set-matrix
         name: build matrix
         uses: mariadb-corporation/connector-ci-build-matrix@main
@@ -44,7 +44,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.continue-on-error || false }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Test Environment
         id: setup-env
