@@ -8,9 +8,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+
 import org.mariadb.jdbc.client.util.ClosableLock;
 
 /** MariaDB pool connection implementation */
@@ -45,6 +47,7 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
 
   private class MariaDbXAPinnedResource implements XAResource {
 
+    @SuppressWarnings("try")
     private void execute(Xid xid, String command, boolean removeMappingAfterExecution)
         throws XAException {
       if (xid == null) throw new XAException();

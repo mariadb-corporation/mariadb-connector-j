@@ -3,16 +3,35 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
-import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
+import java.sql.JDBCType;
+import java.sql.NClob;
 import java.sql.ParameterMetaData;
-import java.util.*;
+import java.sql.PreparedStatement;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
@@ -20,7 +39,9 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.Parameters;
-import org.mariadb.jdbc.codec.*;
+import org.mariadb.jdbc.codec.NonNullParameter;
+import org.mariadb.jdbc.codec.Parameter;
+import org.mariadb.jdbc.codec.ParameterWithCal;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
@@ -30,8 +51,27 @@ import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.array.FloatArray;
-import org.mariadb.jdbc.plugin.codec.*;
+import org.mariadb.jdbc.plugin.codec.BigDecimalCodec;
+import org.mariadb.jdbc.plugin.codec.BlobCodec;
+import org.mariadb.jdbc.plugin.codec.BooleanCodec;
+import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
+import org.mariadb.jdbc.plugin.codec.ByteCodec;
+import org.mariadb.jdbc.plugin.codec.ClobCodec;
+import org.mariadb.jdbc.plugin.codec.DateCodec;
+import org.mariadb.jdbc.plugin.codec.DoubleCodec;
+import org.mariadb.jdbc.plugin.codec.FloatArrayCodec;
+import org.mariadb.jdbc.plugin.codec.FloatCodec;
+import org.mariadb.jdbc.plugin.codec.FloatObjectArrayCodec;
+import org.mariadb.jdbc.plugin.codec.IntCodec;
+import org.mariadb.jdbc.plugin.codec.LongCodec;
+import org.mariadb.jdbc.plugin.codec.ReaderCodec;
+import org.mariadb.jdbc.plugin.codec.ShortCodec;
+import org.mariadb.jdbc.plugin.codec.StreamCodec;
+import org.mariadb.jdbc.plugin.codec.StringCodec;
+import org.mariadb.jdbc.plugin.codec.TimeCodec;
+import org.mariadb.jdbc.plugin.codec.TimestampCodec;
 import org.mariadb.jdbc.util.ParameterList;
+import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
 
@@ -1318,6 +1358,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     }
   }
 
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private void trySetWithCodec(int parameterIndex, Object obj, Long scaleOrLength)
       throws SQLException {
     for (Codec<?> codec : con.getContext().getConf().codecs()) {
