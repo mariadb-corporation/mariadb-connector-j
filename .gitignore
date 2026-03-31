@@ -8,3 +8,4 @@
 /target/
 .idea
 /mariadb-java-client.iml
+.github/native-image-test/spring-boot/target

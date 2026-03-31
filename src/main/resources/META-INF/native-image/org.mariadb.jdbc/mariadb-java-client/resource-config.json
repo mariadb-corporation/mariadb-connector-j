@@ -1,0 +1,12 @@
+{
+  "resources": {
+    "includes": [
+      { "pattern": "\\QMETA-INF/services/java.sql.Driver\\E" },
+      { "pattern": "\\QMETA-INF/services/org.mariadb.jdbc.plugin.Codec\\E" },
+      { "pattern": "\\QMETA-INF/services/org.mariadb.jdbc.plugin.AuthenticationPluginFactory\\E" },
+      { "pattern": "\\QMETA-INF/services/org.mariadb.jdbc.plugin.CredentialPlugin\\E" },
+      { "pattern": "\\QMETA-INF/services/org.mariadb.jdbc.plugin.TlsSocketPlugin\\E" },
+      { "pattern": "\\Qmariadb.properties\\E" }
+    ]
+  }
+}

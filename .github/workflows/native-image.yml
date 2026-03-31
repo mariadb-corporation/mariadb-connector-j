@@ -1,0 +1,146 @@
+---
+name: GraalVM Native Image Test
+
+on:
+  push:
+    branches: ['main', 'develop*', 'maintenance/*', 'feature/*']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 0'
+
+concurrency:
+  group: native-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TEST_DB_HOST: 127.0.0.1
+  TEST_DB_PORT: 3306
+  TEST_DB_USER: root
+  TEST_DB_PASSWORD: testPassword1!
+  TEST_DB_DATABASE: testj
+
+jobs:
+  native-image-test:
+    name: GraalVM Native Image (JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        java: ['21', '24']
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: testPassword1!
+          MARIADB_DATABASE: testj
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify GraalVM installation
+        run: |
+          java -version
+          native-image --version
+
+      - name: Build connector JAR
+        run: mvn package -DskipTests -Dgpg.skip -q
+
+      - name: Resolve connector JAR path
+        id: jar
+        run: |
+          JAR=$(ls target/mariadb-java-client-*.jar | grep -v sources | grep -v javadoc | head -1)
+          echo "path=$JAR" >> "$GITHUB_OUTPUT"
+          echo "Using JAR: $JAR"
+
+      - name: Compile test class
+        run: javac -cp "${{ steps.jar.outputs.path }}" .github/native-image-test/NativeImageTest.java
+
+      - name: Build native image
+        run: |
+          native-image \
+            -cp "${{ steps.jar.outputs.path }}:.github/native-image-test" \
+            --no-fallback \
+            -o native-image-test \
+            NativeImageTest
+
+      - name: Run native image test
+        run: |
+          ./native-image-test
+        env:
+          TEST_DB_HOST: ${{ env.TEST_DB_HOST }}
+          TEST_DB_PORT: ${{ env.TEST_DB_PORT }}
+          TEST_DB_USER: ${{ env.TEST_DB_USER }}
+          TEST_DB_PASSWORD: ${{ env.TEST_DB_PASSWORD }}
+          TEST_DB_DATABASE: ${{ env.TEST_DB_DATABASE }}
+
+  spring-boot-native-test:
+    name: Spring Boot Native Image (JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        java: ['21', '24']
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: testPassword1!
+          MARIADB_DATABASE: testj
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install connector to local Maven repo
+        run: mvn install -DskipTests -Dgpg.skip -q
+
+      - name: Resolve connector version
+        id: version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -Dgpg.skip -DforceStdout)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Connector version: $VERSION"
+
+      - name: Build Spring Boot native image
+        run: |
+          mvn -Pnative native:compile -q -Dgpg.skip \
+            -Dmariadb.connector.version=${{ steps.version.outputs.version }}
+        working-directory: .github/native-image-test/spring-boot
+
+      - name: Run Spring Boot native image test
+        run: |
+          ./target/native-image-spring-test \
+            --spring.datasource.url=jdbc:mariadb://${{ env.TEST_DB_HOST }}:${{ env.TEST_DB_PORT }}/${{ env.TEST_DB_DATABASE }} \
+            --spring.datasource.username=${{ env.TEST_DB_USER }} \
+            --spring.datasource.password=${{ env.TEST_DB_PASSWORD }}
+        working-directory: .github/native-image-test/spring-boot
