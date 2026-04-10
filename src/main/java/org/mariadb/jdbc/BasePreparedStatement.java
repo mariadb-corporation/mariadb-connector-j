@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
+import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -31,7 +33,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
@@ -71,7 +72,6 @@ import org.mariadb.jdbc.plugin.codec.StringCodec;
 import org.mariadb.jdbc.plugin.codec.TimeCodec;
 import org.mariadb.jdbc.plugin.codec.TimestampCodec;
 import org.mariadb.jdbc.util.ParameterList;
-import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
 
