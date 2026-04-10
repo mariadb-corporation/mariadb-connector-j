@@ -17,7 +17,7 @@ import org.mariadb.jdbc.integration.tools.TcpProxy;
 public class RedirectionTest extends Common {
   @Test
   void basicRedirection() throws Exception {
-
+    Assumptions.assumeTrue(!isMaxscale());
     Connection connection = createProxyCon(HaMode.NONE, "&permitRedirect=true");
     Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     boolean permitRedirection = true;
@@ -42,7 +42,7 @@ public class RedirectionTest extends Common {
 
   @Test
   void redirectionDuringTransaction() throws Exception {
-
+    Assumptions.assumeTrue(!isMaxscale());
     Connection connection = createProxyCon(HaMode.NONE, "&permitRedirect=true");
     Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     boolean permitRedirection = true;

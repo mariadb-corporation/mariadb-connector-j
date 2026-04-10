@@ -117,9 +117,10 @@ public class Common {
     if (maxscaleVersion == null) {
       maxscaleVersion = sharedConn.getContext().getMaxscaleVersion();
       if (maxscaleVersion == null) {
-        return "maxscale".equals(System.getenv("srv"))
-            || "maxscale".equals(System.getenv("DB_TYPE"));
+        String maxscaleTag = System.getenv("maxscale-tag");
+        return maxscaleTag != null && maxscaleTag.length() > 0;
       }
+      System.out.println("Maxscale version : " + maxscaleVersion);
     }
     return true;
   }

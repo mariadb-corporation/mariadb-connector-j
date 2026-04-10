@@ -4,7 +4,6 @@
 package org.mariadb.jdbc.util;
 
 import java.util.concurrent.Callable;
-
 import javax.security.auth.Subject;
 
 public class ThreadUtils {

@@ -194,6 +194,8 @@ public class OkPacket implements Completion {
                     context.setTreadsConnected(Long.parseLong(new String(valueBytes, 0, lenSv)));
                   } else if (Arrays.equals(AUTO_INCREMENT_INCREMENT, variableBytes)) {
                     context.setAutoIncrement(Long.parseLong(new String(valueBytes, 0, lenSv)));
+                  } else if (Arrays.equals(MAXSCALE, variableBytes)) {
+                    context.setMaxscaleVersion(new String(valueBytes, 0, lenSv));
                   } else if (Arrays.equals(REDIRECT_URL, variableBytes)) {
                     if (lenSv != null && lenSv > 0)
                       context.setRedirectUrl(new String(valueBytes, 0, lenSv));

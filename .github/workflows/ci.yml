@@ -17,7 +17,7 @@ concurrency:
 env:
   TEST_DB_HOST: mariadb.example.com
   TEST_DB_PORT: 3306
-  TEST_DB_USER: root
+  TEST_DB_USER: testuser
   TEST_DB_PASSWORD: "heyPassw-!*20oRd"
   TEST_DB_DATABASE: testj
 
@@ -35,7 +35,7 @@ jobs:
           additional-matrix: '[{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 8},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 11},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": "25"}]'
 
   ci:
-    name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
+    name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != null && matrix.java != '' && matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
     needs: setup
     timeout-minutes: 50
     strategy:
@@ -59,6 +59,7 @@ jobs:
           additional-conf: ${{ matrix.additional-conf || '' }}
           registry-user: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_USER || (secrets.DOCKER_TOKEN != '' && secrets.DOCKER_LOGIN || '') }}
           registry-password: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_TOKEN || secrets.DOCKER_TOKEN }}
+          maxscale-tag: ${{ matrix.maxscale-tag || ''}}
           os: ${{ matrix.os }}
 
       - uses: actions/setup-java@v4
