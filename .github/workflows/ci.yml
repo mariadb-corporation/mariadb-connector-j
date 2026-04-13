@@ -27,7 +27,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.final-matrix }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: set-matrix
         name: build matrix
         uses: mariadb-corporation/connector-ci-build-matrix@main
@@ -44,7 +44,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.continue-on-error || false }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup Test Environment
         id: setup-env
@@ -61,7 +61,7 @@ jobs:
           maxscale-tag: ${{ matrix.maxscale-tag || ''}}
           os: ${{ matrix.os }}
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java || '21' }}
           cache: maven
