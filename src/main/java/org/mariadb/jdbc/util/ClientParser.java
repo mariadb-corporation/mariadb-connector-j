@@ -90,6 +90,8 @@ public final class ClientParser implements PrepareResult {
         case '/':
           if (state == LexState.SlashStarComment && lastChar == '*') {
             state = LexState.Normal;
+            lastChar = 0;
+            continue;
           }
           break;
 
@@ -107,7 +109,18 @@ public final class ClientParser implements PrepareResult {
 
         case '-':
           if (state == LexState.Normal && lastChar == '-') {
-            state = LexState.EOLComment;
+            // '--' starts a comment only if followed by whitespace or control character
+            // (not in expressions like '2--1')
+            if (i + 1 < queryLength) {
+              byte next = query[i + 1];
+              if (next == ' ' || next == '\t' || next == '\n' || next == '\r' || next == '\f'
+                  || (next >= 0x00 && next <= 0x1F)) {
+                state = LexState.EOLComment;
+              }
+            } else {
+              // '--' at end of query starts a comment
+              state = LexState.EOLComment;
+            }
           }
           break;
 
@@ -270,6 +283,8 @@ public final class ClientParser implements PrepareResult {
         case '/':
           if (state == LexState.SlashStarComment && lastChar == '*') {
             state = LexState.Normal;
+            lastChar = 0;
+            continue;
           }
           break;
 
@@ -287,7 +302,18 @@ public final class ClientParser implements PrepareResult {
 
         case '-':
           if (state == LexState.Normal && lastChar == '-') {
-            state = LexState.EOLComment;
+            // '--' starts a comment only if followed by whitespace or control character
+            // (not in expressions like '2--1')
+            if (i + 1 < queryLength) {
+              byte next = query[i + 1];
+              if (next == ' ' || next == '\t' || next == '\n' || next == '\r' || next == '\f'
+                  || (next >= 0x00 && next <= 0x1F)) {
+                state = LexState.EOLComment;
+              }
+            } else {
+              // '--' at end of query starts a comment
+              state = LexState.EOLComment;
+            }
           }
           break;
 
