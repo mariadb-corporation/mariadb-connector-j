@@ -113,7 +113,11 @@ public final class ClientParser implements PrepareResult {
             // (not in expressions like '2--1')
             if (i + 1 < queryLength) {
               byte next = query[i + 1];
-              if (next == ' ' || next == '\t' || next == '\n' || next == '\r' || next == '\f'
+              if (next == ' '
+                  || next == '\t'
+                  || next == '\n'
+                  || next == '\r'
+                  || next == '\f'
                   || (next >= 0x00 && next <= 0x1F)) {
                 state = LexState.EOLComment;
               }
@@ -306,7 +310,11 @@ public final class ClientParser implements PrepareResult {
             // (not in expressions like '2--1')
             if (i + 1 < queryLength) {
               byte next = query[i + 1];
-              if (next == ' ' || next == '\t' || next == '\n' || next == '\r' || next == '\f'
+              if (next == ' '
+                  || next == '\t'
+                  || next == '\n'
+                  || next == '\r'
+                  || next == '\f'
                   || (next >= 0x00 && next <= 0x1F)) {
                 state = LexState.EOLComment;
               }

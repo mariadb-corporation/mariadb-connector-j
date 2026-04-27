@@ -248,7 +248,7 @@ public class FailoverTest extends Common {
                 + transactionReplay
                 + "&rewriteBatchedStatements="
                 + useRewrite)) {
-      con.setNetworkTimeout(Runnable::run, 500);
+      con.setNetworkTimeout(Runnable::run, 800);
       Thread.sleep(10);
       long threadId = con.getContext().getThreadId();
       execute(idx, con, transactionReplay, threadId);

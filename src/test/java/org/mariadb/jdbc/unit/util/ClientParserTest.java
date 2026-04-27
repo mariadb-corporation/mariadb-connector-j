@@ -3,11 +3,11 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.util;
 
-import java.nio.charset.StandardCharsets;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -84,8 +84,7 @@ public class ClientParserTest {
       pos = paramPos + 1;
     }
     sb.append(
-        new String(
-            parser.getQuery(), pos, parser.getQuery().length - pos, StandardCharsets.UTF_8));
+        new String(parser.getQuery(), pos, parser.getQuery().length - pos, StandardCharsets.UTF_8));
 
     sb.append("but was:\n");
     for (String s : exp) {
@@ -177,7 +176,8 @@ public class ClientParserTest {
 
   /**
    * Test that '--' only starts a comment when followed by whitespace or control character.
-   * Expressions like '2--1' (subtraction with negative number) should not treat '--' as comment start.
+   * Expressions like '2--1' (subtraction with negative number) should not treat '--' as comment
+   * start.
    */
   @Test
   public void testDoubleDashNotCommentInExpression() {
@@ -209,7 +209,8 @@ public class ClientParserTest {
 
   /**
    * Test that after block comment ends, if next char is asterisk, it shouldn't start a new comment.
-   * The lastChar must be reset to zero to avoid &quot;slash-star space star&quot; being parsed as new comment.
+   * The lastChar must be reset to zero to avoid &quot;slash-star space star&quot; being parsed as
+   * new comment.
    */
   @Test
   public void testBlockCommentFollowedByAsterisk() {
