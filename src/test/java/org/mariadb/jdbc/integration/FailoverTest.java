@@ -70,7 +70,7 @@ public class FailoverTest extends Common {
       assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
       con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 200);
+      con.setNetworkTimeout(Runnable::run, 500);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
