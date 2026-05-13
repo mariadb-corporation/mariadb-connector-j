@@ -1,0 +1,14 @@
+# See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+# This file designates code owners for the repository.
+# Each line is a file pattern followed by one or more GitHub usernames or teams.
+
+# Example: assign all code to a team
+# *       @your-org/your-team
+
+# Example: assign specific folders/files
+# /src/   @username1
+# /scripts/ @username2
+# /README.md @username3
+
+# Code owners
+*       @pmishchenko-ua @AdalbertMemSQL
