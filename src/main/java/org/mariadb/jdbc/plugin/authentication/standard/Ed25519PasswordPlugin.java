@@ -144,10 +144,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       hash.digest(buff);
 
       EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
-      GroupElement elementAvalue = spec.getB().scalarMultiply(az);
-      byte[] elementAarray = elementAvalue.toByteArray();
-      System.arraycopy(elementAarray, 0, sm, 32, elementAarray.length);
-      return elementAarray;
+      return spec.getB().scalarMultiply(az).toByteArray();
 
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("Could not use SHA-512, failing", e);
