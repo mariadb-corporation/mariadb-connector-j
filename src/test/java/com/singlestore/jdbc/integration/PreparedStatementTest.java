@@ -47,6 +47,7 @@ public class PreparedStatementTest extends Common {
     stmt.execute("CREATE TABLE prepare3 (t1 LONGTEXT, t2 LONGTEXT, t3 LONGTEXT, t4 LONGTEXT)");
     stmt.execute("CREATE TABLE prepare4 (t1 int)");
     stmt.execute("INSERT INTO prepare4 VALUES (1),(2),(3),(4),(5)");
+    createSequenceTables();
   }
 
   @Test

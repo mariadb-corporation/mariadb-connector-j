@@ -65,6 +65,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Install MariaDB client
+        run: sudo apt-get update && sudo apt-get install -y mariadb-client
+
       - name: Setup test cluster
         run: ./scripts/ensure-test-singlestore-cluster-password.sh
         env:
