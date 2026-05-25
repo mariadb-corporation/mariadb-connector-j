@@ -140,6 +140,48 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
       Writer encoder, Context context, Object val, Calendar calParam, Long length)
       throws IOException {
     OffsetDateTime zdt = (OffsetDateTime) val;
+    // When preserveInstants is enabled, emit FROM_UNIXTIME(epoch) to preserve
+    // the absolute UTC instant of the OffsetDateTime regardless of the server's
+    // @@session.time_zone interpretation at INSERT time. This avoids the 1-hour
+    // drift that occurs with naked wall-clock literals when the JVM IANA tzdata
+    // and the server session timezone disagree across DST or historical
+    // timezone boundaries (e.g. 1987-1988 KDT in Asia/Seoul).
+    //
+    // FROM_UNIXTIME's accepted range is [0, INT32_MAX] (1970-01-01 00:00:00 UTC
+    // through 2038-01-19 03:14:07 UTC). Values outside that range return NULL
+    // on the server, which would silently lose data — so we fall back to the
+    // wall-clock literal path for negative or post-2038 OffsetDateTime values.
+    //
+    // Aligns with MySQL Connector/J's preserveInstants option (default true
+    // since 8.0.23) and MariaDB Connector/J's preserveInstants option.
+    long epochSec = zdt.toEpochSecond();
+    if (context.getConf().preserveInstants()
+        && epochSec >= 0L
+        && epochSec <= (long) Integer.MAX_VALUE) {
+      // Build FROM_UNIXTIME(...) without String.format to avoid the regex
+      // parsing and intermediate allocations in this hot path (every batched
+      // OffsetDateTime parameter passes through here when
+      // rewriteBatchedStatements=true).
+      // TIMESTAMP/DATETIME column precision tops out at microseconds, so
+      // sub-microsecond nanoseconds (1..999) are truncated server-side
+      // anyway; only emit the fractional part when it is non-zero in
+      // microsecond resolution to keep the literal clean.
+      int micros = zdt.getNano() / 1000;
+      encoder.writeAscii("FROM_UNIXTIME(");
+      encoder.writeAscii(Long.toString(epochSec));
+      if (micros > 0) {
+        encoder.writeByte('.');
+        // Manual six-digit zero-padding (micros is guaranteed < 1_000_000).
+        if (micros < 100000) encoder.writeByte('0');
+        if (micros < 10000) encoder.writeByte('0');
+        if (micros < 1000) encoder.writeByte('0');
+        if (micros < 100) encoder.writeByte('0');
+        if (micros < 10) encoder.writeByte('0');
+        encoder.writeAscii(Integer.toString(micros));
+      }
+      encoder.writeByte(')');
+      return;
+    }
     Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
     encoder.writeByte('\'');
     encoder.writeAscii(
