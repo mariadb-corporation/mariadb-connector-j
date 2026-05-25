@@ -125,24 +125,11 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 
     try {
       byte[] bytePwd = credential.getPassword().getBytes(StandardCharsets.UTF_8);
-
       MessageDigest hash = MessageDigest.getInstance("SHA-512");
-
-      int mlen = seed.length;
-      final byte[] sm = new byte[64 + mlen];
-
       byte[] az = hash.digest(bytePwd);
       az[0] &= (byte) 248;
       az[31] &= 63;
       az[31] |= 64;
-
-      System.arraycopy(seed, 0, sm, 64, mlen);
-      System.arraycopy(az, 32, sm, 32, 32);
-
-      byte[] buff = Arrays.copyOfRange(sm, 32, 96);
-      hash.reset();
-      hash.digest(buff);
-
       EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
       return spec.getB().scalarMultiply(az).toByteArray();
 
