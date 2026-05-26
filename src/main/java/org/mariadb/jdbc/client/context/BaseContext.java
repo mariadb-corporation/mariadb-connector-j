@@ -273,7 +273,7 @@ public class BaseContext implements Context {
 
   public Calendar getDefaultCalendar() {
     return conf.preserveInstants()
-            ? Calendar.getInstance(connectionTimeZone)
-            : Calendar.getInstance();
+        ? Calendar.getInstance(connectionTimeZone)
+        : Calendar.getInstance();
   }
 }

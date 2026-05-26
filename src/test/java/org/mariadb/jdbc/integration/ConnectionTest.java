@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -64,12 +64,9 @@ public class ConnectionTest extends Common {
     try (Connection con = createCon();
         PreparedStatement ps = con.prepareStatement("SELECT ?")) {
       SQLException thrown =
-          assertThrows(
-              SQLException.class,
-              () -> ps.setObject(1, big.toString(), Types.DECIMAL));
+          assertThrows(SQLException.class, () -> ps.setObject(1, big.toString(), Types.DECIMAL));
       assertTrue(
-          thrown.getMessage().contains("exceeds"),
-          "unexpected message: " + thrown.getMessage());
+          thrown.getMessage().contains("exceeds"), "unexpected message: " + thrown.getMessage());
     }
   }
 
@@ -84,8 +81,7 @@ public class ConnectionTest extends Common {
       // The dispatch may route through BigDecimal first then convert; either codec's
       // length-cap message is acceptable as long as it identifies the cap violation.
       assertTrue(
-          thrown.getMessage().contains("exceeds"),
-          "unexpected message: " + thrown.getMessage());
+          thrown.getMessage().contains("exceeds"), "unexpected message: " + thrown.getMessage());
     }
   }
 

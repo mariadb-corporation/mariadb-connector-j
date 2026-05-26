@@ -727,7 +727,6 @@ public class BatchTest extends Common {
     }
   }
 
-
   @Test
   public void batchWithoutParameter() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=true")) {
@@ -745,7 +744,7 @@ public class BatchTest extends Common {
     stmt.setFetchSize(3);
     stmt.execute("CREATE TABLE batchWithoutParameter(val varchar(10))");
     try (PreparedStatement prep =
-                 con.prepareStatement("INSERT INTO batchWithoutParameter VALUES ('')")) {
+        con.prepareStatement("INSERT INTO batchWithoutParameter VALUES ('')")) {
       prep.addBatch();
       prep.addBatch();
       prep.addBatch();
@@ -757,5 +756,4 @@ public class BatchTest extends Common {
       assertEquals(rs.getInt(1), 4);
     }
   }
-
 }
