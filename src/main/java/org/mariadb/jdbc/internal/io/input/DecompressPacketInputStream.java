@@ -184,8 +184,9 @@ public class DecompressPacketInputStream implements PacketInputStream {
         }
       } catch (DataFormatException dfe) {
         throw new IOException(dfe);
+      } finally {
+        inflater.end();
       }
-      inflater.end();
 
     } else {
       // Read standard content
