@@ -164,8 +164,9 @@ public class CompressInputStream extends InputStream {
         }
       } catch (DataFormatException dfe) {
         throw new IOException(dfe);
+      } finally {
+        inflater.end();
       }
-      inflater.end();
       end = packetLength;
     } else {
       buf = intermediaryBuf;
