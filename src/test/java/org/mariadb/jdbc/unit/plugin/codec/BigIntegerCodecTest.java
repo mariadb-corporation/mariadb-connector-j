@@ -12,9 +12,9 @@ import org.mariadb.jdbc.plugin.codec.BigDecimalCodec;
 import org.mariadb.jdbc.plugin.codec.BigIntegerCodec;
 
 /**
- * Mirror of {@link BigDecimalCodecTest} for {@link BigIntegerCodec#parseBigInteger(String)}.
- * Both helpers share the same cap; the trap they guard against is {@code new BigInteger(String)}
- * having the same O(n²) parsing cost as {@code new BigDecimal(String)}.
+ * Mirror of {@link BigDecimalCodecTest} for {@link BigIntegerCodec#parseBigInteger(String)}. Both
+ * helpers share the same cap; the trap they guard against is {@code new BigInteger(String)} having
+ * the same O(n²) parsing cost as {@code new BigDecimal(String)}.
  */
 public class BigIntegerCodecTest {
 
@@ -52,8 +52,8 @@ public class BigIntegerCodecTest {
   @Test
   public void parseValidIntegerRoundtrips() throws SQLDataException {
     assertEquals(BigInteger.ZERO, BigIntegerCodec.parseBigInteger("0"));
-    assertEquals(new BigInteger("123456789012345"),
-        BigIntegerCodec.parseBigInteger("123456789012345"));
+    assertEquals(
+        new BigInteger("123456789012345"), BigIntegerCodec.parseBigInteger("123456789012345"));
     assertEquals(new BigInteger("-42"), BigIntegerCodec.parseBigInteger("-42"));
   }
 
