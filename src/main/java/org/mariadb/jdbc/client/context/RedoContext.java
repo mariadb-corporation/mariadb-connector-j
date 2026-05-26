@@ -34,8 +34,16 @@ public class RedoContext extends BaseContext {
       long clientCapabilities,
       Configuration conf,
       ExceptionFactory exceptionFactory,
-      PrepareCache prepareCache) {
-    super(hostAddress, handshake, clientCapabilities, conf, exceptionFactory, prepareCache);
+      PrepareCache prepareCache,
+      Runnable connectionCloser) {
+    super(
+        hostAddress,
+        handshake,
+        clientCapabilities,
+        conf,
+        exceptionFactory,
+        prepareCache,
+        connectionCloser);
     this.transactionSaver = new TransactionSaver(conf.transactionReplaySize());
   }
 

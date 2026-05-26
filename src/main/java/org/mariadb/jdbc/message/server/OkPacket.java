@@ -32,7 +32,7 @@ public class OkPacket implements Completion {
    * @param buf packet buffer
    * @param context connection context
    */
-  public static OkPacket parse(ReadableByteBuf buf, Context context) {
+  public static OkPacket parse(ReadableByteBuf buf, Context context) throws java.sql.SQLException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();

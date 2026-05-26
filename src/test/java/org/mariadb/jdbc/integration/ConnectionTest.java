@@ -41,6 +41,21 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void setNamesBig5IsRejectedAndConnectionDropped() throws SQLException {
+    try (Connection con = createCon()) {
+      try (Statement stmt = con.createStatement()) {
+        SQLNonTransientConnectionException thrown =
+            assertThrows(
+                SQLNonTransientConnectionException.class, () -> stmt.execute("SET NAMES big5"));
+        assertTrue(thrown.getMessage().contains("big5"));
+      }
+      // BaseContext.setCharset fired destroySocket() before throwing, so the connection is now
+      // invalid.
+      assertFalse(con.isValid(2));
+    }
+  }
+
+  @Test
   void isValidWrongValue() {
     try {
       sharedConn.isValid(-2000);
