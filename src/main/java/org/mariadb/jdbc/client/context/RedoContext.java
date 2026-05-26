@@ -35,7 +35,8 @@ public class RedoContext extends BaseContext {
       Configuration conf,
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache,
-      Boolean loopbackAddress) {
+      Boolean loopbackAddress,
+      Runnable connectionCloser) {
     super(
         hostAddress,
         handshake,
@@ -43,7 +44,8 @@ public class RedoContext extends BaseContext {
         conf,
         exceptionFactory,
         prepareCache,
-        loopbackAddress);
+        loopbackAddress,
+        connectionCloser);
     this.transactionSaver = new TransactionSaver(conf.transactionReplaySize());
   }
 

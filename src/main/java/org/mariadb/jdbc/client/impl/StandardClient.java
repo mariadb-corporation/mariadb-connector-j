@@ -189,6 +189,11 @@ public class StandardClient implements Client, AutoCloseable {
     handleAuthentication(handshake, clientCapabilities);
     setupCompression(in, out, clientCapabilities, handshake.getThreadId());
 
+    // From now on, any server-side charset change to non-utf8 (i.e. a user SET NAMES) is
+    // rejected by BaseContext.setCharset, which closes the socket via the connection-closer
+    // wired at context construction so the dead session can't be reused.
+    this.context.setInitialized();
+
     if (!skipPostCommands) {
       postConnectionQueries();
     }
@@ -371,7 +376,8 @@ public class StandardClient implements Client, AutoCloseable {
                 conf,
                 exceptionFactory,
                 cache,
-                isLoopback)
+                isLoopback,
+                this::destroySocket)
             : new BaseContext(
                 hostAddress,
                 handshake,
@@ -379,7 +385,8 @@ public class StandardClient implements Client, AutoCloseable {
                 conf,
                 exceptionFactory,
                 cache,
-                isLoopback);
+                isLoopback,
+                this::destroySocket);
   }
 
   private void handleAuthentication(InitialHandshakePacket handshake, long clientCapabilities)

@@ -110,6 +110,19 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void setNamesBig5IsRejectedAndConnectionDropped() throws SQLException {
+    try (Connection con = createCon()) {
+      try (Statement stmt = con.createStatement()) {
+        SQLNonTransientConnectionException thrown =
+            assertThrows(
+                SQLNonTransientConnectionException.class, () -> stmt.execute("SET NAMES big5"));
+        assertTrue(thrown.getMessage().contains("big5"));
+      }
+      assertFalse(con.isValid(2));
+    }
+  }
+
+  @Test
   public void initSQL() throws SQLException {
     try (Connection con = createCon("&initSql=SET @myVar='YourVar'")) {
       Statement stmt = con.createStatement();

@@ -4,6 +4,7 @@
 package org.mariadb.jdbc.message.server;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.Arrays;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
@@ -51,7 +52,7 @@ public class OkPacket implements Completion {
    * @param buf packet buffer
    * @param context connection context
    */
-  public static OkPacket parse(ReadableByteBuf buf, Context context) {
+  public static OkPacket parse(ReadableByteBuf buf, Context context) throws SQLException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();
@@ -148,7 +149,7 @@ public class OkPacket implements Completion {
    * @param context connection context
    * @return Ok_Packet object
    */
-  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) {
+  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) throws SQLException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();

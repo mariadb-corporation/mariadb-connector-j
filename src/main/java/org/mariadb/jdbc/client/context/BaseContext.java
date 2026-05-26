@@ -5,13 +5,18 @@ package org.mariadb.jdbc.client.context;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.function.Function;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.ColumnDecoder;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.PrepareCache;
+import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
@@ -45,6 +50,8 @@ public class BaseContext implements Context {
   private String maxscaleVersion = null;
   private long threadId;
   private String charset;
+  private boolean initialized = false;
+  private final Runnable connectionCloser;
 
   /** Server current database */
   private String database;
@@ -81,7 +88,9 @@ public class BaseContext implements Context {
       Configuration conf,
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache,
-      Boolean loopbackAddress) {
+      Boolean loopbackAddress,
+      Runnable connectionCloser) {
+    this.connectionCloser = connectionCloser;
     this.hostAddress = hostAddress;
     this.threadId = handshake.getThreadId();
     this.seed = handshake.getSeed();
@@ -243,8 +252,23 @@ public class BaseContext implements Context {
     return charset;
   }
 
-  public void setCharset(String charset) {
+  public void setCharset(String charset) throws SQLNonTransientConnectionException {
+    if (initialized && charset != null && !charset.startsWith("utf8")) {
+      // Drop the connection so subsequent operations can't run against a session whose
+      // character_set_client is now out of sync with the driver's UTF-8 assumption.
+      connectionCloser.run();
+      throw new SQLNonTransientConnectionException(
+          String.format(
+              "Connection character set was changed to '%s'. Only utf8 / utf8mb3 / utf8mb4 are"
+                  + " supported. The connection has been closed.",
+              charset),
+          "08000");
+    }
     this.charset = charset;
+  }
+
+  public void setInitialized() {
+    this.initialized = true;
   }
 
   public String getRedirectUrl() {

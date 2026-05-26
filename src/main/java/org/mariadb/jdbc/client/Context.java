@@ -265,11 +265,13 @@ public interface Context {
   String getCharset();
 
   /**
-   * Indicate server charset change
+   * Indicate server charset change. Throws when the new charset isn't compatible with the driver's
+   * UTF-8 assumption (only utf8 / utf8mb3 / utf8mb4 are accepted post-init).
    *
    * @param charset server charset
+   * @throws java.sql.SQLException if the change is rejected; the connection is also closed
    */
-  void setCharset(String charset);
+  void setCharset(String charset) throws java.sql.SQLException;
 
   /**
    * Get current connection timezone
@@ -291,4 +293,10 @@ public interface Context {
    * @return calendar
    */
   Calendar getDefaultCalendar();
+
+  /**
+   * Indicate that connection is initialized and ready to handle commands. Used to avoid accepting
+   * server
+   */
+  void setInitialized();
 }
