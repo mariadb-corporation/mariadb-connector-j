@@ -111,10 +111,9 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   @Override
-  @Override
   public boolean decodeBooleanText(final ReadableByteBuf buf, final MutableInt length)
-          throws SQLDataException {
-      return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).intValue() != 0;
+      throws SQLDataException {
+    return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).intValue() != 0;
   }
 
   @Override
@@ -231,7 +230,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   @Override
   public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-      return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).floatValue();
+    return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).floatValue();
   }
 
   @Override
@@ -243,7 +242,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   @Override
   public double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-      return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).doubleValue();
+    return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).doubleValue();
   }
 
   @Override

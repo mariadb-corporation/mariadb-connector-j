@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.plugin.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,8 +14,8 @@ import org.mariadb.jdbc.plugin.codec.BigDecimalCodec;
  * Regression test for the CPU-exhaustion issue: attacker-controlled long-digit strings reaching
  * {@code new BigDecimal(String)} cause O(n²) parsing inside the JDK constructor. {@link
  * BigDecimalCodec#parseBigDecimal(String)} caps input at {@link
- * BigDecimalCodec#MAX_BIG_DECIMAL_STRING_LENGTH} characters and rejects longer input with a
- * {@link SQLDataException}.
+ * BigDecimalCodec#MAX_BIG_DECIMAL_STRING_LENGTH} characters and rejects longer input with a {@link
+ * SQLDataException}.
  */
 public class BigDecimalCodecTest {
 
@@ -58,8 +58,8 @@ public class BigDecimalCodecTest {
   @Test
   public void parseValidNumberRoundtrips() throws SQLDataException {
     assertEquals(BigDecimal.ZERO, BigDecimalCodec.parseBigDecimal("0"));
-    assertEquals(new BigDecimal("3.14159265358979"),
-        BigDecimalCodec.parseBigDecimal("3.14159265358979"));
+    assertEquals(
+        new BigDecimal("3.14159265358979"), BigDecimalCodec.parseBigDecimal("3.14159265358979"));
     assertEquals(new BigDecimal("-1e10"), BigDecimalCodec.parseBigDecimal("-1e10"));
   }
 

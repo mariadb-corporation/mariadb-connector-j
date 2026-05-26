@@ -26,11 +26,11 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
   /**
    * Maximum length of a numeric string the driver will accept before parsing it into a {@link
-   * BigDecimal}. Comfortably above any legitimate numeric encoding (MariaDB DECIMAL maxes out at
-   * 65 digits, ASCII-formatted doubles fit in ~25 chars), while small enough that the O(n²) cost
-   * of {@code new BigDecimal(String)} stays sub-millisecond even for an at-cap input. Inputs
-   * longer than this are rejected with {@link SQLDataException} so attacker-controlled text
-   * columns can't be turned into a CPU-exhaustion vector.
+   * BigDecimal}. Comfortably above any legitimate numeric encoding (MariaDB DECIMAL maxes out at 65
+   * digits, ASCII-formatted doubles fit in ~25 chars), while small enough that the O(n²) cost of
+   * {@code new BigDecimal(String)} stays sub-millisecond even for an at-cap input. Inputs longer
+   * than this are rejected with {@link SQLDataException} so attacker-controlled text columns can't
+   * be turned into a CPU-exhaustion vector.
    */
   public static final int MAX_BIG_DECIMAL_STRING_LENGTH = 1024;
 
@@ -42,8 +42,8 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
    * @param str numeric text
    * @return parsed BigDecimal
    * @throws SQLDataException if {@code str} is longer than the cap
-   * @throws NumberFormatException if {@code str} isn't a valid number (caller may catch and
-   *     rewrap with column-specific context)
+   * @throws NumberFormatException if {@code str} isn't a valid number (caller may catch and rewrap
+   *     with column-specific context)
    */
   public static BigDecimal parseBigDecimal(String str) throws SQLDataException {
     if (str.length() > MAX_BIG_DECIMAL_STRING_LENGTH) {

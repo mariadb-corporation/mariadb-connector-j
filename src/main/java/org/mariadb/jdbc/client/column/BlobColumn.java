@@ -3,7 +3,6 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
-import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Blob;
 import java.sql.Date;

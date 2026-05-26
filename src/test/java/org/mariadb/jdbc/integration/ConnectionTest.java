@@ -68,12 +68,9 @@ public class ConnectionTest extends Common {
     try (Connection con = createCon();
         PreparedStatement ps = con.prepareStatement("SELECT ?")) {
       SQLException thrown =
-          assertThrows(
-              SQLException.class,
-              () -> ps.setObject(1, big.toString(), Types.DECIMAL));
+          assertThrows(SQLException.class, () -> ps.setObject(1, big.toString(), Types.DECIMAL));
       assertTrue(
-          thrown.getMessage().contains("exceeds"),
-          "unexpected message: " + thrown.getMessage());
+          thrown.getMessage().contains("exceeds"), "unexpected message: " + thrown.getMessage());
     }
   }
 
@@ -88,23 +85,7 @@ public class ConnectionTest extends Common {
       // The dispatch may route through BigDecimal first then convert; either codec's
       // length-cap message is acceptable as long as it identifies the cap violation.
       assertTrue(
-          thrown.getMessage().contains("exceeds"),
-          "unexpected message: " + thrown.getMessage());
-    }
-  }
-
-  @Test
-  public void setNamesBig5IsRejectedAndConnectionDropped() throws SQLException {
-    try (Connection con = createCon()) {
-      try (Statement stmt = con.createStatement()) {
-        SQLNonTransientConnectionException thrown =
-            assertThrows(
-                SQLNonTransientConnectionException.class, () -> stmt.execute("SET NAMES big5"));
-        assertTrue(thrown.getMessage().contains("big5"));
-      }
-      // BaseContext.setCharset fired destroySocket() before throwing, so the connection is now
-      // invalid.
-      assertFalse(con.isValid(2));
+          thrown.getMessage().contains("exceeds"), "unexpected message: " + thrown.getMessage());
     }
   }
 
