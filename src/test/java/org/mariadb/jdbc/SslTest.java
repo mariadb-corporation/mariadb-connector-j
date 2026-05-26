@@ -247,8 +247,8 @@ public class SslTest extends BaseTest {
     Assume.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(
-            System.getenv("TEST_DB_CLIENT_PKCS") != null
-                    && !"".equals(System.getenv("TEST_DB_CLIENT_PKCS")));
+        System.getenv("TEST_DB_CLIENT_PKCS") != null
+            && !"".equals(System.getenv("TEST_DB_CLIENT_PKCS")));
     // without password
     assertThrows(
         SQLInvalidAuthorizationSpecException.class,

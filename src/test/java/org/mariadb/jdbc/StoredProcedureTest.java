@@ -1685,8 +1685,7 @@ public class StoredProcedureTest extends BaseTest {
       fail("must have thrown timeout exception");
     } catch (SQLTimeoutException e) {
       // expected error
-      assertTrue(
-          e.getMessage().contains("was interrupted"));
+      assertTrue(e.getMessage().contains("was interrupted"));
     } finally {
       stmt.execute("DROP USER basicUser" + getHostSuffix());
       stmt.execute("DROP PROCEDURE p_r_d");
