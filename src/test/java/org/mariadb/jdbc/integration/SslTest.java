@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
 import java.nio.file.Paths;
-import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateFactory;
 import java.sql.*;
 import java.util.*;
 import javax.net.ssl.SSLContext;
