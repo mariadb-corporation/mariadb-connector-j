@@ -10,6 +10,7 @@ import java.sql.SQLDataException;
 import java.time.Duration;
 import java.util.Calendar;
 import java.util.EnumSet;
+import java.util.Locale;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
@@ -200,9 +201,11 @@ public class DurationCodec implements Codec<Duration> {
     encoder.writeByte('\'');
     if (microSecond != 0) {
       encoder.writeAscii(
-          String.format("%d:%02d:%02d.%06d", s / 3600, (s % 3600) / 60, (s % 60), microSecond));
+          String.format(
+              Locale.ROOT, "%d:%02d:%02d.%06d", s / 3600, (s % 3600) / 60, (s % 60), microSecond));
     } else {
-      encoder.writeAscii(String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60)));
+      encoder.writeAscii(
+          String.format(Locale.ROOT, "%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60)));
     }
     encoder.writeByte('\'');
   }
