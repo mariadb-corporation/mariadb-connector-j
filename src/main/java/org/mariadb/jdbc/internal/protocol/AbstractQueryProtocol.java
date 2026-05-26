@@ -1581,7 +1581,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @param results result object
    * @see <a href="https://mariadb.com/kb/en/mariadb/ok_packet/">OK_Packet</a>
    */
-  private void readOkPacket(Buffer buffer, Results results) {
+  private void readOkPacket(Buffer buffer, Results results) throws SQLException {
     buffer.skipByte(); // fieldCount
     final long updateCount = buffer.getLengthEncodedNumeric();
     final long insertId = buffer.getLengthEncodedNumeric();
@@ -1596,7 +1596,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     results.addStats(updateCount, insertId, hasMoreResults());
   }
 
-  private void handleStateChange(Buffer buf, Results results) {
+  private void handleStateChange(Buffer buf, Results results) throws SQLException {
     buf.skipLengthEncodedBytes(); // info
     while (buf.remaining() > 0) {
       Buffer stateInfo = buf.getLengthEncodedBuffer();
@@ -1615,6 +1615,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 case "auto_increment_increment":
                   autoIncrementIncrement = Integer.parseInt(value);
                   results.setAutoIncrement(autoIncrementIncrement);
+                  break;
+
+                case "character_set_client":
+                  if (value != null && !value.startsWith("utf8")) {
+                    destroySocket();
+                    throw new SQLNonTransientConnectionException(
+                        String.format(
+                            "Connection character set was changed to '%s'. Only utf8 / utf8mb3 /"
+                                + " utf8mb4 are supported. The connection has been closed.",
+                            value),
+                        "08000");
+                  }
                   break;
 
                 default:

@@ -83,6 +83,23 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
+  @Test
+  public void setNamesBig5IsRejectedAndConnectionDropped() throws SQLException {
+    try (Connection con = setConnection()) {
+      try (Statement stmt = con.createStatement()) {
+        try {
+          stmt.execute("SET NAMES big5");
+          fail("Expected SQLNonTransientConnectionException");
+        } catch (SQLNonTransientConnectionException e) {
+          assertTrue(e.getMessage().contains("big5"));
+        }
+      }
+      // BaseContext.setCharset fired destroySocket() before throwing, so the connection is now
+      // invalid.
+      assertFalse(con.isValid(2));
+    }
+  }
+
   /** Conj-166. Connection error code must be thrown */
   @Test
   public void testAccessDeniedErrorCode() {
