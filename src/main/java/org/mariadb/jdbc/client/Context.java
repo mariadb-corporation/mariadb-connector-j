@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.function.Function;
@@ -241,9 +242,9 @@ public interface Context {
    * UTF-8 assumption (only utf8 / utf8mb3 / utf8mb4 accepted post-init).
    *
    * @param charset server charset
-   * @throws java.sql.SQLException if the change is rejected; the connection is also closed
+   * @throws SQLNonTransientConnectionException if the change is rejected; the connection is also closed
    */
-  void setCharset(String charset) throws java.sql.SQLException;
+  void setCharset(String charset) throws SQLNonTransientConnectionException;
 
   /**
    * Indicate that connection setup is complete; subsequent {@link #setCharset(String)} calls are
@@ -271,4 +272,6 @@ public interface Context {
    * @return calendar
    */
   Calendar getDefaultCalendar();
+
+  String getCharset();
 }

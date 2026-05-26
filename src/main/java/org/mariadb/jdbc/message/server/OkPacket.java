@@ -11,6 +11,8 @@ import org.mariadb.jdbc.util.constants.StateChange;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+import java.sql.SQLNonTransientConnectionException;
+
 /** Ok packet parser see https://mariadb.com/kb/en/ok_packet/ */
 public class OkPacket implements Completion {
   private static final OkPacket BASIC_OK = new OkPacket(0, 0, null);
@@ -125,7 +127,7 @@ public class OkPacket implements Completion {
    * @param buf packet buffer
    * @param context connection context
    */
-  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) {
+  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) throws SQLNonTransientConnectionException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();
