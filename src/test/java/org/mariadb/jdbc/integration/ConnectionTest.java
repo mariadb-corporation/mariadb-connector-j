@@ -45,6 +45,70 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void getBigDecimalOnLongTextRejected() throws SQLException {
+    // Server returns a 2000-char numeric text column (above the 1024 cap). Without the length
+    // cap, getBigDecimal() would dispatch to new BigDecimal(String) — O(n²) parsing that an
+    // attacker can scale to ~24 s/call with a 1M-char payload. Cap rejects in microseconds.
+    try (Connection con = createCon();
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT REPEAT('1', 2000)")) {
+      assertTrue(rs.next());
+      SQLDataException thrown = assertThrows(SQLDataException.class, () -> rs.getBigDecimal(1));
+      assertTrue(thrown.getMessage().contains("BigDecimal"));
+    }
+  }
+
+  @Test
+  public void setObjectStringAsDecimalRejectsOverCap() throws SQLException {
+    // The String → DECIMAL setObject path in BasePreparedStatement runs the user-supplied
+    // string through BigDecimalCodec.parseBigDecimal (see the Types.DECIMAL / Types.NUMERIC
+    // branch). A 2000-char numeric string must be rejected before it reaches new BigDecimal.
+    StringBuilder big = new StringBuilder(2000);
+    for (int i = 0; i < 2000; i++) big.append('1');
+    try (Connection con = createCon();
+        PreparedStatement ps = con.prepareStatement("SELECT ?")) {
+      SQLException thrown =
+          assertThrows(
+              SQLException.class,
+              () -> ps.setObject(1, big.toString(), Types.DECIMAL));
+      assertTrue(
+          thrown.getMessage().contains("exceeds"),
+          "unexpected message: " + thrown.getMessage());
+    }
+  }
+
+  @Test
+  public void getObjectAsBigIntegerOnLongTextRejected() throws SQLException {
+    try (Connection con = createCon();
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT REPEAT('1', 2000)")) {
+      assertTrue(rs.next());
+      SQLDataException thrown =
+          assertThrows(SQLDataException.class, () -> rs.getObject(1, java.math.BigInteger.class));
+      // The dispatch may route through BigDecimal first then convert; either codec's
+      // length-cap message is acceptable as long as it identifies the cap violation.
+      assertTrue(
+          thrown.getMessage().contains("exceeds"),
+          "unexpected message: " + thrown.getMessage());
+    }
+  }
+
+  @Test
+  public void setNamesBig5IsRejectedAndConnectionDropped() throws SQLException {
+    try (Connection con = createCon()) {
+      try (Statement stmt = con.createStatement()) {
+        SQLNonTransientConnectionException thrown =
+            assertThrows(
+                SQLNonTransientConnectionException.class, () -> stmt.execute("SET NAMES big5"));
+        assertTrue(thrown.getMessage().contains("big5"));
+      }
+      // BaseContext.setCharset fired destroySocket() before throwing, so the connection is now
+      // invalid.
+      assertFalse(con.isValid(2));
+    }
+  }
+
+  @Test
   void isValidWrongValue() {
     try {
       sharedConn.isValid(-2000);

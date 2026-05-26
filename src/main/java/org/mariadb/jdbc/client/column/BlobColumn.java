@@ -19,6 +19,7 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.plugin.codec.BigDecimalCodec;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
@@ -183,7 +184,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
       // TEXT column
       String str2 = buf.readString(length.get());
       try {
-        result = new BigDecimal(str2).setScale(0, RoundingMode.DOWN).longValue();
+        result = BigDecimalCodec.parseBigDecimal(str2).setScale(0, RoundingMode.DOWN).longValue();
       } catch (NumberFormatException nfe) {
         throw new SQLDataException(
             String.format("value '%s' (%s) cannot be decoded as Byte", str2, dataType));
