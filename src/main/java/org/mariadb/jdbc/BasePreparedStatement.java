@@ -1174,7 +1174,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
               return;
             case Types.DECIMAL:
             case Types.NUMERIC:
-              setBigDecimal(parameterIndex, new BigDecimal(str));
+              setBigDecimal(parameterIndex, BigDecimalCodec.parseBigDecimal(str));
               return;
             case Types.CLOB:
             case Types.NCLOB:

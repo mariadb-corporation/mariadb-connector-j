@@ -21,6 +21,39 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   /** default instance */
   public static final BigDecimalCodec INSTANCE = new BigDecimalCodec();
 
+  /**
+   * Maximum length of a numeric string the driver will accept before parsing it into a {@link
+   * BigDecimal}. Comfortably above any legitimate numeric encoding (MariaDB DECIMAL maxes out at
+   * 65 digits, ASCII-formatted doubles fit in ~25 chars), while small enough that the O(n²) cost
+   * of {@code new BigDecimal(String)} stays sub-millisecond even for an at-cap input. Inputs
+   * longer than this are rejected with {@link SQLDataException} so attacker-controlled text
+   * columns can't be turned into a CPU-exhaustion vector.
+   */
+  public static final int MAX_BIG_DECIMAL_STRING_LENGTH = 1024;
+
+  /**
+   * Parse a numeric string into a {@link BigDecimal}, rejecting inputs longer than {@link
+   * #MAX_BIG_DECIMAL_STRING_LENGTH} characters. Use this helper everywhere the driver would
+   * otherwise call {@code new BigDecimal(<userControlledString>)}.
+   *
+   * @param str numeric text
+   * @return parsed BigDecimal
+   * @throws SQLDataException if {@code str} is longer than the cap
+   * @throws NumberFormatException if {@code str} isn't a valid number (caller may catch and
+   *     rewrap with column-specific context)
+   */
+  public static BigDecimal parseBigDecimal(String str) throws SQLDataException {
+    if (str.length() > MAX_BIG_DECIMAL_STRING_LENGTH) {
+      throw new SQLDataException(
+          "value cannot be decoded as BigDecimal: length "
+              + str.length()
+              + " exceeds maximum of "
+              + MAX_BIG_DECIMAL_STRING_LENGTH
+              + " characters");
+    }
+    return new BigDecimal(str);
+  }
+
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.TINYINT,
@@ -89,7 +122,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case DECIMAL:
       case OLDDECIMAL:
       case YEAR:
-        return new BigDecimal(buf.readAscii(length.get()));
+        return parseBigDecimal(buf.readAscii(length.get()));
 
       case BLOB:
       case TINYBLOB:
@@ -108,7 +141,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case STRING:
         String str = buf.readString(length.get());
         try {
-          return new BigDecimal(str);
+          return parseBigDecimal(str);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
               String.format("value '%s' cannot be decoded as BigDecimal", str));
@@ -205,7 +238,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case OLDDECIMAL:
         String str = buf.readString(length.get());
         try {
-          return new BigDecimal(str);
+          return parseBigDecimal(str);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
               String.format("value '%s' cannot be decoded as BigDecimal", str));
