@@ -203,9 +203,17 @@ public interface Context {
   String getCharset();
 
   /**
-   * Indicate server charset change
+   * Indicate server charset change. Throws when the new charset isn't compatible with the driver's
+   * UTF-8 assumption (only utf8 / utf8mb3 / utf8mb4 accepted post-init).
    *
    * @param charset server charset
+   * @throws java.sql.SQLException if the change is rejected; the connection is also closed
    */
-  void setCharset(String charset);
+  void setCharset(String charset) throws java.sql.SQLException;
+
+  /**
+   * Indicate that connection setup is complete; subsequent {@link #setCharset(String)} calls are
+   * gated and will reject non-utf8 values.
+   */
+  void setInitialized();
 }

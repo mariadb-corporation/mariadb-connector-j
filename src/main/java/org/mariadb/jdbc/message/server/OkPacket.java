@@ -24,7 +24,7 @@ public class OkPacket implements Completion {
    * @param buf packet buffer
    * @param context connection context
    */
-  public OkPacket(ReadableByteBuf buf, Context context) {
+  public OkPacket(ReadableByteBuf buf, Context context) throws java.sql.SQLException {
     buf.skip(); // ok header
     this.affectedRows = buf.readLongLengthEncodedNotNull();
     this.lastInsertId = buf.readLongLengthEncodedNotNull();

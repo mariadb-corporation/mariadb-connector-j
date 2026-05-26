@@ -138,14 +138,16 @@ public class StandardClient implements Client, AutoCloseable {
                   clientCapabilities,
                   conf,
                   this.exceptionFactory,
-                  new PrepareCache(conf.prepStmtCacheSize(), this))
+                  new PrepareCache(conf.prepStmtCacheSize(), this),
+                  this::destroySocket)
               : new BaseContext(
                   hostAddress,
                   handshake,
                   clientCapabilities,
                   conf,
                   this.exceptionFactory,
-                  conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null);
+                  conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null,
+                  this::destroySocket);
 
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
@@ -211,6 +213,12 @@ public class StandardClient implements Client, AutoCloseable {
       if (!skipPostCommands) {
         postConnectionQueries();
       }
+
+      // From now on, any server-side charset change to non-utf8 (i.e. a user SET NAMES) is
+      // rejected by BaseContext.setCharset, which closes the socket via the connection-closer
+      // wired at context construction so the dead session can't be reused.
+      this.context.setInitialized();
+
       setSocketTimeout(conf.socketTimeout());
 
     } catch (IOException ioException) {

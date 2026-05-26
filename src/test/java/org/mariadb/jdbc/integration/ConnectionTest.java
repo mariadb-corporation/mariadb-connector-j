@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2024 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,6 +37,21 @@ public class ConnectionTest extends Common {
   public void tcpKeepAlive() throws SQLException {
     try (Connection con = createCon("&tcpKeepAlive=false")) {
       con.isValid(1);
+    }
+  }
+
+  @Test
+  public void setNamesBig5IsRejectedAndConnectionDropped() throws SQLException {
+    try (Connection con = createCon()) {
+      try (Statement stmt = con.createStatement()) {
+        SQLNonTransientConnectionException thrown =
+            assertThrows(
+                SQLNonTransientConnectionException.class, () -> stmt.execute("SET NAMES big5"));
+        assertTrue(thrown.getMessage().contains("big5"));
+      }
+      // BaseContext.setCharset fired destroySocket() before throwing, so the connection is now
+      // invalid.
+      assertFalse(con.isValid(2));
     }
   }
 
@@ -965,13 +980,13 @@ public class ConnectionTest extends Common {
       assertTrue(rs.next());
     }
     Common.assertThrowsContains(
-            SQLException.class,
-            () ->
-                    DriverManager.getConnection(
-                            "jdbc:mariadb:///"
-                                    + sharedConn.getCatalog()
-                                    + "?user=testSocket&password=heyPassw!µ20§rd&localSocket=/wrongPath"),
-            "Socket fail to connect to host");
+        SQLException.class,
+        () ->
+            DriverManager.getConnection(
+                "jdbc:mariadb:///"
+                    + sharedConn.getCatalog()
+                    + "?user=testSocket&password=heyPassw!µ20§rd&localSocket=/wrongPath"),
+        "Socket fail to connect to host");
 
     if (haveSsl()) {
       String serverCertPath = SslTest.retrieveCertificatePath();
