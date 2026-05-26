@@ -13,6 +13,7 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.codec.BigDecimalCodec;
 
 /** Column metadata definition */
 public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -104,7 +105,7 @@ public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder
     long result;
     String str = buf.readString(length.get());
     try {
-      result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).byteValueExact();
+      result = BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).byteValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(
           String.format("value '%s' (%s) cannot be decoded as Byte", str, dataType));
@@ -142,7 +143,7 @@ public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder
     long result;
     String str = buf.readString(length.get());
     try {
-      result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
+      result = BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Short", str));
     }
@@ -167,7 +168,7 @@ public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder
     long result;
     String str = buf.readString(length.get());
     try {
-      result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
+      result = BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", str));
     }
@@ -193,7 +194,7 @@ public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder
   public long decodeLongText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     String str2 = buf.readAscii(length.get());
     try {
-      return new BigDecimal(str2).setScale(0, RoundingMode.DOWN).longValueExact();
+      return BigDecimalCodec.parseBigDecimal(str2).setScale(0, RoundingMode.DOWN).longValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str2));
     }
