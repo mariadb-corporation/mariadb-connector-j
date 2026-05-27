@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.ServiceLoader;
-
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -77,11 +76,10 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
   }
 
   /**
-   * Pick the answer for the current PAM/dialog round.
-   * Round 1 uses the connection password,
-   * later rounds prefer the application-registered {@link AuthDialogCallback} (so a UI can
-   * surface the actual server prompt). When no callback is registered, or the callback returns
-   * {@code null}, we fall back to the historical {@code passwordN} URL options.
+   * Pick the answer for the current PAM/dialog round. Round 1 uses the connection password, later
+   * rounds prefer the application-registered {@link AuthDialogCallback} (so a UI can surface the
+   * actual server prompt). When no callback is registered, or the callback returns {@code null}, we
+   * fall back to the historical {@code passwordN} URL options.
    */
   private String resolvePassword(ReadableByteBuf serverPacket) throws SQLException {
     if (counter == 1) {
@@ -107,9 +105,9 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
   }
 
   /**
-   * Look up the application-registered {@link AuthDialogCallback} via {@link ServiceLoader}.
-   * Java equivalent of the C connector's {@code dlsym(RTLD_DEFAULT, "mariadb_auth_dialog")}.
-   * Returns {@code null} when nothing is registered.
+   * Look up the application-registered {@link AuthDialogCallback} via {@link ServiceLoader}. Java
+   * equivalent of the C connector's {@code dlsym(RTLD_DEFAULT, "mariadb_auth_dialog")}. Returns
+   * {@code null} when nothing is registered.
    */
   private static AuthDialogCallback dialogCallback() {
     Iterator<AuthDialogCallback> it = ServiceLoader.load(AuthDialogCallback.class).iterator();

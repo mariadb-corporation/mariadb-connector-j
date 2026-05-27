@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.plugin.authentication;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,8 +54,7 @@ public class SendPamAuthPacketTest {
         new Reader(new ByteArrayInputStream(serverStream.toByteArray()), conf, new MutableByte());
 
     ByteArrayOutputStream clientStream = new ByteArrayOutputStream();
-    Writer writer =
-        new Writer(clientStream, 1024, 0xffffff, new MutableByte(), new MutableByte());
+    Writer writer = new Writer(clientStream, 1024, 0xffffff, new MutableByte(), new MutableByte());
 
     SendPamAuthPacket pam = new SendPamAuthPacket("first", conf);
     pam.process(writer, reader, null, false);
@@ -69,7 +68,8 @@ public class SendPamAuthPacketTest {
     // Client should have written two packets: "first\0" then "1234\0".
     assertEquals("first", payloadString(clientStream.toByteArray(), 0));
     assertEquals(
-        "1234", payloadString(clientStream.toByteArray(), packetEnd(clientStream.toByteArray(), 0)));
+        "1234",
+        payloadString(clientStream.toByteArray(), packetEnd(clientStream.toByteArray(), 0)));
   }
 
   @Test
@@ -110,14 +110,16 @@ public class SendPamAuthPacketTest {
   /** Read a null-terminated UTF-8 string from the payload of the packet starting at {@code off}. */
   private static String payloadString(byte[] stream, int off) {
     int payloadStart = off + 4; // skip 3 length + 1 sequence
-    int len = (stream[off] & 0xff) | ((stream[off + 1] & 0xff) << 8) | ((stream[off + 2] & 0xff) << 16);
+    int len =
+        (stream[off] & 0xff) | ((stream[off + 1] & 0xff) << 8) | ((stream[off + 2] & 0xff) << 16);
     int end = payloadStart;
     while (end < payloadStart + len && stream[end] != 0) end++;
     return new String(stream, payloadStart, end - payloadStart, StandardCharsets.UTF_8);
   }
 
   private static int packetEnd(byte[] stream, int off) {
-    int len = (stream[off] & 0xff) | ((stream[off + 1] & 0xff) << 8) | ((stream[off + 2] & 0xff) << 16);
+    int len =
+        (stream[off] & 0xff) | ((stream[off + 1] & 0xff) << 8) | ((stream[off + 2] & 0xff) << 16);
     return off + 4 + len;
   }
 }
