@@ -114,10 +114,11 @@ public enum HaMode {
     // use in order not blacklisted server
     for (HostAddress hostAddress : hostAddresses) {
       if (hostAddress.primary == primary) {
-        if (!denyList.containsKey(hostAddress)) return Optional.of(hostAddress);
-        if (denyList.get(hostAddress) < System.currentTimeMillis()) {
+        Long deniedTimeout = denyList.get(hostAddress);
+        if (deniedTimeout == null) return Optional.of(hostAddress);
+        if (deniedTimeout < System.currentTimeMillis()) {
           // timeout reached
-          denyList.remove(hostAddress);
+          denyList.remove(hostAddress, deniedTimeout);
           return Optional.of(hostAddress);
         }
       }
@@ -147,7 +148,7 @@ public enum HaMode {
           if (deniedTimeout > System.currentTimeMillis()) {
             continue;
           } else {
-            denyList.remove(hostAddress);
+            denyList.remove(hostAddress, deniedTimeout);
           }
         }
 
@@ -196,12 +197,13 @@ public enum HaMode {
 
     for (HostAddress hostAddress : loopList) {
       if (hostAddress.primary == primary) {
-        if (denyList.containsKey(hostAddress)) {
+        Long deniedTimeout = denyList.get(hostAddress);
+        if (deniedTimeout != null) {
           // take in account denied server that have reached denied timeout
-          if (denyList.get(hostAddress) > System.currentTimeMillis()) {
+          if (deniedTimeout > System.currentTimeMillis()) {
             continue;
           } else {
-            denyList.remove(hostAddress);
+            denyList.remove(hostAddress, deniedTimeout);
           }
         }
         if (primary) {
