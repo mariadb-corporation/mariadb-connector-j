@@ -39,6 +39,7 @@ module org.mariadb.jdbc {
   uses org.mariadb.jdbc.plugin.Codec;
   uses org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
   uses org.mariadb.jdbc.plugin.TlsSocketPlugin;
+  uses org.mariadb.jdbc.plugin.AuthDialogCallback;
 
   provides java.sql.Driver with
       org.mariadb.jdbc.Driver;
