@@ -4,8 +4,23 @@
 package org.mariadb.jdbc;
 
 import java.nio.FloatBuffer;
-import java.sql.*;
-import java.util.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Struct;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -107,8 +122,14 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException never thrown
    */
   public void cancelCurrentQuery() throws SQLException {
-    // prefer relying on IP compare to DNS if not using Unix socket/PIPE
-    String currentIp = client.getSocketIp();
+    // 2 different opposing problems :
+    // - use hostname: when using dns that route on multiple reader, this can go on a wrong one, so
+    // IP is better.
+    // - use of SSL that can be configured with a certificate DNS validation, so hostname is
+    // required
+    boolean useIp =
+        Boolean.parseBoolean(conf.nonMappedOptions().getProperty("useIpForKillQuery", "false"));
+    String currentIp = useIp ? client.getSocketIp() : null;
     HostAddress hostAddress =
         currentIp == null
             ? client.getHostAddress()
