@@ -127,9 +127,7 @@ public class Connection implements java.sql.Connection {
     // IP is better.
     // - use of SSL that can be configured with a certificate DNS validation, so hostname is
     // required
-    boolean useIp =
-        Boolean.parseBoolean(conf.nonMappedOptions().getProperty("useIpForKillQuery", "false"));
-    String currentIp = useIp ? client.getSocketIp() : null;
+    String currentIp = conf.useIpForKillQuery() ? client.getSocketIp() : null;
     HostAddress hostAddress =
         currentIp == null
             ? client.getHostAddress()

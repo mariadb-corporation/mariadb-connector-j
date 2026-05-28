@@ -202,6 +202,7 @@ public class Configuration {
   private String galeraAllowedState;
   private boolean transactionReplay;
   private int transactionReplaySize;
+  private boolean useIpForKillQuery;
 
   // Pool options
   private boolean pool;
@@ -466,6 +467,7 @@ public class Configuration {
     this.transactionReplay = builder.transactionReplay != null && builder.transactionReplay;
     this.transactionReplaySize =
         builder.transactionReplaySize != null ? builder.transactionReplaySize : 64;
+    this.useIpForKillQuery = builder.useIpForKillQuery != null && builder.useIpForKillQuery;
     this.geometryDefaultType = builder.geometryDefaultType;
     this.restrictedAuth = builder.restrictedAuth;
     this.initSql = builder.initSql;
@@ -654,6 +656,7 @@ public class Configuration {
             .galeraAllowedState(this.galeraAllowedState)
             .transactionReplay(this.transactionReplay)
             .transactionReplaySize(this.transactionReplaySize)
+            .useIpForKillQuery(this.useIpForKillQuery)
             .pool(this.pool)
             .poolName(this.poolName)
             .maxPoolSize(this.maxPoolSize)
@@ -2263,6 +2266,16 @@ public class Configuration {
   }
 
   /**
+   * Whether {@link Connection#cancelCurrentQuery()} should reuse the current socket IP instead of
+   * the original hostname when opening the kill connection. Default {@code false}.
+   *
+   * @return true to reuse the socket IP, false to keep the original hostname.
+   */
+  public boolean useIpForKillQuery() {
+    return useIpForKillQuery;
+  }
+
+  /**
    * geometry default decoding implementation
    *
    * @return geometry default type
@@ -2453,6 +2466,7 @@ public class Configuration {
     private String galeraAllowedState;
     private Boolean transactionReplay;
     private Integer transactionReplaySize;
+    private Boolean useIpForKillQuery;
 
     // Pool options
     private Boolean pool;
@@ -3663,6 +3677,20 @@ public class Configuration {
      */
     public Builder transactionReplaySize(Integer transactionReplaySize) {
       this.transactionReplaySize = transactionReplaySize;
+      return this;
+    }
+
+    /**
+     * When cancelling a query, reuse the current socket IP instead of the original hostname. By
+     * default ({@code false}) the kill connection uses the original hostname, which is required for
+     * SSL hostname verification ({@code sslMode=verify-full}). Set to {@code true} when DNS may
+     * resolve to multiple back-ends so the kill connection still targets the same host.
+     *
+     * @param useIpForKillQuery use socket IP for the kill connection
+     * @return this {@link Builder}
+     */
+    public Builder useIpForKillQuery(Boolean useIpForKillQuery) {
+      this.useIpForKillQuery = useIpForKillQuery;
       return this;
     }
 
