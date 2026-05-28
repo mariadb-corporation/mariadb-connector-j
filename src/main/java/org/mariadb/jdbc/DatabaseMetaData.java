@@ -3,10 +3,20 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
-import java.sql.*;
+import java.sql.PseudoColumnUsage;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.result.CompleteResult;

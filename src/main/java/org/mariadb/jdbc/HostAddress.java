@@ -7,6 +7,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 
@@ -28,6 +30,38 @@ public class HostAddress {
 
   private Long threadsConnected;
   private Long threadConnectedTimeout;
+
+  /**
+   * Result of probing {@code mysql.proc} availability on this host. Latched after the first call to
+   * {@link BaseCallableStatement#getParameterMetaData()} targeting this host.
+   */
+  public enum MysqlProcStatus {
+    UNKNOWN,
+    USABLE,
+    UNUSABLE
+  }
+
+  /**
+   * Process-wide latch shared across all {@link HostAddress} instances that point to the same
+   * physical endpoint (same host:port, named pipe, or unix socket). Keyed by content rather than
+   * object identity because {@link org.mariadb.jdbc.Driver#connect} parses the URL afresh on every
+   * call, producing new {@code HostAddress} objects — without a shared map, each pooled connection
+   * would re-probe {@code mysql.proc}.
+   */
+  private static final ConcurrentMap<String, MysqlProcStatus> MYSQL_PROC_STATUS =
+      new ConcurrentHashMap<>();
+
+  public MysqlProcStatus getMysqlProcStatus() {
+    return MYSQL_PROC_STATUS.getOrDefault(toString(), MysqlProcStatus.UNKNOWN);
+  }
+
+  public void setMysqlProcStatus(MysqlProcStatus s) {
+    if (s == MysqlProcStatus.UNKNOWN) {
+      MYSQL_PROC_STATUS.remove(toString());
+    } else {
+      MYSQL_PROC_STATUS.put(toString(), s);
+    }
+  }
 
   /**
    * Constructor.
