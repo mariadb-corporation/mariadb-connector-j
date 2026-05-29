@@ -9,6 +9,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.EnumSet;
+import java.util.Locale;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
@@ -105,7 +106,7 @@ public class UtilDateCodec implements Codec<java.util.Date> {
       Writer encoder, Context context, java.util.Date val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? context.getDefaultCalendar() : providedCal;
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
     sdf.setTimeZone(cal.getTimeZone());
     String dateString = sdf.format(val);
 
