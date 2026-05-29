@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.EnumSet;
+import java.util.Locale;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
@@ -26,11 +27,11 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
   /** timestamp with fractional part formatter */
   public static final DateTimeFormatter TIMESTAMP_FORMAT =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS", Locale.ROOT);
 
   /** timestamp without fractional part formatter */
   public static final DateTimeFormatter TIMESTAMP_FORMAT_NO_FRACTIONAL =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
 
   /** formatter */
   public static final DateTimeFormatter MARIADB_LOCAL_DATE_TIME;

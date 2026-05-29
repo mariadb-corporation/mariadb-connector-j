@@ -5,6 +5,7 @@ package org.mariadb.jdbc.client.column;
 
 import java.sql.*;
 import java.util.Calendar;
+import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
