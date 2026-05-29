@@ -40,7 +40,17 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       p.dtdIdentifier = dtd == null ? null : dtd.toUpperCase(Locale.ROOT);
       p.numericPrecision = rs.getInt(5);
       p.numericScale = rs.getInt(6);
-      p.characterMaxLength = rs.getInt(7);
+      // CHARACTER_MAXIMUM_LENGTH is BIGINT UNSIGNED; LONGTEXT reports 4294967295, which overflows int.
+      p.characterMaxLength = (int) Math.min(rs.getLong(7), Integer.MAX_VALUE);
+      // information_schema reports the signed NUMERIC_PRECISION for MEDIUMINT regardless of the
+      // UNSIGNED flag (MySQL bug-or-feature), so MEDIUMINT UNSIGNED arrives as 7 instead of 8.
+      // The mysql.proc fast path uses defaultNumericPrecision() and gets this right.
+      if (p.numericPrecision == 7
+          && "MEDIUMINT".equals(p.dataType)
+          && p.dtdIdentifier != null
+          && p.dtdIdentifier.contains(" UNSIGNED")) {
+        p.numericPrecision = 8;
+      }
       list.add(p);
     }
     this.params = list;
