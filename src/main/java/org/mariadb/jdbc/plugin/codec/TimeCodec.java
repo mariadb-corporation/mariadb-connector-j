@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.EnumSet;
+import java.util.Locale;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
@@ -80,7 +81,7 @@ public class TimeCodec implements Codec<Time> {
       Writer encoder, Context context, Object val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
+    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS", Locale.ROOT);
     sdf.setTimeZone(cal.getTimeZone());
     String dateString = sdf.format(val);
 
