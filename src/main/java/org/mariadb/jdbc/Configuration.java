@@ -910,7 +910,7 @@ public class Configuration {
       throws ReflectiveOperationException {
 
     Method method = Builder.class.getDeclaredMethod(field.getName(), Boolean.class);
-    switch (value.toString().toLowerCase()) {
+    switch (value.toString().toLowerCase(Locale.ROOT)) {
       case "":
       case "1":
       case "true":

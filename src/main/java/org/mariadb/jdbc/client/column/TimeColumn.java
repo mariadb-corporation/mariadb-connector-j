@@ -9,6 +9,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
+import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
@@ -213,7 +214,8 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       boolean negate, long days, int hours, int minutes, int seconds) {
     int totalHours = (int) (days * 24 + hours);
 
-    return String.format("%s%02d:%02d:%02d", negate ? "-" : "", totalHours, minutes, seconds);
+    return String.format(
+        Locale.ROOT, "%s%02d:%02d:%02d", negate ? "-" : "", totalHours, minutes, seconds);
   }
 
   private String formatWithMicroseconds(String timeString, long microseconds) {

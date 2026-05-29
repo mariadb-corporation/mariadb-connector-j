@@ -6,6 +6,7 @@ package org.mariadb.jdbc;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -246,8 +247,8 @@ public class HostAddress {
         throw new IllegalArgumentException(
             "Invalid connection URL, expected key=value pairs, found " + array[i]);
       }
-      String key = token[0].toLowerCase();
-      String value = token[1].toLowerCase();
+      String key = token[0].toLowerCase(Locale.ROOT);
+      String value = token[1].toLowerCase(Locale.ROOT);
 
       switch (key) {
         case "host":

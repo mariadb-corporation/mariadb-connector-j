@@ -31,7 +31,7 @@ import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
 /** Column metadata definition */
 public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   private static final DateTimeFormatter dateTimeFormatter =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
   private static final DecimalFormat oldDecimalFormat =
       new DecimalFormat(".0#####", DecimalFormatSymbols.getInstance(Locale.US));
   private static final int[] POWERS_OF_10 = {1, 10, 100, 1000, 10000, 100000, 1000000};
