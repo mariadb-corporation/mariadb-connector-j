@@ -880,7 +880,7 @@ public class Configuration {
                   && !propertyValue.toString().isEmpty()) {
                 field.set(builder, propertyValue);
               } else if (field.getGenericType().equals(Boolean.class)) {
-                switch (propertyValue.toString().toLowerCase()) {
+                switch (propertyValue.toString().toLowerCase(Locale.ROOT)) {
                   case "":
                   case "1":
                   case "true":

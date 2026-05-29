@@ -24,9 +24,9 @@ import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
 
 /** Column metadata definition */
 public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDecoder {
-  private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
   private static final DateTimeFormatter dateTimeFormatter =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
 
   /**
    * TIMESTAMP metadata type decoder
