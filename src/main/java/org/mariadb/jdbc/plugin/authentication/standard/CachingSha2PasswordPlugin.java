@@ -206,7 +206,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
             if (sslMode != SslMode.DISABLE) {
               // send clear password
 
-              byte[] bytePwd = authenticationData.getBytes();
+              byte[] bytePwd = authenticationData.getBytes(StandardCharsets.UTF_8);
               byte[] nullEndedValue = new byte[bytePwd.length + 1];
               System.arraycopy(bytePwd, 0, nullEndedValue, 0, bytePwd.length);
               new AuthMoreRawPacket(nullEndedValue).encode(out, context);
