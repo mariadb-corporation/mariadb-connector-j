@@ -85,7 +85,7 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
     throw new IllegalStateException("not available method");
   }
 
-  public void reset() {
+  public synchronized void reset() {
     for (CachedPrepareResultPacket prep : values()) {
       prep.reset();
     }
