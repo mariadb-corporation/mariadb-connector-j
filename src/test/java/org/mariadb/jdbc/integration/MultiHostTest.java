@@ -43,6 +43,42 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  public void isValidReconnectsReplica() throws Exception {
+    try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
+      long primaryThreadId = con.getThreadId();
+      con.setReadOnly(true);
+      long replicaThreadId = con.getThreadId();
+      assertTrue(primaryThreadId != replicaThreadId);
+
+      // replica goes down: isValid() must transparently fail over to the primary
+      proxy.restart(500);
+      con.isValid(1);
+      assertEquals(primaryThreadId, con.getThreadId());
+
+      // replica is back and waitReconnectTimeout has elapsed: isValid() must reconnect it
+      Thread.sleep(1000);
+      con.isValid(1);
+      assertTrue(
+          con.getThreadId() != primaryThreadId,
+          "isValid() should have reconnected the recovered replica");
+    }
+  }
+
+  @Test
+  public void abortWhileDisconnected() throws Exception {
+    try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
+      long primaryThreadId = con.getThreadId();
+      con.setReadOnly(true);
+      assertTrue(primaryThreadId != con.getThreadId()); // on the replica (through the proxy)
+
+      proxy.stop(); // active (replica) host is now unreachable; the connection is not closed
+
+      // must complete promptly without throwing or hanging on a reconnect attempt
+      con.abort(Runnable::run);
+    }
+  }
+
+  @Test
   public void ensureReadOnlyOnReplica() throws Exception {
     // mariadb1.example.com, mariadb2.example.com and mariadb3.example.com DNS alias must be defined
     Assumptions.assumeFalse(isMaxscale());
