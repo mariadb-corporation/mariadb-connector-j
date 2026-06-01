@@ -386,28 +386,37 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setQueryTimeout(int seconds) throws SQLException {
     super.setQueryTimeout(seconds);
     if (con.useServerTimeout() && prepareResult != null) {
-      prepareResult.close(con.getClient());
+      try (ClosableLock ignore = lock.closeableLock()) {
+        prepareResult.close(con.getClient());
+      }
       prepareResult = null;
     }
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setMaxRows(int max) throws SQLException {
     super.setMaxRows(max);
     if (con.useServerMaxRows() && prepareResult != null) {
-      prepareResult.close(con.getClient());
+      try (ClosableLock ignore = lock.closeableLock()) {
+        prepareResult.close(con.getClient());
+      }
       prepareResult = null;
     }
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setLargeMaxRows(long max) throws SQLException {
     super.setLargeMaxRows(max);
     if (con.useServerMaxRows() && prepareResult != null) {
-      prepareResult.close(con.getClient());
+      try (ClosableLock ignore = lock.closeableLock()) {
+        prepareResult.close(con.getClient());
+      }
       prepareResult = null;
     }
   }
@@ -429,10 +438,14 @@ public class ClientPreparedStatement extends BasePreparedStatement {
    *     <code>PreparedStatement</code>
    */
   @Override
+  @SuppressWarnings("try")
   public ResultSetMetaData getMetaData() throws SQLException {
     // send COM_STMT_PREPARE
-    if (prepareResult == null)
-      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
+    if (prepareResult == null) {
+      try (ClosableLock ignore = lock.closeableLock()) {
+        con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
+      }
+    }
     return new org.mariadb.jdbc.client.result.ResultSetMetaData(
         exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
   }
@@ -450,10 +463,11 @@ public class ClientPreparedStatement extends BasePreparedStatement {
    * @since 1.4
    */
   @Override
+  @SuppressWarnings("try")
   public java.sql.ParameterMetaData getParameterMetaData() throws SQLException {
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      try {
+      try (ClosableLock ignore = lock.closeableLock()) {
         con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
       } catch (SQLException e) {
         return new SimpleParameterMetaData(exceptionFactory(), parser.getParamCount());

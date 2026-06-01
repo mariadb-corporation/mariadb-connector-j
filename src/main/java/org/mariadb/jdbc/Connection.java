@@ -861,59 +861,62 @@ public class Connection implements java.sql.Connection {
    *
    * @throws SQLException if the resetting operation failed
    */
+  @SuppressWarnings("try")
   public void reset() throws SQLException {
     checkNotClosed();
-    // COM_RESET_CONNECTION exist since mysql 5.7.3 and mariadb 10.2.4
-    // but not possible to use it with mysql waiting for https://bugs.mysql.com/bug.php?id=97633
-    // correction.
-    // and mariadb only since https://jira.mariadb.org/browse/MDEV-18281
-    boolean useComReset =
-        conf.useResetConnection()
-            && getContext().getVersion().isMariaDBServer()
-            && (getContext().getVersion().versionGreaterOrEqual(10, 3, 13)
-                || (getContext().getVersion().getMajorVersion() == 10
-                    && getContext().getVersion().getMinorVersion() == 2
-                    && getContext().getVersion().versionGreaterOrEqual(10, 2, 22)));
+    try (ClosableLock ignore = lock.closeableLock()) {
+      // COM_RESET_CONNECTION exist since mysql 5.7.3 and mariadb 10.2.4
+      // but not possible to use it with mysql waiting for https://bugs.mysql.com/bug.php?id=97633
+      // correction.
+      // and mariadb only since https://jira.mariadb.org/browse/MDEV-18281
+      boolean useComReset =
+          conf.useResetConnection()
+              && getContext().getVersion().isMariaDBServer()
+              && (getContext().getVersion().versionGreaterOrEqual(10, 3, 13)
+                  || (getContext().getVersion().getMajorVersion() == 10
+                      && getContext().getVersion().getMinorVersion() == 2
+                      && getContext().getVersion().versionGreaterOrEqual(10, 2, 22)));
 
-    if (useComReset) {
-      client.execute(ResetPacket.INSTANCE, true);
-    }
-
-    // in transaction => rollback
-    if (forceTransactionEnd
-        || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-      client.execute(new QueryPacket("ROLLBACK"), true);
-    }
-
-    int stateFlag = getContext().getStateFlag();
-    if (stateFlag != 0) {
-      try {
-        if ((stateFlag & ConnectionState.STATE_NETWORK_TIMEOUT) != 0) {
-          setNetworkTimeout(null, conf.socketTimeout());
-        }
-        if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
-          setAutoCommit(conf.autocommit() == null || conf.autocommit());
-        }
-        if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
-          setCatalog(conf.database());
-        }
-        if ((stateFlag & ConnectionState.STATE_READ_ONLY) != 0) {
-          setReadOnly(false); // default to master connection
-        }
-        if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
-          setTransactionIsolation(
-              conf.transactionIsolation() == null
-                  ? java.sql.Connection.TRANSACTION_REPEATABLE_READ
-                  : conf.transactionIsolation().getLevel());
-        }
-      } catch (SQLException sqle) {
-        throw exceptionFactory.create("error resetting connection");
+      if (useComReset) {
+        client.execute(ResetPacket.INSTANCE, true);
       }
+
+      // in transaction => rollback
+      if (forceTransactionEnd
+          || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+        client.execute(new QueryPacket("ROLLBACK"), true);
+      }
+
+      int stateFlag = getContext().getStateFlag();
+      if (stateFlag != 0) {
+        try {
+          if ((stateFlag & ConnectionState.STATE_NETWORK_TIMEOUT) != 0) {
+            setNetworkTimeout(null, conf.socketTimeout());
+          }
+          if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
+            setAutoCommit(conf.autocommit() == null || conf.autocommit());
+          }
+          if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
+            setCatalog(conf.database());
+          }
+          if ((stateFlag & ConnectionState.STATE_READ_ONLY) != 0) {
+            setReadOnly(false); // default to master connection
+          }
+          if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
+            setTransactionIsolation(
+                conf.transactionIsolation() == null
+                    ? java.sql.Connection.TRANSACTION_REPEATABLE_READ
+                    : conf.transactionIsolation().getLevel());
+          }
+        } catch (SQLException sqle) {
+          throw exceptionFactory.create("error resetting connection");
+        }
+      }
+
+      client.reset();
+
+      clearWarnings();
     }
-
-    client.reset();
-
-    clearWarnings();
   }
 
   /**
