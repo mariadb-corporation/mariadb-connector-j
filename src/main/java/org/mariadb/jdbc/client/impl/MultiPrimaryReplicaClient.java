@@ -56,9 +56,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
     }
   }
 
-  /**
-   * Lazily (re)connect a previously-failed primary/replica.
-   */
+  /** Lazily (re)connect a previously-failed primary/replica. */
   private void reconnectIfNeeded() {
     if (!closed) {
 
