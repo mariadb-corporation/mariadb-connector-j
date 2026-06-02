@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
+
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
@@ -115,6 +116,7 @@ public class Configuration {
   private String connectionTimeZone;
   private Boolean forceConnectionTimeZoneToSession;
   private boolean preserveInstants;
+  private boolean pureLocalDateTime;
   private Boolean autocommit;
   private boolean useMysqlMetadata;
   private boolean nullDatabaseMeansCurrent;
@@ -354,6 +356,7 @@ public class Configuration {
     this.connectionCollation = builder.connectionCollation;
     this.forceConnectionTimeZoneToSession = builder.forceConnectionTimeZoneToSession;
     this.preserveInstants = builder.preserveInstants != null && builder.preserveInstants;
+    this.pureLocalDateTime = builder.pureLocalDateTime == null || builder.pureLocalDateTime;
   }
 
   private void initializeQueryConfig(Builder builder) {
@@ -579,6 +582,7 @@ public class Configuration {
             .connectionCollation(this.connectionCollation)
             .forceConnectionTimeZoneToSession(this.forceConnectionTimeZoneToSession)
             .preserveInstants(this.preserveInstants)
+            .pureLocalDateTime(this.pureLocalDateTime)
             .autocommit(this.autocommit)
             .useMysqlMetadata(this.useMysqlMetadata)
             .nullDatabaseMeansCurrent(this.nullDatabaseMeansCurrent)
@@ -1855,6 +1859,17 @@ public class Configuration {
   }
 
   /**
+   * Whether LocalDateTime is handled as a pure zoneless wall-clock value (default true), matching
+   * SQL DATETIME semantics. When set to {@code false}, {@code preserveInstants} also converts
+   * LocalDateTime between the connection time zone and the JVM default.
+   *
+   * @return true if LocalDateTime is treated as a pure zoneless value
+   */
+  public boolean pureLocalDateTime() {
+    return pureLocalDateTime;
+  }
+
+  /**
    * Must query by logged on exception.
    *
    * @return dump queries on exception
@@ -2378,6 +2393,7 @@ public class Configuration {
     private String connectionCollation;
     private Boolean forceConnectionTimeZoneToSession;
     private Boolean preserveInstants;
+    private Boolean pureLocalDateTime;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
     private Boolean nullDatabaseMeansCurrent;
@@ -3163,6 +3179,19 @@ public class Configuration {
      */
     public Builder preserveInstants(Boolean preserveInstants) {
       this.preserveInstants = preserveInstants;
+      return this;
+    }
+
+    /**
+     * Indicate if LocalDateTime is treated as a pure zoneless wall-clock value (default true). When
+     * false, preserveInstants also converts LocalDateTime between the connection time zone and the
+     * JVM default.
+     *
+     * @param pureLocalDateTime treat LocalDateTime as a pure zoneless value
+     * @return this {@link Builder}
+     */
+    public Builder pureLocalDateTime(Boolean pureLocalDateTime) {
+      this.pureLocalDateTime = pureLocalDateTime;
       return this;
     }
 
