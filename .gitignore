@@ -7,5 +7,7 @@
 # Keep empty directories: >> .gitignore/.git*
 /target/
 .idea
+.vscode
+.claude
 /mariadb-java-client.iml
 .github/native-image-test/spring-boot/target
