@@ -584,7 +584,9 @@ public class StandardClient implements Client, AutoCloseable {
       final String hashHex = StringUtils.byteArrayToHexString(digest);
       final String serverValidationHex =
           new String(validationHash, 1, validationHash.length - 1, StandardCharsets.US_ASCII);
-      return hashHex.equals(serverValidationHex);
+      return MessageDigest.isEqual(
+          hashHex.getBytes(StandardCharsets.US_ASCII),
+          serverValidationHex.getBytes(StandardCharsets.US_ASCII));
 
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 MessageDigest expected to be not available", e);
