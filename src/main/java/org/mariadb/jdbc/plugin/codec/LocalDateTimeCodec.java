@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2025 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.codec;
 
+import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
+
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.time.LocalDateTime;
@@ -13,12 +15,10 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.TimeZone;
-
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -234,10 +234,11 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   /**
-   * Inverse of {@link #fromConnectionTimeZone}, applied when ENCODING a LocalDateTime. By default
+   * Inverse of {@link #fromConnectionTimeZone}, applied when ENCODING a LocalDateTime. By default,
    * the value is sent verbatim. Only when {@code pureLocalDateTime=false} and {@code
    * preserveInstants} is set (no Calendar) is the value, taken as a JVM-default-zone wall-clock,
-   * converted to the connection time zone before being sent (so it round-trips to the same instant).
+   * converted to the connection time zone before being sent (so it round-trips to the same
+   * instant).
    */
   private static LocalDateTime toConnectionTimeZone(
       final LocalDateTime ldt, final Calendar cal, final Context context) {

@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
-
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
