@@ -13,10 +13,10 @@ import javax.net.ssl.X509TrustManager;
 /**
  * TrustManager that defers server-identity validation to the authentication phase.
  *
- * <p>It delegates the standard certificate-chain check to a real {@link X509TrustManager}.
- * When that check fails because the chain cannot be validated against the trust store, typically
- * because the server presented a self-signed certificate it generated on the fly (MariaDB does this
- * when TLS is enabled but no server certificate is configured), this manager does not reject the
+ * <p>It delegates the standard certificate-chain check to a real {@link X509TrustManager}. When
+ * that check fails because the chain cannot be validated against the trust store, typically because
+ * the server presented a self-signed certificate it generated on the fly (MariaDB does this when
+ * TLS is enabled but no server certificate is configured), this manager does not reject the
  * connection. Instead, it records the leaf certificate fingerprint and lets the handshake proceed,
  * so the server's identity can be validated later, during authentication.
  *
