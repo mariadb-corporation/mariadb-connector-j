@@ -18,7 +18,6 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
@@ -39,10 +38,10 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
@@ -61,7 +60,7 @@ import org.mariadb.jdbc.client.socket.impl.CompressInputStream;
 import org.mariadb.jdbc.client.socket.impl.CompressOutputStream;
 import org.mariadb.jdbc.client.socket.impl.ReadAheadBufferedStream;
 import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
-import org.mariadb.jdbc.client.tls.MariaDbX509EphemeralTrustingManager;
+import org.mariadb.jdbc.client.tls.MariaDbX509DeferredIdentityTrustManager;
 import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.export.ExceptionFactory;
@@ -268,20 +267,12 @@ public class StandardClient implements Client, AutoCloseable {
   private SSLSocket createSslSocket(
       Configuration conf, TlsSocketPlugin socketPlugin, TrustManager[] trustManagers)
       throws SQLException, IOException {
-
-    try {
-      SSLContext sslContext = SSLContext.getInstance("TLS");
-      sslContext.init(
-          socketPlugin.getKeyManager(conf, context.getExceptionFactory()), trustManagers, null);
-
-      return socketPlugin.createSocket(socket, sslContext.getSocketFactory());
-    } catch (KeyManagementException e) {
-      throw context.getExceptionFactory().create("Could not initialize SSL context", "08000", e);
-    } catch (NoSuchAlgorithmException e) {
-      throw context
-          .getExceptionFactory()
-          .create("SSLContext TLS Algorithm not unknown", "08000", e);
-    }
+    SSLSocketFactory sslSocketFactory =
+        TlsSocketPlugin.newSslSocketFactory(
+            socketPlugin.getKeyManager(conf, context.getExceptionFactory()),
+            trustManagers,
+            context.getExceptionFactory());
+    return socketPlugin.createSocket(socket, sslSocketFactory);
   }
 
   private void configureSslSocket(SSLSocket sslSocket, Configuration conf) throws SQLException {
@@ -302,8 +293,9 @@ public class StandardClient implements Client, AutoCloseable {
 
     sslSocket.startHandshake();
     if (trustManagers.length > 0
-        && trustManagers[0] instanceof MariaDbX509EphemeralTrustingManager) {
-      certFingerprint = ((MariaDbX509EphemeralTrustingManager) trustManagers[0]).getFingerprint();
+        && trustManagers[0] instanceof MariaDbX509DeferredIdentityTrustManager) {
+      certFingerprint =
+          ((MariaDbX509DeferredIdentityTrustManager) trustManagers[0]).getFingerprint();
     }
   }
 
