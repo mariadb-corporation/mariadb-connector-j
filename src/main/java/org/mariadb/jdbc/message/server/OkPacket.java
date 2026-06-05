@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.server;
 
+import java.sql.SQLNonTransientConnectionException;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -10,8 +11,6 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.StateChange;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
-
-import java.sql.SQLNonTransientConnectionException;
 
 /** Ok packet parser see https://mariadb.com/kb/en/ok_packet/ */
 public class OkPacket implements Completion {
@@ -127,7 +126,8 @@ public class OkPacket implements Completion {
    * @param buf packet buffer
    * @param context connection context
    */
-  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) throws SQLNonTransientConnectionException {
+  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context)
+      throws SQLNonTransientConnectionException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();

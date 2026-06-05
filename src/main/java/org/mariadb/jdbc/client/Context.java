@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2024 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
 import java.sql.SQLNonTransientConnectionException;
@@ -242,7 +242,8 @@ public interface Context {
    * UTF-8 assumption (only utf8 / utf8mb3 / utf8mb4 accepted post-init).
    *
    * @param charset server charset
-   * @throws SQLNonTransientConnectionException if the change is rejected; the connection is also closed
+   * @throws SQLNonTransientConnectionException if the change is rejected; the connection is also
+   *     closed
    */
   void setCharset(String charset) throws SQLNonTransientConnectionException;
 
