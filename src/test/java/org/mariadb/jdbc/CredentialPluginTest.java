@@ -71,8 +71,7 @@ public class CredentialPluginTest extends BaseTest {
 
   @Test
   public void propertiesIdentityTest() throws SQLException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     System.setProperty("mariadb.user", "identityUser");
     System.setProperty("mariadb.pwd", "!Passw0rd3Works");
     try (Connection connection = setConnection()) {
@@ -101,8 +100,7 @@ public class CredentialPluginTest extends BaseTest {
 
   @Test
   public void specificPropertiesIdentityTest() throws SQLException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     System.setProperty("myUserKey", "identityUser");
     System.setProperty("myPwdKey", "!Passw0rd3Works");
 

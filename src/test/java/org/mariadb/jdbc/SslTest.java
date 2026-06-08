@@ -164,8 +164,7 @@ public class SslTest extends BaseTest {
 
   @Test
   public void mandatorySsl() throws SQLException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     try (Connection con =
         setConnection(baseOptions + "&useSsl&trustServerCertificate=true", database, sslPort)) {
       assertNotNull(getSslVersion(con));
@@ -187,8 +186,7 @@ public class SslTest extends BaseTest {
     } catch (NoSuchAlgorithmException e) {
       // eat
     }
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     try (Connection con =
         setConnection(
             baseOptions
@@ -220,8 +218,7 @@ public class SslTest extends BaseTest {
 
   @Test
   public void enabledSslCipherSuites() throws SQLException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     try (Connection con =
         setConnection(
             baseOptions
@@ -244,8 +241,7 @@ public class SslTest extends BaseTest {
 
   @Test
   public void mutualAuthSsl() throws SQLException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     Assume.assumeTrue(
         System.getenv("TEST_DB_CLIENT_PKCS") != null
             && !"".equals(System.getenv("TEST_DB_CLIENT_PKCS")));
@@ -414,7 +410,7 @@ public class SslTest extends BaseTest {
         () ->
             setConnection(
                 baseOptions + "&useSsl&disableSslHostnameVerification", database, sslPort));
-    if (!"skysql-ha".equals(System.getenv("srv")) && !"maxscale".equals(System.getenv("srv"))) {
+    if (!isMaxscale()) {
       assertThrows(
           SQLInvalidAuthorizationSpecException.class,
           () ->
@@ -446,9 +442,7 @@ public class SslTest extends BaseTest {
     String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
 
     // try local server
-    if (serverCertificatePath == null
-        && !"skysql".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (serverCertificatePath == null) {
       serverCertificatePath = checkFileExists(System.getenv("TEST_DB_SERVER_CERT"));
 
       if (serverCertificatePath == null) {

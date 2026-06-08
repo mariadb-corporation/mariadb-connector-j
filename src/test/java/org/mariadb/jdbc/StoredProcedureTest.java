@@ -1662,8 +1662,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test(timeout = 5000)
   public void testNoKillRights() throws Exception {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(!Platform.isWindows());
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 1, 2));
     Statement stmt = sharedConnection.createStatement();

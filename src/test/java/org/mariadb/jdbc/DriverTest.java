@@ -275,8 +275,6 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void parameterMetaDataNotPreparable() throws SQLException {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeFalse(sharedUsePrepare());
     Statement stmt = sharedConnection.createStatement();
     Map<String, Integer> initValues = loadVariables(stmt);
@@ -320,8 +318,6 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void parameterMetaDataPreparable() throws SQLException {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeFalse(sharedUsePrepare());
     Statement stmt = sharedConnection.createStatement();
     Map<String, Integer> initValues = loadVariables(stmt);
@@ -1082,9 +1078,6 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testConnectWithDb() throws SQLException {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     requireMinimumVersion(5, 0);
     try {
       sharedConnection.createStatement().executeUpdate("drop database test_testdrop");
@@ -1251,9 +1244,6 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void conj1() throws Exception {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     requireMinimumVersion(5, 0);
 
     try (Connection connection = setConnection("&profileSql=true")) {
@@ -1781,8 +1771,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testAutoCommit() throws SQLException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     try (Connection connection = setConnection()) {
       assertTrue(connection.getAutoCommit());
       Statement stmt = connection.createStatement();
@@ -1811,8 +1800,6 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void databaseType() throws SQLException {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(System.getenv("TRAVIS") != null);
     boolean isMysql = System.getenv("AURORA") != null || System.getenv("srv").contains("mysql");
     assertEquals(

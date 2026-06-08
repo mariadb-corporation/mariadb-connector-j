@@ -65,6 +65,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.BaseTest;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
@@ -93,10 +94,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
   @Test
   public void connectionSequenceAndBack() throws Throwable {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!BaseTest.isMaxscale());
     TcpProxy proxy1 = new TcpProxy(hostname, port);
     TcpProxy proxy2 = new TcpProxy(hostname, port);
     String connString =

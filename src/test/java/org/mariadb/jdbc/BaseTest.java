@@ -123,7 +123,6 @@ public class BaseTest {
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
               hostname, port, get("DB_DATABASE", prop), username, password, defaultOther);
 
-      String srv = System.getenv("srv");
       String version = System.getenv("v");
       double versionInt = 0;
       try {
@@ -432,6 +431,30 @@ public class BaseTest {
     return ((MariaDbConnection) sharedConnection).getProtocol().getMajorServerVersion() == major
         && ((MariaDbConnection) sharedConnection).getProtocol().getMinorServerVersion() == minor
         && ((MariaDbConnection) sharedConnection).getProtocol().getPatchServerVersion() == patch;
+  }
+
+  private static String maxscaleVersion = null;
+
+  /**
+   * Indicate if the connection is established through MaxScale. Detected from the {@code maxscale}
+   * session-tracked variable the proxy reports, falling back to the {@code maxscale-tag} CI
+   * environment variable when the protocol value is unavailable.
+   *
+   * @return true if connected through MaxScale
+   */
+  public static boolean isMaxscale() {
+    if (maxscaleVersion == null) {
+      try {
+        maxscaleVersion = ((MariaDbConnection) sharedConnection).getProtocol().getMaxscaleVersion();
+      } catch (Exception e) {
+        // shared connection not available (e.g. failover tests) : rely on the env fallback
+      }
+      if (maxscaleVersion == null) {
+        String maxscaleTag = System.getenv("maxscale-tag");
+        return maxscaleTag != null && maxscaleTag.length() > 0;
+      }
+    }
+    return true;
   }
 
   /**

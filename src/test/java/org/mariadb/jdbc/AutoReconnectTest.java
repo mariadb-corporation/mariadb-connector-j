@@ -61,10 +61,7 @@ public class AutoReconnectTest extends BaseTest {
 
   @Test
   public void autoReconnect() throws SQLException, InterruptedException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     Assume.assumeTrue(isMariadbServer());
     try (Connection conn = setConnection("&autoReconnect&allowPublicKeyRetrieval")) {
       Statement stmt = conn.createStatement();
@@ -93,8 +90,6 @@ public class AutoReconnectTest extends BaseTest {
 
   @Test
   public void autoReconnectPing() throws SQLException, InterruptedException {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(runLongTest);
     try (Connection conn = setConnection("&autoReconnect")) {
       Statement stmt = conn.createStatement();

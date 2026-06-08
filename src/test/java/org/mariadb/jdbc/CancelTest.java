@@ -85,10 +85,7 @@ public class CancelTest extends BaseTest {
   @Before
   public void cancelSupported() throws SQLException {
     requireMinimumVersion(5, 0);
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"maxscale".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
   }
 
   @Test

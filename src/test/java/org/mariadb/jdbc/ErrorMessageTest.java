@@ -352,10 +352,7 @@ public class ErrorMessageTest extends BaseTest {
 
   @Test
   public void testFailOverKillCmd() throws Throwable {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     Assume.assumeTrue(isMariadbServer());
     DataSource ds =
         new MariaDbDataSource(

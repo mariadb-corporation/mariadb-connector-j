@@ -336,11 +336,7 @@ public class ConnectionTest extends BaseTest {
    */
   @Test
   public void isValidConnectionThatTimesOutByServer() throws SQLException, InterruptedException {
-    Assume.assumeTrue(
-        !sharedIsAurora()
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"maxscale".equals(System.getenv("srv")));
+    Assume.assumeTrue(!sharedIsAurora() && !isMaxscale());
     try (Connection connection = setConnection()) {
       try (Statement statement = connection.createStatement()) {
         statement.execute("set session wait_timeout=1");
@@ -610,10 +606,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
 
@@ -714,8 +707,6 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void replicaDownConnection() throws SQLException {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     String url =
         "jdbc:mariadb:replication://"
             + hostname
@@ -746,10 +737,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void multiAuthPlugin() throws Throwable {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
     Statement stmt = sharedConnection.createStatement();
     try {
@@ -809,10 +797,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void connectionUnexpectedClose() throws SQLException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:failover//"
@@ -842,10 +827,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void ensureSocketTimeoutState() throws Throwable {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
 
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("DROP TABLE IF EXISTS ensureSocketTimeoutState");
@@ -904,8 +886,6 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void setReadonlyError() throws SQLException {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:replication://"
@@ -941,8 +921,6 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void testWarnings() throws SQLException {
     Assume.assumeTrue(isMariadbServer());
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("select now() = 1");
@@ -1004,10 +982,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void setClientNotConnectError() throws SQLException {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     // only mariadb return a specific error when connection has explicitly been killed
     Assume.assumeTrue(isMariadbServer());
 

@@ -77,11 +77,9 @@ public class TimeoutTest extends BaseTest {
   public void resultSetAfterSocketTimeoutTest() {
     // appveyor vm are very slow, cannot compare time
     Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
+        !isMaxscale()
             && System.getenv("APPVEYOR") == null
-            && System.getenv("DOCKER_SOCKET") == null
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+            && System.getenv("DOCKER_SOCKET") == null);
 
     Assume.assumeFalse(sharedIsAurora());
     int went = 0;
@@ -154,10 +152,7 @@ public class TimeoutTest extends BaseTest {
 
   @Test
   public void waitTimeoutStatementTest() throws SQLException, InterruptedException {
-    Assume.assumeTrue(
-        !sharedIsAurora()
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"maxscale".equals(System.getenv("srv")));
+    Assume.assumeTrue(!sharedIsAurora() && !isMaxscale());
     try (Connection connection = setConnection()) {
       try (Statement statement = connection.createStatement()) {
         statement.execute("set session wait_timeout=1");
@@ -177,11 +172,7 @@ public class TimeoutTest extends BaseTest {
 
   @Test
   public void waitTimeoutResultSetTest() throws SQLException, InterruptedException {
-    Assume.assumeTrue(
-        !sharedIsAurora()
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"maxscale".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!sharedIsAurora() && !isMaxscale());
     try (Connection connection = setConnection()) {
       Statement stmt = connection.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT 1");

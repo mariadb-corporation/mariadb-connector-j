@@ -240,10 +240,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void testResetTransactionIsolation() throws SQLException {
-    Assume.assumeTrue(
-        !sharedIsAurora()
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!sharedIsAurora());
     try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
 
       try (Connection connection = pool.getConnection()) {
@@ -317,10 +314,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
   public void testIdleTimeout() throws Throwable {
     // not for maxscale, testing thread id is not relevant.
     // appveyor is so slow wait time are not relevant.
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
+    Assume.assumeTrue(System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
 
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testIdleTimeout-*");
@@ -430,10 +424,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void ensureUsingPool() throws Exception {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     ThreadPoolExecutor connectionAppender =
         new ThreadPoolExecutor(
             50,
@@ -480,10 +471,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void ensureClosed() throws Throwable {
-    Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv")));
+    Assume.assumeTrue(!isMaxscale());
     Thread.sleep(500); // ensure that previous close are effective
     int initialConnection = getCurrentConnections();
 

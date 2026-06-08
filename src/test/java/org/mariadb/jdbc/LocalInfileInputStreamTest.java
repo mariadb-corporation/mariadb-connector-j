@@ -104,8 +104,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void loadDataInBatch() throws SQLException {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     String batch_update =
         "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest2 (id, test)";
     String builder = "1\thello\n2\tworld\n";
@@ -122,8 +120,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testLocalInfileInputStream() throws SQLException {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try (Statement st = connection.createStatement()) {
         // Build a tab-separated record file
@@ -151,8 +147,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testLocalXmlInfileInputStream() throws SQLException {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try (Statement st = connection.createStatement()) {
         // Build a tab-separated record file
@@ -180,8 +174,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testLocalInfileValidInterceptor() throws Exception {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("validateInfile", ".txt");
     StringBuilder builder = new StringBuilder();
     builder.append("1,hello\n");
@@ -197,8 +189,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testLocalXmlInfileValidInterceptor() throws Exception {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("validateInfile", ".txt");
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
       bw.write("<row id=\"1\" test=\"hello\" />\n<row id=\"2\" test=\"world\" />\n");
@@ -211,8 +201,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testLocalInfileUnValidInterceptor() throws Exception {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("localInfile", ".txt");
     StringBuilder builder = new StringBuilder();
     builder.append("1,hello\n");
@@ -283,8 +271,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void loadDataInfileEmpty() throws SQLException, IOException {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     // Create temp file.
     File temp = File.createTempFile("validateInfile", ".tmp");
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
@@ -304,8 +290,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try {
         PreparedStatement st =
@@ -392,15 +376,11 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testSmallBigLocalInfileInputStream() throws Exception {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     checkBigLocalInfile(256);
   }
 
   @Test
   public void test2xBigLocalInfileInputStream() throws Exception {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(checkMaxAllowedPacketMore40m("test2xBigLocalInfileInputStream"));
     checkBigLocalInfile(16777216 * 2);
@@ -409,8 +389,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeFalse(sharedIsAurora());
     Statement stmt = sharedConnection.createStatement();
     ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
@@ -423,8 +401,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void loadDataBasicWindows() throws Exception {
     Assume.assumeTrue(checkLocal());
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("validateInfiledummyloadDataBasic", ".txt");
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
       bw.write("1\thello2\n2\tworld\n");

@@ -62,6 +62,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.BaseTest;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
@@ -76,10 +77,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
   /** Initialisation. */
   @Before
   public void init() {
-    Assume.assumeTrue(
-        initialUrl != null
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assume.assumeTrue(initialUrl != null);
     defaultUrl = initialUrl;
     currentType = HaMode.NONE;
   }
@@ -168,10 +166,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
    */
   @Test
   public void isValidConnectionThatIsKilledExternally() throws Throwable {
-    Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && !"maxscale".equals(System.getenv("srv")));
+    Assume.assumeTrue(!BaseTest.isMaxscale());
     try (Connection connection = getNewConnection()) {
       connection.setCatalog("mysql");
       Protocol protocol = getProtocolFromConnection(connection);
