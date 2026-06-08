@@ -29,6 +29,14 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
     return "dialog";
   }
 
+  @Override
+  public boolean requireSsl() {
+    // PAM ("dialog") sends the password to the server in clear text, exactly like
+    // mysql_clear_password. It must therefore only run over a secure channel (TLS, or a local
+    // unix socket - handled by the dispatcher).
+    return true;
+  }
+
   /**
    * Initialization.
    *

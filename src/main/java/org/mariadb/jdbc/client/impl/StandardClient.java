@@ -288,13 +288,16 @@ public class StandardClient implements Client, AutoCloseable {
           // *************************************************************************************
           AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf);
           authPlugin = AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
-          if (authPlugin.requireSsl() && !context.hasClientCapability(SSL)) {
+          if (authPlugin.requireSsl()
+              && !context.hasClientCapability(SSL)
+              && !(socket instanceof UnixDomainSocket)) {
             throw context
                 .getExceptionFactory()
                 .create(
                     "Cannot use authentication plugin "
                         + authPlugin.type()
-                        + " if SSL is not enabled.",
+                        + " if SSL is not enabled (a clear-text password plugin requires TLS or a"
+                        + " local unix socket).",
                     "08000");
           }
 
