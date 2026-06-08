@@ -53,6 +53,9 @@
 package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
@@ -96,7 +99,19 @@ public class StandardGssapiAuthentication implements GssapiAuth {
     if (System.getProperty("java.security.auth.login.config") == null) {
       final File jaasConfFile;
       try {
-        jaasConfFile = File.createTempFile("jaas.conf", null);
+        Path jaasPath;
+        try {
+          jaasPath =
+              Files.createTempFile(
+                  "jaas.conf",
+                  null,
+                  PosixFilePermissions.asFileAttribute(
+                      PosixFilePermissions.fromString("rw-------")));
+        } catch (UnsupportedOperationException e) {
+          // non-POSIX filesystem (e.g. windows) : rely on the per-user temp directory
+          jaasPath = Files.createTempFile("jaas.conf", null);
+        }
+        jaasConfFile = jaasPath.toFile();
         try (PrintStream bos = new PrintStream(new FileOutputStream(jaasConfFile))) {
           bos.print(
               "Krb5ConnectorContext {\n"
