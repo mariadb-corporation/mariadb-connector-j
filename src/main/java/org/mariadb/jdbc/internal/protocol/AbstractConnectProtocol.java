@@ -140,6 +140,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   protected volatile boolean connected = false;
   protected boolean explicitClosed = false;
   protected String database;
+  protected String maxscaleVersion;
   protected long serverThreadId;
   protected ServerPrepareStatementCache serverPrepareStatementCache;
   protected boolean eofDeprecated = false;
@@ -1480,6 +1481,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   public String getDatabase() {
     return database;
+  }
+
+  @Override
+  public String getMaxscaleVersion() {
+    return maxscaleVersion;
   }
 
   public String getUsername() {

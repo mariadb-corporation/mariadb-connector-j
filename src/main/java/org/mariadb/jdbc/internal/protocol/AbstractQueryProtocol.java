@@ -1617,6 +1617,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                   results.setAutoIncrement(autoIncrementIncrement);
                   break;
 
+                case "maxscale":
+                  maxscaleVersion = value;
+                  break;
+
                 case "character_set_client":
                   if (value != null && !value.startsWith("utf8")) {
                     destroySocket();

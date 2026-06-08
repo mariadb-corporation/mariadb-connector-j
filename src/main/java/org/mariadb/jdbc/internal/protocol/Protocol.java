@@ -139,6 +139,8 @@ public interface Protocol {
 
   String getDatabase();
 
+  String getMaxscaleVersion();
+
   String getUsername();
 
   boolean ping() throws SQLException;
