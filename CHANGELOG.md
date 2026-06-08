@@ -12,6 +12,7 @@
 * CONJ-1259 DatabaseMetaData read-only detection: handle MariaDB 12.0 `@@read_only` returning `ON`/`OFF`
 	instead of `1`/`0`
 * CONJ-1317 ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
+* CONJ-1319 use constant-time comparison when validating the server certificate fingerprint (thanks to jmestwa-coder)
 * encode caching_sha2 clear password as UTF-8 (thanks to jmestwa-coder)
 * correct LOAD LOCAL INFILE comment regex (use literal `--` instead of `[-]`) (thanks to sebdomdev)
 * call inflater.end() in finally in CompressInputStream  (thanks to jmestwa-coder)
