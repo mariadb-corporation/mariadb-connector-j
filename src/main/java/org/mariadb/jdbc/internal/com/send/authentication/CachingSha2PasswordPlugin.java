@@ -24,6 +24,7 @@ package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -172,7 +173,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                   && !options.passwordCharacterEncoding.isEmpty()) {
                 bytePwd = authenticationData.getBytes(options.passwordCharacterEncoding);
               } else {
-                bytePwd = authenticationData.getBytes();
+                bytePwd = authenticationData.getBytes(StandardCharsets.UTF_8);
               }
 
               out.write(bytePwd);
