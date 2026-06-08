@@ -201,7 +201,20 @@ public interface ClientMessage {
         InputStream is = getLocalInfileInputStream();
         if (is == null) {
           String fileName = buf.readStringNullEnd();
-          if (!message.validateLocalFileName(fileName, context)) {
+          if (!context.getConf().allowLocalInfile()) {
+            // The client never advertised CLIENT_LOCAL_FILES (allowLocalInfile=false), so a
+            // compliant server must never request a local infile. A server doing so is
+            // misbehaving / malicious and could otherwise read arbitrary client files: refuse.
+            exception =
+                exceptionFactory
+                    .withSql(this.description())
+                    .create(
+                        String.format(
+                            "Server asked for a local infile for file '%s' while `allowLocalInfile`"
+                                + " is disabled. Possible malicious server. Command interrupted",
+                            fileName),
+                        "HY000");
+          } else if (!message.validateLocalFileName(fileName, context)) {
             exception =
                 exceptionFactory
                     .withSql(this.description())
