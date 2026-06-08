@@ -768,7 +768,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case VARCHAR:
       case STRING:
       case OLDDECIMAL:
-        return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+        return parseBigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
       default:
         throw new SQLException(
             "getBigDecimal not available for data field type "
@@ -1547,7 +1547,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case OLDDECIMAL:
         return BigInteger.valueOf(getInternalBigDecimal(columnInfo).longValue());
       default:
-        return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
+        return parseBigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
     }
   }
 

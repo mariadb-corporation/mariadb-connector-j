@@ -456,7 +456,7 @@ public class TextRowProtocol extends RowProtocol {
    * @param columnInfo column information
    * @return BigDecimal value
    */
-  public BigDecimal getInternalBigDecimal(ColumnDefinition columnInfo) {
+  public BigDecimal getInternalBigDecimal(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -464,7 +464,7 @@ public class TextRowProtocol extends RowProtocol {
     if (columnInfo.getColumnType() == ColumnType.BIT) {
       return BigDecimal.valueOf(parseBit());
     }
-    return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+    return parseBigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
   }
 
   /**
@@ -1042,11 +1042,11 @@ public class TextRowProtocol extends RowProtocol {
    * @param columnInfo column information
    * @return BigInteger value
    */
-  public BigInteger getInternalBigInteger(ColumnDefinition columnInfo) {
+  public BigInteger getInternalBigInteger(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
-    return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
+    return parseBigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
   }
 
   /**

@@ -126,6 +126,55 @@ public abstract class RowProtocol {
     this.options = options;
   }
 
+  /**
+   * Maximum length of a numeric string the driver will parse into a {@link BigDecimal} / {@link
+   * BigInteger}. Comfortably above any legitimate numeric encoding, while small enough that the
+   * O(n^2) cost of {@code new BigDecimal(String)} / {@code new BigInteger(String)} stays
+   * sub-millisecond. Longer (server-provided) input is rejected so a malicious or MitM server
+   * cannot turn a numeric column into a CPU-exhaustion vector.
+   */
+  public static final int MAX_BIG_DECIMAL_STRING_LENGTH = 1024;
+
+  /**
+   * Parse a server-provided numeric string into a {@link BigDecimal}, rejecting input longer than
+   * {@link #MAX_BIG_DECIMAL_STRING_LENGTH}.
+   *
+   * @param str numeric text read off the wire
+   * @return parsed value
+   * @throws SQLException if {@code str} exceeds the length cap
+   */
+  protected static BigDecimal parseBigDecimal(String str) throws SQLException {
+    if (str.length() > MAX_BIG_DECIMAL_STRING_LENGTH) {
+      throw new SQLException(
+          "value cannot be decoded as BigDecimal: length "
+              + str.length()
+              + " exceeds maximum of "
+              + MAX_BIG_DECIMAL_STRING_LENGTH
+              + " characters");
+    }
+    return new BigDecimal(str);
+  }
+
+  /**
+   * Parse a server-provided numeric string into a {@link BigInteger}, rejecting input longer than
+   * {@link #MAX_BIG_DECIMAL_STRING_LENGTH}.
+   *
+   * @param str numeric text read off the wire
+   * @return parsed value
+   * @throws SQLException if {@code str} exceeds the length cap
+   */
+  protected static BigInteger parseBigInteger(String str) throws SQLException {
+    if (str.length() > MAX_BIG_DECIMAL_STRING_LENGTH) {
+      throw new SQLException(
+          "value cannot be decoded as BigInteger: length "
+              + str.length()
+              + " exceeds maximum of "
+              + MAX_BIG_DECIMAL_STRING_LENGTH
+              + " characters");
+    }
+    return new BigInteger(str);
+  }
+
   public void resetRow(byte[] buf) {
     this.buf = buf;
     index = -1;
