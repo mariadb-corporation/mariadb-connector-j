@@ -1,6 +1,23 @@
 # Change Log
 
 
+## [3.3.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.5) (Jun 2026)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.4...3.3.5)
+
+##### Bugs Fixed
+
+* CONJ-1315 cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
+* CONJ-1316 pin Locale.ROOT on locale-sensitive call sites and date/time/Duration text formatting (fixes
+	locale-dependent parsing/formatting, e.g. under tr_TR) (thanks to jmestwa-coder)
+* CONJ-1259 DatabaseMetaData read-only detection: handle MariaDB 12.0 `@@read_only` returning `ON`/`OFF`
+	instead of `1`/`0`
+* CONJ-1317 ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
+* encode caching_sha2 clear password as UTF-8 (thanks to jmestwa-coder)
+* correct LOAD LOCAL INFILE comment regex (use literal `--` instead of `[-]`) (thanks to sebdomdev)
+* call inflater.end() in finally in CompressInputStream  (thanks to jmestwa-coder)
+
+
 ## [3.3.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.3) (Mar 2025)
 
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.3...3.3.4)
