@@ -19,6 +19,11 @@ public class SendPamAuthPacketFactory implements AuthenticationPluginFactory {
     return "dialog";
   }
 
+  @Override
+  public boolean requireSecure() {
+    return true;
+  }
+
   /**
    * Initialization.
    *

@@ -17,7 +17,7 @@ public class ClearPasswordPluginFactory implements AuthenticationPluginFactory {
   }
 
   @Override
-  public boolean requireSsl() {
+  public boolean requireSecure() {
     return true;
   }
 

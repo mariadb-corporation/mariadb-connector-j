@@ -12,7 +12,8 @@
 
 #### Issues Resolved
 
-* CONJ-1319 - Use constant-time comparison when validating the server certificate fingerprint
+* CONJ-1320 - PAM (dialog) authentication must require a secure connection (report by fg0x0)
+* CONJ-1319 - Use constant-time comparison when validating the server certificate fingerprint (report by jmestwa-coder)
 * CONJ-1318 - enforce `allowLocalInfile=false` on the server's local-infile request, so a malicious server cannot read a client file despite the option being disabled
 * CONJ-1315 - cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if MitM (report by tonghuaroot)
 * CONJ-1317 - ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
@@ -37,6 +38,8 @@
 
 ##### Bugs Fixed
 
+* CONJ-1320 - PAM (dialog) authentication must require a secure connection (report by fg0x0)
+* CONJ-1319 - Use constant-time comparison when validating the server certificate fingerprint (report by jmestwa-coder)
 * CONJ-1318 - enforce `allowLocalInfile=false` on the server's local-infile request, so a malicious server cannot read a client file despite the option being disabled
 * CONJ-1315 - cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
 * CONJ-1316 - pin Locale.ROOT on locale-sensitive call sites and date/time/Duration text formatting (fixes
@@ -55,6 +58,7 @@
 
 ##### Bugs Fixed
 
+* CONJ-1320 - PAM (dialog) authentication must require a secure connection (report by fg0x0)
 * CONJ-1318 - enforce `allowLocalInfile=false` on the server's local-infile request, so a malicious server cannot read a client file despite the option being disabled
 * CONJ-1315 - cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
 * CONJ-1316 - pin Locale.ROOT on locale-sensitive call sites and date/time/Duration text formatting (fixes
@@ -73,6 +77,7 @@
 
 ##### Bugs Fixed
 
+* CONJ-1320 - PAM (dialog) authentication must require a secure connection (report by fg0x0)
 * CONJ-1318 - enforce `allowLocalInfile=false` on the server's local-infile request, so a malicious server cannot read a client file despite the option being disabled
 * CONJ-1315 cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
 * CONJ-1316 pin Locale.ROOT on locale-sensitive call sites and date/time text formatting (fixes

@@ -936,36 +936,20 @@ public class ConnectionTest extends Common {
         String.format(
             "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
             hostname, testPort, database, pamUser, pamPwd, defaultOther);
-    if ("1".equals(System.getenv("CLEAR_TEXT"))) {
-      // mysql_clear_password is not permit if not using SSL
-      assertThrowsContains(
-          SQLException.class,
-          () ->
-              DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password"),
-          "Cannot use authentication plugin mysql_clear_password if SSL is not enabled");
-    } else {
-      try {
-        try (Connection connection =
-            DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
-          // must have succeeded
-          connection.getCatalog();
-        }
-      } catch (SQLException e) {
+    // dialog (PAM) and mysql_clear_password both transmit the password in clear text, so the
+    // driver refuses them unless the connection is secure (TLS or a local unix socket). Over plain
+    // TCP the connection must be rejected.
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password"),
+        "if SSL is not enabled");
 
-      }
-      try {
-        try (Connection connection =
-            DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
-          // must have succeeded
-          connection.getCatalog();
-        }
-      } catch (SQLException e) {
-        System.err.println(
-            "fail with connectionString : "
-                + connStr
-                + "&restrictedAuth=dialog,mysql_clear_password");
-        throw e;
-      }
+    // over TLS the clear-text PAM exchange is permitted
+    try (Connection connection =
+        DriverManager.getConnection(
+            connStr + "&sslMode=trust&restrictedAuth=dialog,mysql_clear_password")) {
+      // must have succeeded
+      connection.getCatalog();
     }
     Common.assertThrowsContains(
         SQLException.class,

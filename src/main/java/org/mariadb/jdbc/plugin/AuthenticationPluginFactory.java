@@ -28,11 +28,13 @@ public interface AuthenticationPluginFactory {
       String authenticationData, byte[] seed, Configuration conf, HostAddress hostAddress);
 
   /**
-   * Authentication plugin required SSL to be used
+   * Whether this authentication plugin requires a secure connection. Plugins that transmit the
+   * password (or other secret) in clear text return {@code true}; the driver then only runs them
+   * over a secure transport (TLS, or a local unix socket), never over plain TCP.
    *
-   * @return true if SSL is required
+   * @return true if a secure connection is required
    */
-  default boolean requireSsl() {
+  default boolean requireSecure() {
     return false;
   }
 }
