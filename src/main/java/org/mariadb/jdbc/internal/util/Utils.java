@@ -1031,8 +1031,8 @@ public class Utils {
       if (pattern.matcher(sql).find() && parameters.length > 0) {
         return parameters[0]
             .toString()
-            .toLowerCase()
-            .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
+            .toLowerCase(Locale.ROOT)
+            .equals("'" + fileName.replace("\\", "\\\\").toLowerCase(Locale.ROOT) + "'");
       }
     }
     return false;

@@ -23,6 +23,7 @@
 package org.mariadb.jdbc.util;
 
 import java.lang.reflect.Field;
+import java.util.Locale;
 import java.util.Properties;
 import org.mariadb.jdbc.credential.CredentialPlugin;
 import org.mariadb.jdbc.internal.util.OptionUtils;
@@ -878,7 +879,7 @@ public enum DefaultOptions {
           if (o.objType.equals(String.class)) {
             field.set(options, propertyValue);
           } else if (o.objType.equals(Boolean.class)) {
-            switch (propertyValue.toString().toLowerCase()) {
+            switch (propertyValue.toString().toLowerCase(Locale.ROOT)) {
               case "":
               case "1":
               case "true":

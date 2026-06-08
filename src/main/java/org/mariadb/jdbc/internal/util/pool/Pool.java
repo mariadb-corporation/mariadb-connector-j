@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.MBeanServer;
@@ -431,7 +432,7 @@ public class Pool implements AutoCloseable, PoolMBean {
       throw ExceptionFactory.INSTANCE.create(
           String.format(
               "No connection available within the specified time (option 'connectTimeout': %s ms)",
-              NumberFormat.getInstance().format(options.connectTimeout)));
+              NumberFormat.getInstance(Locale.ROOT).format(options.connectTimeout)));
 
     } catch (InterruptedException interrupted) {
       throw ExceptionFactory.INSTANCE.create("Thread was interrupted", "70100", interrupted);

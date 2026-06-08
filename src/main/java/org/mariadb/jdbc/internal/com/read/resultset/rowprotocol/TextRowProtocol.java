@@ -63,6 +63,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -612,7 +613,7 @@ public class TextRowProtocol extends RowProtocol {
 
       default:
         try {
-          DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+          DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
           if (timeZone != null) {
             sdf.setTimeZone(timeZone);
           }

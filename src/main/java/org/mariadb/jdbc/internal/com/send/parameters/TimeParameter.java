@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -85,7 +86,7 @@ public class TimeParameter implements Cloneable, ParameterHolder {
    * @param pos the stream to write to
    */
   public void writeTo(final PacketOutputStream pos) throws IOException {
-    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.ROOT);
     sdf.setTimeZone(timeZone);
     String dateString = sdf.format(time);
 

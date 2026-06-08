@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -92,7 +93,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
   }
 
   private byte[] dateByteFormat() {
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
     sdf.setTimeZone(timeZone);
     return sdf.format(date).getBytes();
   }
