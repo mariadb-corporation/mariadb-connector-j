@@ -11,8 +11,8 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.RedoContext;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.client.QueryPacket;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
@@ -33,11 +33,10 @@ public class RedoContextTest {
 
   private static RedoContext newRedoContext() throws SQLException {
     InitialHandshakePacket handshake =
-        InitialHandshakePacket.decode(new ReadableByteBuf(buildHandshake()));
+        InitialHandshakePacket.decode(new StandardReadableByteBuf(buildHandshake()));
     Configuration conf = Configuration.parse("jdbc:mariadb://localhost:3306/test");
     ExceptionFactory exceptionFactory = new ExceptionFactory(conf, null);
-    return new RedoContext(
-        null, handshake, 0L, conf, exceptionFactory, null, Boolean.FALSE, () -> {});
+    return new RedoContext(null, handshake, 0L, conf, exceptionFactory, null, () -> {});
   }
 
   /**
