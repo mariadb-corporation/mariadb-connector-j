@@ -61,7 +61,7 @@ jobs:
           maxscale-tag: ${{ matrix.maxscale-tag || ''}}
           os: ${{ matrix.os }}
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java || '21' }}
           cache: maven
