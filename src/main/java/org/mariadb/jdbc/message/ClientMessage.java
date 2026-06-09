@@ -56,9 +56,9 @@ public interface ClientMessage {
             + "\\n"
             + "|\\r"
             + "|\\n"
-            + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+            + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'(?-i:"
             + escapedFileName
-            + "'";
+            + ")'";
 
     Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
     if (pattern.matcher(sql).find()) {
@@ -70,7 +70,7 @@ public interface ClientMessage {
       if (LOAD_LOCAL_PATTERN_PARAM.matcher(sql).find() && parameters.size() > 0) {
         String paramString = parameters.get(0).bestEffortStringValue(context);
         if (paramString != null) {
-          return paramString.equalsIgnoreCase("'" + fileName.replace("\\", "\\\\") + "'");
+          return paramString.equals("'" + fileName.replace("\\", "\\\\") + "'");
         }
         return true;
       }
