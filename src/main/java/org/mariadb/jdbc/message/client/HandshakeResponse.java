@@ -8,7 +8,6 @@ import static org.mariadb.jdbc.util.constants.Capabilities.CONNECT_WITH_DB;
 import static org.mariadb.jdbc.util.constants.Capabilities.PLUGIN_AUTH;
 import static org.mariadb.jdbc.util.constants.Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA;
 import static org.mariadb.jdbc.util.constants.Capabilities.SECURE_CONNECTION;
-import static org.mariadb.jdbc.util.constants.Capabilities.SSL;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -139,9 +138,6 @@ public final class HandshakeResponse implements ClientMessage {
 
     final byte[] authData;
     if ("mysql_clear_password".equals(authenticationPluginType)) {
-      if (!context.hasClientCapability(SSL)) {
-        throw new IllegalStateException("Cannot send password in clear if SSL is not enabled.");
-      }
       authData =
           (password == null) ? new byte[0] : password.toString().getBytes(StandardCharsets.UTF_8);
     } else {

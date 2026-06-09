@@ -84,8 +84,6 @@ import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
-import org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPlugin;
-import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.IPUtility;
 import org.mariadb.jdbc.util.Security;
@@ -387,8 +385,38 @@ public class StandardClient implements Client, AutoCloseable {
     Credential credential =
         ConnectionHelper.loadCredential(conf.credentialPlugin(), conf, hostAddress);
 
+    AuthenticationPluginFactory authPluginFactory = AuthenticationPluginLoader.get(authType, conf);
+    if (authPluginFactory.requireSecure()
+        && !context.hasClientCapability(SSL)
+        && !(socket instanceof UnixDomainSocket)) {
+      throw context
+          .getExceptionFactory()
+          .create(
+              "Cannot use authentication plugin "
+                  + authType
+                  + " if SSL is not enabled (a clear-text password plugin requires TLS or a local"
+                  + " unix socket).",
+              "08000");
+    }
+
+    authPlugin =
+        authPluginFactory.initialize(
+            credential.getPassword(), handshake.getSeed(), conf, hostAddress);
+
+    if (certFingerprint != null
+        && (!authPlugin.isMitMProof()
+            || credential.getPassword() == null
+            || credential.getPassword().isEmpty())) {
+      throw context
+          .getExceptionFactory()
+          .create(
+              String.format(
+                  "Cannot use authentication plugin %s with a Self signed certificates."
+                      + " Either set sslMode=trust, use password with a MitM-Proof"
+                      + " authentication plugin or provide server certificate to client",
+                  authType));
+    }
     sendHandshakeResponse(handshake, clientCapabilities, credential, authType);
-    createAuthPlugin(handshake, credential, authType);
     writer.flush();
 
     authenticationHandler(credential, hostAddress);
@@ -437,14 +465,6 @@ public class StandardClient implements Client, AutoCloseable {
             clientCapabilities,
             (byte) handshake.getDefaultCollation())
         .encode(writer, context);
-  }
-
-  private void createAuthPlugin(
-      InitialHandshakePacket handshake, Credential credential, String authType) {
-    authPlugin =
-        "mysql_clear_password".equals(authType)
-            ? new ClearPasswordPlugin(credential.getPassword(), hostAddress, conf)
-            : new NativePasswordPlugin(credential.getPassword(), handshake.getSeed());
   }
 
   /**
