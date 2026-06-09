@@ -210,6 +210,42 @@ public class StandardClient implements Client, AutoCloseable {
       }
       Credential credential = ConnectionHelper.loadCredential(credentialPlugin, conf, hostAddress);
 
+      authPlugin =
+          "mysql_clear_password".equals(authenticationPluginType)
+              ? new ClearPasswordPlugin()
+              : new NativePasswordPlugin();
+      // A plugin requiring SSL (e.g. mysql_clear_password, which transmits the password in clear
+      // text) must only run over a secure transport - TLS or a local unix socket, never plain TCP.
+      if (authPlugin.requireSsl()
+          && !context.hasClientCapability(SSL)
+          && !(socket instanceof UnixDomainSocket)) {
+        throw context
+            .getExceptionFactory()
+            .create(
+                "Cannot use authentication plugin "
+                    + authenticationPluginType
+                    + " if SSL is not enabled (a clear-text password plugin requires TLS or a"
+                    + " local unix socket).",
+                "08000");
+      }
+      // When the server certificate was accepted at the TLS layer only via fingerprint capture
+      // (self-signed / "MitM-proof without a CA"), its identity is not yet verified at this point.
+      // Refuse to send the initial response with a non-MitM-proof plugin, which would otherwise
+      // leak the password to a possibly attacker-controlled server before the later fingerprint
+      // identity check runs.
+      if (certFingerprint != null
+          && (!authPlugin.isMitMProof()
+              || credential.getPassword() == null
+              || credential.getPassword().isEmpty())) {
+        throw context
+            .getExceptionFactory()
+            .create(
+                String.format(
+                    "Cannot use authentication plugin %s with a Self signed certificates."
+                        + " Either set sslMode=trust, use password with a MitM-Proof"
+                        + " authentication plugin or provide server certificate to client",
+                    authenticationPluginType));
+      }
       new HandshakeResponse(
               credential,
               authenticationPluginType,
@@ -219,10 +255,6 @@ public class StandardClient implements Client, AutoCloseable {
               clientCapabilities,
               (byte) handshake.getDefaultCollation())
           .encode(writer, context);
-      authPlugin =
-          "mysql_clear_password".equals(authenticationPluginType)
-              ? new ClearPasswordPlugin()
-              : new NativePasswordPlugin();
       writer.flush();
 
       authenticationHandler(credential, hostAddress);

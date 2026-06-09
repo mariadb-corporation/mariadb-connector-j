@@ -135,9 +135,8 @@ public final class HandshakeResponse implements ClientMessage {
 
     final byte[] authData;
     if ("mysql_clear_password".equals(authenticationPluginType)) {
-      if (!context.hasClientCapability(SSL)) {
-        throw new IllegalStateException("Cannot send password in clear if SSL is not enabled.");
-      }
+      // Secure-transport / self-signed-certificate gating is enforced upstream in StandardClient
+      // before this response is built.
       authData =
           (password == null) ? new byte[0] : password.toString().getBytes(StandardCharsets.UTF_8);
     } else {
