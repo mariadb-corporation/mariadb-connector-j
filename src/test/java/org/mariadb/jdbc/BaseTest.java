@@ -52,19 +52,39 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.sun.jna.Platform;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.Thread.State;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.*;
-import org.junit.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import org.junit.AfterClass;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -450,7 +470,7 @@ public class BaseTest {
         // shared connection not available (e.g. failover tests) : rely on the env fallback
       }
       if (maxscaleVersion == null) {
-        String maxscaleTag = System.getenv("maxscale-tag");
+        String maxscaleTag = System.getenv("MAXSCALE_VERSION");
         return maxscaleTag != null && maxscaleTag.length() > 0;
       }
     }

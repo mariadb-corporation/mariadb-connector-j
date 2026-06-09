@@ -77,7 +77,7 @@ jobs:
           TEST_DB_SERVER_CA_CERT: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/ca.crt', github.workspace) || '' }}
           TEST_DB_CLIENT_PKCS: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/client.p12', github.workspace) || '' }}
           DB_VERSION: ${{ matrix.db-tag }}
-          maxscale-tag: ${{ matrix.maxscale-tag || ''}}
+          MAXSCALE_VERSION: ${{ matrix.maxscale-tag || ''}}
 
       - name: Run tests windows
         if: ${{ startsWith(matrix.os, 'windows') }}
