@@ -5,6 +5,7 @@ package org.mariadb.jdbc.integration.tools;
 
 import java.io.*;
 import java.net.BindException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import org.mariadb.jdbc.util.log.Logger;
@@ -16,10 +17,11 @@ public class TcpProxySocket implements Runnable {
   private final String host;
   private final int remoteport;
   private final int localport;
-  private boolean stop = false;
-  private Socket client = null;
-  private Socket server = null;
-  private ServerSocket ss;
+  private volatile boolean stop = false;
+  private volatile Socket client = null;
+  private volatile Socket server = null;
+  private volatile ServerSocket ss;
+  private volatile Thread relayThread;
   private int delay;
 
   /**
@@ -32,7 +34,7 @@ public class TcpProxySocket implements Runnable {
   public TcpProxySocket(String host, int remoteport) throws IOException {
     this.host = host;
     this.remoteport = remoteport;
-    ss = new ServerSocket(0);
+    ss = newServerSocket(0);
     this.localport = ss.getLocalPort();
   }
 
@@ -51,18 +53,20 @@ public class TcpProxySocket implements Runnable {
   /** Kill proxy. */
   public void kill(boolean rst) {
     stop = true;
+    Socket s = server;
     try {
-      if (server != null) {
-        if (rst) server.setSoLinger(true, 0);
-        server.close();
+      if (s != null) {
+        if (rst) s.setSoLinger(true, 0);
+        s.close();
       }
     } catch (IOException e) {
       // eat Exception
     }
+    Socket c = client;
     try {
-      if (client != null) {
-        if (rst) client.setSoLinger(true, 0);
-        client.close();
+      if (c != null) {
+        if (rst) c.setSoLinger(true, 0);
+        c.close();
       }
     } catch (IOException e) {
       // eat Exception
@@ -76,18 +80,20 @@ public class TcpProxySocket implements Runnable {
 
   public void sendRst() {
 
+    Socket c = client;
     try {
-      if (client != null) {
+      if (c != null) {
         // send an RST, not FIN
-        client.setSoLinger(true, 0);
-        client.close();
+        c.setSoLinger(true, 0);
+        c.close();
       }
     } catch (IOException e) {
       // eat Exception
     }
+    Socket s = server;
     try {
-      if (server != null) {
-        server.close();
+      if (s != null) {
+        s.close();
       }
     } catch (IOException e) {
       // eat Exception
@@ -100,15 +106,33 @@ public class TcpProxySocket implements Runnable {
     }
   }
 
+  /**
+   * Wait for the current relay thread (if any) to terminate. Used on restart so that a relay
+   * thread delayed past a restart cannot interfere with the freshly started one.
+   *
+   * @param millis maximum time to wait
+   */
+  public void awaitStop(long millis) {
+    Thread t = relayThread;
+    if (t != null && t != Thread.currentThread()) {
+      try {
+        t.join(millis);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
   @Override
   public void run() {
 
     logger.trace("host proxy port " + this.localport + " for " + host + " started");
+    relayThread = Thread.currentThread();
     stop = false;
     try {
       try {
         if (ss.isClosed()) {
-          ss = new ServerSocket(localport);
+          ss = newServerSocket(localport);
         }
       } catch (BindException b) {
         // in case for testing crash and reopen too quickly
@@ -118,27 +142,35 @@ public class TcpProxySocket implements Runnable {
           // eat Exception
         }
         if (ss.isClosed()) {
-          ss = new ServerSocket(localport);
+          ss = newServerSocket(localport);
         }
       }
-      final byte[] request = new byte[1024];
-      byte[] reply = new byte[4096];
       while (!stop) {
+        // Per-connection sockets are kept in local variables so that a stale relay thread (e.g.
+        // one delayed past a restart under load) only ever closes its own connection in the
+        // finally block, never a newer connection accepted by a subsequent run(). The instance
+        // fields are updated only so that kill()/sendRst() can interrupt the active relay.
+        Socket localClient = null;
+        Socket localServer = null;
+        final byte[] request = new byte[1024];
+        final byte[] reply = new byte[4096];
         try {
-          client = ss.accept();
-          final InputStream fromClient = client.getInputStream();
-          final OutputStream toClient = client.getOutputStream();
+          localClient = ss.accept();
+          client = localClient;
+          final InputStream fromClient = localClient.getInputStream();
+          final OutputStream toClient = localClient.getOutputStream();
           try {
-            server = new Socket(host, remoteport);
+            localServer = new Socket(host, remoteport);
+            server = localServer;
           } catch (IOException e) {
             PrintWriter out = new PrintWriter(new OutputStreamWriter(toClient));
             out.println("Proxy server cannot connect to " + host + ":" + remoteport + ":\n" + e);
             out.flush();
-            client.close();
+            localClient.close();
             continue;
           }
-          final InputStream fromServer = server.getInputStream();
-          final OutputStream toServer = server.getOutputStream();
+          final InputStream fromServer = localServer.getInputStream();
+          final OutputStream toServer = localServer.getOutputStream();
           new Thread(
                   () -> {
                     int bytesRead;
@@ -182,20 +214,30 @@ public class TcpProxySocket implements Runnable {
         } catch (IOException e) {
           // System.err.println("ERROR socket : "+e);
         } finally {
-          try {
-            if (server != null) {
-              server.close();
-            }
-            if (client != null) {
-              client.close();
-            }
-          } catch (IOException e) {
-            // eat exception
-          }
+          closeQuietly(localServer);
+          closeQuietly(localClient);
         }
       }
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+
+  private ServerSocket newServerSocket(int port) throws IOException {
+    ServerSocket s = new ServerSocket();
+    // allow rebinding the same port immediately after a restart, avoiding BindException windows
+    s.setReuseAddress(true);
+    s.bind(new InetSocketAddress(port));
+    return s;
+  }
+
+  private static void closeQuietly(Socket s) {
+    if (s != null) {
+      try {
+        s.close();
+      } catch (IOException e) {
+        // eat exception
+      }
     }
   }
 

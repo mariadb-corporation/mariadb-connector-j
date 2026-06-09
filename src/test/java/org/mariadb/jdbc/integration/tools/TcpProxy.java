@@ -51,6 +51,9 @@ public class TcpProxy {
 
   public void restart(long sleepTime, boolean rst) {
     socket.kill(rst);
+    // ensure the previous relay thread has fully terminated before scheduling a new one, so a
+    // thread delayed past the restart cannot close the next connection's sockets
+    socket.awaitStop(2000);
     logger.trace("host proxy port " + socket.getLocalport() + " for " + host + " started");
     Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
   }
