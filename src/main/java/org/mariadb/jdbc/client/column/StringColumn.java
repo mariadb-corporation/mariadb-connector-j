@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.SQLDataException;
@@ -19,6 +17,8 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.codec.BigDecimalCodec;
+import org.mariadb.jdbc.plugin.codec.BigIntegerCodec;
 import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
 import org.mariadb.jdbc.plugin.codec.LocalTimeCodec;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
@@ -186,7 +186,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
     String str = buf.readString(length.get());
     long result;
     try {
-      result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
+      result = BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
     } catch (NumberFormatException nfe) {
       throw new SQLDataException(
           String.format("value '%s' (%s) cannot be decoded as Byte", str, dataType));
@@ -222,7 +222,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       throws SQLDataException {
     String str = buf.readString(length.get());
     try {
-      return new BigDecimal(str).setScale(0, RoundingMode.DOWN).shortValueExact();
+      return BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).shortValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Short", str));
     }
@@ -239,7 +239,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       throws SQLDataException {
     String str = buf.readString(length.get());
     try {
-      return new BigDecimal(str).setScale(0, RoundingMode.DOWN).intValueExact();
+      return BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).intValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", str));
     }
@@ -256,7 +256,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       throws SQLDataException {
     String str = buf.readString(length.get());
     try {
-      return new BigInteger(str).longValueExact();
+      return BigIntegerCodec.parseBigInteger(str).longValueExact();
     } catch (NumberFormatException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str));
     }

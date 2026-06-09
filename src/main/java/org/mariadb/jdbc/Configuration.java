@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
 import java.io.IOException;
@@ -115,6 +115,7 @@ public class Configuration {
   private String connectionTimeZone;
   private Boolean forceConnectionTimeZoneToSession;
   private boolean preserveInstants;
+  private boolean pureLocalDateTime;
   private Boolean autocommit;
   private boolean useMysqlMetadata;
   private boolean nullDatabaseMeansCurrent;
@@ -202,6 +203,7 @@ public class Configuration {
   private String galeraAllowedState;
   private boolean transactionReplay;
   private int transactionReplaySize;
+  private boolean useIpForKillQuery;
 
   // Pool options
   private boolean pool;
@@ -353,6 +355,7 @@ public class Configuration {
     this.connectionCollation = builder.connectionCollation;
     this.forceConnectionTimeZoneToSession = builder.forceConnectionTimeZoneToSession;
     this.preserveInstants = builder.preserveInstants != null && builder.preserveInstants;
+    this.pureLocalDateTime = builder.pureLocalDateTime == null || builder.pureLocalDateTime;
   }
 
   private void initializeQueryConfig(Builder builder) {
@@ -466,6 +469,7 @@ public class Configuration {
     this.transactionReplay = builder.transactionReplay != null && builder.transactionReplay;
     this.transactionReplaySize =
         builder.transactionReplaySize != null ? builder.transactionReplaySize : 64;
+    this.useIpForKillQuery = builder.useIpForKillQuery != null && builder.useIpForKillQuery;
     this.geometryDefaultType = builder.geometryDefaultType;
     this.restrictedAuth = builder.restrictedAuth;
     this.initSql = builder.initSql;
@@ -577,6 +581,7 @@ public class Configuration {
             .connectionCollation(this.connectionCollation)
             .forceConnectionTimeZoneToSession(this.forceConnectionTimeZoneToSession)
             .preserveInstants(this.preserveInstants)
+            .pureLocalDateTime(this.pureLocalDateTime)
             .autocommit(this.autocommit)
             .useMysqlMetadata(this.useMysqlMetadata)
             .nullDatabaseMeansCurrent(this.nullDatabaseMeansCurrent)
@@ -654,6 +659,7 @@ public class Configuration {
             .galeraAllowedState(this.galeraAllowedState)
             .transactionReplay(this.transactionReplay)
             .transactionReplaySize(this.transactionReplaySize)
+            .useIpForKillQuery(this.useIpForKillQuery)
             .pool(this.pool)
             .poolName(this.poolName)
             .maxPoolSize(this.maxPoolSize)
@@ -907,7 +913,7 @@ public class Configuration {
       throws ReflectiveOperationException {
 
     Method method = Builder.class.getDeclaredMethod(field.getName(), Boolean.class);
-    switch (value.toString().toLowerCase()) {
+    switch (value.toString().toLowerCase(Locale.ROOT)) {
       case "":
       case "1":
       case "true":
@@ -1852,6 +1858,17 @@ public class Configuration {
   }
 
   /**
+   * Whether LocalDateTime is handled as a pure zoneless wall-clock value (default true), matching
+   * SQL DATETIME semantics. When set to {@code false}, {@code preserveInstants} also converts
+   * LocalDateTime between the connection time zone and the JVM default.
+   *
+   * @return true if LocalDateTime is treated as a pure zoneless value
+   */
+  public boolean pureLocalDateTime() {
+    return pureLocalDateTime;
+  }
+
+  /**
    * Must query by logged on exception.
    *
    * @return dump queries on exception
@@ -2263,6 +2280,16 @@ public class Configuration {
   }
 
   /**
+   * Whether {@link Connection#cancelCurrentQuery()} should reuse the current socket IP instead of
+   * the original hostname when opening the kill connection. Default {@code false}.
+   *
+   * @return true to reuse the socket IP, false to keep the original hostname.
+   */
+  public boolean useIpForKillQuery() {
+    return useIpForKillQuery;
+  }
+
+  /**
    * geometry default decoding implementation
    *
    * @return geometry default type
@@ -2365,6 +2392,7 @@ public class Configuration {
     private String connectionCollation;
     private Boolean forceConnectionTimeZoneToSession;
     private Boolean preserveInstants;
+    private Boolean pureLocalDateTime;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
     private Boolean nullDatabaseMeansCurrent;
@@ -2453,6 +2481,7 @@ public class Configuration {
     private String galeraAllowedState;
     private Boolean transactionReplay;
     private Integer transactionReplaySize;
+    private Boolean useIpForKillQuery;
 
     // Pool options
     private Boolean pool;
@@ -3153,6 +3182,19 @@ public class Configuration {
     }
 
     /**
+     * Indicate if LocalDateTime is treated as a pure zoneless wall-clock value (default true). When
+     * false, preserveInstants also converts LocalDateTime between the connection time zone and the
+     * JVM default.
+     *
+     * @param pureLocalDateTime treat LocalDateTime as a pure zoneless value
+     * @return this {@link Builder}
+     */
+    public Builder pureLocalDateTime(Boolean pureLocalDateTime) {
+      this.pureLocalDateTime = pureLocalDateTime;
+      return this;
+    }
+
+    /**
      * Must queries be dump on exception stracktrace.
      *
      * @param dumpQueriesOnException must queries be dump on exception
@@ -3663,6 +3705,20 @@ public class Configuration {
      */
     public Builder transactionReplaySize(Integer transactionReplaySize) {
       this.transactionReplaySize = transactionReplaySize;
+      return this;
+    }
+
+    /**
+     * When cancelling a query, reuse the current socket IP instead of the original hostname. By
+     * default ({@code false}) the kill connection uses the original hostname, which is required for
+     * SSL hostname verification ({@code sslMode=verify-full}). Set to {@code true} when DNS may
+     * resolve to multiple back-ends so the kill connection still targets the same host.
+     *
+     * @param useIpForKillQuery use socket IP for the kill connection
+     * @return this {@link Builder}
+     */
+    public Builder useIpForKillQuery(Boolean useIpForKillQuery) {
+      this.useIpForKillQuery = useIpForKillQuery;
       return this;
     }
 

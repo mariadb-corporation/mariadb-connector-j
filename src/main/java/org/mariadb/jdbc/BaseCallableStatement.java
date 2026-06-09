@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
 import java.io.InputStream;
@@ -2795,23 +2795,308 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   @Override
   public CallableParameterMetaData getParameterMetaData() throws SQLException {
     if (parameterMetaData == null) {
-      PreparedStatement prep =
-          new ClientPreparedStatement(
-              "SELECT * from information_schema.PARAMETERS "
-                  + "WHERE SPECIFIC_NAME = ? "
-                  + "AND SPECIFIC_SCHEMA = ? "
-                  + "ORDER BY ORDINAL_POSITION",
-              con,
-              lock,
-              Statement.NO_GENERATED_KEYS,
-              ResultSet.TYPE_FORWARD_ONLY,
-              ResultSet.CONCUR_READ_ONLY,
-              0);
-      prep.setString(1, procedureName);
-      prep.setString(2, databaseName);
-      ResultSet rs = prep.executeQuery();
-      parameterMetaData = new CallableParameterMetaData(rs, isFunction());
+      HostAddress host = con.getClient().getHostAddress();
+      HostAddress.MysqlProcStatus status = host.getMysqlProcStatus();
+
+      // Fast path: read mysql.proc directly.
+      // that doesn't work on all system and need SELECT right, is way faster when it's the case
+      // Probe latched per HostAddress:
+      // * USABLE makes subsequent connections to the same host use the fast path,
+      // * UNUSABLE latches the fallback.
+      if (status != HostAddress.MysqlProcStatus.UNUSABLE) {
+        try {
+          parameterMetaData = fetchViaMysqlProc();
+          if (status == HostAddress.MysqlProcStatus.UNKNOWN) {
+            host.setMysqlProcStatus(HostAddress.MysqlProcStatus.USABLE);
+          }
+          return parameterMetaData;
+        } catch (SQLException e) {
+          int code = e.getErrorCode();
+          // 1142 = ER_TABLEACCESS_DENIED, 1146 = ER_NO_SUCH_TABLE, 1044 = ER_DBACCESS_DENIED.
+          // Anything else is a real error and propagates.
+          if (code == 1142 || code == 1146 || code == 1044) {
+            host.setMysqlProcStatus(HostAddress.MysqlProcStatus.UNUSABLE);
+          } else {
+            throw e;
+          }
+        }
+      }
+      parameterMetaData = fetchViaInformationSchema();
     }
     return parameterMetaData;
+  }
+
+  private CallableParameterMetaData fetchViaMysqlProc() throws SQLException {
+    try (PreparedStatement prep =
+        new ClientPreparedStatement(
+            "SELECT param_list, `returns` FROM mysql.proc WHERE name = ? AND db = ?",
+            con,
+            lock,
+            Statement.NO_GENERATED_KEYS,
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY,
+            0)) {
+      prep.setString(1, procedureName);
+      prep.setString(2, databaseName);
+      try (ResultSet rs = prep.executeQuery()) {
+        List<CallableParameterMetaData.ParamInfo> list = new ArrayList<>();
+        if (rs.next()) {
+          String paramList = rs.getString(1);
+          if (isFunction()) {
+            String returns = rs.getString(2);
+            CallableParameterMetaData.ParamInfo ret = new CallableParameterMetaData.ParamInfo();
+            // For a FUNCTION the first metadata row is the return type with no name / mode.
+            fillTypeFields(ret, returns);
+            list.add(ret);
+          }
+          if (paramList != null && !paramList.trim().isEmpty()) {
+            parseMysqlProcParamList(paramList, list);
+          }
+        }
+        return new CallableParameterMetaData(list, isFunction());
+      }
+    }
+  }
+
+  private CallableParameterMetaData fetchViaInformationSchema() throws SQLException {
+    String sql =
+        "SELECT PARAMETER_NAME, PARAMETER_MODE, DATA_TYPE, DTD_IDENTIFIER,"
+            + " NUMERIC_PRECISION, NUMERIC_SCALE, CHARACTER_MAXIMUM_LENGTH"
+            + " FROM information_schema.PARAMETERS"
+            + " WHERE SPECIFIC_NAME = ? AND SPECIFIC_SCHEMA = ?"
+            + " ORDER BY ORDINAL_POSITION";
+    boolean serverPrep =
+        con.getContext().getConf().cachePrepStmts()
+            && con.getContext().getConf().useServerPrepStmts();
+    try (PreparedStatement prep =
+        serverPrep
+            ? new ServerPreparedStatement(
+                sql,
+                con,
+                lock,
+                Statement.NO_GENERATED_KEYS,
+                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                0)
+            : new ClientPreparedStatement(
+                sql,
+                con,
+                lock,
+                Statement.NO_GENERATED_KEYS,
+                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                0)) {
+      prep.setString(1, procedureName);
+      prep.setString(2, databaseName);
+      try (ResultSet rs = prep.executeQuery()) {
+        return new CallableParameterMetaData(rs, isFunction());
+      }
+    }
+  }
+
+  /**
+   * Parse a {@code mysql.proc.param_list} string (the verbatim text between the parens in {@code
+   * CREATE PROCEDURE name(...)}). Splits at top-level commas, ignoring commas inside parens,
+   * backticks, or string literals.
+   */
+  private static void parseMysqlProcParamList(
+      String list, List<CallableParameterMetaData.ParamInfo> out) {
+    int depth = 0;
+    char strQuote = 0;
+    boolean back = false;
+    int start = 0;
+    for (int i = 0; i < list.length(); i++) {
+      char c = list.charAt(i);
+      if (strQuote != 0) {
+        if (c == strQuote && list.charAt(i - 1) != '\\') strQuote = 0;
+      } else if (back) {
+        if (c == '`') back = false;
+      } else if (c == '\'' || c == '"') {
+        strQuote = c;
+      } else if (c == '`') {
+        back = true;
+      } else if (c == '(') {
+        depth++;
+      } else if (c == ')') {
+        depth--;
+      } else if (c == ',' && depth == 0) {
+        addParsedParam(list.substring(start, i), out);
+        start = i + 1;
+      }
+    }
+    addParsedParam(list.substring(start), out);
+  }
+
+  private static void addParsedParam(
+      String segment, List<CallableParameterMetaData.ParamInfo> out) {
+    String s = segment.trim();
+    if (s.isEmpty()) return;
+    CallableParameterMetaData.ParamInfo p = new CallableParameterMetaData.ParamInfo();
+    int pos = 0;
+    // Optional mode keyword. Order matters: INOUT before IN.
+    String upper = s.toUpperCase(Locale.ROOT);
+    if (upper.startsWith("INOUT") && s.length() > 5 && Character.isWhitespace(s.charAt(5))) {
+      p.parameterMode = "INOUT";
+      pos = 5;
+    } else if (upper.startsWith("OUT") && s.length() > 3 && Character.isWhitespace(s.charAt(3))) {
+      p.parameterMode = "OUT";
+      pos = 3;
+    } else if (upper.startsWith("IN") && s.length() > 2 && Character.isWhitespace(s.charAt(2))) {
+      p.parameterMode = "IN";
+      pos = 2;
+    } else {
+      p.parameterMode = "IN";
+    }
+    while (pos < s.length() && Character.isWhitespace(s.charAt(pos))) pos++;
+    // Identifier — backtick-quoted or bare.
+    if (pos < s.length() && s.charAt(pos) == '`') {
+      int end = pos + 1;
+      StringBuilder name = new StringBuilder();
+      while (end < s.length()) {
+        char c = s.charAt(end);
+        if (c == '`') {
+          if (end + 1 < s.length() && s.charAt(end + 1) == '`') {
+            name.append('`');
+            end += 2;
+          } else {
+            break;
+          }
+        } else {
+          name.append(c);
+          end++;
+        }
+      }
+      p.parameterName = name.toString();
+      pos = end + 1;
+    } else {
+      int end = pos;
+      while (end < s.length() && !Character.isWhitespace(s.charAt(end))) end++;
+      p.parameterName = s.substring(pos, end);
+      pos = end;
+    }
+    while (pos < s.length() && Character.isWhitespace(s.charAt(pos))) pos++;
+    fillTypeFields(p, s.substring(pos));
+    out.add(p);
+  }
+
+  /**
+   * Fill {@code dataType}, {@code dtdIdentifier}, and the precision/scale/length fields from a raw
+   * type expression like {@code "VARCHAR(50) CHARACTER SET utf8mb4"} or {@code "DECIMAL(10,2)"}.
+   */
+  private static void fillTypeFields(CallableParameterMetaData.ParamInfo p, String typeExpr) {
+    if (typeExpr == null) return;
+    String t = typeExpr.trim();
+    if (t.isEmpty()) return;
+    p.dtdIdentifier = t.toUpperCase(Locale.ROOT);
+    // dataType = first token, stopping at whitespace or '('.
+    int e = 0;
+    while (e < t.length() && !Character.isWhitespace(t.charAt(e)) && t.charAt(e) != '(') e++;
+    p.dataType = t.substring(0, e).toUpperCase(Locale.ROOT);
+    // Normalize SQL-standard aliases to the canonical form that information_schema.PARAMETERS
+    // would have returned, so the rest of CallableParameterMetaData (which switches on dataType)
+    // doesn't need to know about the fast-path's raw text.
+    switch (p.dataType) {
+      case "BOOLEAN":
+      case "BOOL":
+        p.dataType = "TINYINT";
+        p.dtdIdentifier = "TINYINT(1)";
+        break;
+      case "INTEGER":
+        p.dataType = "INT";
+        break;
+      case "NUMERIC":
+      case "DEC":
+      case "FIXED":
+        p.dataType = "DECIMAL";
+        break;
+      default:
+        break;
+    }
+    // Optional '(' ... ')' immediately after the type name → size / precision / scale.
+    int op = e;
+    while (op < t.length() && Character.isWhitespace(t.charAt(op))) op++;
+    if (op < t.length() && t.charAt(op) == '(') {
+      int depth = 1;
+      int closeIdx = -1;
+      for (int i = op + 1; i < t.length(); i++) {
+        char c = t.charAt(i);
+        if (c == '(') depth++;
+        else if (c == ')') {
+          depth--;
+          if (depth == 0) {
+            closeIdx = i;
+            break;
+          }
+        }
+      }
+      if (closeIdx > op) {
+        String inner = t.substring(op + 1, closeIdx).trim();
+        int comma = inner.indexOf(',');
+        try {
+          if (comma < 0) {
+            int n = Integer.parseInt(inner);
+            if (isNumericType(p.dataType)) p.numericPrecision = n;
+            else p.characterMaxLength = n;
+          } else {
+            p.numericPrecision = Integer.parseInt(inner.substring(0, comma).trim());
+            p.numericScale = Integer.parseInt(inner.substring(comma + 1).trim());
+          }
+        } catch (NumberFormatException ignore) {
+          // ENUM('a','b'), SET('x'), etc. — leave numeric fields at 0
+        }
+      }
+    }
+    if (p.numericPrecision == 0) {
+      // information_schema.PARAMETERS reports a default NUMERIC_PRECISION for numeric types even
+      // when no width was specified; mysql.proc.param_list keeps the raw text, so fill the same
+      // defaults here. UNSIGNED integers gain one extra digit of range for MEDIUMINT/BIGINT.
+      boolean unsigned = p.dtdIdentifier != null && p.dtdIdentifier.contains(" UNSIGNED");
+      p.numericPrecision = defaultNumericPrecision(p.dataType, unsigned);
+    }
+  }
+
+  private static int defaultNumericPrecision(String dt, boolean unsigned) {
+    if (dt == null) return 0;
+    switch (dt) {
+      case "TINYINT":
+        return 3;
+      case "SMALLINT":
+        return 5;
+      case "MEDIUMINT":
+        return unsigned ? 8 : 7;
+      case "INT":
+        return 10;
+      case "BIGINT":
+        return unsigned ? 20 : 19;
+      case "FLOAT":
+        return 12;
+      case "DOUBLE":
+      case "REAL":
+        return 22;
+      default:
+        return 0;
+    }
+  }
+
+  private static boolean isNumericType(String dt) {
+    if (dt == null) return false;
+    switch (dt) {
+      case "BIT":
+      case "TINYINT":
+      case "SMALLINT":
+      case "MEDIUMINT":
+      case "INT":
+      case "INTEGER":
+      case "BIGINT":
+      case "DECIMAL":
+      case "NUMERIC":
+      case "FLOAT":
+      case "DOUBLE":
+      case "REAL":
+      case "YEAR":
+        return true;
+      default:
+        return false;
+    }
   }
 }

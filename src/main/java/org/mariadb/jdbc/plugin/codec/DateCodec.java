@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
@@ -9,6 +9,7 @@ import java.sql.SQLDataException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.EnumSet;
+import java.util.Locale;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
@@ -76,7 +77,7 @@ public class DateCodec implements Codec<Date> {
       Writer encoder, Context context, Date val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? context.getDefaultCalendar() : providedCal;
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
     sdf.setTimeZone(cal.getTimeZone());
     String dateString = sdf.format(val);
 

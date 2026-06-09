@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
@@ -125,29 +125,13 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 
     try {
       byte[] bytePwd = credential.getPassword().getBytes(StandardCharsets.UTF_8);
-
       MessageDigest hash = MessageDigest.getInstance("SHA-512");
-
-      int mlen = seed.length;
-      final byte[] sm = new byte[64 + mlen];
-
       byte[] az = hash.digest(bytePwd);
       az[0] &= (byte) 248;
       az[31] &= 63;
       az[31] |= 64;
-
-      System.arraycopy(seed, 0, sm, 64, mlen);
-      System.arraycopy(az, 32, sm, 32, 32);
-
-      byte[] buff = Arrays.copyOfRange(sm, 32, 96);
-      hash.reset();
-      hash.digest(buff);
-
       EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
-      GroupElement elementAvalue = spec.getB().scalarMultiply(az);
-      byte[] elementAarray = elementAvalue.toByteArray();
-      System.arraycopy(elementAarray, 0, sm, 32, elementAarray.length);
-      return elementAarray;
+      return spec.getB().scalarMultiply(az).toByteArray();
 
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("Could not use SHA-512, failing", e);

@@ -1,16 +1,39 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration.codec;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.*;
-import java.time.*;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.time.DateTimeException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
@@ -172,8 +195,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
           rs.getObject(1, OffsetDateTime.class).toString());
       String sdt = rs.getObject(1, ZonedDateTime.class).toString();
       assertEquals(expectedTimestamp.replace(" ", "T") + srvTz, sdt.substring(0, sdt.indexOf('[')));
-      assertEquals(
-          expectedTimestamp.replace(" ", "T"), rs.getObject(1, LocalDateTime.class).toString());
+      assertEquals("2010-01-12T01:55:12", rs.getObject(1, LocalDateTime.class).toString());
     }
     try (Connection conn =
         createCon(

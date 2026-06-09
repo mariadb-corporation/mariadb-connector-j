@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -13,8 +15,7 @@ import java.util.Locale;
  * the driver returns that information, they are not completely accurate.
  */
 public class CallableParameterMetaData implements java.sql.ParameterMetaData {
-  private final ResultSet rs;
-  private final int parameterCount;
+  private final List<ParamInfo> params;
   private final boolean isFunction;
 
   /**
@@ -25,11 +26,62 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    * @throws SQLException if any error occurs
    */
   public CallableParameterMetaData(ResultSet rs, boolean isFunction) throws SQLException {
-    this.rs = rs;
-    int count = 0;
-    while (rs.next()) count++;
-    this.parameterCount = count;
+    // Column order matches the SELECT in BaseCallableStatement.getParameterMetaData:
+    // 1 PARAMETER_NAME, 2 PARAMETER_MODE, 3 DATA_TYPE, 4 DTD_IDENTIFIER,
+    // 5 NUMERIC_PRECISION, 6 NUMERIC_SCALE, 7 CHARACTER_MAXIMUM_LENGTH.
+    List<ParamInfo> list = new ArrayList<>();
+    while (rs.next()) {
+      ParamInfo p = new ParamInfo();
+      p.parameterName = rs.getString(1);
+      p.parameterMode = rs.getString(2);
+      String dt = rs.getString(3);
+      p.dataType = dt == null ? null : dt.toUpperCase(Locale.ROOT);
+      String dtd = rs.getString(4);
+      p.dtdIdentifier = dtd == null ? null : dtd.toUpperCase(Locale.ROOT);
+      p.numericPrecision = rs.getInt(5);
+      p.numericScale = rs.getInt(6);
+      // CHARACTER_MAXIMUM_LENGTH is BIGINT UNSIGNED; LONGTEXT reports 4294967295, which overflows
+      // int.
+      p.characterMaxLength = (int) Math.min(rs.getLong(7), Integer.MAX_VALUE);
+      // information_schema reports the signed NUMERIC_PRECISION for MEDIUMINT regardless of the
+      // UNSIGNED flag (MySQL bug-or-feature), so MEDIUMINT UNSIGNED arrives as 7 instead of 8.
+      // The mysql.proc fast path uses defaultNumericPrecision() and gets this right.
+      if (p.numericPrecision == 7
+          && "MEDIUMINT".equals(p.dataType)
+          && p.dtdIdentifier != null
+          && p.dtdIdentifier.contains(" UNSIGNED")) {
+        p.numericPrecision = 8;
+      }
+      list.add(p);
+    }
+    this.params = list;
     this.isFunction = isFunction;
+  }
+
+  /**
+   * Construct from a pre-built parameter list (used by the {@code mysql.proc} fast-path in {@link
+   * BaseCallableStatement#getParameterMetaData()}).
+   */
+  CallableParameterMetaData(List<ParamInfo> params, boolean isFunction) {
+    this.params = params;
+    this.isFunction = isFunction;
+  }
+
+  private ParamInfo at(int index) throws SQLException {
+    if (index < 1 || index > params.size()) {
+      throw new SQLException("invalid parameter index " + index);
+    }
+    return params.get(index - 1);
+  }
+
+  static final class ParamInfo {
+    String parameterName;
+    String parameterMode;
+    String dataType; // upper-case
+    String dtdIdentifier; // upper-case, may be null
+    int numericPrecision;
+    int numericScale;
+    int characterMaxLength;
   }
 
   /**
@@ -41,7 +93,7 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public int getParameterCount() {
-    return parameterCount;
+    return params.size();
   }
 
   /**
@@ -56,15 +108,8 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public int isNullable(int index) throws SQLException {
-    setIndex(index);
+    at(index);
     return ParameterMetaData.parameterNullableUnknown;
-  }
-
-  private void setIndex(int index) throws SQLException {
-    if (index < 1 || index > parameterCount) {
-      throw new SQLException("invalid parameter index " + index);
-    }
-    rs.absolute(index);
   }
 
   /**
@@ -77,9 +122,8 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public boolean isSigned(int index) throws SQLException {
-    setIndex(index);
-    String paramDetail = rs.getString("DTD_IDENTIFIER");
-    return !paramDetail.contains(" unsigned");
+    String dtd = at(index).dtdIdentifier;
+    return dtd != null && !dtd.contains(" UNSIGNED");
   }
 
   /**
@@ -98,10 +142,8 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public int getPrecision(int index) throws SQLException {
-    setIndex(index);
-    int characterMaxLength = rs.getInt("CHARACTER_MAXIMUM_LENGTH");
-    int numericPrecision = rs.getInt("NUMERIC_PRECISION");
-    return (numericPrecision > 0) ? numericPrecision : characterMaxLength;
+    ParamInfo p = at(index);
+    return (p.numericPrecision > 0) ? p.numericPrecision : p.characterMaxLength;
   }
 
   /**
@@ -114,8 +156,7 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public int getScale(int index) throws SQLException {
-    setIndex(index);
-    return rs.getInt("NUMERIC_SCALE");
+    return at(index).numericScale;
   }
 
   /**
@@ -126,8 +167,7 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    * @throws SQLException if wrong index
    */
   public String getParameterName(int index) throws SQLException {
-    setIndex(index);
-    return rs.getString("PARAMETER_NAME");
+    return at(index).parameterName;
   }
 
   /**
@@ -141,13 +181,13 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public int getParameterType(int index) throws SQLException {
-    setIndex(index);
-    String str = rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+    ParamInfo p = at(index);
+    String str = p.dataType == null ? "" : p.dataType;
     switch (str) {
       case "BIT":
         return Types.BIT;
       case "TINYINT":
-        if ("TINYINT(1)".equals(rs.getString("DTD_IDENTIFIER").toUpperCase(Locale.ROOT))) {
+        if ("TINYINT(1)".equals(p.dtdIdentifier)) {
           return Types.BOOLEAN;
         }
         return Types.TINYINT;
@@ -213,11 +253,11 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public String getParameterTypeName(int index) throws SQLException {
-    setIndex(index);
-    if ("TINYINT(1)".equals(rs.getString("DTD_IDENTIFIER").toUpperCase(Locale.ROOT))) {
+    ParamInfo p = at(index);
+    if ("TINYINT(1)".equals(p.dtdIdentifier)) {
       return "BOOLEAN";
     }
-    return rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+    return p.dataType;
   }
 
   /**
@@ -233,13 +273,13 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public String getParameterClassName(int index) throws SQLException {
-    setIndex(index);
-    String str = rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+    ParamInfo p = at(index);
+    String str = p.dataType == null ? "" : p.dataType;
     switch (str) {
       case "BIT":
         return BitSet.class.getName();
       case "TINYINT":
-        if ("TINYINT(1)".equals(rs.getString("DTD_IDENTIFIER").toUpperCase(Locale.ROOT))) {
+        if ("TINYINT(1)".equals(p.dtdIdentifier)) {
           return boolean.class.getName();
         }
         return byte.class.getName();
@@ -303,9 +343,9 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public int getParameterMode(int index) throws SQLException {
-    setIndex(index);
+    ParamInfo p = at(index);
     if (isFunction) return ParameterMetaData.parameterModeOut;
-    String str = rs.getString("PARAMETER_MODE");
+    String str = p.parameterMode == null ? "" : p.parameterMode;
     switch (str) {
       case "IN":
         return ParameterMetaData.parameterModeIn;

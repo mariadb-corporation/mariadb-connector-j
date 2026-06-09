@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.util;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
@@ -47,7 +49,9 @@ public class ClientParserTest {
       assertEquals(expected[i], new String(parser.getQuery(), pos, paramPos - pos));
       pos = paramPos + 1;
     }
-    assertEquals(expected[expected.length - 1], new String(parser.getQuery(), pos, paramPos - pos));
+    assertEquals(
+        expected[expected.length - 1],
+        new String(parser.getQuery(), pos, parser.getQuery().length - pos));
 
     parser = ClientParser.parameterParts(sql, true);
     assertEquals(
@@ -61,7 +65,7 @@ public class ClientParserTest {
     }
     assertEquals(
         expectedNoBackSlash[expectedNoBackSlash.length - 1],
-        new String(parser.getQuery(), pos, paramPos - pos));
+        new String(parser.getQuery(), pos, parser.getQuery().length - pos));
 
     assertEquals(isInsertDuplicate, parser.isInsertDuplicate());
     assertEquals(isMulti, parser.isMultiQuery());
@@ -79,7 +83,8 @@ public class ClientParserTest {
           .append("\n");
       pos = paramPos + 1;
     }
-    sb.append(new String(parser.getQuery(), pos, paramPos - pos));
+    sb.append(
+        new String(parser.getQuery(), pos, parser.getQuery().length - pos, StandardCharsets.UTF_8));
 
     sb.append("but was:\n");
     for (String s : exp) {
@@ -167,5 +172,68 @@ public class ClientParserTest {
     assertFalse(ClientParser.rewritableParts("INSERT duplicate", true).isInsertDuplicate());
     assertFalse(ClientParser.rewritableParts("INSERT _duplicate key", true).isInsertDuplicate());
     assertFalse(ClientParser.rewritableParts("INSERT duplicate_ key", true).isInsertDuplicate());
+  }
+
+  /**
+   * Test that '--' only starts a comment when followed by whitespace or control character.
+   * Expressions like '2--1' (subtraction with negative number) should not treat '--' as comment
+   * start.
+   */
+  @Test
+  public void testDoubleDashNotCommentInExpression() {
+    // '2--1' should NOT be a comment - the ? should be found as parameter
+    parse(
+        "SELECT 2--1, ?",
+        new String[] {"SELECT 2--1, ", ""},
+        new String[] {"SELECT 2--1, ", ""},
+        false,
+        false);
+    // '-- ' (with space) should be a comment - comment ends at \n, so ? is found
+    parse(
+        "SELECT 1 -- comment\n, ?",
+        new String[] {"SELECT 1 -- comment\n, ", ""},
+        new String[] {"SELECT 1 -- comment\n, ", ""},
+        false,
+        false);
+    // '--\t' (with tab) should be a comment - comment ends at \n, so ? is found
+    parse(
+        "SELECT 1 --\tcomment\n, ?",
+        new String[] {"SELECT 1 --\tcomment\n, ", ""},
+        new String[] {"SELECT 1 --\tcomment\n, ", ""},
+        false,
+        false);
+    // '--' at end of query is a comment
+    ClientParser parser = ClientParser.parameterParts("SELECT 1 --", false);
+    assertEquals(0, parser.getParamCount());
+  }
+
+  /**
+   * Test that after block comment ends, if next char is asterisk, it shouldn't start a new comment.
+   * The lastChar must be reset to zero to avoid &quot;slash-star space star&quot; being parsed as
+   * new comment.
+   */
+  @Test
+  public void testBlockCommentFollowedByAsterisk() {
+    // /* comment */* ? - the * after */ should not start a new comment
+    parse(
+        "/* comment */* ?",
+        new String[] {"/* comment */* ", ""},
+        new String[] {"/* comment */* ", ""},
+        false,
+        false);
+    // Normal case: /* comment */ ? - should work as before
+    parse(
+        "/* comment */ ?",
+        new String[] {"/* comment */ ", ""},
+        new String[] {"/* comment */ ", ""},
+        false,
+        false);
+    // /* */ /* */ - consecutive block comments should still work
+    parse(
+        "/* a */ /* b */ ?",
+        new String[] {"/* a */ /* b */ ", ""},
+        new String[] {"/* a */ /* b */ ", ""},
+        false,
+        false);
   }
 }

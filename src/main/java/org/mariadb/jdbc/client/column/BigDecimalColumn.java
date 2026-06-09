@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
 import java.math.BigDecimal;
@@ -14,6 +14,7 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.codec.BigDecimalCodec;
 
 /** Column metadata definition */
 public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -99,20 +100,20 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   public Object getDefaultText(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
-    return new BigDecimal(buf.readAscii(length.get()));
+    return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get()));
   }
 
   @Override
   public Object getDefaultBinary(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
-    return new BigDecimal(buf.readAscii(length.get()));
+    return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get()));
   }
 
   @Override
   public boolean decodeBooleanText(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-    return new BigDecimal(buf.readAscii(length.get())).intValue() != 0;
+    return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).intValue() != 0;
   }
 
   @Override
@@ -126,7 +127,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
       throws SQLDataException {
     String str = buf.readString(length.get());
     try {
-      return new BigDecimal(str).setScale(0, RoundingMode.DOWN).byteValueExact();
+      return BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).byteValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(
           String.format("value '%s' (%s) cannot be decoded as Byte", str, dataType));
@@ -159,7 +160,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
     long result;
     String str = buf.readString(length.get());
     try {
-      result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
+      result = BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Short", str));
     }
@@ -181,7 +182,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
     long result;
     String str = buf.readString(length.get());
     try {
-      result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
+      result = BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", str));
     }
@@ -203,7 +204,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
       throws SQLDataException {
     String str2 = buf.readAscii(length.get());
     try {
-      return new BigDecimal(str2).setScale(0, RoundingMode.DOWN).longValueExact();
+      return BigDecimalCodec.parseBigDecimal(str2).setScale(0, RoundingMode.DOWN).longValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str2));
     }
@@ -214,7 +215,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
       throws SQLDataException {
     String str = buf.readString(length.get());
     try {
-      return new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
+      return BigDecimalCodec.parseBigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
     } catch (NumberFormatException | ArithmeticException nfe) {
       throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str));
     }
@@ -229,7 +230,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   @Override
   public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-    return new BigDecimal(buf.readAscii(length.get())).floatValue();
+    return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).floatValue();
   }
 
   @Override
@@ -241,7 +242,7 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   @Override
   public double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-    return new BigDecimal(buf.readAscii(length.get())).doubleValue();
+    return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).doubleValue();
   }
 
   @Override

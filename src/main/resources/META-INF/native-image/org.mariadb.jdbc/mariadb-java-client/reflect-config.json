@@ -1,0 +1,222 @@
+[
+  {
+    "name": "org.mariadb.jdbc.Driver",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.Configuration",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "org.mariadb.jdbc.Configuration$Builder",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "sun.security.provider.SHA",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.BigDecimalCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.BigIntegerCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.BitSetCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.BlobCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.BooleanCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.ByteArrayCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.ByteCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.ClobCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.DateCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.DoubleCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.DurationCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.FloatCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.FloatArrayCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.FloatObjectArrayCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.GeometryCollectionCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.InstantCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.IntCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.LineStringCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.LocalDateCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.LocalTimeCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.LongCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.MultiLinestringCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.MultiPointCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.MultiPolygonCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.OffsetDateTimeCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.PointCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.PolygonCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.ReaderCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.ShortCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.StreamCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.StringCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.TimeCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.TimestampCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.UtilDateCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.UuidCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.codec.ZonedDateTimeCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPluginFactory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.authentication.addon.SendGssApiAuthPacketFactory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.authentication.standard.Ed25519PasswordPluginFactory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPluginFactory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.authentication.standard.SendPamAuthPacketFactory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.authentication.standard.CachingSha2PasswordPluginFactory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.authentication.standard.ParsecPasswordPluginFactory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.credential.env.EnvCredentialPlugin",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.credential.system.PropertiesCredentialPlugin",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.mariadb.jdbc.plugin.tls.main.DefaultTlsSocketPlugin",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "condition": { "typeReachable": "org.slf4j.LoggerFactory" },
+    "name": "org.slf4j.LoggerFactory",
+    "allDeclaredMethods": true
+  },
+  {
+    "condition": { "typeReachable": "waffle.windows.auth.impl.WindowsAuthProviderImpl" },
+    "name": "waffle.windows.auth.impl.WindowsAuthProviderImpl",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "condition": { "typeReachable": "software.amazon.awssdk.auth.credentials.AwsBasicCredentials" },
+    "name": "org.mariadb.jdbc.plugin.credential.aws.AwsIamCredentialPlugin",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  }
+]

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.column;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
@@ -31,7 +31,7 @@ import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
 /** Column metadata definition */
 public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   private static final DateTimeFormatter dateTimeFormatter =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
   private static final DecimalFormat oldDecimalFormat =
       new DecimalFormat(".0#####", DecimalFormatSymbols.getInstance(Locale.US));
   private static final int[] POWERS_OF_10 = {1, 10, 100, 1000, 10000, 100000, 1000000};

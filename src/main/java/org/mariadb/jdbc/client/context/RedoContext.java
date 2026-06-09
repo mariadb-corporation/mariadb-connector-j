@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.context;
 
 import org.mariadb.jdbc.Configuration;
@@ -35,7 +35,8 @@ public class RedoContext extends BaseContext {
       Configuration conf,
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache,
-      Boolean loopbackAddress) {
+      Boolean loopbackAddress,
+      Runnable connectionCloser) {
     super(
         hostAddress,
         handshake,
@@ -43,7 +44,8 @@ public class RedoContext extends BaseContext {
         conf,
         exceptionFactory,
         prepareCache,
-        loopbackAddress);
+        loopbackAddress,
+        connectionCloser);
     this.transactionSaver = new TransactionSaver(conf.transactionReplaySize());
   }
 
@@ -63,6 +65,13 @@ public class RedoContext extends BaseContext {
    * @param msg client message
    */
   public void saveRedo(ClientMessage msg) {
+    // Only buffer statements that belong to a still-open transaction.
+    // If the server reports no transaction in progress after execution, the statement either
+    // auto-committed, committed, rolled back, or implicitly committed (DDL): its effect is already
+    // durable or discarded and it must never be replayed. setServerStatus() has already cleared the
+    // saver in that case; this guard stops us from re-adding the just-finished statement (which
+    // would otherwise survive into a subsequently opened transaction and be replayed twice).
+    if ((serverStatus & ServerStatus.IN_TRANSACTION) == 0) return;
     if (msg instanceof RedoableClientMessage) {
       RedoableClientMessage redoMsg = (RedoableClientMessage) msg;
       redoMsg.saveParameters();

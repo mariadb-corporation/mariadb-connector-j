@@ -17,7 +17,7 @@ concurrency:
 env:
   TEST_DB_HOST: mariadb.example.com
   TEST_DB_PORT: 3306
-  TEST_DB_USER: root
+  TEST_DB_USER: testuser
   TEST_DB_PASSWORD: "heyPassw-!*20oRd"
   TEST_DB_DATABASE: testj
 
@@ -27,7 +27,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.final-matrix }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: set-matrix
         name: build matrix
         uses: mariadb-corporation/connector-ci-build-matrix@main
@@ -35,7 +35,7 @@ jobs:
           additional-matrix: '[{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 8},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 11},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": "25"}]'
 
   ci:
-    name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
+    name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != null && matrix.java != '' && matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
     needs: setup
     timeout-minutes: 50
     strategy:
@@ -44,13 +44,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.continue-on-error || false }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup Test Environment
         id: setup-env
         uses: mariadb-corporation/connector-ci-setup@master
         with:
-          node-version: ${{ matrix.node }}
           db-type: ${{ matrix.db-type }}
           db-tag: ${{ matrix.db-tag }}
           test-db-password: ${{ env.TEST_DB_PASSWORD }}
@@ -59,9 +58,10 @@ jobs:
           additional-conf: ${{ matrix.additional-conf || '' }}
           registry-user: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_USER || (secrets.DOCKER_TOKEN != '' && secrets.DOCKER_LOGIN || '') }}
           registry-password: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_TOKEN || secrets.DOCKER_TOKEN }}
+          maxscale-tag: ${{ matrix.maxscale-tag || ''}}
           os: ${{ matrix.os }}
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java || '21' }}
           cache: maven

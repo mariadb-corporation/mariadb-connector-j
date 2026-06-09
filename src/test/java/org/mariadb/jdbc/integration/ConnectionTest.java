@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,6 +41,51 @@ public class ConnectionTest extends Common {
   public void tcpKeepAlive() throws SQLException {
     try (Connection con = createCon("&tcpKeepAlive=false")) {
       con.isValid(1);
+    }
+  }
+
+  @Test
+  public void getBigDecimalOnLongTextRejected() throws SQLException {
+    // Server returns a 2000-char numeric text column (above the 1024 cap). Without the length
+    // cap, getBigDecimal() would dispatch to new BigDecimal(String) — O(n²) parsing that an
+    // attacker can scale to ~24 s/call with a 1M-char payload. Cap rejects in microseconds.
+    try (Connection con = createCon();
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT REPEAT('1', 2000)")) {
+      assertTrue(rs.next());
+      SQLDataException thrown = assertThrows(SQLDataException.class, () -> rs.getBigDecimal(1));
+      assertTrue(thrown.getMessage().contains("BigDecimal"));
+    }
+  }
+
+  @Test
+  public void setObjectStringAsDecimalRejectsOverCap() throws SQLException {
+    // The String → DECIMAL setObject path in BasePreparedStatement runs the user-supplied
+    // string through BigDecimalCodec.parseBigDecimal (see the Types.DECIMAL / Types.NUMERIC
+    // branch). A 2000-char numeric string must be rejected before it reaches new BigDecimal.
+    StringBuilder big = new StringBuilder(2000);
+    for (int i = 0; i < 2000; i++) big.append('1');
+    try (Connection con = createCon();
+        PreparedStatement ps = con.prepareStatement("SELECT ?")) {
+      SQLException thrown =
+          assertThrows(SQLException.class, () -> ps.setObject(1, big.toString(), Types.DECIMAL));
+      assertTrue(
+          thrown.getMessage().contains("exceeds"), "unexpected message: " + thrown.getMessage());
+    }
+  }
+
+  @Test
+  public void getObjectAsBigIntegerOnLongTextRejected() throws SQLException {
+    try (Connection con = createCon();
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT REPEAT('1', 2000)")) {
+      assertTrue(rs.next());
+      SQLDataException thrown =
+          assertThrows(SQLDataException.class, () -> rs.getObject(1, java.math.BigInteger.class));
+      // The dispatch may route through BigDecimal first then convert; either codec's
+      // length-cap message is acceptable as long as it identifies the cap violation.
+      assertTrue(
+          thrown.getMessage().contains("exceeds"), "unexpected message: " + thrown.getMessage());
     }
   }
 
@@ -107,6 +152,19 @@ public class ConnectionTest extends Common {
     stmt.execute("SET autocommit=false");
     assertFalse(con.getAutoCommit());
     con.close();
+  }
+
+  @Test
+  public void setNamesBig5IsRejectedAndConnectionDropped() throws SQLException {
+    try (Connection con = createCon()) {
+      try (Statement stmt = con.createStatement()) {
+        SQLNonTransientConnectionException thrown =
+            assertThrows(
+                SQLNonTransientConnectionException.class, () -> stmt.execute("SET NAMES big5"));
+        assertTrue(thrown.getMessage().contains("big5"));
+      }
+      assertFalse(con.isValid(2));
+    }
   }
 
   @Test
@@ -878,36 +936,20 @@ public class ConnectionTest extends Common {
         String.format(
             "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
             hostname, testPort, database, pamUser, pamPwd, defaultOther);
-    if ("1".equals(System.getenv("CLEAR_TEXT"))) {
-      // mysql_clear_password is not permit if not using SSL
-      assertThrowsContains(
-          SQLException.class,
-          () ->
-              DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password"),
-          "Cannot use authentication plugin mysql_clear_password if SSL is not enabled");
-    } else {
-      try {
-        try (Connection connection =
-            DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
-          // must have succeeded
-          connection.getCatalog();
-        }
-      } catch (SQLException e) {
+    // dialog (PAM) and mysql_clear_password both transmit the password in clear text, so the
+    // driver refuses them unless the connection is secure (TLS or a local unix socket). Over plain
+    // TCP the connection must be rejected.
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password"),
+        "if SSL is not enabled");
 
-      }
-      try {
-        try (Connection connection =
-            DriverManager.getConnection(connStr + "&restrictedAuth=dialog,mysql_clear_password")) {
-          // must have succeeded
-          connection.getCatalog();
-        }
-      } catch (SQLException e) {
-        System.err.println(
-            "fail with connectionString : "
-                + connStr
-                + "&restrictedAuth=dialog,mysql_clear_password");
-        throw e;
-      }
+    // over TLS the clear-text PAM exchange is permitted
+    try (Connection connection =
+        DriverManager.getConnection(
+            connStr + "&sslMode=trust&restrictedAuth=dialog,mysql_clear_password")) {
+      // must have succeeded
+      connection.getCatalog();
     }
     Common.assertThrowsContains(
         SQLException.class,

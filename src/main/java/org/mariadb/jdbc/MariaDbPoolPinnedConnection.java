@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
 import java.sql.ResultSet;
@@ -45,6 +45,7 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
 
   private class MariaDbXAPinnedResource implements XAResource {
 
+    @SuppressWarnings("try")
     private void execute(Xid xid, String command, boolean removeMappingAfterExecution)
         throws XAException {
       if (xid == null) throw new XAException();

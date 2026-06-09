@@ -27,7 +27,7 @@ public class Field implements Serializable {
   /** (q-5) / 8 */
   private final FieldElement qm5d8;
 
-  private final Encoding enc;
+  private final transient Encoding enc;
 
   @SuppressWarnings({"this-escape"})
   public Field(int b, byte[] q, Encoding enc) {

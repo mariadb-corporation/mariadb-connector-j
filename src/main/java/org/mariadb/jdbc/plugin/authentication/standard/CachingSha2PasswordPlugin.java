@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
@@ -222,7 +222,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                         + " explicitly passed on configuration.",
                     "S1010");
               }
-              byte[] bytePwd = authenticationData.getBytes();
+              byte[] bytePwd = authenticationData.getBytes(StandardCharsets.UTF_8);
               byte[] nullEndedValue = new byte[bytePwd.length + 1];
               System.arraycopy(bytePwd, 0, nullEndedValue, 0, bytePwd.length);
               new AuthMoreRawPacket(nullEndedValue).encode(out, context);

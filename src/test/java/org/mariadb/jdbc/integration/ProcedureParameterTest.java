@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -8,10 +8,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.BitSet;
+import java.util.Locale;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mariadb.jdbc.Connection;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.Statement;
 
 public class ProcedureParameterTest extends Common {
@@ -334,6 +337,449 @@ public class ProcedureParameterTest extends Common {
         assertEquals(expectedClass[i - 1], meta.getParameterClassName(i));
       }
     }
+  }
+
+  @Test
+  public void parameterMetaDataAcrossLookupPaths() throws SQLException {
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP PROCEDURE IF EXISTS allTypesProc");
+    stmt.execute("DROP FUNCTION IF EXISTS allTypesFunc");
+    stmt.execute(createAllTypesProcSql());
+    stmt.execute(createAllTypesFuncSql());
+
+    // Probe whether mysql.proc is readable for the test user (dropped in MySQL 8.0+, often
+    // permission-restricted on shared MariaDB hosts).
+    boolean mysqlProcReadable;
+    try {
+      stmt.executeQuery("SELECT name FROM mysql.proc WHERE 1=0").close();
+      mysqlProcReadable = true;
+    } catch (SQLException ignore) {
+      mysqlProcReadable = false;
+    }
+
+    if (mysqlProcReadable) {
+      try (Connection con = createCon()) {
+        HostAddress host = con.getClient().getHostAddress();
+        host.setMysqlProcStatus(HostAddress.MysqlProcStatus.UNKNOWN);
+        assertAllTypesProcMeta(con);
+        assertAllTypesFuncMeta(con);
+        // After at least one successful fast-path call, status should latch USABLE.
+        assertEquals(HostAddress.MysqlProcStatus.USABLE, host.getMysqlProcStatus());
+      }
+    }
+
+    try (Connection con = createCon()) {
+      HostAddress host = con.getClient().getHostAddress();
+      host.setMysqlProcStatus(HostAddress.MysqlProcStatus.UNUSABLE);
+      assertAllTypesProcMeta(con);
+      assertAllTypesFuncMeta(con);
+      // Status must stay UNUSABLE — the fast path is bypassed entirely.
+      assertEquals(HostAddress.MysqlProcStatus.UNUSABLE, host.getMysqlProcStatus());
+    }
+
+    stmt.execute("DROP PROCEDURE IF EXISTS allTypesProc");
+    stmt.execute("DROP FUNCTION IF EXISTS allTypesFunc");
+  }
+
+  @Test
+  public void parameterMetaDataOverUnixSocket() throws SQLException {
+    Assumptions.assumeTrue(
+        System.getenv("local") != null
+            && "1".equals(System.getenv("local"))
+            && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("select @@version_compile_os,@@socket");
+    if (!rs.next() || rs.getString(2) == null) {
+      return;
+    }
+    String socketPath = rs.getString(2);
+
+    stmt.execute("DROP PROCEDURE IF EXISTS allTypesProc");
+    stmt.execute("DROP FUNCTION IF EXISTS allTypesFunc");
+    stmt.execute(createAllTypesProcSql());
+    stmt.execute(createAllTypesFuncSql());
+
+    // Hostless URL: empty host between // and /, only localSocket option to connect.
+    String url =
+        "jdbc:mariadb:///"
+            + database
+            + "?localSocket="
+            + socketPath
+            + "&user="
+            + user
+            + (password == null || password.isEmpty() ? "" : "&password=" + password);
+
+    try (Connection con = (Connection) DriverManager.getConnection(url)) {
+      HostAddress host = con.getClient().getHostAddress();
+      assertNull(host.host, "expected hostless HostAddress for jdbc:mariadb:/// URL");
+      assertEquals(socketPath, host.localSocket);
+
+      // Force fast path probe.
+      host.setMysqlProcStatus(HostAddress.MysqlProcStatus.UNKNOWN);
+      assertAllTypesProcMeta(con);
+      assertAllTypesFuncMeta(con);
+      HostAddress.MysqlProcStatus afterProbe = host.getMysqlProcStatus();
+      assertTrue(
+          afterProbe == HostAddress.MysqlProcStatus.USABLE
+              || afterProbe == HostAddress.MysqlProcStatus.UNUSABLE,
+          "expected status to latch after probe, got " + afterProbe);
+
+      // Force the information_schema fallback explicitly.
+      host.setMysqlProcStatus(HostAddress.MysqlProcStatus.UNUSABLE);
+      assertAllTypesProcMeta(con);
+      assertAllTypesFuncMeta(con);
+    }
+
+    stmt.execute("DROP PROCEDURE IF EXISTS allTypesProc");
+    stmt.execute("DROP FUNCTION IF EXISTS allTypesFunc");
+  }
+
+  private static String createAllTypesProcSql() {
+    return "CREATE PROCEDURE allTypesProc(\n"
+        + "  INOUT p1 INT,\n"
+        + "  IN p2 MEDIUMINT UNSIGNED,\n"
+        + "  OUT p3 DECIMAL(10,3),\n"
+        + "  OUT p4 VARCHAR(25),\n"
+        + "  IN p5 SMALLINT,\n"
+        + "  IN p6 BOOLEAN,\n"
+        + "  IN p7 TINYINT,\n"
+        + "  IN p8 BIGINT,\n"
+        + "  IN p9 FLOAT,\n"
+        + "  IN p10 DOUBLE,\n"
+        + "  IN p11 NUMERIC(5,2),\n"
+        + "  IN p12 INTEGER,\n"
+        + "  IN p13 BIT(8),\n"
+        + "  IN p14 CHAR(6),\n"
+        + "  IN p15 BINARY(4),\n"
+        + "  IN p16 VARBINARY(7),\n"
+        + "  IN p17 DATE,\n"
+        + "  IN p18 TIME,\n"
+        + "  IN p19 TIMESTAMP,\n"
+        + "  IN p20 DATETIME,\n"
+        + "  IN p21 YEAR\n"
+        + ") BEGIN SELECT 1; END";
+  }
+
+  private static String createAllTypesFuncSql() {
+    return "CREATE FUNCTION allTypesFunc(p1 INT, p2 VARCHAR(10)) RETURNS DECIMAL(8,2)"
+        + " DETERMINISTIC RETURN 1";
+  }
+
+  private static void assertAllTypesProcMeta(Connection con) throws SQLException {
+    try (CallableStatement cs =
+        con.prepareCall("{call allTypesProc(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
+      org.mariadb.jdbc.CallableParameterMetaData meta =
+          cs.getParameterMetaData().unwrap(org.mariadb.jdbc.CallableParameterMetaData.class);
+      assertEquals(21, meta.getParameterCount());
+
+      // index, name, mode, sqlType, typeName, className, precision, scale, signed
+      assertParam(
+          meta,
+          1,
+          "p1",
+          ParameterMetaData.parameterModeInOut,
+          Types.INTEGER,
+          "INT",
+          int.class.getName(),
+          10,
+          0,
+          true);
+      assertParam(
+          meta,
+          2,
+          "p2",
+          ParameterMetaData.parameterModeIn,
+          Types.INTEGER,
+          "MEDIUMINT",
+          int.class.getName(),
+          8,
+          0,
+          false);
+      assertParam(
+          meta,
+          3,
+          "p3",
+          ParameterMetaData.parameterModeOut,
+          Types.DECIMAL,
+          "DECIMAL",
+          BigDecimal.class.getName(),
+          10,
+          3,
+          true);
+      assertParam(
+          meta,
+          4,
+          "p4",
+          ParameterMetaData.parameterModeOut,
+          Types.VARCHAR,
+          "VARCHAR",
+          String.class.getName(),
+          25,
+          0,
+          true);
+      assertParam(
+          meta,
+          5,
+          "p5",
+          ParameterMetaData.parameterModeIn,
+          Types.SMALLINT,
+          "SMALLINT",
+          short.class.getName(),
+          5,
+          0,
+          true);
+      // BOOLEAN must be normalized to TINYINT(1) on both paths.
+      assertParam(
+          meta,
+          6,
+          "p6",
+          ParameterMetaData.parameterModeIn,
+          Types.BOOLEAN,
+          "BOOLEAN",
+          boolean.class.getName(),
+          3,
+          0,
+          true);
+      assertParam(
+          meta,
+          7,
+          "p7",
+          ParameterMetaData.parameterModeIn,
+          Types.TINYINT,
+          "TINYINT",
+          byte.class.getName(),
+          3,
+          0,
+          true);
+      assertParam(
+          meta,
+          8,
+          "p8",
+          ParameterMetaData.parameterModeIn,
+          Types.BIGINT,
+          "BIGINT",
+          long.class.getName(),
+          19,
+          0,
+          true);
+      assertParam(
+          meta,
+          9,
+          "p9",
+          ParameterMetaData.parameterModeIn,
+          Types.FLOAT,
+          "FLOAT",
+          float.class.getName(),
+          12,
+          0,
+          true);
+      assertParam(
+          meta,
+          10,
+          "p10",
+          ParameterMetaData.parameterModeIn,
+          Types.DOUBLE,
+          "DOUBLE",
+          double.class.getName(),
+          22,
+          0,
+          true);
+      // NUMERIC must be normalized to DECIMAL on both paths.
+      assertParam(
+          meta,
+          11,
+          "p11",
+          ParameterMetaData.parameterModeIn,
+          Types.DECIMAL,
+          "DECIMAL",
+          BigDecimal.class.getName(),
+          5,
+          2,
+          true);
+      // INTEGER alias must be normalized to INT on both paths.
+      assertParam(
+          meta,
+          12,
+          "p12",
+          ParameterMetaData.parameterModeIn,
+          Types.INTEGER,
+          "INT",
+          int.class.getName(),
+          10,
+          0,
+          true);
+      assertParam(
+          meta,
+          13,
+          "p13",
+          ParameterMetaData.parameterModeIn,
+          Types.BIT,
+          "BIT",
+          BitSet.class.getName(),
+          8,
+          0,
+          true);
+      assertParam(
+          meta,
+          14,
+          "p14",
+          ParameterMetaData.parameterModeIn,
+          Types.CHAR,
+          "CHAR",
+          String.class.getName(),
+          6,
+          0,
+          true);
+      assertParam(
+          meta,
+          15,
+          "p15",
+          ParameterMetaData.parameterModeIn,
+          Types.BINARY,
+          "BINARY",
+          byte[].class.getName(),
+          4,
+          0,
+          true);
+      assertParam(
+          meta,
+          16,
+          "p16",
+          ParameterMetaData.parameterModeIn,
+          Types.VARBINARY,
+          "VARBINARY",
+          byte[].class.getName(),
+          7,
+          0,
+          true);
+      assertParam(
+          meta,
+          17,
+          "p17",
+          ParameterMetaData.parameterModeIn,
+          Types.DATE,
+          "DATE",
+          Date.class.getName(),
+          0,
+          0,
+          true);
+      assertParam(
+          meta,
+          18,
+          "p18",
+          ParameterMetaData.parameterModeIn,
+          Types.TIME,
+          "TIME",
+          Time.class.getName(),
+          0,
+          0,
+          true);
+      assertParam(
+          meta,
+          19,
+          "p19",
+          ParameterMetaData.parameterModeIn,
+          Types.TIMESTAMP,
+          "TIMESTAMP",
+          Timestamp.class.getName(),
+          0,
+          0,
+          true);
+      assertParam(
+          meta,
+          20,
+          "p20",
+          ParameterMetaData.parameterModeIn,
+          Types.TIMESTAMP,
+          "DATETIME",
+          Timestamp.class.getName(),
+          0,
+          0,
+          true);
+      assertParam(
+          meta,
+          21,
+          "p21",
+          ParameterMetaData.parameterModeIn,
+          Types.SMALLINT,
+          "YEAR",
+          short.class.getName(),
+          0,
+          0,
+          true);
+
+      // Nullable is always parameterNullableUnknown — exercise once per metadata.
+      assertEquals(ParameterMetaData.parameterNullableUnknown, meta.isNullable(1));
+      // Out-of-range indexes must throw with a descriptive message.
+      assertThrows(SQLException.class, () -> meta.getParameterType(0));
+      assertThrows(SQLException.class, () -> meta.getParameterType(22));
+    }
+  }
+
+  private static void assertAllTypesFuncMeta(Connection con) throws SQLException {
+    try (CallableStatement cs = con.prepareCall("{? = call allTypesFunc(?,?)}")) {
+      org.mariadb.jdbc.CallableParameterMetaData meta =
+          cs.getParameterMetaData().unwrap(org.mariadb.jdbc.CallableParameterMetaData.class);
+      assertEquals(3, meta.getParameterCount());
+
+      // Return value — every parameter on a function is reported as OUT.
+      assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(1));
+      assertEquals(Types.DECIMAL, meta.getParameterType(1));
+      assertEquals("DECIMAL", meta.getParameterTypeName(1));
+      assertEquals(BigDecimal.class.getName(), meta.getParameterClassName(1));
+      assertEquals(8, meta.getPrecision(1));
+      assertEquals(2, meta.getScale(1));
+
+      // First declared parameter
+      assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(2));
+      assertEquals(Types.INTEGER, meta.getParameterType(2));
+      assertEquals("INT", meta.getParameterTypeName(2));
+      assertEquals(10, meta.getPrecision(2));
+
+      // Second declared parameter
+      assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(3));
+      assertEquals(Types.VARCHAR, meta.getParameterType(3));
+      assertEquals("VARCHAR", meta.getParameterTypeName(3));
+      assertEquals(String.class.getName(), meta.getParameterClassName(3));
+      assertEquals(10, meta.getPrecision(3));
+    }
+  }
+
+  private static void assertParam(
+      org.mariadb.jdbc.CallableParameterMetaData meta,
+      int idx,
+      String name,
+      int mode,
+      int sqlType,
+      String typeName,
+      String className,
+      int precision,
+      int scale,
+      boolean signed)
+      throws SQLException {
+    String tag = "param " + idx + " (" + name + ")";
+    // PARAMETER_NAME is only reliable on the mysql.proc fast path; information_schema may strip
+    // backticks / change case. Compare case-insensitively when present.
+    String actualName = meta.getParameterName(idx);
+    if (actualName != null) {
+      assertEquals(
+          name.toLowerCase(java.util.Locale.ROOT),
+          actualName.toLowerCase(java.util.Locale.ROOT),
+          tag + " name");
+    }
+    assertEquals(mode, meta.getParameterMode(idx), tag + " mode");
+    assertEquals(sqlType, meta.getParameterType(idx), tag + " sqlType");
+    assertEquals(typeName, meta.getParameterTypeName(idx), tag + " typeName");
+    assertEquals(className, meta.getParameterClassName(idx), tag + " className");
+    assertEquals(precision, meta.getPrecision(idx), tag + " precision");
+    assertEquals(scale, meta.getScale(idx), tag + " scale");
+    assertEquals(signed, meta.isSigned(idx), tag + " signed");
   }
 
   @Test

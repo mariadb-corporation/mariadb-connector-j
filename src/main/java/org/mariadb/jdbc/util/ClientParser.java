@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.util;
 
 import java.nio.charset.StandardCharsets;
@@ -90,6 +90,8 @@ public final class ClientParser implements PrepareResult {
         case '/':
           if (state == LexState.SlashStarComment && lastChar == '*') {
             state = LexState.Normal;
+            lastChar = 0;
+            continue;
           }
           break;
 
@@ -107,7 +109,22 @@ public final class ClientParser implements PrepareResult {
 
         case '-':
           if (state == LexState.Normal && lastChar == '-') {
-            state = LexState.EOLComment;
+            // '--' starts a comment only if followed by whitespace or control character
+            // (not in expressions like '2--1')
+            if (i + 1 < queryLength) {
+              byte next = query[i + 1];
+              if (next == ' '
+                  || next == '\t'
+                  || next == '\n'
+                  || next == '\r'
+                  || next == '\f'
+                  || (next >= 0x00 && next <= 0x1F)) {
+                state = LexState.EOLComment;
+              }
+            } else {
+              // '--' at end of query starts a comment
+              state = LexState.EOLComment;
+            }
           }
           break;
 
@@ -270,6 +287,8 @@ public final class ClientParser implements PrepareResult {
         case '/':
           if (state == LexState.SlashStarComment && lastChar == '*') {
             state = LexState.Normal;
+            lastChar = 0;
+            continue;
           }
           break;
 
@@ -287,7 +306,22 @@ public final class ClientParser implements PrepareResult {
 
         case '-':
           if (state == LexState.Normal && lastChar == '-') {
-            state = LexState.EOLComment;
+            // '--' starts a comment only if followed by whitespace or control character
+            // (not in expressions like '2--1')
+            if (i + 1 < queryLength) {
+              byte next = query[i + 1];
+              if (next == ' '
+                  || next == '\t'
+                  || next == '\n'
+                  || next == '\r'
+                  || next == '\f'
+                  || (next >= 0x00 && next <= 0x1F)) {
+                state = LexState.EOLComment;
+              }
+            } else {
+              // '--' at end of query starts a comment
+              state = LexState.EOLComment;
+            }
           }
           break;
 
@@ -389,14 +423,14 @@ public final class ClientParser implements PrepareResult {
         case 'V':
           if (state == LexState.Normal
               && valuesBracketPositions.isEmpty()
-              && (lastChar == ')' || ((byte) lastChar <= 40))
+              && (lastChar == ')' || (lastChar <= 40))
               && queryLength > i + 7
               && equalsIgnoreCase(query[i + 1], (byte) 'a')
               && equalsIgnoreCase(query[i + 2], (byte) 'l')
               && equalsIgnoreCase(query[i + 3], (byte) 'u')
               && equalsIgnoreCase(query[i + 4], (byte) 'e')
               && equalsIgnoreCase(query[i + 5], (byte) 's')
-              && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
+              && (query[i + 6] == '(' || (query[i + 6] <= 40))) {
             afterValues = true;
             if (query[i + 6] == '(') {
               valuesBracketPositions.add(i + 6);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -117,9 +117,10 @@ public class Common {
     if (maxscaleVersion == null) {
       maxscaleVersion = sharedConn.getContext().getMaxscaleVersion();
       if (maxscaleVersion == null) {
-        return "maxscale".equals(System.getenv("srv"))
-            || "maxscale".equals(System.getenv("DB_TYPE"));
+        String maxscaleTag = System.getenv("maxscale-tag");
+        return maxscaleTag != null && maxscaleTag.length() > 0;
       }
+      System.out.println("Maxscale version : " + maxscaleVersion);
     }
     return true;
   }

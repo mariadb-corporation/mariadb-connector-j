@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.*;
@@ -357,28 +357,37 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setMaxRows(int max) throws SQLException {
     super.setMaxRows(max);
     if (con.useServerMaxRows() && prepareResult != null) {
-      prepareResult.decrementUse(con.getClient(), this);
+      try (ClosableLock ignore = lock.closeableLock()) {
+        prepareResult.decrementUse(con.getClient(), this);
+      }
       prepareResult = null;
     }
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setLargeMaxRows(long max) throws SQLException {
     super.setLargeMaxRows(max);
     if (con.useServerMaxRows() && prepareResult != null) {
-      prepareResult.decrementUse(con.getClient(), this);
+      try (ClosableLock ignore = lock.closeableLock()) {
+        prepareResult.decrementUse(con.getClient(), this);
+      }
       prepareResult = null;
     }
   }
 
   @Override
+  @SuppressWarnings("try")
   public void setQueryTimeout(int seconds) throws SQLException {
     super.setQueryTimeout(seconds);
     if (con.useServerTimeout() && prepareResult != null) {
-      prepareResult.decrementUse(con.getClient(), this);
+      try (ClosableLock ignore = lock.closeableLock()) {
+        prepareResult.decrementUse(con.getClient(), this);
+      }
       prepareResult = null;
     }
   }
@@ -544,11 +553,14 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    * @since 1.2
    */
   @Override
+  @SuppressWarnings("try")
   public ResultSetMetaData getMetaData() throws SQLException {
 
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
+      try (ClosableLock ignore = lock.closeableLock()) {
+        con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
+      }
     }
 
     return new org.mariadb.jdbc.client.result.ResultSetMetaData(
@@ -568,10 +580,13 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    * @since 1.4
    */
   @Override
+  @SuppressWarnings("try")
   public java.sql.ParameterMetaData getParameterMetaData() throws SQLException {
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
+      try (ClosableLock ignore = lock.closeableLock()) {
+        con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
+      }
     }
 
     return new ParameterMetaData(exceptionFactory(), prepareResult.getParameters());
@@ -582,9 +597,12 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   }
 
   @Override
+  @SuppressWarnings("try")
   public void close() throws SQLException {
     if (prepareResult != null) {
-      prepareResult.decrementUse(con.getClient(), this);
+      try (ClosableLock ignore = lock.closeableLock()) {
+        prepareResult.decrementUse(con.getClient(), this);
+      }
       prepareResult = null;
     }
     con.fireStatementClosed(this);

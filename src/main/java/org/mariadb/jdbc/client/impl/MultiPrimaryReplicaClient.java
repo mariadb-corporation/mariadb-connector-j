@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.impl;
 
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.util.List;
-import java.util.concurrent.Executor;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.Completion;
-import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.util.ClosableLock;
-import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.util.log.Logger;
@@ -60,6 +56,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
     }
   }
 
+  /** Lazily (re)connect a previously-failed primary/replica. */
   private void reconnectIfNeeded() {
     if (!closed) {
 
@@ -241,12 +238,6 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   }
 
   @Override
-  public void abort(Executor executor) throws SQLException {
-    reconnectIfNeeded();
-    super.abort(executor);
-  }
-
-  @Override
   public void close() throws SQLException {
     if (!closed) {
       closed = true;
@@ -320,33 +311,9 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   }
 
   @Override
-  public int getSocketTimeout() {
-    reconnectIfNeeded();
-    return super.getSocketTimeout();
-  }
-
-  @Override
   public void setSocketTimeout(int milliseconds) throws SQLException {
     reconnectIfNeeded();
     super.setSocketTimeout(milliseconds);
-  }
-
-  @Override
-  public Context getContext() {
-    reconnectIfNeeded();
-    return super.getContext();
-  }
-
-  @Override
-  public ExceptionFactory getExceptionFactory() {
-    reconnectIfNeeded();
-    return super.getExceptionFactory();
-  }
-
-  @Override
-  public HostAddress getHostAddress() {
-    reconnectIfNeeded();
-    return super.getHostAddress();
   }
 
   public boolean isPrimary() {

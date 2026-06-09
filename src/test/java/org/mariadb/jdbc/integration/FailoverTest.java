@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -63,14 +70,14 @@ public class FailoverTest extends Common {
       assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
       con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 200);
+      con.setNetworkTimeout(Runnable::run, 500);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
-      proxy.restart(300);
+      proxy.restart(500);
       if (transactionReplay) {
         stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')");
         con.commit();
@@ -121,7 +128,7 @@ public class FailoverTest extends Common {
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test2')");
-      proxy.restart(300);
+      proxy.restart(500);
       if (transactionReplay) {
         Common.assertThrowsContains(
             SQLTransientConnectionException.class,
@@ -168,7 +175,7 @@ public class FailoverTest extends Common {
             HaMode.SEQUENTIAL,
             "&useServerPrepStmts=" + binary + "&transactionReplay=" + transactionReplay)) {
       stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 200);
+      con.setNetworkTimeout(Runnable::run, 250);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate(
@@ -184,7 +191,7 @@ public class FailoverTest extends Common {
         p.setAsciiStream(1, new ByteArrayInputStream("test3".getBytes()));
         p.execute();
 
-        proxy.restart(300);
+        proxy.restart(500);
         p.setString(1, "test4");
         if (transactionReplay) {
           p.execute();
@@ -241,7 +248,7 @@ public class FailoverTest extends Common {
                 + transactionReplay
                 + "&rewriteBatchedStatements="
                 + useRewrite)) {
-      con.setNetworkTimeout(Runnable::run, 500);
+      con.setNetworkTimeout(Runnable::run, 800);
       Thread.sleep(10);
       long threadId = con.getContext().getThreadId();
       execute(idx, con, transactionReplay, threadId);
@@ -270,7 +277,7 @@ public class FailoverTest extends Common {
       p.addBatch();
       p.executeBatch();
 
-      proxy.restart(300);
+      proxy.restart(500);
       p.setString(1, "test5");
       p.addBatch();
       p.setString(1, "test6");

@@ -1,11 +1,26 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
 import java.nio.FloatBuffer;
-import java.sql.*;
-import java.util.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Struct;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -107,8 +122,12 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException never thrown
    */
   public void cancelCurrentQuery() throws SQLException {
-    // prefer relying on IP compare to DNS if not using Unix socket/PIPE
-    String currentIp = client.getSocketIp();
+    // 2 different opposing problems :
+    // - use hostname: when using dns that route on multiple reader, this can go on a wrong one, so
+    // IP is better.
+    // - use of SSL that can be configured with a certificate DNS validation, so hostname is
+    // required
+    String currentIp = conf.useIpForKillQuery() ? client.getSocketIp() : null;
     HostAddress hostAddress =
         currentIp == null
             ? client.getHostAddress()
@@ -842,59 +861,62 @@ public class Connection implements java.sql.Connection {
    *
    * @throws SQLException if the resetting operation failed
    */
+  @SuppressWarnings("try")
   public void reset() throws SQLException {
     checkNotClosed();
-    // COM_RESET_CONNECTION exist since mysql 5.7.3 and mariadb 10.2.4
-    // but not possible to use it with mysql waiting for https://bugs.mysql.com/bug.php?id=97633
-    // correction.
-    // and mariadb only since https://jira.mariadb.org/browse/MDEV-18281
-    boolean useComReset =
-        conf.useResetConnection()
-            && getContext().getVersion().isMariaDBServer()
-            && (getContext().getVersion().versionGreaterOrEqual(10, 3, 13)
-                || (getContext().getVersion().getMajorVersion() == 10
-                    && getContext().getVersion().getMinorVersion() == 2
-                    && getContext().getVersion().versionGreaterOrEqual(10, 2, 22)));
+    try (ClosableLock ignore = lock.closeableLock()) {
+      // COM_RESET_CONNECTION exist since mysql 5.7.3 and mariadb 10.2.4
+      // but not possible to use it with mysql waiting for https://bugs.mysql.com/bug.php?id=97633
+      // correction.
+      // and mariadb only since https://jira.mariadb.org/browse/MDEV-18281
+      boolean useComReset =
+          conf.useResetConnection()
+              && getContext().getVersion().isMariaDBServer()
+              && (getContext().getVersion().versionGreaterOrEqual(10, 3, 13)
+                  || (getContext().getVersion().getMajorVersion() == 10
+                      && getContext().getVersion().getMinorVersion() == 2
+                      && getContext().getVersion().versionGreaterOrEqual(10, 2, 22)));
 
-    if (useComReset) {
-      client.execute(ResetPacket.INSTANCE, true);
-    }
-
-    // in transaction => rollback
-    if (forceTransactionEnd
-        || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-      client.execute(new QueryPacket("ROLLBACK"), true);
-    }
-
-    int stateFlag = getContext().getStateFlag();
-    if (stateFlag != 0) {
-      try {
-        if ((stateFlag & ConnectionState.STATE_NETWORK_TIMEOUT) != 0) {
-          setNetworkTimeout(null, conf.socketTimeout());
-        }
-        if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
-          setAutoCommit(conf.autocommit() == null || conf.autocommit());
-        }
-        if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
-          setCatalog(conf.database());
-        }
-        if ((stateFlag & ConnectionState.STATE_READ_ONLY) != 0) {
-          setReadOnly(false); // default to master connection
-        }
-        if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
-          setTransactionIsolation(
-              conf.transactionIsolation() == null
-                  ? java.sql.Connection.TRANSACTION_REPEATABLE_READ
-                  : conf.transactionIsolation().getLevel());
-        }
-      } catch (SQLException sqle) {
-        throw exceptionFactory.create("error resetting connection");
+      if (useComReset) {
+        client.execute(ResetPacket.INSTANCE, true);
       }
+
+      // in transaction => rollback
+      if (forceTransactionEnd
+          || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+        client.execute(new QueryPacket("ROLLBACK"), true);
+      }
+
+      int stateFlag = getContext().getStateFlag();
+      if (stateFlag != 0) {
+        try {
+          if ((stateFlag & ConnectionState.STATE_NETWORK_TIMEOUT) != 0) {
+            setNetworkTimeout(null, conf.socketTimeout());
+          }
+          if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
+            setAutoCommit(conf.autocommit() == null || conf.autocommit());
+          }
+          if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
+            setCatalog(conf.database());
+          }
+          if ((stateFlag & ConnectionState.STATE_READ_ONLY) != 0) {
+            setReadOnly(false); // default to master connection
+          }
+          if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
+            setTransactionIsolation(
+                conf.transactionIsolation() == null
+                    ? java.sql.Connection.TRANSACTION_REPEATABLE_READ
+                    : conf.transactionIsolation().getLevel());
+          }
+        } catch (SQLException sqle) {
+          throw exceptionFactory.create("error resetting connection");
+        }
+      }
+
+      client.reset();
+
+      clearWarnings();
     }
-
-    client.reset();
-
-    clearWarnings();
   }
 
   /**

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import java.io.IOException;
@@ -17,7 +17,7 @@ import org.mariadb.jdbc.integration.tools.TcpProxy;
 public class RedirectionTest extends Common {
   @Test
   void basicRedirection() throws Exception {
-
+    Assumptions.assumeTrue(!isMaxscale());
     Connection connection = createProxyCon(HaMode.NONE, "&permitRedirect=true");
     Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     boolean permitRedirection = true;
@@ -42,7 +42,7 @@ public class RedirectionTest extends Common {
 
   @Test
   void redirectionDuringTransaction() throws Exception {
-
+    Assumptions.assumeTrue(!isMaxscale());
     Connection connection = createProxyCon(HaMode.NONE, "&permitRedirect=true");
     Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
     boolean permitRedirection = true;

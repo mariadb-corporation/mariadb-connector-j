@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
@@ -22,6 +22,29 @@ public class BigIntegerCodec implements Codec<BigInteger> {
 
   /** default instance */
   public static final BigIntegerCodec INSTANCE = new BigIntegerCodec();
+
+  /**
+   * Parse a numeric string into a {@link BigInteger}, rejecting inputs longer than {@link
+   * BigDecimalCodec#MAX_BIG_DECIMAL_STRING_LENGTH} characters. Mirrors {@link
+   * BigDecimalCodec#parseBigDecimal(String)} — same cap applies because {@code new
+   * BigInteger(String)} shares the O(n²) cost of {@code new BigDecimal(String)}.
+   *
+   * @param str numeric text
+   * @return parsed BigInteger
+   * @throws SQLDataException if {@code str} is longer than the cap
+   * @throws NumberFormatException if {@code str} isn't a valid integer
+   */
+  public static BigInteger parseBigInteger(String str) throws SQLDataException {
+    if (str.length() > BigDecimalCodec.MAX_BIG_DECIMAL_STRING_LENGTH) {
+      throw new SQLDataException(
+          "value cannot be decoded as BigInteger: length "
+              + str.length()
+              + " exceeds maximum of "
+              + BigDecimalCodec.MAX_BIG_DECIMAL_STRING_LENGTH
+              + " characters");
+    }
+    return new BigInteger(str);
+  }
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
@@ -71,7 +94,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case DOUBLE:
       case DECIMAL:
       case OLDDECIMAL:
-        return new BigDecimal(buf.readAscii(length.get())).toBigInteger();
+        return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).toBigInteger();
 
       case BLOB:
       case TINYBLOB:
@@ -90,7 +113,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case STRING:
         String str2 = buf.readString(length.get());
         try {
-          return new BigDecimal(str2).toBigInteger();
+          return BigDecimalCodec.parseBigDecimal(str2).toBigInteger();
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
               String.format("value '%s' cannot be decoded as BigInteger", str2));
@@ -171,7 +194,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
         return BigDecimal.valueOf(buf.readDouble()).toBigInteger();
 
       case DECIMAL:
-        return new BigDecimal(buf.readAscii(length.get())).toBigInteger();
+        return BigDecimalCodec.parseBigDecimal(buf.readAscii(length.get())).toBigInteger();
 
       case BIGINT:
         if (column.isSigned()) return BigInteger.valueOf(buf.readLong());
@@ -200,7 +223,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case STRING:
         String str = buf.readString(length.get());
         try {
-          return new BigInteger(str);
+          return parseBigInteger(str);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
               String.format("value '%s' cannot be decoded as BigInteger", str));

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.socket.impl;
 
 import java.io.EOFException;
@@ -164,8 +164,9 @@ public class CompressInputStream extends InputStream {
         }
       } catch (DataFormatException dfe) {
         throw new IOException(dfe);
+      } finally {
+        inflater.end();
       }
-      inflater.end();
       end = packetLength;
     } else {
       buf = intermediaryBuf;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
 import static java.sql.Types.NCHAR;
@@ -254,7 +254,7 @@ public class BatchTest extends Common {
 
   @Test
   public void differentParameterType() throws SQLException {
-    boolean expectUnknown = isMariaDBServer() && !minVersion(11, 5, 0);
+    boolean expectUnknown = isMariaDBServer() && (!minVersion(11, 5, 0) || isMaxscale());
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false, false);
     }

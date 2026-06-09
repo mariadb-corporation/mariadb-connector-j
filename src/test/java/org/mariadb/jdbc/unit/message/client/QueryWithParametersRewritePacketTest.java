@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.message.client;
 
 import java.io.ByteArrayOutputStream;
@@ -96,7 +96,37 @@ public class QueryWithParametersRewritePacketTest {
                       new NonNullParameter<>(IntCodec.INSTANCE, 5),
                       new NonNullParameter<>(IntCodec.INSTANCE, 6)
                     })),
-            "INSERT INTO b VALUES (1, 2),(3, 4),(5, 6) # comment"));
+            "INSERT INTO b VALUES (1, 2),(3, 4),(5, 6) # comment"),
+
+        // CONJ-1299
+        Arguments.of(
+            "INSERT INTO b VALUES (?,?,-1)",
+            Arrays.asList(
+                new ParameterList(
+                    new Parameter[] {
+                      new NonNullParameter<>(IntCodec.INSTANCE, 1),
+                      new NonNullParameter<>(IntCodec.INSTANCE, 2)
+                    }),
+                new ParameterList(
+                    new Parameter[] {
+                      new NonNullParameter<>(IntCodec.INSTANCE, 3),
+                      new NonNullParameter<>(IntCodec.INSTANCE, 4)
+                    })),
+            "INSERT INTO b VALUES (1,2,-1),(3,4,-1)"),
+        Arguments.of(
+            "INSERT INTO b VALUES (?,?,-1) ON DUPLICATE KEY UPDATE c=c+1",
+            Arrays.asList(
+                new ParameterList(
+                    new Parameter[] {
+                      new NonNullParameter<>(IntCodec.INSTANCE, 1),
+                      new NonNullParameter<>(IntCodec.INSTANCE, 2)
+                    }),
+                new ParameterList(
+                    new Parameter[] {
+                      new NonNullParameter<>(IntCodec.INSTANCE, 3),
+                      new NonNullParameter<>(IntCodec.INSTANCE, 4)
+                    })),
+            "INSERT INTO b VALUES (1,2,-1),(3,4,-1) ON DUPLICATE KEY UPDATE c=c+1"));
   }
 
   @ParameterizedTest()

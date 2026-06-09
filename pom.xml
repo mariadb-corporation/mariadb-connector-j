@@ -7,7 +7,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>3.5.8</version>
+    <version>3.5.9</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -16,7 +16,7 @@
         <jmh.version>1.37</jmh.version>
         <junit.version>5.7.0</junit.version>
         <junit-pioneer.version>1.9.1</junit-pioneer.version>
-        <assertj.version>3.27.6</assertj.version>
+        <assertj.version>3.27.7</assertj.version>
         <osgi.version>6.0.0</osgi.version>
         <osgi.compendium.version>5.0.0</osgi.compendium.version>
         <logback.version>1.5.8</logback.version>
@@ -24,7 +24,7 @@
         <jacoco.version>0.8.12</jacoco.version>
         <waffle-jna.version>3.5.1</waffle-jna.version>
         <waffle-jna-java8.version>3.3.0</waffle-jna-java8.version>
-        <mysql-connector-java.version>9.5.0</mysql-connector-java.version>
+        <mysql-connector-java.version>9.7.0</mysql-connector-java.version>
         <bnd-maven-plugin.version>6.4.0</bnd-maven-plugin.version>
         <spotless.version>3.1.0</spotless.version>
     </properties>
@@ -273,7 +273,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-jdk18on</artifactId>
-            <version>1.83</version>
+            <version>1.84</version>
             <optional>true</optional>
         </dependency>
 

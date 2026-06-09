@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.client.impl;
 
 import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslCipherSuites;
@@ -18,7 +18,6 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
@@ -39,10 +38,10 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
@@ -61,7 +60,7 @@ import org.mariadb.jdbc.client.socket.impl.CompressInputStream;
 import org.mariadb.jdbc.client.socket.impl.CompressOutputStream;
 import org.mariadb.jdbc.client.socket.impl.ReadAheadBufferedStream;
 import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
-import org.mariadb.jdbc.client.tls.MariaDbX509EphemeralTrustingManager;
+import org.mariadb.jdbc.client.tls.MariaDbX509DeferredIdentityTrustManager;
 import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.export.ExceptionFactory;
@@ -85,8 +84,6 @@ import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
-import org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPlugin;
-import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.IPUtility;
 import org.mariadb.jdbc.util.Security;
@@ -189,6 +186,11 @@ public class StandardClient implements Client, AutoCloseable {
     handleAuthentication(handshake, clientCapabilities);
     setupCompression(in, out, clientCapabilities, handshake.getThreadId());
 
+    // From now on, any server-side charset change to non-utf8 (i.e. a user SET NAMES) is
+    // rejected by BaseContext.setCharset, which closes the socket via the connection-closer
+    // wired at context construction so the dead session can't be reused.
+    this.context.setInitialized();
+
     if (!skipPostCommands) {
       postConnectionQueries();
     }
@@ -263,20 +265,12 @@ public class StandardClient implements Client, AutoCloseable {
   private SSLSocket createSslSocket(
       Configuration conf, TlsSocketPlugin socketPlugin, TrustManager[] trustManagers)
       throws SQLException, IOException {
-
-    try {
-      SSLContext sslContext = SSLContext.getInstance("TLS");
-      sslContext.init(
-          socketPlugin.getKeyManager(conf, context.getExceptionFactory()), trustManagers, null);
-
-      return socketPlugin.createSocket(socket, sslContext.getSocketFactory());
-    } catch (KeyManagementException e) {
-      throw context.getExceptionFactory().create("Could not initialize SSL context", "08000", e);
-    } catch (NoSuchAlgorithmException e) {
-      throw context
-          .getExceptionFactory()
-          .create("SSLContext TLS Algorithm not unknown", "08000", e);
-    }
+    SSLSocketFactory sslSocketFactory =
+        TlsSocketPlugin.newSslSocketFactory(
+            socketPlugin.getKeyManager(conf, context.getExceptionFactory()),
+            trustManagers,
+            context.getExceptionFactory());
+    return socketPlugin.createSocket(socket, sslSocketFactory);
   }
 
   private void configureSslSocket(SSLSocket sslSocket, Configuration conf) throws SQLException {
@@ -297,8 +291,9 @@ public class StandardClient implements Client, AutoCloseable {
 
     sslSocket.startHandshake();
     if (trustManagers.length > 0
-        && trustManagers[0] instanceof MariaDbX509EphemeralTrustingManager) {
-      certFingerprint = ((MariaDbX509EphemeralTrustingManager) trustManagers[0]).getFingerprint();
+        && trustManagers[0] instanceof MariaDbX509DeferredIdentityTrustManager) {
+      certFingerprint =
+          ((MariaDbX509DeferredIdentityTrustManager) trustManagers[0]).getFingerprint();
     }
   }
 
@@ -371,7 +366,8 @@ public class StandardClient implements Client, AutoCloseable {
                 conf,
                 exceptionFactory,
                 cache,
-                isLoopback)
+                isLoopback,
+                this::destroySocket)
             : new BaseContext(
                 hostAddress,
                 handshake,
@@ -379,7 +375,8 @@ public class StandardClient implements Client, AutoCloseable {
                 conf,
                 exceptionFactory,
                 cache,
-                isLoopback);
+                isLoopback,
+                this::destroySocket);
   }
 
   private void handleAuthentication(InitialHandshakePacket handshake, long clientCapabilities)
@@ -388,8 +385,38 @@ public class StandardClient implements Client, AutoCloseable {
     Credential credential =
         ConnectionHelper.loadCredential(conf.credentialPlugin(), conf, hostAddress);
 
+    AuthenticationPluginFactory authPluginFactory = AuthenticationPluginLoader.get(authType, conf);
+    if (authPluginFactory.requireSecure()
+        && !context.hasClientCapability(SSL)
+        && !(socket instanceof UnixDomainSocket)) {
+      throw context
+          .getExceptionFactory()
+          .create(
+              "Cannot use authentication plugin "
+                  + authType
+                  + " if SSL is not enabled (a clear-text password plugin requires TLS or a local"
+                  + " unix socket).",
+              "08000");
+    }
+
+    authPlugin =
+        authPluginFactory.initialize(
+            credential.getPassword(), handshake.getSeed(), conf, hostAddress);
+
+    if (certFingerprint != null
+        && (!authPlugin.isMitMProof()
+            || credential.getPassword() == null
+            || credential.getPassword().isEmpty())) {
+      throw context
+          .getExceptionFactory()
+          .create(
+              String.format(
+                  "Cannot use authentication plugin %s with a Self signed certificates."
+                      + " Either set sslMode=trust, use password with a MitM-Proof"
+                      + " authentication plugin or provide server certificate to client",
+                  authType));
+    }
     sendHandshakeResponse(handshake, clientCapabilities, credential, authType);
-    createAuthPlugin(handshake, credential, authType);
     writer.flush();
 
     authenticationHandler(credential, hostAddress);
@@ -440,14 +467,6 @@ public class StandardClient implements Client, AutoCloseable {
         .encode(writer, context);
   }
 
-  private void createAuthPlugin(
-      InitialHandshakePacket handshake, Credential credential, String authType) {
-    authPlugin =
-        "mysql_clear_password".equals(authType)
-            ? new ClearPasswordPlugin(credential.getPassword(), hostAddress, conf)
-            : new NativePasswordPlugin(credential.getPassword(), handshake.getSeed());
-  }
-
   /**
    * @param credential credential
    * @param hostAddress host address
@@ -472,13 +491,16 @@ public class StandardClient implements Client, AutoCloseable {
           AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf);
           AuthenticationPluginFactory authPluginFactory =
               AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
-          if (authPluginFactory.requireSsl() && !context.hasClientCapability(SSL)) {
+          if (authPluginFactory.requireSecure()
+              && !context.hasClientCapability(SSL)
+              && !(socket instanceof UnixDomainSocket)) {
             throw context
                 .getExceptionFactory()
                 .create(
                     "Cannot use authentication plugin "
                         + authPluginFactory.type()
-                        + " if SSL is not enabled.",
+                        + " if SSL is not enabled (a clear-text password plugin requires TLS or a"
+                        + " local unix socket).",
                     "08000");
           }
           authPlugin =
@@ -585,7 +607,9 @@ public class StandardClient implements Client, AutoCloseable {
       final String hashHex = StringUtils.byteArrayToHexString(digest);
       final String serverValidationHex =
           new String(validationHash, 1, validationHash.length - 1, StandardCharsets.US_ASCII);
-      return hashHex.equals(serverValidationHex);
+      return MessageDigest.isEqual(
+          hashHex.getBytes(StandardCharsets.US_ASCII),
+          serverValidationHex.getBytes(StandardCharsets.US_ASCII));
 
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 MessageDigest expected to be not available", e);

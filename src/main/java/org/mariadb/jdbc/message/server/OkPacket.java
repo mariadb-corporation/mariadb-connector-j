@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.server;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.Arrays;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
@@ -51,7 +52,7 @@ public class OkPacket implements Completion {
    * @param buf packet buffer
    * @param context connection context
    */
-  public static OkPacket parse(ReadableByteBuf buf, Context context) {
+  public static OkPacket parse(ReadableByteBuf buf, Context context) throws SQLException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();
@@ -148,7 +149,7 @@ public class OkPacket implements Completion {
    * @param context connection context
    * @return Ok_Packet object
    */
-  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) {
+  public static OkPacket parseWithInfo(ReadableByteBuf buf, Context context) throws SQLException {
     buf.skip(); // ok header
     long affectedRows = buf.readLongLengthEncodedNotNull();
     long lastInsertId = buf.readLongLengthEncodedNotNull();
@@ -194,6 +195,8 @@ public class OkPacket implements Completion {
                     context.setTreadsConnected(Long.parseLong(new String(valueBytes, 0, lenSv)));
                   } else if (Arrays.equals(AUTO_INCREMENT_INCREMENT, variableBytes)) {
                     context.setAutoIncrement(Long.parseLong(new String(valueBytes, 0, lenSv)));
+                  } else if (Arrays.equals(MAXSCALE, variableBytes)) {
+                    context.setMaxscaleVersion(new String(valueBytes, 0, lenSv));
                   } else if (Arrays.equals(REDIRECT_URL, variableBytes)) {
                     if (lenSv != null && lenSv > 0)
                       context.setRedirectUrl(new String(valueBytes, 0, lenSv));

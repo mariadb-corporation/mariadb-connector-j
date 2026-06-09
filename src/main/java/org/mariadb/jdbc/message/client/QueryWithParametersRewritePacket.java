@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.message.client;
 
 import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
@@ -69,7 +69,8 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
     Parameters parameters = paramIterator.next();
 
     int rewritePacketNo = 0;
-    int endingPartLen = parser.getQuery().length - parser.getValuesBracketPositions().get(1);
+    int tailStart = parser.getParamPositions().get(parser.getParamCount() - 1) + 1;
+    int endingPartLen = parser.getQuery().length - tailStart;
 
     // Implementation After writing a bunch of parameter to buffer is marked. then : - when writing
     // next bunch of parameter, if buffer grow more than max_allowed_packet, send buffer up to mark,
@@ -103,8 +104,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
       } else break;
 
       if (writer.throwMaxAllowedLengthOr16M(writer.pos() + endingPartLen)) {
-        writer.writeBytes(
-            parser.getQuery(), parser.getValuesBracketPositions().get(1), endingPartLen);
+        writer.writeBytes(parser.getQuery(), tailStart, endingPartLen);
         writer.flush();
         continue;
       }
@@ -133,8 +133,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
 
         if (!knownParameterSize
             || writer.throwMaxAllowedLengthOr16M(writer.pos() + parameterLength)) {
-          writer.writeBytes(
-              parser.getQuery(), parser.getValuesBracketPositions().get(1), endingPartLen);
+          writer.writeBytes(parser.getQuery(), tailStart, endingPartLen);
           writer.flush();
           break;
         }
@@ -156,7 +155,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
         } else break main_loop;
       }
     }
-    writer.writeBytes(parser.getQuery(), parser.getValuesBracketPositions().get(1), endingPartLen);
+    writer.writeBytes(parser.getQuery(), tailStart, endingPartLen);
     writer.flush();
 
     return rewritePacketNo;

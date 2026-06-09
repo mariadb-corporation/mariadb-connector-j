@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2025 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.util;
 
 import java.util.concurrent.Callable;
@@ -14,7 +14,7 @@ public class ThreadUtils {
     return thread.getId();
   }
 
-  @SuppressWarnings("deprecation")
+  @SuppressWarnings({"deprecation", "removal"})
   public static void callAs(
       final Subject subject, final Callable<java.security.PrivilegedExceptionAction<Void>> action)
       throws Exception {
