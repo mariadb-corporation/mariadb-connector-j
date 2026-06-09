@@ -13,9 +13,8 @@
 * CONJ-1259 DatabaseMetaData read-only detection: handle MariaDB 12.0 `@@read_only` returning `ON`/`OFF`
 	instead of `1`/`0`
 * CONJ-1317 ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
-* encode caching_sha2 clear password as UTF-8 (thanks to jmestwa-coder)
-* correct LOAD LOCAL INFILE comment regex (use literal `--` instead of `[-]`) (thanks to sebdomdev)
-* call inflater.end() in finally in CompressInputStream  (thanks to jmestwa-coder)
+* CONJ-1322 match local infile filename case-sensitively (thanks to jmestwa-coder)
+* CONJ-1323 LOAD LOCAL INFILE validation rejects statements preceded by line comments (thanks to sebdomdev)
 
 
 ## [3.3.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.3) (Mar 2025)
