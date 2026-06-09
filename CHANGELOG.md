@@ -8,13 +8,15 @@
 * CONJ-1223 - cache TLS trust/key managers across connections to reduce SSL connection cost
 * CONJ-1314 - add SPI for interactive dialog (PAM) authentication callback
 * CONJ-1311 - add dedicated option `useIpForKillQuery` for query cancellation
-* CONJ-1310 - add GraalVM native-image configuration files
+* CONJ-1310 - Add full native image support and CI coverage
 
 #### Issues Resolved
 
 * CONJ-1320 - PAM (dialog) authentication must require a secure connection (report by fg0x0)
 * CONJ-1319 - Use constant-time comparison when validating the server certificate fingerprint (report by jmestwa-coder)
 * CONJ-1318 - enforce `allowLocalInfile=false` on the server's local-infile request, so a malicious server cannot read a client file despite the option being disabled
+* CONJ-1322 - match local infile filename case-sensitively (thanks to jmestwa-coder)
+* CONJ-1323 - LOAD LOCAL INFILE validation rejects statements preceded by line comments (thanks to sebdomdev)
 * CONJ-1315 - cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if MitM (report by tonghuaroot)
 * CONJ-1317 - ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
 * CONJ-1304 - CallableStatement parameter metadata read from mysql.proc, with MySQL info_schema fallback
@@ -22,14 +24,10 @@
 * CONJ-1313 - race condition in HaMode#getAvailableHostInOrder can cause NPE
 * CONJ-1311 - Connection.cancelCurrentQuery fails with SslMode.VERIFY_FULL when client socket IP is set
 * CONJ-1264 - handle LocalDateTime as a zoneless wall-clock value
-* pin Locale.ROOT on locale-sensitive call sites and date/time/Duration text formatting (e.g. under tr_TR)
-* encode caching_sha2 clear password as UTF-8
-* call inflater.end() in finally in CompressInputStream
-* fix cross-thread failover-state race in MultiPrimaryReplicaClient
-* hold connection lock in prepared-statement lifecycle/metadata paths
-* fix SQL parser to correctly handle '--' in expressions and reset lastChar after block comments
-* correct LOAD LOCAL INFILE comment regex (use literal `--` instead of `[-]`) (thanks to sebdomdev)
-* create GSSAPI JAAS config temp file with owner-only permissions
+* CONJ-1316 - pin Locale.ROOT on locale-sensitive call sites and date/time/Duration text formatting (fixes
+	locale-dependent parsing/formatting, e.g. under tr_TR) (thanks to jmestwa-coder)
+* CONJ-1324 - fix SQL parser to correctly handle '--' in expressions and reset lastChar after block comments
+* CONJ-1323 - LOAD LOCAL INFILE validation rejects statements preceded by line comments (thanks to sebdomdev)
 
 
 ## [3.4.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.3) (Jun 2026)
@@ -38,18 +36,16 @@
 
 ##### Bugs Fixed
 
-* CONJ-1320 - PAM (dialog) authentication must require a secure connection (report by fg0x0)
-* CONJ-1319 - Use constant-time comparison when validating the server certificate fingerprint (report by jmestwa-coder)
-* CONJ-1318 - enforce `allowLocalInfile=false` on the server's local-infile request, so a malicious server cannot read a client file despite the option being disabled
 * CONJ-1315 - cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
 * CONJ-1316 - pin Locale.ROOT on locale-sensitive call sites and date/time/Duration text formatting (fixes
 	locale-dependent parsing/formatting, e.g. under tr_TR) (thanks to jmestwa-coder)
 * CONJ-1259 - DatabaseMetaData read-only detection: handle MariaDB 12.0 `@@read_only` returning `ON`/`OFF`
 	instead of `1`/`0`
 * CONJ-1317 - ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
-* encode caching_sha2 clear password as UTF-8 (thanks to jmestwa-coder)
-* correct LOAD LOCAL INFILE comment regex (use literal `--` instead of `[-]`) (thanks to sebdomdev)
-* call inflater.end() in finally in CompressInputStream  (thanks to jmestwa-coder)
+* CONJ-1320 - PAM (dialog) authentication now requires a secure connection (TLS or unix socket), like mysql_clear_password (report by fg0x0)
+* CONJ-1319 - use constant-time comparison when validating the server certificate fingerprint (thanks to jmestwa-coder)
+* CONJ-1322 - match local infile filename case-sensitively (thanks to jmestwa-coder)
+* CONJ-1323 - LOAD LOCAL INFILE validation rejects statements preceded by line comments (thanks to sebdomdev)
 
 
 ## [3.3.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.5) (Jun 2026)
@@ -58,17 +54,14 @@
 
 ##### Bugs Fixed
 
-* CONJ-1320 - PAM (dialog) authentication must require a secure connection (report by fg0x0)
-* CONJ-1318 - enforce `allowLocalInfile=false` on the server's local-infile request, so a malicious server cannot read a client file despite the option being disabled
 * CONJ-1315 - cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
 * CONJ-1316 - pin Locale.ROOT on locale-sensitive call sites and date/time/Duration text formatting (fixes
 	locale-dependent parsing/formatting, e.g. under tr_TR) (thanks to jmestwa-coder)
 * CONJ-1259 - DatabaseMetaData read-only detection: handle MariaDB 12.0 `@@read_only` returning `ON`/`OFF`
 	instead of `1`/`0`
 * CONJ-1317 - ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
-* encode caching_sha2 clear password as UTF-8 (thanks to jmestwa-coder)
-* correct LOAD LOCAL INFILE comment regex (use literal `--` instead of `[-]`) (thanks to sebdomdev)
-* call inflater.end() in finally in CompressInputStream  (thanks to jmestwa-coder)
+* CONJ-1322 - match local infile filename case-sensitively (thanks to jmestwa-coder)
+* CONJ-1323 - LOAD LOCAL INFILE validation rejects statements preceded by line comments (thanks to sebdomdev)
 
 
 ## [2.7.14](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.14) (Jun 2026)
@@ -77,14 +70,12 @@
 
 ##### Bugs Fixed
 
-* CONJ-1320 - PAM (dialog) authentication must require a secure connection (report by fg0x0)
-* CONJ-1318 - enforce `allowLocalInfile=false` on the server's local-infile request, so a malicious server cannot read a client file despite the option being disabled
-* CONJ-1315 cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
-* CONJ-1316 pin Locale.ROOT on locale-sensitive call sites and date/time text formatting (fixes
-	locale-dependent parsing/formatting, e.g. under tr_TR) (thanks to jmestwa-coder)
-* CONJ-1317 ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
+* CONJ-1315 - cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
+* CONJ-1316 - pin Locale.ROOT on locale-sensitive call sites (fixes locale-dependent parsing/formatting, e.g. under tr_TR) (thanks to jmestwa-coder)
+* CONJ-1317 - ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
+* CONJ-1322 - match local infile filename case-sensitively (thanks to jmestwa-coder)
+* create gssapi jaas config temp file with owner-only permissions (thanks to jmestwa-coder)
 * encode caching_sha2 clear password as UTF-8 (thanks to jmestwa-coder)
-* create gssapi jaas config temp file with owner-only permissions
 * call inflater.end() in finally in CompressInputStream (thanks to jmestwa-coder)
 
 
