@@ -3,8 +3,6 @@
 // Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.DriverManager;
@@ -13,11 +11,30 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Properties;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.Extension;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.junit.jupiter.api.function.Executable;
-import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.Connection;
+import org.mariadb.jdbc.DatabaseMetaData;
+import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
@@ -117,7 +134,7 @@ public class Common {
     if (maxscaleVersion == null) {
       maxscaleVersion = sharedConn.getContext().getMaxscaleVersion();
       if (maxscaleVersion == null) {
-        String maxscaleTag = System.getenv("maxscale-tag");
+        String maxscaleTag = System.getenv("MAXSCALE_VERSION");
         return maxscaleTag != null && maxscaleTag.length() > 0;
       }
       System.out.println("Maxscale version : " + maxscaleVersion);
