@@ -1014,9 +1014,9 @@ public class Utils {
   public static boolean validateFileName(
       String sql, ParameterHolder[] parameters, String fileName) {
     String reg =
-        "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+        "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'(?-i:"
             + Pattern.quote(fileName.replace("\\", "\\\\"))
-            + "'";
+            + ")'";
 
     Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
     if (pattern.matcher(sql).find()) {
@@ -1029,10 +1029,9 @@ public class Utils {
               "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
               Pattern.CASE_INSENSITIVE);
       if (pattern.matcher(sql).find() && parameters.length > 0) {
-        return parameters[0]
-            .toString()
-            .toLowerCase(Locale.ROOT)
-            .equals("'" + fileName.replace("\\", "\\\\").toLowerCase(Locale.ROOT) + "'");
+        // file name is matched case-sensitively (a path differing only in case is a distinct file
+        // on case-sensitive filesystems); only the statement keywords are case-insensitive.
+        return parameters[0].toString().equals("'" + fileName.replace("\\", "\\\\") + "'");
       }
     }
     return false;

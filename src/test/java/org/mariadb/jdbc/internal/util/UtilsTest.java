@@ -150,6 +150,20 @@ public class UtilsTest {
   }
 
   @Test
+  public void localDataParsingCaseSensitiveFileName() {
+    // statement keywords stay case-insensitive
+    assertTrue(Utils.validateFileName("load data local infile 'file_name'", null, "file_name"));
+
+    // a file name differing only in case is a distinct file on case-sensitive filesystems and must
+    // be refused
+    assertFalse(Utils.validateFileName("LOAD DATA LOCAL INFILE 'file_name'", null, "FILE_NAME"));
+    assertFalse(Utils.validateFileName("LOAD DATA LOCAL INFILE 'file_name'", null, "File_Name"));
+
+    ParameterHolder[] params = new ParameterHolder[] {new StringParameter("file_name", false)};
+    assertFalse(Utils.validateFileName("LOAD DATA LOCAL INFILE ?", params, "FILE_NAME"));
+  }
+
+  @Test
   public void localXmlParsing() {
     assertTrue(Utils.validateFileName("LOAD XML LOCAL INFILE 'file_name'", null, "file_name"));
     assertTrue(
