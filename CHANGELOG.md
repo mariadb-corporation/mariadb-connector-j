@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.7.14](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.14) (Jun 2026)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.13...2.7.14)
+
+* CONJ-1315 cap BigDecimal/BigInteger string parsing length to prevent CPU exhaustion if Mitm (report by tonghuaroot)
+* CONJ-1316 pin Locale.ROOT on locale-sensitive call sites (fixes locale-dependent parsing/formatting, e.g. under tr_TR) (thanks to jmestwa-coder)
+* CONJ-1317 ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
+* match local infile filename case-sensitively (thanks to jmestwa-coder)
+* create gssapi jaas config temp file with owner-only permissions (thanks to jmestwa-coder)
+* encode caching_sha2 clear password as UTF-8 (thanks to jmestwa-coder)
+* call inflater.end() in finally in CompressInputStream (thanks to jmestwa-coder)
+
 ## [2.7.13](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.13) (Dec 2025)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.12...2.7.13)
 
