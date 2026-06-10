@@ -91,7 +91,8 @@ public class PooledConnectionTest extends Common {
     }
 
     try (MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(url + "&poolValidMinDelay=1&connectTimeout=500&maxPoolSize=1")) {
+        new MariaDbPoolDataSource(
+            url + "&poolValidMinDelay=1&connectTimeout=500&maxPoolSize=1&minPoolSize=0")) {
 
       PooledConnection pc = ds.getPooledConnection();
       pc.getConnection().isValid(1);
