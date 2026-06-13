@@ -13,7 +13,6 @@ import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.impl.MultiPrimaryClient;
@@ -30,25 +29,12 @@ public final class Driver implements java.sql.Driver {
   private static final Pattern identifierPattern =
       Pattern.compile("[0-9a-zA-Z$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE);
 
-  private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
-
-  private static final Map<String, String> mapper = new HashMap<>();
-
   static {
     try {
       DriverManager.registerDriver(new Driver());
     } catch (SQLException e) {
       // eat
     }
-    mapper.put("\u0000", "\\0");
-    mapper.put("'", "\\\\'");
-    mapper.put("\"", "\\\\\"");
-    mapper.put("\b", "\\\\b");
-    mapper.put("\n", "\\\\n");
-    mapper.put("\r", "\\\\r");
-    mapper.put("\t", "\\\\t");
-    mapper.put("\u001A", "\\\\Z");
-    mapper.put("\\", "\\\\");
   }
 
   /**
@@ -230,15 +216,17 @@ public final class Driver implements java.sql.Driver {
    */
   // @Override when not supporting java 8
   public static String enquoteLiteral(String val) {
-    Matcher matcher = escapePattern.matcher(val);
-    StringBuffer escapedVal = new StringBuffer("'");
-
-    while (matcher.find()) {
-      matcher.appendReplacement(escapedVal, mapper.get(matcher.group()));
-    }
-    matcher.appendTail(escapedVal);
-    escapedVal.append("'");
-    return escapedVal.toString();
+    return "'"
+        + val.replace("\\", "\\\\")
+            .replace("'", "''")
+            .replace("\"", "\\\"")
+            .replace("\u0000", "\\0")
+            .replace("\b", "\\b")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+            .replace("\u001A", "\\Z")
+        + "'";
   }
 
   /**

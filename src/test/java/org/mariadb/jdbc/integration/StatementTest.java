@@ -1316,7 +1316,7 @@ public class StatementTest extends Common {
 
     assertEquals("'good_$one'", stmt.enquoteLiteral("good_$one"));
     assertEquals(
-        "'another\\Z\\'\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
+        "'another\\Z''\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
   }
 
   @Test
