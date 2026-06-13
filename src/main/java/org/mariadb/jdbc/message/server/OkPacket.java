@@ -131,7 +131,7 @@ public class OkPacket implements Completion {
                 break;
 
               default:
-                buf.skip(buf.readIntLengthEncodedNotNull());
+                sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
                 break;
             }
           }
@@ -229,7 +229,7 @@ public class OkPacket implements Completion {
                 break;
 
               default:
-                buf.skip(buf.readIntLengthEncodedNotNull());
+                sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
                 break;
             }
           }
