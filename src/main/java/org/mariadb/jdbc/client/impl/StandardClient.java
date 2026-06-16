@@ -627,7 +627,7 @@ public class StandardClient implements Client, AutoCloseable {
         if (!matcher.matches()) {
           logger.error(
               "error parsing redirection string '"
-                  + redirectUrl
+                  + hidePassword(redirectUrl)
                   + "'. format must be"
                   + " 'mariadb/mysql://[<user>[:<password>]@]<host>[:<port>]/[<db>[?<opt1>=<value1>[&<opt2>=<value2>]]]'");
           return;
@@ -664,7 +664,8 @@ public class StandardClient implements Client, AutoCloseable {
 
             // properly close current connection
             this.close();
-            logger.info("redirecting connection " + hostAddress + " to " + redirectUrl);
+            logger.info(
+                "redirecting connection " + hostAddress + " to " + hidePassword(redirectUrl));
             // affect redirection to current client
             this.closed = false;
             this.socket = redirectClient.socket;
@@ -675,7 +676,7 @@ public class StandardClient implements Client, AutoCloseable {
             this.reader = redirectClient.reader;
 
           } catch (SQLException e) {
-            logger.error("fail to redirect to '" + redirectUrl + "'");
+            logger.error("fail to redirect to '" + hidePassword(redirectUrl) + "'");
           }
         } catch (UnsupportedEncodingException ee) {
           // eat, still supporting java 8
@@ -686,6 +687,18 @@ public class StandardClient implements Client, AutoCloseable {
     } else {
       this.context.setRedirectUrl(null);
     }
+  }
+
+  /**
+   * Mask the password of a redirection url (scheme://user:password@host...) so the credentials a
+   * server embeds in {@code redirect_url} are not written to the logs.
+   *
+   * @param redirectUrl redirection url
+   * @return url with the password component replaced by {@code ***}
+   */
+  public static String hidePassword(String redirectUrl) {
+    if (redirectUrl == null) return null;
+    return redirectUrl.replaceFirst("(://[^/@:]*:)[^/@]*(@)", "$1***$2");
   }
 
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
