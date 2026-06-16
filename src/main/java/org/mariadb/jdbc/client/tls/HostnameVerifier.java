@@ -279,26 +279,22 @@ public class HostnameVerifier {
       }
 
       // ***********************************************************
-      // RFC 2818 : legacy fallback using CN (recommendation is using alt-names)
+      // RFC 2818 / RFC 6125 : the Common Name is only a legacy fallback and must be
+      // ignored once the certificate carries subjectAltName entries. Reaching here with
+      // a non-empty SAN set means none of them matched, so the host is not authorized.
       // ***********************************************************
+      if (!subjectAltNames.isEmpty()) {
+        throw new SSLException(
+            normalizedHostMsg(lowerCaseHost) + " doesn't correspond to " + subjectAltNames);
+      }
+
       X500Principal subjectPrincipal = cert.getSubjectX500Principal();
       String cn = extractCommonName(subjectPrincipal.getName(X500Principal.RFC2253));
-
       if (cn == null) {
-        if (subjectAltNames.isEmpty()) {
-          throw new SSLException(
-              "CN not found in certificate principal \""
-                  + subjectPrincipal
-                  + "\" and certificate doesn't contain SAN");
-        } else {
-          throw new SSLException(
-              "CN not found in certificate principal \""
-                  + subjectPrincipal
-                  + "\" and "
-                  + normalizedHostMsg(lowerCaseHost)
-                  + " doesn't correspond to "
-                  + subjectAltNames);
-        }
+        throw new SSLException(
+            "CN not found in certificate principal \""
+                + subjectPrincipal
+                + "\" and certificate doesn't contain SAN");
       }
 
       String normalizedCn = cn.toLowerCase(Locale.ROOT);
@@ -310,15 +306,11 @@ public class HostnameVerifier {
             lowerCaseHost);
       }
       if (!matchDns(lowerCaseHost, normalizedCn)) {
-        String errorMsg =
+        throw new SSLException(
             normalizedHostMsg(lowerCaseHost)
                 + " doesn't correspond to certificate CN \""
                 + normalizedCn
-                + "\"";
-        if (!subjectAltNames.isEmpty()) {
-          errorMsg += " and " + subjectAltNames;
-        }
-        throw new SSLException(errorMsg);
+                + "\"");
       }
 
     } catch (CertificateParsingException cpe) {
