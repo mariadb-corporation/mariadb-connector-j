@@ -31,7 +31,7 @@ public final class AuthenticationPluginLoader {
 
     for (AuthenticationPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
-        if (authList == null || Arrays.stream(authList).anyMatch(type::contains)) {
+        if (authList == null || Arrays.stream(authList).anyMatch(type::equals)) {
           return implClass;
         } else {
           throw new SQLException(
