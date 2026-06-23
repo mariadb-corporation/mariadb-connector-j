@@ -254,7 +254,7 @@ public class BatchTest extends Common {
 
   @Test
   public void differentParameterType() throws SQLException {
-    boolean expectUnknown = isMariaDBServer() && (!minVersion(11, 5, 0) || isMaxscale());
+    boolean expectUnknown = isMariaDBServer() && !minVersion(11, 5, 0);
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false, false);
     }
