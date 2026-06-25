@@ -332,7 +332,7 @@ public class FailoverTest extends Common {
         con.prepareStatement(
             "INSERT INTO transaction_failover_batch_" + idx + " (test)  VALUES (?)")) {
 
-      proxy.restart(300);
+      proxy.restart(500);
       p.setString(1, "test2");
       p.addBatch();
       p.setString(1, "test3");
