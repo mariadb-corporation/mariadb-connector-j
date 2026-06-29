@@ -1686,6 +1686,6 @@ public class Statement implements java.sql.Statement {
    */
   // @Override when not supporting java 8
   public String enquoteNCharLiteral(String val) {
-    return "N'" + val.replace("'", "''") + "'";
+    return "N'" + val.replace("\\", "\\\\").replace("'", "''") + "'";
   }
 }
