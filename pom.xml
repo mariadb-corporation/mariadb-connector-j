@@ -26,7 +26,7 @@
         <waffle-jna-java8.version>3.3.0</waffle-jna-java8.version>
         <mysql-connector-java.version>9.7.0</mysql-connector-java.version>
         <bnd-maven-plugin.version>6.4.0</bnd-maven-plugin.version>
-        <spotless.version>3.1.0</spotless.version>
+        <spotless.version>3.7.0</spotless.version>
     </properties>
 
     <licenses>
@@ -204,7 +204,7 @@
                             <exclude>src/main/java/org/mariadb/jdbc/client/socket/impl/UnixDomainSocket.java</exclude>
                         </excludes>
                         <googleJavaFormat>
-                            <version>1.18.1</version>
+                            <version>1.35.0</version>
                             <style>GOOGLE</style>
                             <reflowLongStrings>true</reflowLongStrings>
                             <formatJavadoc>true</formatJavadoc>
