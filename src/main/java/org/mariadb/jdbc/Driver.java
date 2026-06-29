@@ -216,17 +216,68 @@ public final class Driver implements java.sql.Driver {
    */
   // @Override when not supporting java 8
   public static String enquoteLiteral(String val) {
-    return "'"
-        + val.replace("\\", "\\\\")
-            .replace("'", "''")
-            .replace("\"", "\\\"")
-            .replace("\u0000", "\\0")
-            .replace("\b", "\\b")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-            .replace("\u001A", "\\Z")
-        + "'";
+    int len = val.length();
+
+    // fast scan : find the first character requiring escaping
+    int i = 0;
+    for (; i < len; i++) {
+      if (mustEscapeLiteral(val.charAt(i))) break;
+    }
+    // nothing to escape : just wrap in quotes, no per-character work
+    if (i == len) {
+      return "'" + val + "'";
+    }
+
+    StringBuilder sb = new StringBuilder(len + 16);
+    sb.append('\'').append(val, 0, i);
+    for (; i < len; i++) {
+      char c = val.charAt(i);
+      switch (c) {
+        case '\'':
+          sb.append("''"); // double the quote : safe under every sql_mode
+          break;
+        case '\\':
+          sb.append("\\\\"); // double the backslash
+          break;
+        case '"':
+          sb.append("\\\"");
+          break;
+        case 0:
+          sb.append("\\0");
+          break;
+        case '\b':
+          sb.append("\\b");
+          break;
+        case '\n':
+          sb.append("\\n");
+          break;
+        case '\r':
+          sb.append("\\r");
+          break;
+        case '\t':
+          sb.append("\\t");
+          break;
+        case 26:
+          sb.append("\\Z");
+          break;
+        default:
+          sb.append(c);
+      }
+    }
+    sb.append('\'');
+    return sb.toString();
+  }
+
+  private static boolean mustEscapeLiteral(char c) {
+    return c == '\''
+        || c == '\\'
+        || c == '"'
+        || c == 0
+        || c == '\b'
+        || c == '\n'
+        || c == '\r'
+        || c == '\t'
+        || c == 26;
   }
 
   /**
