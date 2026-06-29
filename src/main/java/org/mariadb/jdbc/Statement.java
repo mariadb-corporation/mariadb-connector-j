@@ -1657,7 +1657,11 @@ public class Statement implements java.sql.Statement {
    */
   // @Override when not supporting java 8
   public String enquoteLiteral(String val) {
-    return Driver.enquoteLiteral(val);
+    return Driver.enquoteLiteral(val, noBackslashEscapes());
+  }
+
+  private boolean noBackslashEscapes() {
+    return (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0;
   }
 
   /**
@@ -1686,6 +1690,7 @@ public class Statement implements java.sql.Statement {
    */
   // @Override when not supporting java 8
   public String enquoteNCharLiteral(String val) {
-    return "N'" + val.replace("\\", "\\\\").replace("'", "''") + "'";
+    // don't use  N prefix, that is forcing utf8mb3
+    return Driver.enquoteLiteral(val, noBackslashEscapes());
   }
 }

@@ -216,12 +216,28 @@ public final class Driver implements java.sql.Driver {
    */
   // @Override when not supporting java 8
   public static String enquoteLiteral(String val) {
+    return enquoteLiteral(val, false);
+  }
+
+  /**
+   * Enquote String value, escaping according to the server sql_mode.
+   *
+   * <p>The single quote is always doubled ({@code ''}), which is safe under every sql_mode. When
+   * backslash escaping is enabled (default sql_mode) the backslash and the usual control characters
+   * are backslash-escaped too; under {@code NO_BACKSLASH_ESCAPES} the backslash is a literal
+   * character, so only the quote is doubled and every other character is left untouched.
+   *
+   * @param val string value to enquote
+   * @param noBackslashEscapes whether the server runs with NO_BACKSLASH_ESCAPES sql_mode
+   * @return enquoted string value
+   */
+  public static String enquoteLiteral(String val, boolean noBackslashEscapes) {
     int len = val.length();
 
     // fast scan : find the first character requiring escaping
     int i = 0;
     for (; i < len; i++) {
-      if (mustEscapeLiteral(val.charAt(i))) break;
+      if (mustEscapeLiteral(val.charAt(i), noBackslashEscapes)) break;
     }
     // nothing to escape : just wrap in quotes, no per-character work
     if (i == len) {
@@ -230,53 +246,57 @@ public final class Driver implements java.sql.Driver {
 
     StringBuilder sb = new StringBuilder(len + 16);
     sb.append('\'').append(val, 0, i);
-    for (; i < len; i++) {
-      char c = val.charAt(i);
-      switch (c) {
-        case '\'':
-          sb.append("''"); // double the quote : safe under every sql_mode
-          break;
-        case '\\':
-          sb.append("\\\\"); // double the backslash
-          break;
-        case '"':
-          sb.append("\\\"");
-          break;
-        case 0:
-          sb.append("\\0");
-          break;
-        case '\b':
-          sb.append("\\b");
-          break;
-        case '\n':
-          sb.append("\\n");
-          break;
-        case '\r':
-          sb.append("\\r");
-          break;
-        case '\t':
-          sb.append("\\t");
-          break;
-        case 26:
-          sb.append("\\Z");
-          break;
-        default:
-          sb.append(c);
+    if (noBackslashEscapes) {
+      // backslash is a literal character : only the quote must be doubled
+      for (; i < len; i++) {
+        char c = val.charAt(i);
+        if (c == '\'') sb.append("''");
+        else sb.append(c);
+      }
+    } else {
+      for (; i < len; i++) {
+        char c = val.charAt(i);
+        switch (c) {
+          case '\'':
+            sb.append("''"); // double the quote
+            break;
+          case '\\':
+            sb.append("\\\\"); // double the backslash
+            break;
+          case '"':
+            sb.append("\\\"");
+            break;
+          case 0:
+            sb.append("\\0");
+            break;
+          case '\b':
+            sb.append("\\b");
+            break;
+          case '\n':
+            sb.append("\\n");
+            break;
+          case '\r':
+            sb.append("\\r");
+            break;
+          case '\t':
+            sb.append("\\t");
+            break;
+          case 26:
+            sb.append("\\Z");
+            break;
+          default:
+            sb.append(c);
+        }
       }
     }
     sb.append('\'');
     return sb.toString();
   }
 
-  private static boolean mustEscapeLiteral(char c) {
-    return c == '\''
-        || c == '\\'
-        || c == '"'
-        || c == 0
-        || c == '\b'
-        || c == '\n'
-        || c == '\r'
-        || c == '\t'
+  private static boolean mustEscapeLiteral(char c, boolean noBackslashEscapes) {
+    if (c == '\'') return true;
+    if (noBackslashEscapes) return false; // only the quote is special
+    return c == '\\' || c == '"' || c == 0 || c == '\b' || c == '\n' || c == '\r' || c == '\t'
         || c == 26;
   }
 

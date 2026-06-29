@@ -1322,7 +1322,29 @@ public class StatementTest extends Common {
   @Test
   public void statementEnquoteNCharLiteral() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    assertEquals("N'good''one'", stmt.enquoteNCharLiteral("good'one"));
+    // no 'N' introducer on purpose : N'...' forces utf8mb3 and would corrupt 4-byte
+    // (utf8mb4) characters, so the value is escaped exactly like a normal literal
+    assertEquals("'good''one'", stmt.enquoteNCharLiteral("good'one"));
+    assertEquals(stmt.enquoteLiteral("good'one"), stmt.enquoteNCharLiteral("good'one"));
+  }
+
+  @Test
+  public void statementEnquoteNoBackslashEscapes() throws SQLException {
+    try (Connection con = createCon()) {
+      Statement stmt = con.createStatement();
+
+      // default sql_mode : backslash is an escape character, so it is doubled
+      stmt.execute("SET sql_mode=''");
+      assertEquals("'a\\\\b'", stmt.enquoteLiteral("a\\b"));
+      assertEquals("'a\\\\b'", stmt.enquoteNCharLiteral("a\\b"));
+
+      // NO_BACKSLASH_ESCAPES : backslash is literal, only the quote is doubled
+      stmt.execute("SET sql_mode='NO_BACKSLASH_ESCAPES'");
+      assertEquals("'a\\b'", stmt.enquoteLiteral("a\\b"));
+      assertEquals("'a\\b'", stmt.enquoteNCharLiteral("a\\b"));
+      // the quote is still doubled, so the value cannot break out of the literal
+      assertEquals("'x'' OR ''1''=''1'", stmt.enquoteLiteral("x' OR '1'='1"));
+    }
   }
 
   @Test
