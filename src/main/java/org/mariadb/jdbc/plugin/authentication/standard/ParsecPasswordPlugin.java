@@ -67,7 +67,7 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
 
     if (buf.readableBytes() > 2) {
       firstByte = buf.readByte();
-      iterations = buf.readByte();
+      iterations = buf.readUnsignedByte();
     }
 
     if (firstByte != 0x50 || iterations > 20) {

@@ -28,6 +28,7 @@
 	locale-dependent parsing/formatting, e.g. under tr_TR) (thanks to jmestwa-coder)
 * CONJ-1324 - fix SQL parser to correctly handle '--' in expressions and reset lastChar after block comments
 * CONJ-1323 - LOAD LOCAL INFILE validation rejects statements preceded by line comments (thanks to sebdomdev)
+* CONJ-1318 - allowLocalInfile=false does not block LOAD DATA LOCAL INFILE against a malicious server (thanks to tharavel)
 
 
 ## [3.4.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.3) (Jun 2026)
@@ -46,7 +47,7 @@
 * CONJ-1319 - use constant-time comparison when validating the server certificate fingerprint (thanks to jmestwa-coder)
 * CONJ-1322 - match local infile filename case-sensitively (thanks to jmestwa-coder)
 * CONJ-1323 - LOAD LOCAL INFILE validation rejects statements preceded by line comments (thanks to sebdomdev)
-
+* CONJ-1318 - allowLocalInfile=false does not block LOAD DATA LOCAL INFILE against a malicious server (thanks to tharavel)
 
 ## [3.3.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.5) (Jun 2026)
 
@@ -62,7 +63,7 @@
 * CONJ-1317 - ensure non-UTF8 charset cannot be used for protocol exchanges (report by fg0x0)
 * CONJ-1322 - match local infile filename case-sensitively (thanks to jmestwa-coder)
 * CONJ-1323 - LOAD LOCAL INFILE validation rejects statements preceded by line comments (thanks to sebdomdev)
-
+* CONJ-1318 - allowLocalInfile=false does not block LOAD DATA LOCAL INFILE against a malicious server (thanks to tharavel)
 
 ## [2.7.14](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.14) (Jun 2026)
 
@@ -77,7 +78,7 @@
 * create gssapi jaas config temp file with owner-only permissions (thanks to jmestwa-coder)
 * encode caching_sha2 clear password as UTF-8 (thanks to jmestwa-coder)
 * call inflater.end() in finally in CompressInputStream (thanks to jmestwa-coder)
-
+* CONJ-1318 - allowLocalInfile=false does not block LOAD DATA LOCAL INFILE against a malicious server (thanks to tharavel)
 
 ## [3.5.8](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.8) (Apr 2026)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.7...3.5.8)
