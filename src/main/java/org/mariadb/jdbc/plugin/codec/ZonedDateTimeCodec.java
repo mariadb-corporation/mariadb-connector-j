@@ -72,8 +72,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as ZoneDateTime", column.getType()));
         }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
+      // expected fallthrough
+      // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:
@@ -198,8 +198,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as ZoneDateTime", column.getType()));
         }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
+      // expected fallthrough
+      // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:

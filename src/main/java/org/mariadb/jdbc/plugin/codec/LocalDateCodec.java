@@ -125,8 +125,8 @@ public class LocalDateCodec implements Codec<LocalDate> {
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Date", column.getType()));
         }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
+      // expected fallthrough
+      // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:
@@ -209,8 +209,8 @@ public class LocalDateCodec implements Codec<LocalDate> {
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Date", column.getType()));
         }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
+      // expected fallthrough
+      // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:

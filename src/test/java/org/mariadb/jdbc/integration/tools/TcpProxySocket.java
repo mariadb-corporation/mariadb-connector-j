@@ -107,8 +107,8 @@ public class TcpProxySocket implements Runnable {
   }
 
   /**
-   * Wait for the current relay thread (if any) to terminate. Used on restart so that a relay
-   * thread delayed past a restart cannot interfere with the freshly started one.
+   * Wait for the current relay thread (if any) to terminate. Used on restart so that a relay thread
+   * delayed past a restart cannot interfere with the freshly started one.
    *
    * @param millis maximum time to wait
    */

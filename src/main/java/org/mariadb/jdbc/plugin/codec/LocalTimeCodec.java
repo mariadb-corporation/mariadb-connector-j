@@ -147,8 +147,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
         }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
+      // expected fallthrough
+      // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:
@@ -256,8 +256,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
         }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
+      // expected fallthrough
+      // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:

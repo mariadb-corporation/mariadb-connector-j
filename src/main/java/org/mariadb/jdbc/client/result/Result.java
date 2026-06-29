@@ -248,7 +248,7 @@ public abstract class Result implements ResultSet, Completion {
           return false;
         }
 
-        // continue reading rows
+      // continue reading rows
 
       default:
         if (dataSize + 1 > data.length) {

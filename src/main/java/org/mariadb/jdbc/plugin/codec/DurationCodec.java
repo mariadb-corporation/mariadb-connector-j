@@ -82,8 +82,8 @@ public class DurationCodec implements Codec<Duration> {
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Duration", column.getType()));
         }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
+      // expected fallthrough
+      // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case TIME:
       case VARCHAR:
