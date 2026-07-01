@@ -72,7 +72,8 @@ public interface ClientMessage {
         if (paramString != null) {
           return paramString.equals("'" + fileName.replace("\\", "\\\\") + "'");
         }
-        return true;
+        // parameter value can't be rendered to compare against the requested file, refuse
+        return false;
       }
     }
     return false;
