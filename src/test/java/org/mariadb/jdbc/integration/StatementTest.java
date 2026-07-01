@@ -1211,13 +1211,16 @@ public class StatementTest extends Common {
 
     assertEquals("'good_$one'", stmt.enquoteLiteral("good_$one"));
     assertEquals(
-        "'another\\Z\\'\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
+        "'another\\Z''\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
   }
 
   @Test
   public void statementEnquoteNCharLiteral() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    assertEquals("N'good''one'", stmt.enquoteNCharLiteral("good'one"));
+    // no 'N' introducer on purpose : N'...' forces utf8mb3 and would corrupt 4-byte
+    // (utf8mb4) characters, so the value is escaped exactly like a normal literal
+    assertEquals("'good''one'", stmt.enquoteNCharLiteral("good'one"));
+    assertEquals(stmt.enquoteLiteral("good'one"), stmt.enquoteNCharLiteral("good'one"));
   }
 
   @Test
