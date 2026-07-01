@@ -58,7 +58,6 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -74,22 +73,8 @@ public class MariaDbStatement implements Statement, Cloneable {
 
   private static final Pattern identifierPattern =
       Pattern.compile("[0-9a-zA-Z\\$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE);
-  private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
-  private static final Map<String, String> mapper = new HashMap<>();
   // timeout scheduler
   private static final Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
-
-  static {
-    mapper.put("\u0000", "\\0");
-    mapper.put("'", "\\\\'");
-    mapper.put("\"", "\\\\\"");
-    mapper.put("\b", "\\\\b");
-    mapper.put("\n", "\\\\n");
-    mapper.put("\r", "\\\\r");
-    mapper.put("\t", "\\\\t");
-    mapper.put("\u001A", "\\\\Z");
-    mapper.put("\\", "\\\\");
-  }
 
   protected final ReentrantLock lock;
   protected final int resultSetScrollType;
@@ -374,16 +359,73 @@ public class MariaDbStatement implements Statement, Cloneable {
    * @throws SQLException -not possible-
    */
   public String enquoteLiteral(String val) throws SQLException {
+    boolean noBackslashEscapes = protocol.noBackslashEscapes();
+    int len = val.length();
 
-    Matcher matcher = escapePattern.matcher(val);
-    StringBuffer escapedVal = new StringBuffer("'");
-
-    while (matcher.find()) {
-      matcher.appendReplacement(escapedVal, mapper.get(matcher.group()));
+    // fast scan : find the first character requiring escaping
+    int i = 0;
+    for (; i < len; i++) {
+      if (mustEscapeLiteral(val.charAt(i), noBackslashEscapes)) break;
     }
-    matcher.appendTail(escapedVal);
-    escapedVal.append("'");
-    return escapedVal.toString();
+    // nothing to escape : just wrap in quotes
+    if (i == len) {
+      return "'" + val + "'";
+    }
+
+    StringBuilder sb = new StringBuilder(len + 16);
+    sb.append('\'').append(val, 0, i);
+    if (noBackslashEscapes) {
+      // backslash is a literal character : only the quote must be doubled
+      for (; i < len; i++) {
+        char c = val.charAt(i);
+        if (c == '\'') sb.append("''");
+        else sb.append(c);
+      }
+    } else {
+      for (; i < len; i++) {
+        char c = val.charAt(i);
+        switch (c) {
+          case '\'':
+            sb.append("''"); // double the quote
+            break;
+          case '\\':
+            sb.append("\\\\"); // double the backslash
+            break;
+          case '"':
+            sb.append("\\\"");
+            break;
+          case 0:
+            sb.append("\\0");
+            break;
+          case '\b':
+            sb.append("\\b");
+            break;
+          case '\n':
+            sb.append("\\n");
+            break;
+          case '\r':
+            sb.append("\\r");
+            break;
+          case '\t':
+            sb.append("\\t");
+            break;
+          case 26:
+            sb.append("\\Z");
+            break;
+          default:
+            sb.append(c);
+        }
+      }
+    }
+    sb.append('\'');
+    return sb.toString();
+  }
+
+  private static boolean mustEscapeLiteral(char c, boolean noBackslashEscapes) {
+    if (c == '\'') return true;
+    if (noBackslashEscapes) return false; // only the quote is special
+    return c == '\\' || c == '"' || c == 0 || c == '\b' || c == '\n' || c == '\r' || c == '\t'
+        || c == 26;
   }
 
   /**
@@ -436,7 +478,8 @@ public class MariaDbStatement implements Statement, Cloneable {
    * @throws SQLException - not possible -
    */
   public String enquoteNCharLiteral(String val) throws SQLException {
-    return "N'" + val.replace("'", "''") + "'";
+    // no 'N' introducer : N'...' forces utf8mb3 and would corrupt 4-byte (utf8mb4) characters
+    return enquoteLiteral(val);
   }
 
   protected String getTimeoutSql(String sql) {
