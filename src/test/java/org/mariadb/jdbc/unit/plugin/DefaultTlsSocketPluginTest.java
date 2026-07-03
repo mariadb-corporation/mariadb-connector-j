@@ -3,14 +3,20 @@
 // Copyright (c) 2015-2026 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.plugin;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
@@ -86,6 +92,36 @@ class DefaultTlsSocketPluginTest {
 
     // serverSslCert validates normally (no deferred identity), so the cached base is returned as-is
     TrustManager first = firstTrustManager(plugin, conf);
+    assertSame(
+        first, firstTrustManager(plugin, conf), "same configuration must reuse the cached base");
+  }
+
+  @Test
+  void trustStoreValidatesNormally(@TempDir Path tmp) throws Exception {
+    // A user-provided trustStore is explicit trust material, exactly like serverSslCert, so it must
+    // validate the chain normally and not fall on the deferred-identity (system-trust-store) path.
+    CertificateFactory cf = CertificateFactory.getInstance("X.509");
+    X509Certificate ca =
+        (X509Certificate)
+            cf.generateCertificate(new ByteArrayInputStream(PEM.getBytes(StandardCharsets.UTF_8)));
+    KeyStore ks = KeyStore.getInstance("PKCS12");
+    ks.load(null, null);
+    ks.setCertificateEntry("ca", ca);
+    Path store = tmp.resolve("truststore.p12");
+    try (OutputStream os = Files.newOutputStream(store)) {
+      ks.store(os, "changeit".toCharArray());
+    }
+
+    DefaultTlsSocketPlugin plugin = new DefaultTlsSocketPlugin();
+    Configuration conf =
+        Configuration.parse(
+            "jdbc:mariadb://localhost:3306/test?sslMode=verify_ca&trustStoreType=PKCS12&trustStorePassword=changeit&trustStore="
+                + store);
+
+    TrustManager first = firstTrustManager(plugin, conf);
+    assertFalse(
+        first instanceof MariaDbX509DeferredIdentityTrustManager,
+        "an explicit trustStore must validate the certificate chain, not defer identity");
     assertSame(
         first, firstTrustManager(plugin, conf), "same configuration must reuse the cached base");
   }
