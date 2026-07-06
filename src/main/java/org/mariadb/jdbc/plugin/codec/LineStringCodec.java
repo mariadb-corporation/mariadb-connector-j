@@ -55,7 +55,8 @@ public class LineStringCodec implements Codec<LineString> {
       if (geo instanceof LineString) return (LineString) geo;
       throw new SQLDataException(
           String.format(
-              "Geometric type %s cannot be decoded as LineString", geo.getClass().getName()));
+              "Geometric type %s cannot be decoded as LineString",
+              geo == null ? "null" : geo.getClass().getName()));
     }
     buf.skip(length.get());
     throw new SQLDataException(

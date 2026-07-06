@@ -58,7 +58,8 @@ public class StandardGssapiAuthentication implements GssapiAuth {
           jaasPath = Files.createTempFile("jaas.conf", null);
         }
         jaasConfFile = jaasPath.toFile();
-        try (PrintStream bos = new PrintStream(new FileOutputStream(jaasConfFile))) {
+        try (FileOutputStream fos = new FileOutputStream(jaasConfFile);
+            PrintStream bos = new PrintStream(fos)) {
           bos.print(
               "Krb5ConnectorContext {\n"
                   + "com.sun.security.auth.module.Krb5LoginModule required "

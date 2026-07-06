@@ -58,7 +58,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
   @Override
   public String[] getClientAliases(String keyType, Principal[] issuers) {
     List<String> accurateAlias = searchAccurateAliases(new String[] {keyType}, issuers);
-    if (accurateAlias.isEmpty()) {
+    if (accurateAlias == null || accurateAlias.isEmpty()) {
       return null;
     }
     return accurateAlias.toArray(new String[0]);

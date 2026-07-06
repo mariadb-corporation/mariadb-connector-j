@@ -56,7 +56,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as GeometryCollection",
-              geo.getClass().getName()));
+              geo == null ? "null" : geo.getClass().getName()));
     }
     buf.skip(length.get());
     throw new SQLDataException(

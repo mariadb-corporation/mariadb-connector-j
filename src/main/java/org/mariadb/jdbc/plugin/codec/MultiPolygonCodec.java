@@ -55,7 +55,8 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
       if (geo instanceof MultiPolygon) return (MultiPolygon) geo;
       throw new SQLDataException(
           String.format(
-              "Geometric type %s cannot be decoded as MultiPolygon", geo.getClass().getName()));
+              "Geometric type %s cannot be decoded as MultiPolygon",
+              geo == null ? "null" : geo.getClass().getName()));
     }
     buf.skip(length.get());
     throw new SQLDataException(

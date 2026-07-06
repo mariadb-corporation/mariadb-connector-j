@@ -54,7 +54,9 @@ public class PointCodec implements Codec<Point> {
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
       if (geo instanceof Point) return (Point) geo;
       throw new SQLDataException(
-          String.format("Geometric type %s cannot be decoded as Point", geo.getClass().getName()));
+          String.format(
+              "Geometric type %s cannot be decoded as Point",
+              geo == null ? "null" : geo.getClass().getName()));
     }
     buf.skip(length.get());
     throw new SQLDataException(

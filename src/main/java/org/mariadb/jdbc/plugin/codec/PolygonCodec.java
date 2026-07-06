@@ -58,7 +58,8 @@ public class PolygonCodec implements Codec<Polygon> {
       if (geo instanceof Polygon) return (Polygon) geo;
       throw new SQLDataException(
           String.format(
-              "Geometric type %s cannot be decoded as Polygon", geo.getClass().getName()));
+              "Geometric type %s cannot be decoded as Polygon",
+              geo == null ? "null" : geo.getClass().getName()));
     }
     buf.skip(length.get());
     throw new SQLDataException(

@@ -58,7 +58,8 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
       if (geo instanceof MultiLineString) return (MultiLineString) geo;
       throw new SQLDataException(
           String.format(
-              "Geometric type %s cannot be decoded as MultiLineString", geo.getClass().getName()));
+              "Geometric type %s cannot be decoded as MultiLineString",
+              geo == null ? "null" : geo.getClass().getName()));
     }
     buf.skip(length.get());
     throw new SQLDataException(

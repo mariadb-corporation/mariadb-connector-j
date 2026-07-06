@@ -57,7 +57,8 @@ public class MultiPointCodec implements Codec<MultiPoint> {
       if (geo instanceof MultiPoint) return (MultiPoint) geo;
       throw new SQLDataException(
           String.format(
-              "Geometric type %s cannot be decoded as MultiPoint", geo.getClass().getName()));
+              "Geometric type %s cannot be decoded as MultiPoint",
+              geo == null ? "null" : geo.getClass().getName()));
     }
     buf.skip(length.get());
     throw new SQLDataException(
