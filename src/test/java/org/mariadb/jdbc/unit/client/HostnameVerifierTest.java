@@ -178,7 +178,7 @@ public class HostnameVerifierTest {
         cert,
         "DNS host \"mariadb.org\" doesn't correspond to "
             + "SAN[{DNS:\"other.org\"},{DNS:\"www.other.org\"}]");
-    // CN is *.mariadb.org, but with subjectAltName present the CN must be ignored
+    // CN is *.mariadb.org, but with DNS subjectAltName entries present the CN must be ignored
     verifyExceptionEqual(
         "a.mariadb.org",
         cert,
@@ -426,6 +426,51 @@ public class HostnameVerifierTest {
         cert,
         "IPv6 host \"2001:db8:1::\" doesn't correspond to"
             + " SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
+  }
+
+  @Test
+  public void subjectAltIpOnly() throws Exception {
+    // CN=*.mariadb.org, subjectAltName=IP:127.0.0.1
+    // openssl req -x509 -nodes -days 36500 -subj "/C=CN/ST=GD/L=SZ/O=Acme,Inc./CN=*.mariadb.org" \
+    //           -addext "subjectAltName=IP:127.0.0.1" -newkey rsa:2048 -keyout key.pem -out
+    // cert.pem
+    X509Certificate cert =
+        getCertificate(
+            "-----BEGIN CERTIFICATE-----\n"
+                + "MIIDmjCCAoKgAwIBAgIUdpzsnHZptuZ3TCQxe34P+d/oSnQwDQYJKoZIhvcNAQEL\n"
+                + "BQAwUzELMAkGA1UEBhMCQ04xCzAJBgNVBAgMAkdEMQswCQYDVQQHDAJTWjESMBAG\n"
+                + "A1UECgwJQWNtZSxJbmMuMRYwFAYDVQQDDA0qLm1hcmlhZGIub3JnMCAXDTI2MDcw\n"
+                + "NjEyMjYwN1oYDzIxMjYwNjEyMTIyNjA3WjBTMQswCQYDVQQGEwJDTjELMAkGA1UE\n"
+                + "CAwCR0QxCzAJBgNVBAcMAlNaMRIwEAYDVQQKDAlBY21lLEluYy4xFjAUBgNVBAMM\n"
+                + "DSoubWFyaWFkYi5vcmcwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDn\n"
+                + "c0eQLYQOsor3vxb7E1FqjV3wVqYNUs5GHT/tvLqZE14QnXi8/vnIeWvJMxuyRUSz\n"
+                + "IpjUAUvpkMtJoaC4cs8OnwfYDYJbewJOyTcBBhehmosMjvHyo/FFI572jnaPXqtO\n"
+                + "XK3BdM13K7MYrJurK0kWiNV+cmrTzh91ta6FzYjGiWI5pXRmaazrVRBsWXMrpbKe\n"
+                + "OE40/2aBuFQzg9Ed+Wj4uBmQX2jF9Dh9q3bYxQgBOpsn6ElueF6rAVzZbIyVJsSk\n"
+                + "uJHvUEACLIpbhlF01tpheUNR3WLlbASVjk3p96AxrJ1HILeIch1v/yLgkK5Brq/N\n"
+                + "AtzeDywxUg7Hfa9+uaA7AgMBAAGjZDBiMB0GA1UdDgQWBBT7T4/UYzl3rXChFP6c\n"
+                + "29jUE0u9gjAfBgNVHSMEGDAWgBT7T4/UYzl3rXChFP6c29jUE0u9gjAPBgNVHRMB\n"
+                + "Af8EBTADAQH/MA8GA1UdEQQIMAaHBH8AAAEwDQYJKoZIhvcNAQELBQADggEBAKcR\n"
+                + "1E3XFHKChCcDmn3ZhVYwmEtVTyfFMX74S498ZSrW5AxXeHStpnBuezcbtBSWMbeB\n"
+                + "AP2a5AdWcs22GODRMEMucK+SCPg7i+8NLixdfkrUL5fJzwfnATgNz/yQg9xGOyeL\n"
+                + "bbjLK58MHSq5LknXgO7DjazKFDTx/nWx4HHUoNcuDU5KoWSCRzUbUj9AvvZezqcq\n"
+                + "gZ38UuRMum5IlwkWx+xtY5cTvh5vKyFcFfGeRNzeHy7vSWB8XZ/WYtGub7YVaeH/\n"
+                + "VmU05T/3op9TSWnOka+YPBFT7fzDgQb/pyO5PxUlirb0lL577ASiUdIndYprM0H4\n"
+                + "zGM1o2rkAUSUWbfpZjU=\n"
+                + "-----END CERTIFICATE-----\n");
+
+    // no dNSName SAN entry : DNS hosts still fall back to the CN
+    HostnameVerifier.verify("test.mariadb.org", cert, -1);
+    verifyExceptionEqual(
+        "test.org",
+        cert,
+        "DNS host \"test.org\" doesn't correspond to certificate CN \"*.mariadb.org\""
+            + " and SAN[{IP:\"127.0.0.1\"}]");
+
+    // iPAddress SAN entry present : CN is ignored for IP hosts
+    HostnameVerifier.verify("127.0.0.1", cert, -1);
+    verifyExceptionEqual(
+        "127.0.0.2", cert, "IPv4 host \"127.0.0.2\" doesn't correspond to SAN[{IP:\"127.0.0.1\"}]");
   }
 
   @Test

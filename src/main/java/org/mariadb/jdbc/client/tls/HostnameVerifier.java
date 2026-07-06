@@ -279,11 +279,15 @@ public class HostnameVerifier {
       }
 
       // ***********************************************************
-      // RFC 2818 / RFC 6125 : the Common Name is only a legacy fallback and must be
-      // ignored once the certificate carries subjectAltName entries. Reaching here with
-      // a non-empty SAN set means none of them matched, so the host is not authorized.
+      // RFC 6125 §6.4.4 : the Common Name is only a legacy fallback, consulted when the
+      // certificate carries no subjectAltName entry of the type matching the host
+      // (iPAddress for IP hosts, dNSName otherwise), matching the default behavior of
+      // OpenSSL/LibreSSL/BoringSSL. Reaching here with a matching-type SAN present means
+      // none of them matched, so the host is not authorized.
       // ***********************************************************
-      if (!subjectAltNames.isEmpty()) {
+      Extension hostType =
+          (isIPv4(lowerCaseHost) || isIPv6(lowerCaseHost)) ? Extension.IP : Extension.DNS;
+      if (subjectAltNames.hasType(hostType)) {
         throw new SSLException(
             normalizedHostMsg(lowerCaseHost) + " doesn't correspond to " + subjectAltNames);
       }
@@ -291,10 +295,20 @@ public class HostnameVerifier {
       X500Principal subjectPrincipal = cert.getSubjectX500Principal();
       String cn = extractCommonName(subjectPrincipal.getName(X500Principal.RFC2253));
       if (cn == null) {
-        throw new SSLException(
-            "CN not found in certificate principal \""
-                + subjectPrincipal
-                + "\" and certificate doesn't contain SAN");
+        if (subjectAltNames.isEmpty()) {
+          throw new SSLException(
+              "CN not found in certificate principal \""
+                  + subjectPrincipal
+                  + "\" and certificate doesn't contain SAN");
+        } else {
+          throw new SSLException(
+              "CN not found in certificate principal \""
+                  + subjectPrincipal
+                  + "\" and "
+                  + normalizedHostMsg(lowerCaseHost)
+                  + " doesn't correspond to "
+                  + subjectAltNames);
+        }
       }
 
       String normalizedCn = cn.toLowerCase(Locale.ROOT);
@@ -306,11 +320,15 @@ public class HostnameVerifier {
             lowerCaseHost);
       }
       if (!matchDns(lowerCaseHost, normalizedCn)) {
-        throw new SSLException(
+        String errorMsg =
             normalizedHostMsg(lowerCaseHost)
                 + " doesn't correspond to certificate CN \""
                 + normalizedCn
-                + "\"");
+                + "\"";
+        if (!subjectAltNames.isEmpty()) {
+          errorMsg += " and " + subjectAltNames;
+        }
+        throw new SSLException(errorMsg);
       }
 
     } catch (CertificateParsingException cpe) {
@@ -369,6 +387,15 @@ public class HostnameVerifier {
 
     public boolean isEmpty() {
       return generalNames.isEmpty();
+    }
+
+    public boolean hasType(Extension extension) {
+      for (GeneralName generalName : generalNames) {
+        if (generalName.extension == extension) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 }
