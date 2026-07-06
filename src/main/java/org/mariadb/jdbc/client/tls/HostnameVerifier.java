@@ -279,11 +279,21 @@ public class HostnameVerifier {
       }
 
       // ***********************************************************
-      // RFC 2818 : legacy fallback using CN (recommendation is using alt-names)
+      // RFC 6125 §6.4.4 : the Common Name is only a legacy fallback, consulted when the
+      // certificate carries no subjectAltName entry of the type matching the host
+      // (iPAddress for IP hosts, dNSName otherwise), matching the default behavior of
+      // OpenSSL/LibreSSL/BoringSSL. Reaching here with a matching-type SAN present means
+      // none of them matched, so the host is not authorized.
       // ***********************************************************
+      Extension hostType =
+          (isIPv4(lowerCaseHost) || isIPv6(lowerCaseHost)) ? Extension.IP : Extension.DNS;
+      if (subjectAltNames.hasType(hostType)) {
+        throw new SSLException(
+            normalizedHostMsg(lowerCaseHost) + " doesn't correspond to " + subjectAltNames);
+      }
+
       X500Principal subjectPrincipal = cert.getSubjectX500Principal();
       String cn = extractCommonName(subjectPrincipal.getName(X500Principal.RFC2253));
-
       if (cn == null) {
         if (subjectAltNames.isEmpty()) {
           throw new SSLException(
@@ -377,6 +387,15 @@ public class HostnameVerifier {
 
     public boolean isEmpty() {
       return generalNames.isEmpty();
+    }
+
+    public boolean hasType(Extension extension) {
+      for (GeneralName generalName : generalNames) {
+        if (generalName.extension == extension) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 }
