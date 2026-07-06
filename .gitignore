@@ -11,3 +11,4 @@
 .claude
 /mariadb-java-client.iml
 .github/native-image-test/spring-boot/target
+infer-out/

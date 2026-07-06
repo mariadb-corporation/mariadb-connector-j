@@ -84,3 +84,39 @@ jobs:
           bash <(curl -s https://codecov.io/bash)
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  infer:
+    name: Infer static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      INFER_VERSION: 1.2.0
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          cache: maven
+          distribution: 'adopt'
+
+      - name: Install Infer
+        run: |
+          curl -fsSL "https://github.com/facebook/infer/releases/download/v${INFER_VERSION}/infer-linux-x86_64-v${INFER_VERSION}.tar.xz" \
+            | sudo tar -C /opt -xJ
+          echo "/opt/infer-linux-x86_64-v${INFER_VERSION}/bin" >> "$GITHUB_PATH"
+
+      # -P default: Infer activates its own '-P infer-capture', which disables
+      # the activeByDefault profile carrying JNA and the multi-release compiler
+      # config; re-activate it explicitly. RacerD false positives are filtered
+      # via .inferconfig. --fail-on-issue exits non-zero if anything is reported.
+      - name: Run Infer
+        run: infer run --fail-on-issue -- mvn clean compile -P default
+
+      - name: Upload Infer report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infer-report
+          path: infer-out/report.txt
+          if-no-files-found: ignore
