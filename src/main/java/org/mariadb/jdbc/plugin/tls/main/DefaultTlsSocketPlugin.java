@@ -212,7 +212,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
           tmf.init(ks);
           for (TrustManager tm : tmf.getTrustManagers()) {
             if (tm instanceof X509TrustManager) {
-              return new CachedTrust((X509TrustManager) tm, true);
+              return new CachedTrust((X509TrustManager) tm, false);
             }
           }
         } catch (GeneralSecurityException generalSecurityEx) {
