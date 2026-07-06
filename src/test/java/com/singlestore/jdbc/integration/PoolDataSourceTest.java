@@ -574,19 +574,21 @@ public class PoolDataSourceTest extends Common {
     connectionAppender.shutdown();
     connectionAppender.awaitTermination(30, TimeUnit.SECONDS);
     assertTrue(threadIds.size() <= 9, "connection ids must be less than 9 : " + threadIds.size());
-    Pools.close("PoolTest");
+    Pools.close("PoolEnsureUsingPool");
   }
 
   @Test
   public void ensureClosed() throws Throwable {
     Thread.sleep(2000); // ensure that previous close are effective
     int initialConnection = getCurrentConnections();
+    Set<Long> poolConnectionIds = new HashSet<>();
 
     try (SingleStorePoolDataSource pool =
         new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=10&minPoolSize=3")) {
 
       try (Connection connection = pool.getConnection()) {
         connection.isValid(10_000);
+        poolConnectionIds.add(((com.singlestore.jdbc.Connection) connection).getThreadId());
       }
 
       assertTrue(getCurrentConnections() > initialConnection);
@@ -594,17 +596,43 @@ public class PoolDataSourceTest extends Common {
       // reuse IdleConnection
       try (Connection connection = pool.getConnection()) {
         connection.isValid(10_000);
+        poolConnectionIds.add(((com.singlestore.jdbc.Connection) connection).getThreadId());
       }
 
       Thread.sleep(500);
       assertTrue(getCurrentConnections() > initialConnection);
     }
     // wait for connections to close, may take a while on some server versions
+    long waitStart = System.currentTimeMillis();
+    int finalConnection = getCurrentConnections();
+    boolean converged = false;
     for (int i = 0; i < 10; i++) {
       Thread.sleep(500);
-      if (getCurrentConnections() <= initialConnection) break;
+      finalConnection = getCurrentConnections();
+      if (finalConnection <= initialConnection) {
+        converged = true;
+        break;
+      }
     }
-    assertEquals(initialConnection, getCurrentConnections());
+    if (!converged) {
+      fail(
+          "connections did not converge within "
+              + (System.currentTimeMillis() - waitStart)
+              + "ms; expected <= "
+              + initialConnection
+              + " connections, got "
+              + finalConnection);
+    }
+    assertTrue(
+        finalConnection <= initialConnection,
+        "expected <= " + initialConnection + " connections, got " + finalConnection);
+
+    Set<Long> remainingConnectionIds = getCurrentConnectionIds();
+    for (Long poolConnectionId : poolConnectionIds) {
+      assertFalse(
+          remainingConnectionIds.contains(poolConnectionId),
+          "pooled connection is still active: " + poolConnectionId);
+    }
   }
 
   @Test
@@ -665,6 +693,17 @@ public class PoolDataSourceTest extends Common {
 
     } catch (SQLException e) {
       return -1;
+    }
+  }
+
+  public static Set<Long> getCurrentConnectionIds() throws SQLException {
+    try (Statement stmt = sharedConn.createStatement();
+        ResultSet rs = stmt.executeQuery("SHOW PROCESSLIST")) {
+      Set<Long> connectionIds = new HashSet<>();
+      while (rs.next()) {
+        connectionIds.add(rs.getLong(1));
+      }
+      return connectionIds;
     }
   }
 
