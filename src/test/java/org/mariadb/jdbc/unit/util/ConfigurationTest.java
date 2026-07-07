@@ -1117,6 +1117,26 @@ public class ConfigurationTest {
                     + " * allowLocalInfile : true"));
   }
 
+  @Test
+  public void nonMappedSensitiveOptionsMasked() throws SQLException {
+    // secretKey (AWS IAM) and password2 (PAM step) have no dedicated field, so they land in
+    // nonMappedOptions. The serialized url must mask them like the primary password.
+    String url =
+        "jdbc:mariadb://localhost/test?user=me&password=myPass&secretKey=SECRETVAL&password2=PAMVAL";
+    Configuration conf = Configuration.parse(url);
+
+    String built = conf.initialUrl();
+    assertFalse(built.contains("SECRETVAL"), built);
+    assertFalse(built.contains("PAMVAL"), built);
+    assertTrue(built.contains("password=***"), built);
+    assertTrue(built.contains("secretKey=***"), built);
+    assertTrue(built.contains("password2=***"), built);
+
+    String conf2 = Configuration.toConf(url);
+    assertFalse(conf2.contains("SECRETVAL"), conf2);
+    assertFalse(conf2.contains("PAMVAL"), conf2);
+  }
+
   private String normalizeConfigurationString(String configString) {
     String[] lines = configString.split("\n");
     StringBuilder newConfig = new StringBuilder();
