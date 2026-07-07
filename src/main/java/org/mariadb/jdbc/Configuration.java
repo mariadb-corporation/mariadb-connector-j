@@ -1054,7 +1054,9 @@ public class Configuration {
             entry ->
                 new AbstractMap.SimpleEntry<>(
                     entry.getKey().toString(),
-                    entry.getValue() != null ? entry.getValue().toString() : ""))
+                    isSensitiveOption(entry.getKey().toString())
+                        ? "***"
+                        : (entry.getValue() != null ? entry.getValue().toString() : "")))
         .sorted(Map.Entry.comparingByKey())
         .forEach(
             entry ->
@@ -1342,8 +1344,24 @@ public class Configuration {
 
   private static void appendPropertiesParameter(ParameterAppender appender, Properties props) {
     for (Map.Entry<Object, Object> entry : props.entrySet()) {
-      appender.appendParameter(entry.getKey().toString(), entry.getValue().toString());
+      String keyName = entry.getKey().toString();
+      appender.appendParameter(
+          keyName, isSensitiveOption(keyName) ? "***" : entry.getValue().toString());
     }
+  }
+
+  /**
+   * A credential that has no dedicated field is kept in nonMappedOptions, e.g. the AWS IAM {@code
+   * secretKey} or the PAM {@code password2}/{@code password3} steps. Mask those values the same way
+   * {@link #SECURE_FIELDS} masks the declared password fields, so a serialized url does not expose
+   * them.
+   *
+   * @param key option name
+   * @return true if the option value must be redacted
+   */
+  private static boolean isSensitiveOption(String key) {
+    String lower = key.toLowerCase(Locale.ROOT);
+    return lower.contains("password") || lower.contains("secret");
   }
 
   private static void appendCatalogTermParameter(
