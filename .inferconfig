@@ -1,7 +1,3 @@
 {
-  "report-block-list-path-regex": [
-    ".*/org/mariadb/jdbc/client/column/.*",
-    ".*/org/mariadb/jdbc/plugin/codec/.*",
-    ".*/org/mariadb/jdbc/pool/.*"
-  ]
+  "racerd": false
 }

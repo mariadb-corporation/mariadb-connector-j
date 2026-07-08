@@ -781,6 +781,51 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <!--
+              Runs Facebook Infer static analysis locally, mirroring the CI 'infer' job.
+              Infer is not a Maven plugin; it wraps the build, so this profile shells out to the
+              'infer' executable (must be on PATH). Bound to 'validate' so the outer build performs
+              no compilation: activating -Pinfer disables the activeByDefault 'default' profile, and
+              Infer's own inner build re-activates it via '-P default'. The fail-on-issue flag makes
+              the build fail if Infer reports anything (RacerD is disabled via .inferconfig).
+              The outer 'clean' wipes target once (a nested inner 'mvn clean' would conflict with
+              this outer Maven process holding target/), then Infer's inner 'mvn compile' captures.
+              Usage: mvn -Pinfer clean validate
+            -->
+            <id>infer</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>infer</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>infer</executable>
+                                    <workingDirectory>${project.basedir}</workingDirectory>
+                                    <arguments>
+                                        <argument>run</argument>
+                                        <argument>--fail-on-issue</argument>
+                                        <argument>--</argument>
+                                        <argument>mvn</argument>
+                                        <argument>compile</argument>
+                                        <argument>-P</argument>
+                                        <argument>default</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
 </project>
