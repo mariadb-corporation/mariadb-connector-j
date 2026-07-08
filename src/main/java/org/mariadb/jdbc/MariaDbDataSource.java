@@ -52,6 +52,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
   private void config() throws SQLException {
     if (url == null) throw new SQLException("url not set");
     conf = Configuration.parse(url);
+    if (conf == null) throw new SQLException(String.format("Wrong mariaDB url: %s", url));
     if (loginTimeout != null) conf.connectTimeout(loginTimeout * 1000);
     if (user != null || password != null) {
       conf = conf.clone(user, password);

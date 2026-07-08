@@ -1334,8 +1334,8 @@ public class Configuration {
   }
 
   private static void appendPropertiesParameter(ParameterAppender appender, Properties props) {
-    for (Object key : props.keySet()) {
-      appender.appendParameter(key.toString(), props.get(key).toString());
+    for (Map.Entry<Object, Object> entry : props.entrySet()) {
+      appender.appendParameter(entry.getKey().toString(), entry.getValue().toString());
     }
   }
 

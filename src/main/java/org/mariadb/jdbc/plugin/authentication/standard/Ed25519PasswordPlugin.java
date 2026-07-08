@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Objects;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -59,7 +60,9 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 
       Ed25519ScalarOps scalar = new Ed25519ScalarOps();
 
-      EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
+      EdDSAParameterSpec spec =
+          Objects.requireNonNull(
+              EdDSANamedCurveTable.getByName("Ed25519"), "Ed25519 curve not registered");
       GroupElement elementAvalue = spec.getB().scalarMultiply(az);
       byte[] elementAarray = elementAvalue.toByteArray();
       System.arraycopy(elementAarray, 0, sm, 32, elementAarray.length);
@@ -130,7 +133,9 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       az[0] &= (byte) 248;
       az[31] &= 63;
       az[31] |= 64;
-      EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
+      EdDSAParameterSpec spec =
+          Objects.requireNonNull(
+              EdDSANamedCurveTable.getByName("Ed25519"), "Ed25519 curve not registered");
       return spec.getB().scalarMultiply(az).toByteArray();
 
     } catch (NoSuchAlgorithmException e) {
