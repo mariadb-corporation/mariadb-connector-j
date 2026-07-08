@@ -167,7 +167,8 @@ public class TextRowDecoder implements RowDecoder {
       final int maxIndex,
       final StandardReadableByteBuf rowBuf,
       final byte[] nullBitmap,
-      final ColumnDecoder[] metadataList) {
+      final ColumnDecoder[] metadataList)
+      throws SQLException {
     if (fieldIndex.get() >= newIndex) {
       fieldIndex.set(0);
       rowBuf.pos(0);
@@ -189,9 +190,11 @@ public class TextRowDecoder implements RowDecoder {
       case (byte) 253:
         return rowBuf.readUnsignedMedium();
       case (byte) 254:
-        int fieldLength = (int) rowBuf.readUnsignedInt();
-        rowBuf.skip(4);
-        return fieldLength;
+        long fieldLength = rowBuf.readLong();
+        if (fieldLength < 0 || fieldLength > Integer.MAX_VALUE) {
+          throw new SQLException("Invalid length-encoded field length " + fieldLength);
+        }
+        return (int) fieldLength;
       default:
         return len & 0xff;
     }
