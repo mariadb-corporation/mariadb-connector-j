@@ -416,6 +416,7 @@ public class StandardClient implements Client, AutoCloseable {
                       + " authentication plugin or provide server certificate to client",
                   authType));
     }
+    writer.permitTrace(false);
     sendHandshakeResponse(handshake, clientCapabilities, credential, authType);
     writer.flush();
 
@@ -476,7 +477,7 @@ public class StandardClient implements Client, AutoCloseable {
   public void authenticationHandler(Credential credential, HostAddress hostAddress)
       throws IOException, SQLException {
 
-    writer.permitTrace(true);
+    writer.permitTrace(false);
     Configuration conf = context.getConf();
     ReadableByteBuf buf = reader.readReusablePacket();
 
