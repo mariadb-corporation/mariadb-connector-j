@@ -36,6 +36,7 @@ public interface RowDecoder {
    * @param nullBitmap null bitmap
    * @param metadataList metadata list
    * @return new index to read data
+   * @throws SQLException if the field length is not a valid value
    */
   int setPosition(
       int newIndex,
@@ -43,7 +44,8 @@ public interface RowDecoder {
       int maxIndex,
       ReadableByteBuf rowBuf,
       byte[] nullBitmap,
-      ColumnDecoder[] metadataList);
+      ColumnDecoder[] metadataList)
+      throws SQLException;
 
   /**
    * Decode data according to data type.
