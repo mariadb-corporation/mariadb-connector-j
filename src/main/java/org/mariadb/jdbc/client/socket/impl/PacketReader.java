@@ -29,6 +29,7 @@ public class PacketReader implements Reader {
   private final MutableByte sequence;
   private final StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
   private String serverThreadLog = "";
+  private boolean permitMultiPacket = false;
 
   /**
    * Constructor of standard socket MySQL packet stream reader.
@@ -174,6 +175,11 @@ public class PacketReader implements Reader {
     // In case content length is big, content will be separate in many 16Mb packets
     // ***************************************************
     if (lastPacketLength == MAX_PACKET_SIZE) {
+      if (!permitMultiPacket) {
+        throw new IOException(
+            "unexpected multipart packet (>16Mb) during connection/authentication phase: packet"
+                + " reassembly is not permitted before authentication completes");
+      }
       int packetLength;
       do {
         remaining = 4;
@@ -285,6 +291,10 @@ public class PacketReader implements Reader {
         lastPacketLength += packetLength;
       } while (packetLength == MAX_PACKET_SIZE);
     }
+  }
+
+  public void permitMultiPacket() {
+    this.permitMultiPacket = true;
   }
 
   public MutableByte getSequence() {

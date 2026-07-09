@@ -207,6 +207,10 @@ public class StandardClient implements Client, AutoCloseable {
             handshake.getThreadId());
       }
 
+      // Authentication is complete: large (16Mb) multipart packets are now legitimate (e.g. big
+      // result rows), so lift the handshake-phase restriction on the (possibly recreated) reader.
+      this.reader.permitMultiPacket();
+
       // **********************************************************************
       // post queries
       // **********************************************************************
