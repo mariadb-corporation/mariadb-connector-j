@@ -96,13 +96,28 @@ public class UnixsocketTest extends Common {
       finalLines++;
     }
     proc.destroy();
-    assertEquals(
-        finalLines,
-        initialLines,
-        "Error Leaking socket file descriptors. initial :"
-            + initialLines
-            + " but ending with "
-            + finalLines);
+    // A file-descriptor leak would show up as the socket count growing across the 10 failed
+    // connection attempts. On macOS the baseline is noisy: unrelated sockets left over from earlier
+    // tests (e.g. connections in TIME_WAIT) can be reclaimed between the two measurements, making
+    // the count shrink and flaking a strict equality check. There only an increase indicates a real
+    // leak, so assert the count did not grow. On other platforms the baseline is stable, so keep
+    // the exact-equality check for a stronger guarantee.
+    if (isMac()) {
+      assertTrue(
+          finalLines <= initialLines,
+          "Error Leaking socket file descriptors. initial :"
+              + initialLines
+              + " but ending with "
+              + finalLines);
+    } else {
+      assertEquals(
+          finalLines,
+          initialLines,
+          "Error Leaking socket file descriptors. initial :"
+              + initialLines
+              + " but ending with "
+              + finalLines);
+    }
   }
 
   @Test

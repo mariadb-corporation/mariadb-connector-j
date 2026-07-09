@@ -307,6 +307,10 @@ public class Common {
     return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
+  public boolean isMac() {
+    return System.getProperty("os.name").toLowerCase().contains("mac");
+  }
+
   public static String getHostSuffix() {
     if ("local".equals(System.getenv().getOrDefault("LOCAL_DB", "container"))) {
       return "@'localhost'";
