@@ -581,6 +581,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
           host);
 
       compressionHandler(options);
+
+      // Authentication is complete: large (16Mb) multipart packets are now legitimate (e.g. big
+      // result rows), so lift the handshake-phase restriction on the (possibly recreated) reader.
+      reader.permitMultiPacket();
     } catch (IOException ioException) {
       destroySocket();
       if (host == null) {

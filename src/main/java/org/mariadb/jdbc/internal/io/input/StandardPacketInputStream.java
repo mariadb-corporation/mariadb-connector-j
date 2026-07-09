@@ -83,6 +83,7 @@ public class StandardPacketInputStream implements PacketInputStream {
   private String serverThreadLog = "";
   private long threadId;
   private LruTraceCache traceCache = null;
+  private boolean permitMultiPacket = false;
 
   /**
    * Constructor of standard socket MySQL packet stream reader.
@@ -306,6 +307,16 @@ public class StandardPacketInputStream implements PacketInputStream {
     // In case content length is big, content will be separate in many 16Mb packets
     // ***************************************************
     if (lastPacketLength == MAX_PACKET_SIZE) {
+      // A max-length packet signals that more fragments follow (multipart packet). No legitimate
+      // handshake/authentication packet reaches 16Mb, so refusing reassembly at that stage prevents
+      // a malicious or MitM'd server from streaming endless max-length fragments and exhausting
+      // client memory before authentication completes. The first 16Mb fragment has already been
+      // read; we simply refuse to keep growing the buffer.
+      if (!permitMultiPacket) {
+        throw new IOException(
+            "unexpected multipart packet (>16Mb) during connection/authentication phase: packet"
+                + " reassembly is not permitted before authentication completes");
+      }
       int packetLength;
       do {
         remaining = 4;
@@ -398,5 +409,9 @@ public class StandardPacketInputStream implements PacketInputStream {
 
   public void setTraceCache(LruTraceCache traceCache) {
     this.traceCache = traceCache;
+  }
+
+  public void permitMultiPacket() {
+    this.permitMultiPacket = true;
   }
 }

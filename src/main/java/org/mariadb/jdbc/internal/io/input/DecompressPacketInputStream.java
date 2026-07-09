@@ -329,4 +329,13 @@ public class DecompressPacketInputStream implements PacketInputStream {
   public InputStream getInputStream() {
     return inputStream;
   }
+
+  /**
+   * No-op: the compressed stream is only ever installed once authentication has completed (the
+   * COMPRESS capability is negotiated after the handshake), so multipart packets are already
+   * legitimate here.
+   */
+  public void permitMultiPacket() {
+    // nothing to do - compression is enabled only after authentication
+  }
 }

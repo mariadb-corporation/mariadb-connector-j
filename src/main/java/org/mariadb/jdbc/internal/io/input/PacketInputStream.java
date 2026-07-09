@@ -74,4 +74,11 @@ public interface PacketInputStream {
   void setTraceCache(LruTraceCache traceCache);
 
   InputStream getInputStream();
+
+  /**
+   * Permit the multipart reassembly triggered by max-length (16Mb) packets. Must be called once the
+   * handshake/authentication phase is over: before that point reassembly is rejected to avoid an
+   * unauthenticated peer forcing unbounded buffer growth. A single 16Mb packet is always allowed.
+   */
+  void permitMultiPacket();
 }
