@@ -30,6 +30,7 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS `testDefaultUUID`");
     stmt.execute("DROP TABLE IF EXISTS `test_update_max`");
     stmt.execute("DROP TABLE IF EXISTS `testAutoIncrement`");
+    stmt.execute("DROP TABLE IF EXISTS `testBacktickCol`");
   }
 
   @BeforeAll
@@ -214,6 +215,45 @@ public class UpdateResultSetTest extends Common {
     assertEquals("0-1", rs.getString(2));
     assertFalse(rs.next());
     sharedConn.rollback();
+  }
+
+  @Test
+  public void updatableResultBacktickIdentifier() throws SQLException {
+    // a column whose name contains a backtick (valid in MariaDB, and reachable through a query
+    // alias) must be escaped when the updatable result-set builds its INSERT/UPDATE/SELECT
+    // statements. Otherwise the backtick terminates the identifier quoting and arbitrary SQL is
+    // injected into the driver-generated statement.
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS `testBacktickCol`");
+    stmt.execute(
+        "CREATE TABLE `testBacktickCol`(`id` INT NOT NULL AUTO_INCREMENT,`a``b` VARCHAR(50) NULL,"
+            + "PRIMARY KEY (`id`))");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    stmt.executeUpdate("INSERT INTO `testBacktickCol`(`a``b`) values ('one')");
+
+    try (PreparedStatement prep =
+        sharedConn.prepareStatement(
+            "SELECT `id`, `a``b` FROM `testBacktickCol`",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
+      ResultSet rs = prep.executeQuery();
+      assertTrue(rs.next());
+      rs.updateString(2, "two");
+      rs.updateRow();
+
+      rs.moveToInsertRow();
+      rs.updateString(2, "three");
+      rs.insertRow();
+    }
+
+    ResultSet rs = stmt.executeQuery("SELECT `a``b` FROM `testBacktickCol` ORDER BY `id`");
+    assertTrue(rs.next());
+    assertEquals("two", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("three", rs.getString(1));
+    assertFalse(rs.next());
+    sharedConn.rollback();
+    stmt.execute("DROP TABLE IF EXISTS `testBacktickCol`");
   }
 
   @Test
