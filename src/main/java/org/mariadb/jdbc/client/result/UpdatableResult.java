@@ -133,7 +133,8 @@ public class UpdatableResult extends CompleteResult {
         statement
             .getConnection()
             .createStatement()
-            .executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
+            .executeQuery(
+                "SHOW COLUMNS FROM " + quoteIdentifier(database) + "." + quoteIdentifier(table));
     List<String> primaryColumns = new ArrayList<>();
     while (rs.next()) {
       if ("PRI".equals(rs.getString("Key"))) {
@@ -498,13 +499,26 @@ public class UpdatableResult extends CompleteResult {
   }
 
   /**
+   * Wrap a schema, table or column identifier in backticks, doubling any backtick it contains so a
+   * name that includes a backtick cannot terminate the quoting.
+   *
+   * @param identifier identifier
+   * @return quoted identifier
+   */
+  private static String quoteIdentifier(String identifier) {
+    return "`" + identifier.replace("`", "``") + "`";
+  }
+
+  /**
    * Build insert query
    *
    * @return insert sql
    * @throws SQLException exception
    */
   private String buildInsertQuery() throws SQLException {
-    StringBuilder insertSql = new StringBuilder("INSERT `" + database + "`.`" + table + "` ( ");
+    StringBuilder insertSql =
+        new StringBuilder(
+            "INSERT " + quoteIdentifier(database) + "." + quoteIdentifier(table) + " ( ");
     StringBuilder valueClause = new StringBuilder();
     StringBuilder returningClause = new StringBuilder();
 
@@ -516,7 +530,7 @@ public class UpdatableResult extends CompleteResult {
       if (pos != 0) {
         returningClause.append(", ");
       }
-      returningClause.append("`").append(colInfo.getColumnName()).append("`");
+      returningClause.append(quoteIdentifier(colInfo.getColumnName()));
 
       org.mariadb.jdbc.client.util.Parameter param =
           parameters.size() > pos ? parameters.get(pos) : null;
@@ -525,7 +539,7 @@ public class UpdatableResult extends CompleteResult {
           insertSql.append(",");
           valueClause.append(", ");
         }
-        insertSql.append("`").append(colInfo.getColumnName()).append("`");
+        insertSql.append(quoteIdentifier(colInfo.getColumnName()));
         valueClause.append("?");
         firstParam = false;
       } else {
@@ -556,7 +570,7 @@ public class UpdatableResult extends CompleteResult {
             valueClause.append(", ");
           }
           firstParam = false;
-          insertSql.append("`").append(colInfo.getColumnName()).append("`");
+          insertSql.append(quoteIdentifier(colInfo.getColumnName()));
           valueClause.append("?");
         }
       }
@@ -581,22 +595,21 @@ public class UpdatableResult extends CompleteResult {
       if (pos != 0) {
         selectSql.append(",");
       }
-      selectSql.append("`").append(colInfo.getColumnName()).append("`");
+      selectSql.append(quoteIdentifier(colInfo.getColumnName()));
 
       if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
         if (!firstPrimary) {
           whereClause.append("AND ");
         }
         firstPrimary = false;
-        whereClause.append("`").append(colInfo.getColumnName()).append("` = ? ");
+        whereClause.append(quoteIdentifier(colInfo.getColumnName())).append(" = ? ");
       }
     }
     selectSql
-        .append(" FROM `")
-        .append(database)
-        .append("`.`")
-        .append(table)
-        .append("`")
+        .append(" FROM ")
+        .append(quoteIdentifier(database))
+        .append(".")
+        .append(quoteIdentifier(table))
         .append(whereClause);
     return selectSql.toString();
   }
@@ -639,7 +652,9 @@ public class UpdatableResult extends CompleteResult {
   }
 
   private String updateQuery() {
-    StringBuilder updateSql = new StringBuilder("UPDATE `" + database + "`.`" + table + "` SET ");
+    StringBuilder updateSql =
+        new StringBuilder(
+            "UPDATE " + quoteIdentifier(database) + "." + quoteIdentifier(table) + " SET ");
     StringBuilder whereClause = new StringBuilder(" WHERE ");
 
     boolean firstUpdate = true;
@@ -649,7 +664,7 @@ public class UpdatableResult extends CompleteResult {
       if (pos != 0) {
         whereClause.append("AND ");
       }
-      whereClause.append("`").append(key).append("` = ? ");
+      whereClause.append(quoteIdentifier(key)).append(" = ? ");
     }
 
     for (int pos = 0; pos < metadataList.length; pos++) {
@@ -660,7 +675,7 @@ public class UpdatableResult extends CompleteResult {
           updateSql.append(",");
         }
         firstUpdate = false;
-        updateSql.append("`").append(colInfo.getColumnName()).append("` = ? ");
+        updateSql.append(quoteIdentifier(colInfo.getColumnName())).append(" = ? ");
       }
     }
     if (firstUpdate) return null;
@@ -742,7 +757,8 @@ public class UpdatableResult extends CompleteResult {
 
     // Create query with WHERE clause contain primary field.
     StringBuilder deleteSql =
-        new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
+        new StringBuilder(
+            "DELETE FROM " + quoteIdentifier(database) + "." + quoteIdentifier(table) + " WHERE ");
     boolean firstPrimary = true;
     for (Column colInfo : metadataList) {
       if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
@@ -750,7 +766,7 @@ public class UpdatableResult extends CompleteResult {
           deleteSql.append("AND ");
         }
         firstPrimary = false;
-        deleteSql.append("`").append(colInfo.getColumnName()).append("` = ? ");
+        deleteSql.append(quoteIdentifier(colInfo.getColumnName())).append(" = ? ");
       }
     }
 
