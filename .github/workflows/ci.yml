@@ -69,7 +69,7 @@ jobs:
 
       - name: Run Tests non windows
         if: ${{ !startsWith(matrix.os, 'windows') }}
-        run: mvn clean test ${{ matrix.java == '8' && '-P java8' || '' }} ${{ matrix.java == '11' && '-P java11' || '' }}
+        run: mvn clean test
         env:
           LOCAL_DB: ${{ steps.setup-env.outputs.database-type }}
           DB_TYPE: ${{ matrix.db-type }}
