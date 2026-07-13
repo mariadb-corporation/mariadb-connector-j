@@ -28,7 +28,19 @@ public class Reader {
   private final MutableByte sequence;
   private final ReadableByteBuf readBuf = new ReadableByteBuf(null, 0);
   private String serverThreadLog = "";
-  /** Maximum packet size (1Mb) accepted before authentication completes. */
+
+  /**
+   * Server-independent ceiling applied to received packets once authentication completes when no
+   * {@code maxAllowedPacket} is configured. Set to a quarter of the JVM max heap, clamped between
+   * 16Mb and 1Gb
+   */
+  private static final int DEFAULT_MAX_RECEIVE_PACKET =
+      (int)
+          Math.max(
+              16L * 1024 * 1024,
+              Math.min(1024L * 1024 * 1024, Runtime.getRuntime().maxMemory() / 4));
+
+  /** Maximum packet size accepted (1Mb before authentication completes). */
   private Integer maxAllowedPacket = 1024 * 1024;
 
   /**
@@ -172,10 +184,12 @@ public class Reader {
    * handshake/authentication phase is over to raise the limit from the 1Mb connection-phase cap to
    * the configured {@code maxAllowedPacket}.
    *
-   * @param maxAllowedPacket maximum received packet size, or {@code null} for no limit
+   * @param maxAllowedPacket maximum received packet size, or {@code null} to use the default
+   *     heap-relative ceiling
    */
   public void setMaxAllowedPacket(Integer maxAllowedPacket) {
-    this.maxAllowedPacket = maxAllowedPacket;
+    this.maxAllowedPacket =
+        (maxAllowedPacket != null) ? maxAllowedPacket : DEFAULT_MAX_RECEIVE_PACKET;
   }
 
   private void checkMaxAllowedLength(long length) throws MaxAllowedPacketException {

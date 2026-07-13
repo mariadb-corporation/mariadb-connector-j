@@ -2127,9 +2127,11 @@ public class Configuration {
 
   /**
    * Maximum size (in bytes) of a packet the driver will send or receive. When set, this value is
-   * advertised to the server during the handshake, used
-   * to reject a command whose size would exceed it, and used to reject an oversized packet received
-   * from the server. When {@code null}, no client-side limit is enforced.
+   * advertised to the server during the handshake, used to reject a command whose size would exceed
+   * it, and used to reject an oversized packet received from the server. When {@code null}, no
+   * client-side limit is enforced on the send side, and the receive side falls back to a
+   * server-independent heap-relative ceiling (a quarter of the JVM max heap, clamped between 16Mb
+   * and 1Gb).
    *
    * @return max_allowed_packet value
    */
@@ -3521,8 +3523,9 @@ public class Configuration {
      * Maximum size (in bytes) of a packet the driver will send or receive. This is advertised to
      * the server during the handshake (capped to 16Mb for the connection phase), lets the driver
      * reject a command too big to send (which would make the server drop the connection), and
-     * rejects an oversized packet received from the server. Leave unset to enforce no client-side
-     * limit.
+     * rejects an oversized packet received from the server. Leave unset to enforce no send-side
+     * limit; the receive side then falls back to a server-independent heap-relative ceiling (a
+     * quarter of the JVM max heap, clamped between 16Mb and 1Gb).
      *
      * @param maxAllowedPacket maximum packet size the driver will send or receive
      * @return this {@link Builder}

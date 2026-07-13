@@ -15,9 +15,8 @@ import org.mariadb.jdbc.client.util.MutableByte;
 
 /**
  * {@link Reader} enforces a maximum received-packet size. Until authentication completes the limit
- * is 1Mb. Once authentication is over {@link
- * Reader#setMaxAllowedPacket(Integer)} raises (or lowers) it to the configured {@code
- * maxAllowedPacket}.
+ * is 1Mb. Once authentication is over {@link Reader#setMaxAllowedPacket(Integer)} raises (or
+ * lowers) it to the configured {@code maxAllowedPacket}.
  */
 public class ReaderMultiPacketTest {
 
@@ -74,9 +73,9 @@ public class ReaderMultiPacketTest {
   }
 
   @Test
-  void setMaxAllowedPacket_allowsReassemblyOncePermitted() throws Exception {
-    // once authentication is done and the limit is raised (null = unlimited), a full 16Mb fragment
-    // followed by a short terminating fragment must reassemble instead of being rejected.
+  void setMaxAllowedPacket_allowsReassemblyWithinLimit() throws Exception {
+    // once authentication is done and the limit is raised above the reassembled size, a full 16Mb
+    // fragment followed by a short terminating fragment must reassemble instead of being rejected.
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     writeHeader(out, MAX_PACKET_SIZE, (byte) 0);
     out.write(new byte[MAX_PACKET_SIZE], 0, MAX_PACKET_SIZE);
@@ -84,7 +83,7 @@ public class ReaderMultiPacketTest {
     out.write(new byte[] {0x42}, 0, 1);
 
     Reader reader = reader(out.toByteArray());
-    reader.setMaxAllowedPacket(null);
+    reader.setMaxAllowedPacket(MAX_PACKET_SIZE + 1);
     assertEquals(MAX_PACKET_SIZE + 1, reader.readPacket(false).length);
   }
 
