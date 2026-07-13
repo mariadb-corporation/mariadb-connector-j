@@ -79,7 +79,7 @@ public class TcpProxySocket implements Runnable {
   }
 
   public void sendRst() {
-
+    stop = true;
     Socket c = client;
     try {
       if (c != null) {

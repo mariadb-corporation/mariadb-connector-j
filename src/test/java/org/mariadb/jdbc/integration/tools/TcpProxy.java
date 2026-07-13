@@ -60,6 +60,7 @@ public class TcpProxy {
 
   public void forceClose() {
     socket.sendRst();
+    socket.awaitStop(500);
   }
 
   /** Restart proxy. */
