@@ -39,7 +39,7 @@ public class Writer {
   private final int maxQuerySizeToLog;
   private final OutputStream out;
   private final int maxPacketLength = MAX_PACKET_LENGTH;
-  private final Integer maxAllowedPacket;
+  private Integer maxAllowedPacket;
 
   /** internal buffer */
   protected byte[] buf;
@@ -761,6 +761,17 @@ public class Writer {
     return maxAllowedPacket != null
         ? cmdLength + length >= maxAllowedPacket
         : cmdLength + length >= 0xFFFFFF;
+  }
+
+  /**
+   * Set the maximum size (in bytes) of a packet the writer will send. Called once the
+   * handshake/authentication phase is over to raise the limit from the 16Mb connection-phase cap to
+   * the configured {@code maxAllowedPacket}.
+   *
+   * @param maxAllowedPacket maximum packet size to send, or {@code null} for no explicit limit
+   */
+  public void setMaxAllowedPacket(Integer maxAllowedPacket) {
+    this.maxAllowedPacket = maxAllowedPacket;
   }
 
   public void permitTrace(boolean permitTrace) {

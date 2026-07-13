@@ -10,6 +10,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableByte;
+import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.LoggerHelper;
 import org.mariadb.jdbc.util.log.Loggers;
@@ -27,7 +28,8 @@ public class Reader {
   private final MutableByte sequence;
   private final ReadableByteBuf readBuf = new ReadableByteBuf(null, 0);
   private String serverThreadLog = "";
-  private boolean permitMultiPacket = false;
+  /** Maximum packet size (1Mb) accepted before authentication completes. */
+  private Integer maxAllowedPacket = 1024 * 1024;
 
   /**
    * Constructor of standard socket MySQL packet stream reader.
@@ -53,6 +55,7 @@ public class Reader {
 
   public ReadableByteBuf readReusablePacket(boolean traceEnable) throws IOException {
     int lastPacketLength = readHeader();
+    checkMaxAllowedLength(lastPacketLength);
     sequence.set(header[3]);
 
     byte[] rawBytes;
@@ -100,6 +103,7 @@ public class Reader {
    */
   public byte[] readPacket(boolean traceEnable) throws IOException {
     int packetLength = readHeader();
+    checkMaxAllowedLength(packetLength);
     byte[] rawBytes = new byte[packetLength];
 
     // Read content
@@ -128,14 +132,10 @@ public class Reader {
 
     // Handle large packets
     if (packetLength == MAX_PACKET_SIZE) {
-      if (!permitMultiPacket) {
-        throw new IOException(
-            "unexpected multipart packet (>16Mb) during connection/authentication phase: packet"
-                + " reassembly is not permitted before authentication completes");
-      }
       do {
         packetLength = readHeader();
         int currentLength = rawBytes.length;
+        checkMaxAllowedLength((long) currentLength + packetLength);
         byte[] newRawBytes = new byte[currentLength + packetLength];
         System.arraycopy(rawBytes, 0, newRawBytes, 0, currentLength);
         rawBytes = newRawBytes;
@@ -168,12 +168,26 @@ public class Reader {
   }
 
   /**
-   * Permit the multipart reassembly triggered by max-length (16Mb) packets. Must be called once the
-   * handshake/authentication phase is over: before that point reassembly is rejected to avoid an
-   * unauthenticated peer forcing unbounded buffer growth. A single 16Mb packet is always allowed.
+   * Set the maximum size (in bytes) of a packet the reader will accept. Called once the
+   * handshake/authentication phase is over to raise the limit from the 1Mb connection-phase cap to
+   * the configured {@code maxAllowedPacket}.
+   *
+   * @param maxAllowedPacket maximum received packet size, or {@code null} for no limit
    */
-  public void permitMultiPacket() {
-    this.permitMultiPacket = true;
+  public void setMaxAllowedPacket(Integer maxAllowedPacket) {
+    this.maxAllowedPacket = maxAllowedPacket;
+  }
+
+  private void checkMaxAllowedLength(long length) throws MaxAllowedPacketException {
+    if (maxAllowedPacket != null && length > maxAllowedPacket) {
+      throw new MaxAllowedPacketException(
+          "received packet size ("
+              + length
+              + ") is greater than maxAllowedPacket ("
+              + maxAllowedPacket
+              + ")",
+          true);
+    }
   }
 
   public MutableByte getSequence() {

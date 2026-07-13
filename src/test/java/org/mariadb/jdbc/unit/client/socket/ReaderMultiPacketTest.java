@@ -14,41 +14,38 @@ import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.util.MutableByte;
 
 /**
- * Guards CONJ-1332: {@link Reader} must refuse the multipart reassembly triggered by max-length
- * (16Mb) packets until authentication has completed. A single 16Mb packet is fine, but growing the
- * buffer beyond it would let a malicious or MitM'd server stream endless max-length fragments and
- * exhaust client memory before authentication.
+ * {@link Reader} enforces a maximum received-packet size. Until authentication completes the limit
+ * is 1Mb. Once authentication is over {@link
+ * Reader#setMaxAllowedPacket(Integer)} raises (or lowers) it to the configured {@code
+ * maxAllowedPacket}.
  */
 public class ReaderMultiPacketTest {
 
   private static final int MAX_PACKET_SIZE = 0xffffff;
 
   @Test
-  void readPacket_rejectsReassemblyBeforeAuthentication() throws Exception {
-    // a full 16Mb fragment (which announces a continuation) followed by another fragment: the first
-    // 16Mb is read, then reassembly must be refused before the buffer grows past 16Mb.
+  void readPacket_rejectsPacketBeyondConnectionPhaseCap() throws Exception {
+    // a packet larger than the 1Mb connection-phase cap must be rejected on its header, before its
+    // body is buffered.
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     writeHeader(out, MAX_PACKET_SIZE, (byte) 0);
-    out.write(new byte[MAX_PACKET_SIZE], 0, MAX_PACKET_SIZE);
-    writeHeader(out, 1, (byte) 1);
-    out.write(new byte[] {0x42}, 0, 1);
 
     Reader reader = reader(out.toByteArray());
     IOException ex = assertThrows(IOException.class, () -> reader.readPacket(false));
     assertTrue(
-        ex.getMessage().contains("authentication"), "unexpected message: " + ex.getMessage());
+        ex.getMessage().contains("maxAllowedPacket"), "unexpected message: " + ex.getMessage());
   }
 
   @Test
-  void readReusablePacket_allowsSingleMaxLengthPacketBeforeAuthentication() throws Exception {
-    // readReusablePacket never reassembles: a single 16Mb packet is a legitimate, bounded load and
-    // must be read even during the authentication phase.
+  void readReusablePacket_rejectsPacketBeyondConnectionPhaseCap() throws Exception {
+    // same guard for the single-packet read path used during authentication.
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     writeHeader(out, MAX_PACKET_SIZE, (byte) 0);
-    out.write(new byte[MAX_PACKET_SIZE], 0, MAX_PACKET_SIZE);
 
     Reader reader = reader(out.toByteArray());
-    assertEquals(MAX_PACKET_SIZE, reader.readReusablePacket().readableBytes());
+    IOException ex = assertThrows(IOException.class, () -> reader.readReusablePacket());
+    assertTrue(
+        ex.getMessage().contains("maxAllowedPacket"), "unexpected message: " + ex.getMessage());
   }
 
   @Test
@@ -63,9 +60,23 @@ public class ReaderMultiPacketTest {
   }
 
   @Test
-  void permitMultiPacket_allowsReassembly() throws Exception {
-    // once authentication is done, a full 16Mb fragment followed by a short terminating fragment
-    // must reassemble instead of being rejected.
+  void readReusablePacket_rejectsSinglePacketBeyondMaxAllowedPacket() throws Exception {
+    // a configured maxAllowedPacket smaller than the connection-phase cap must reject even a single
+    // (non-reassembled) packet larger than the limit.
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    writeHeader(out, 200, (byte) 0);
+
+    Reader reader = reader(out.toByteArray());
+    reader.setMaxAllowedPacket(100);
+    IOException ex = assertThrows(IOException.class, () -> reader.readReusablePacket());
+    assertTrue(
+        ex.getMessage().contains("maxAllowedPacket"), "unexpected message: " + ex.getMessage());
+  }
+
+  @Test
+  void setMaxAllowedPacket_allowsReassemblyOncePermitted() throws Exception {
+    // once authentication is done and the limit is raised (null = unlimited), a full 16Mb fragment
+    // followed by a short terminating fragment must reassemble instead of being rejected.
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     writeHeader(out, MAX_PACKET_SIZE, (byte) 0);
     out.write(new byte[MAX_PACKET_SIZE], 0, MAX_PACKET_SIZE);
@@ -73,8 +84,25 @@ public class ReaderMultiPacketTest {
     out.write(new byte[] {0x42}, 0, 1);
 
     Reader reader = reader(out.toByteArray());
-    reader.permitMultiPacket();
+    reader.setMaxAllowedPacket(null);
     assertEquals(MAX_PACKET_SIZE + 1, reader.readPacket(false).length);
+  }
+
+  @Test
+  void readPacket_rejectsReassemblyBeyondConfiguredMaxAllowedPacket() throws Exception {
+    // reassembly is permitted, but a reassembled packet larger than the configured maxAllowedPacket
+    // must be rejected rather than buffered.
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    writeHeader(out, MAX_PACKET_SIZE, (byte) 0);
+    out.write(new byte[MAX_PACKET_SIZE], 0, MAX_PACKET_SIZE);
+    writeHeader(out, 1, (byte) 1);
+    out.write(new byte[] {0x42}, 0, 1);
+
+    Reader reader = reader(out.toByteArray());
+    reader.setMaxAllowedPacket(MAX_PACKET_SIZE);
+    IOException ex = assertThrows(IOException.class, () -> reader.readPacket(false));
+    assertTrue(
+        ex.getMessage().contains("maxAllowedPacket"), "unexpected message: " + ex.getMessage());
   }
 
   private static Reader reader(byte[] stream) throws Exception {

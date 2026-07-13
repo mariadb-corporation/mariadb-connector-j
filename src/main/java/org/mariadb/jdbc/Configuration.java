@@ -2126,8 +2126,10 @@ public class Configuration {
   }
 
   /**
-   * max_allowed_packet value to avoid sending packet with non supported size, droping the
-   * connection without reason.
+   * Maximum size (in bytes) of a packet the driver will send or receive. When set, this value is
+   * advertised to the server during the handshake, used
+   * to reject a command whose size would exceed it, and used to reject an oversized packet received
+   * from the server. When {@code null}, no client-side limit is enforced.
    *
    * @return max_allowed_packet value
    */
@@ -3516,10 +3518,13 @@ public class Configuration {
     }
 
     /**
-     * Indicate to driver server max_allowed_packet. This permit to driver to avoid sending commands
-     * too big, that would have make server to drop connection
+     * Maximum size (in bytes) of a packet the driver will send or receive. This is advertised to
+     * the server during the handshake (capped to 16Mb for the connection phase), lets the driver
+     * reject a command too big to send (which would make the server drop the connection), and
+     * rejects an oversized packet received from the server. Leave unset to enforce no client-side
+     * limit.
      *
-     * @param maxAllowedPacket indicate server max_allowed_packet value
+     * @param maxAllowedPacket maximum packet size the driver will send or receive
      * @return this {@link Builder}
      */
     public Builder maxAllowedPacket(Integer maxAllowedPacket) {

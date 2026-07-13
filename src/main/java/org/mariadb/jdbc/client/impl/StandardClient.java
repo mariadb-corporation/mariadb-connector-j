@@ -186,7 +186,10 @@ public class StandardClient implements Client, AutoCloseable {
     handleAuthentication(handshake, clientCapabilities);
     setupCompression(in, out, clientCapabilities, handshake.getThreadId());
 
-    this.reader.permitMultiPacket();
+    // authentication is over: raise the send/receive limit from the 1Mb connection-phase cap to
+    // the configured maxAllowedPacket (null = no explicit limit).
+    this.writer.setMaxAllowedPacket(conf.maxAllowedPacket());
+    this.reader.setMaxAllowedPacket(conf.maxAllowedPacket());
 
     // From now on, any server-side charset change to non-utf8 (i.e. a user SET NAMES) is
     // rejected by BaseContext.setCharset, which closes the socket via the connection-closer
@@ -705,9 +708,10 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
+    // start with the 1Mb connection-phase cap; raised to conf.maxAllowedPacket() once
+    // authentication completes (see connect()).
     this.writer =
-        new Writer(
-            out, conf.maxQuerySizeToLog(), conf.maxAllowedPacket(), sequence, compressionSequence);
+        new Writer(out, conf.maxQuerySizeToLog(), 1024 * 1024, sequence, compressionSequence);
     this.writer.setServerThreadId(threadId, hostAddress);
     this.reader = new Reader(in, conf, sequence);
     this.reader.setServerThreadId(threadId, hostAddress);

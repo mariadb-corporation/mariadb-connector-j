@@ -44,6 +44,7 @@ public final class HandshakeResponse implements ClientMessage {
   private final long clientCapabilities;
   private final byte exchangeCharset;
   private final byte[] seed;
+  private final Integer maxAllowedPacket;
   private String authenticationPluginType;
 
   /**
@@ -74,6 +75,7 @@ public final class HandshakeResponse implements ClientMessage {
     this.host = host;
     this.clientCapabilities = clientCapabilities;
     this.exchangeCharset = exchangeCharset;
+    this.maxAllowedPacket = conf.maxAllowedPacket();
   }
 
   private static void writeStringLengthAscii(Writer encoder, String value) throws IOException {
@@ -146,7 +148,8 @@ public final class HandshakeResponse implements ClientMessage {
     }
 
     writer.writeInt((int) clientCapabilities);
-    writer.writeInt(1024 * 1024 * 1024);
+    writer.writeInt(
+        maxAllowedPacket != null ? Math.min(maxAllowedPacket, 0xffffff) : 1024 * 1024 * 1024);
     writer.writeByte(exchangeCharset); // 1
 
     writer.writeBytes(new byte[19]); // 19
