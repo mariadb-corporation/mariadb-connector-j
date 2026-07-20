@@ -639,6 +639,9 @@
                             <showWarnings>true</showWarnings>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options,-path,-processing</arg>
+                                <!-- JDK 23+ no longer runs classpath annotation processors
+                                     by default; JMH's generator must be enabled explicitly. -->
+                                <arg>-proc:full</arg>
                             </compilerArgs>
                             <source>1.8</source>
                             <target>1.8</target>
