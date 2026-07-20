@@ -130,7 +130,11 @@ public interface Client extends AutoCloseable {
   void close() throws SQLException;
 
   /**
-   * Switch to a writer/read-only connection, no effet on mono-connection
+   * Switch to a write/read-only connection. In a replica topology this routes between the
+   * primary and a replica. When {@code readOnlyPropagatesToServer} is enabled, it additionally
+   * issues {@code SET SESSION TRANSACTION READ ONLY / READ WRITE} to the server on every topology
+   * (single-host and multi-host alike). When it is disabled, {@code setReadOnly} issues no such
+   * statement on any topology; only the routing above applies.
    *
    * @param readOnly must use read-only connection
    * @throws SQLException if any error occurs

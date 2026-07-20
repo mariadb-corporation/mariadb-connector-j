@@ -1262,6 +1262,39 @@ public class ConnectionTest extends Common {
         "Connection is closed");
   }
 
+  private boolean serverTransactionReadOnly(Connection con) throws SQLException {
+    String var =
+        ((org.mariadb.jdbc.Connection) con).getContext().canUseTransactionIsolation()
+            ? "transaction_read_only"
+            : "tx_read_only";
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@session." + var)) {
+      assertTrue(rs.next());
+      return rs.getBoolean(1);
+    }
+  }
+
+  @Test
+  public void setReadOnlyPropagatesWhenEnabled() throws SQLException {
+    try (Connection con = createCon("readOnlyPropagatesToServer=true")) {
+      assertFalse(serverTransactionReadOnly(con));
+      con.setReadOnly(true);
+      assertTrue(serverTransactionReadOnly(con));
+      con.setReadOnly(false);
+      assertFalse(serverTransactionReadOnly(con));
+    }
+  }
+
+  @Test
+  public void setReadOnlyNoPropagationByDefault() throws SQLException {
+    try (Connection con = createCon()) {
+      assertFalse(serverTransactionReadOnly(con));
+      con.setReadOnly(true);
+      // option off (default): nothing is sent to the server, session state stays read-write
+      assertFalse(serverTransactionReadOnly(con));
+    }
+  }
+
   @Test
   public void timezone() throws SQLException {
     try (Connection con = createCon("timezone=GMT-8")) {

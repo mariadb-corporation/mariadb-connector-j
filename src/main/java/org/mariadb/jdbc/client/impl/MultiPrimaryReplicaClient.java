@@ -31,7 +31,6 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
 
   private Client replicaClient;
   private Client primaryClient;
-  private boolean requestReadOnly;
   private long nextTryReplica = -1;
   private long nextTryPrimary = -1;
 
@@ -261,9 +260,12 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
     }
+    boolean wasReadOnly = requestReadOnly;
+    // update before any syncNewState() call so syncReadOnlyState() replays the target direction
+    requestReadOnly = readOnly;
     if (readOnly) {
       // changed ?
-      if (!requestReadOnly) {
+      if (!wasReadOnly) {
         Client oldCli = currentClient;
         if (replicaClient != null) {
           currentClient = replicaClient;
@@ -281,10 +283,13 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
             nextTryReplica = System.currentTimeMillis() + waitTimeout;
           }
         }
+        // Note: if no replica is reachable here the connection stays on the primary and
+        // no syncNewState() runs, so with readOnlyPropagatesToServer=true the primary is NOT put in
+        // read-only mode.
       }
     } else {
       // changed ?
-      if (requestReadOnly) {
+      if (wasReadOnly) {
         Client oldCli = currentClient;
         if (primaryClient != null) {
           currentClient = primaryClient;
@@ -307,7 +312,6 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
         }
       }
     }
-    requestReadOnly = readOnly;
   }
 
   @Override

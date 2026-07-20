@@ -1034,6 +1034,12 @@ public class StandardClient implements Client, AutoCloseable {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
     }
+    if (conf.readOnlyPropagatesToServer()
+        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+      execute(
+          new QueryPacket("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")),
+          true);
+    }
   }
 
   /**

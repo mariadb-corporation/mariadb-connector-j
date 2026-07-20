@@ -55,6 +55,9 @@ public class MultiPrimaryClient implements Client {
   /** current client */
   protected Client currentClient;
 
+  /** last requested read-only state, replayed onto the new server on failover */
+  protected boolean requestReadOnly = false;
+
   /**
    * Constructor
    *
@@ -352,12 +355,20 @@ public class MultiPrimaryClient implements Client {
     if (!isReadOnlySyncRequired(oldCtx)) {
       return;
     }
-    currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"), true);
+    if (conf.readOnlyPropagatesToServer()) {
+      // symmetric propagation: apply the requested state on any host (primary included)
+      currentClient.execute(
+          new QueryPacket(
+              "SET SESSION TRANSACTION " + (requestReadOnly ? "READ ONLY" : "READ WRITE")),
+          true);
+    } else if (!currentClient.getHostAddress().primary) {
+      // legacy behavior: replica hosts only, read-only direction only
+      currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"), true);
+    }
   }
 
   private boolean isReadOnlySyncRequired(Context oldCtx) {
     return (oldCtx.getStateFlag() & ConnectionState.STATE_READ_ONLY) > 0
-        && !currentClient.getHostAddress().primary
         && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5);
   }
 
@@ -593,6 +604,8 @@ public class MultiPrimaryClient implements Client {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
     }
+    currentClient.setReadOnly(readOnly);
+    this.requestReadOnly = readOnly;
   }
 
   @Override

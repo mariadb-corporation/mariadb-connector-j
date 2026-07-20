@@ -203,6 +203,7 @@ public class Configuration {
   private String galeraAllowedState;
   private boolean transactionReplay;
   private int transactionReplaySize;
+  private boolean readOnlyPropagatesToServer;
   private boolean useIpForKillQuery;
 
   // Pool options
@@ -469,6 +470,8 @@ public class Configuration {
     this.transactionReplay = builder.transactionReplay != null && builder.transactionReplay;
     this.transactionReplaySize =
         builder.transactionReplaySize != null ? builder.transactionReplaySize : 64;
+    this.readOnlyPropagatesToServer =
+        builder.readOnlyPropagatesToServer != null && builder.readOnlyPropagatesToServer;
     this.useIpForKillQuery = builder.useIpForKillQuery != null && builder.useIpForKillQuery;
     this.geometryDefaultType = builder.geometryDefaultType;
     this.restrictedAuth = builder.restrictedAuth;
@@ -659,6 +662,7 @@ public class Configuration {
             .galeraAllowedState(this.galeraAllowedState)
             .transactionReplay(this.transactionReplay)
             .transactionReplaySize(this.transactionReplaySize)
+            .readOnlyPropagatesToServer(this.readOnlyPropagatesToServer)
             .useIpForKillQuery(this.useIpForKillQuery)
             .pool(this.pool)
             .poolName(this.poolName)
@@ -2280,6 +2284,16 @@ public class Configuration {
   }
 
   /**
+   * Connection.setReadOnly() must propagate the read-only state to the server by issuing SET SESSION
+   * TRANSACTION READ ONLY / READ WRITE (default false).
+   *
+   * @return true if setReadOnly() propagates read-only state to the server.
+   */
+  public boolean readOnlyPropagatesToServer() {
+    return readOnlyPropagatesToServer;
+  }
+
+  /**
    * Whether {@link Connection#cancelCurrentQuery()} should reuse the current socket IP instead of
    * the original hostname when opening the kill connection. Default {@code false}.
    *
@@ -2481,6 +2495,7 @@ public class Configuration {
     private String galeraAllowedState;
     private Boolean transactionReplay;
     private Integer transactionReplaySize;
+    private Boolean readOnlyPropagatesToServer;
     private Boolean useIpForKillQuery;
 
     // Pool options
@@ -3705,6 +3720,18 @@ public class Configuration {
      */
     public Builder transactionReplaySize(Integer transactionReplaySize) {
       this.transactionReplaySize = transactionReplaySize;
+      return this;
+    }
+
+    /**
+     * When enabled, Connection.setReadOnly() issues SET SESSION TRANSACTION READ ONLY / READ WRITE
+     * to the server (default false).
+     *
+     * @param readOnlyPropagatesToServer propagate read-only state to server on setReadOnly()
+     * @return this {@link Builder}
+     */
+    public Builder readOnlyPropagatesToServer(Boolean readOnlyPropagatesToServer) {
+      this.readOnlyPropagatesToServer = readOnlyPropagatesToServer;
       return this;
     }
 

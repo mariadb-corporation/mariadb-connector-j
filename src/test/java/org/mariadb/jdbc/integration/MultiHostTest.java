@@ -141,6 +141,127 @@ public class MultiHostTest extends Common {
     }
   }
 
+  private boolean serverTransactionReadOnly(Connection con) throws SQLException {
+    String var =
+        con.getContext().canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only";
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@session." + var)) {
+      assertTrue(rs.next());
+      return rs.getBoolean(1);
+    }
+  }
+
+  @Test
+  public void setReadOnlyPropagatesMultiPrimary() throws SQLException {
+    // with only-primary hosts -> MultiPrimaryClient
+    String url =
+        mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:")
+            + "&readOnlyPropagatesToServer=true";
+    try (Connection con = (Connection) DriverManager.getConnection(url)) {
+      assertFalse(serverTransactionReadOnly(con));
+      con.setReadOnly(true);
+      assertTrue(serverTransactionReadOnly(con));
+      con.setReadOnly(false);
+      assertFalse(serverTransactionReadOnly(con));
+    }
+  }
+
+  @Test
+  public void setReadOnlyPropagatesReplication() throws SQLException {
+    // primary + replica (proxy) -> MultiPrimaryReplicaClient
+    try (Connection con =
+        createProxyConKeep(
+            "&readOnlyPropagatesToServer=true&waitReconnectTimeout=300&deniedListTimeout=300")) {
+      assertFalse(serverTransactionReadOnly(con)); // primary
+      con.setReadOnly(true);
+      assertTrue(serverTransactionReadOnly(con)); // routed to replica
+      con.setReadOnly(false);
+      assertFalse(serverTransactionReadOnly(con)); // back on primary
+    }
+  }
+
+  @Test
+  public void setReadOnlyNoPropagationMultiPrimary() throws SQLException {
+    String url = mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+    try (Connection con = (Connection) DriverManager.getConnection(url)) {
+      assertFalse(serverTransactionReadOnly(con));
+      con.setReadOnly(true);
+      assertFalse(serverTransactionReadOnly(con)); // default: no propagation
+    }
+  }
+
+  @Test
+  public void setReadOnlyReplicationDefaultRouting() throws SQLException {
+    // without the flag: setReadOnly still ROUTES to the replica, which is read-only
+    // from connect time (addReadOnlyCommand), not from our propagation. This guards that flag-off
+    // routing behavior is unchanged.
+    try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
+      assertFalse(serverTransactionReadOnly(con)); // primary
+      con.setReadOnly(true);
+      assertTrue(serverTransactionReadOnly(con)); // replica: read-only at connect, not via our flag
+      con.setReadOnly(false);
+      assertFalse(serverTransactionReadOnly(con)); // primary
+    }
+  }
+
+  @Test
+  public void setReadOnlyReplayedOnFailover() throws Exception {
+    // MultiPrimaryClient (all-primary) failover: setReadOnly(true) must be REPLAYED onto the host
+    // we fail over to. syncReadOnlyState() is shared by both multi-host clients, but this is the
+    // only topology where its effect is observable: the reconnected primary is a brand-new session
+    // (transaction_read_only defaults to 0), so unless the read-only direction is replayed there it
+    // comes back read-write. (In a replica topology the replica is already read-only from connect
+    // time and the primary read-write by default, so the same replay is masked and untestable.)
+    Assumptions.assumeTrue(!isMaxscale());
+
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    try {
+      proxy = new TcpProxy(hostAddress.host, hostAddress.port);
+    } catch (IOException i) {
+      throw new SQLException("proxy error", i);
+    }
+
+    // two primaries: the proxy-fronted host is used first, the direct host is the failover target.
+    String url =
+        mDefUrl.replaceAll(
+            "//(" + hostname + "|" + hostname + ":" + port + ")/" + database,
+            String.format(
+                "//address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/"
+                    + database,
+                proxy.getLocalPort(),
+                hostAddress.host,
+                hostAddress.port));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    try (Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "&readOnlyPropagatesToServer=true&waitReconnectTimeout=300"
+                    + "&retriesAllDown=10&connectTimeout=500&deniedListTimeout=300&socketTimeout=500")) {
+      long firstThreadId = con.getThreadId();
+
+      con.setReadOnly(true);
+      // propagated on the current (proxy-fronted) primary by StandardClient.setReadOnly
+      assertTrue(serverTransactionReadOnly(con));
+
+      // current primary becomes unreachable; isValid() transparently fails over to the direct one.
+      proxy.stop();
+      con.isValid(1000);
+
+      // the reconnected primary is a fresh session, so this is true only if the read-only direction
+      // was replayed via syncNewState() -> syncReadOnlyState().
+      assertTrue(serverTransactionReadOnly(con));
+      assertTrue(
+          con.getThreadId() != firstThreadId,
+          "connection should have failed over to the other primary");
+    }
+  }
+
   @Test
   public void syncState() throws Exception {
     try (Connection con = createProxyConKeep("")) {
