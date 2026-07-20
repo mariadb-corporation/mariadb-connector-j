@@ -145,6 +145,18 @@ public final class ReadableByteBuf {
     }
   }
 
+  /**
+   * Read a length-encoded integer as an int.
+   *
+   * <p>Length-encoded integers are unsigned on the wire, so a value that does not fit a
+   * non-negative int is malformed. Every caller uses the result as a length or a count, so
+   * returning it verbatim would let a server drive negative array sizes
+   * ({@link NegativeArraySizeException}) or silently truncate to an unrelated value. The range is
+   * validated here rather than at each call site.
+   *
+   * @return decoded value, always in range [0, {@link Integer#MAX_VALUE}]
+   * @throws IllegalArgumentException if the encoded value does not fit a non-negative int
+   */
   public int readIntLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
     if (type < 251) return type;
@@ -154,7 +166,12 @@ public final class ReadableByteBuf {
       case 253:
         return readUnsignedMedium();
       case 254:
-        return (int) readLong();
+        long val = readLong();
+        if (val < 0 || val > Integer.MAX_VALUE) {
+          throw new IllegalArgumentException(
+              "invalid length-encoded value: " + Long.toUnsignedString(val));
+        }
+        return (int) val;
       default:
         return type;
     }
