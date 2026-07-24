@@ -1263,6 +1263,36 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void readOnlyPropagatesToServer() throws SQLException {
+    Assumptions.assumeFalse(isMaxscale());
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS readOnlyProp");
+    stmt.execute("CREATE TABLE readOnlyProp(id int)");
+    try {
+      // enabled by default: setReadOnly(true) propagates to the server, which then rejects DML
+      try (Connection con = createCon()) {
+        con.setReadOnly(true);
+        Statement s = con.createStatement();
+        Common.assertThrowsContains(
+            SQLException.class,
+            () -> s.executeUpdate("INSERT INTO readOnlyProp VALUES (1)"),
+            "READ ONLY");
+        // setReadOnly(false) restores read-write mode on the server
+        con.setReadOnly(false);
+        assertEquals(1, s.executeUpdate("INSERT INTO readOnlyProp VALUES (2)"));
+      }
+      // disabled: legacy behavior, no statement sent, DML still allowed while read-only
+      try (Connection con = createCon("&readOnlyPropagatesToServer=false")) {
+        con.setReadOnly(true);
+        assertEquals(
+            1, con.createStatement().executeUpdate("INSERT INTO readOnlyProp VALUES (3)"));
+      }
+    } finally {
+      stmt.execute("DROP TABLE IF EXISTS readOnlyProp");
+    }
+  }
+
+  @Test
   public void timezone() throws SQLException {
     try (Connection con = createCon("timezone=GMT-8")) {
       Statement statement = con.createStatement();

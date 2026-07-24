@@ -65,6 +65,9 @@ public class BaseContext implements Context {
   /** Connection state use flag */
   private int stateFlag = 0;
 
+  /** Read-only state currently applied on the server session */
+  private boolean serverReadOnly = false;
+
   private String redirectUrl = null;
 
   private TimeZone connectionTimeZone = null;
@@ -233,6 +236,14 @@ public class BaseContext implements Context {
 
   public void addStateFlag(int state) {
     stateFlag |= state;
+  }
+
+  public boolean isServerReadOnly() {
+    return serverReadOnly;
+  }
+
+  public void setServerReadOnly(boolean serverReadOnly) {
+    this.serverReadOnly = serverReadOnly;
   }
 
   public void setTreadsConnected(long threadsConnected) {

@@ -251,6 +251,23 @@ public interface Context {
   void addStateFlag(int state);
 
   /**
+   * Read-only state currently applied on the server session, i.e. whether the last effective {@code
+   * SET SESSION TRANSACTION READ ONLY / READ WRITE} left the session read-only. Used with the
+   * {@code readOnlyPropagatesToServer} option to avoid issuing redundant statements and to replay
+   * the state on failover.
+   *
+   * @return true if the server session is currently in read-only mode
+   */
+  boolean isServerReadOnly();
+
+  /**
+   * Record the read-only state currently applied on the server session.
+   *
+   * @param serverReadOnly true if the server session is read-only
+   */
+  void setServerReadOnly(boolean serverReadOnly);
+
+  /**
    * Indicate the number of connection on this server
    *
    * @param threadsConnected number of connected threads

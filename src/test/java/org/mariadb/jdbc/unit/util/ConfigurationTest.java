@@ -142,6 +142,25 @@ public class ConfigurationTest {
   }
 
   @Test
+  public void readOnlyPropagatesToServer() throws SQLException {
+    // enabled by default
+    assertTrue(Configuration.parse("jdbc:mariadb://localhost/test").readOnlyPropagatesToServer());
+    // disabled through url
+    Configuration conf =
+        Configuration.parse("jdbc:mariadb://localhost/test?readOnlyPropagatesToServer=false");
+    assertFalse(conf.readOnlyPropagatesToServer());
+    // preserved through builder round-trip
+    assertFalse(conf.toBuilder().build().readOnlyPropagatesToServer());
+    // disabled through builder
+    assertFalse(
+        new Configuration.Builder()
+            .readOnlyPropagatesToServer(false)
+            .database("test")
+            .build()
+            .readOnlyPropagatesToServer());
+  }
+
+  @Test
   public void testDatabaseOnly() throws SQLException {
     assertEquals("DB", Configuration.parse("jdbc:mariadb://localhost/DB").database());
     assertNull(Configuration.parse("jdbc:mariadb://localhost/DB").user());

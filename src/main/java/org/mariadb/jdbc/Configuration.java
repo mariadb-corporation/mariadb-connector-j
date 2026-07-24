@@ -122,6 +122,7 @@ public class Configuration {
   private CatalogTerm useCatalogTerm;
   private boolean createDatabaseIfNotExist;
   private boolean useLocalSessionState;
+  private boolean readOnlyPropagatesToServer;
   private boolean returnMultiValuesGeneratedIds;
   private boolean jdbcCompliantTruncation;
   private boolean oldModeNoPrecisionTimestamp;
@@ -413,6 +414,8 @@ public class Configuration {
         builder.createDatabaseIfNotExist != null && builder.createDatabaseIfNotExist;
     this.useLocalSessionState =
         builder.useLocalSessionState != null && builder.useLocalSessionState;
+    this.readOnlyPropagatesToServer =
+        builder.readOnlyPropagatesToServer == null || builder.readOnlyPropagatesToServer;
     this.returnMultiValuesGeneratedIds =
         builder.returnMultiValuesGeneratedIds != null && builder.returnMultiValuesGeneratedIds;
     this.jdbcCompliantTruncation =
@@ -592,6 +595,7 @@ public class Configuration {
                 this.useCatalogTerm == CatalogTerm.UseCatalog ? CATALOG_TERM : SCHEMA_TERM)
             .createDatabaseIfNotExist(this.createDatabaseIfNotExist)
             .useLocalSessionState(this.useLocalSessionState)
+            .readOnlyPropagatesToServer(this.readOnlyPropagatesToServer)
             .returnMultiValuesGeneratedIds(this.returnMultiValuesGeneratedIds)
             .jdbcCompliantTruncation(this.jdbcCompliantTruncation)
             .oldModeNoPrecisionTimestamp(this.oldModeNoPrecisionTimestamp)
@@ -2007,6 +2011,21 @@ public class Configuration {
   }
 
   /**
+   * When enabled (the default), {@link java.sql.Connection#setReadOnly(boolean)} on a single-host
+   * connection propagates the read-only state to the server by issuing {@code SET SESSION
+   * TRANSACTION READ ONLY} / {@code READ WRITE}, for servers &gt;= 5.6.5. This lets the server (and
+   * engines that can use it) reject DML on a read-only connection and take an optimistic read-only
+   * transaction path. Multi-host replica connections are already put in read-only mode at
+   * connection time, so this option does not change their behavior. When disabled, {@code
+   * setReadOnly()} sends no statement on a single-host connection.
+   *
+   * @return true if {@code setReadOnly()} propagates the read-only state to the server
+   */
+  public boolean readOnlyPropagatesToServer() {
+    return readOnlyPropagatesToServer;
+  }
+
+  /**
    * Returns multi-values generated ids. For mariadb 2.x connector compatibility
    *
    * @return must returns multi-values generated ids.
@@ -2420,6 +2439,7 @@ public class Configuration {
     private String useCatalogTerm;
     private Boolean createDatabaseIfNotExist;
     private Boolean useLocalSessionState;
+    private Boolean readOnlyPropagatesToServer;
     private Boolean returnMultiValuesGeneratedIds;
     private Boolean jdbcCompliantTruncation;
     private Boolean oldModeNoPrecisionTimestamp;
@@ -3383,6 +3403,22 @@ public class Configuration {
      */
     public Builder useLocalSessionState(Boolean useLocalSessionState) {
       this.useLocalSessionState = useLocalSessionState;
+      return this;
+    }
+
+    /**
+     * When enabled (the default), {@link java.sql.Connection#setReadOnly(boolean)} on a single-host
+     * connection propagates the read-only state to the server by issuing {@code SET SESSION
+     * TRANSACTION READ ONLY} / {@code READ WRITE}, for servers &gt;= 5.6.5, so the server rejects
+     * DML on a read-only connection. Multi-host replica connections are already read-only at
+     * connection time. When disabled, {@code setReadOnly()} sends no statement on a single-host
+     * connection.
+     *
+     * @param readOnlyPropagatesToServer propagate read-only state to the server on setReadOnly()
+     * @return this {@link Builder}
+     */
+    public Builder readOnlyPropagatesToServer(Boolean readOnlyPropagatesToServer) {
+      this.readOnlyPropagatesToServer = readOnlyPropagatesToServer;
       return this;
     }
 
