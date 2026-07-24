@@ -1836,6 +1836,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private void readResultSet(Buffer buffer, Results results) throws SQLException {
     long fieldCount = buffer.getLengthEncodedNumeric();
 
+    if (fieldCount < 0 || fieldCount > options.maxAllowedColumns) {
+      throw new SQLException(
+          String.format(
+              "Server metadata announces %d columns, exceeding the maximum allowed number of columns"
+                  + " (%d) permitted by the 'maxAllowedColumns' option. This may indicate a malicious"
+                  + " proxy attempting to exhaust client memory. Command interrupted.",
+              fieldCount, options.maxAllowedColumns),
+          "HY000");
+    }
+
     try {
 
       // read columns information's

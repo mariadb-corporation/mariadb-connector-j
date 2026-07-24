@@ -112,6 +112,7 @@ public class Options implements Cloneable {
   public boolean log;
   public boolean profileSql;
   public int maxQuerySizeToLog = 1024;
+  public int maxAllowedColumns = 65535;
   public Long slowQueryThresholdNanos;
 
   // HA options

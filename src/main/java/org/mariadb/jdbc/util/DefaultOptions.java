@@ -454,6 +454,17 @@ public enum DefaultOptions {
       false),
   PROFILE_SQL("profileSql", Boolean.FALSE, "1.5.0", "log query execution time.", false),
   MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, "1.5.0", "Max query log size.", false),
+  MAX_ALLOWED_COLUMNS(
+      "maxAllowedColumns",
+      65535,
+      0,
+      "2.7.14",
+      "Maximum number of columns the driver will accept in result-set or prepare metadata received "
+          + "from the server. Reading column metadata allocates memory proportional to the announced "
+          + "column count, so a malicious proxy announcing a huge count could exhaust client memory. "
+          + "When the server announces more columns than this limit, the command is interrupted with "
+          + "an error.",
+      false),
   SLOW_QUERY_TIME(
       "slowQueryThresholdNanos",
       null,
