@@ -1209,14 +1209,15 @@ public class PreparedStatementTest extends Common {
       sb.append(",?");
     }
     String sql = sb.toString();
-
-    try (PreparedStatement st = sharedConnBinary.prepareStatement(sql)) {
-      for (int i = 1; i <= 100000; i++) {
-        st.setInt(i, rnds[i - 1]);
+    try (Connection con = createCon("&maxAllowedColumns=200000&useServerPrepStmts")) {
+      try (PreparedStatement st = con.prepareStatement(sql)) {
+        for (int i = 1; i <= 100000; i++) {
+          st.setInt(i, rnds[i - 1]);
+        }
+        st.executeQuery();
       }
-      st.executeQuery();
+      assertTrue(con.isValid(1));
     }
-    assertTrue(sharedConnBinary.isValid(1));
   }
 
   @Test
@@ -1567,7 +1568,10 @@ public class PreparedStatementTest extends Common {
     for (int i = 1; i < 100_000; i++) {
       sb.append(",?");
     }
-    try (PreparedStatement stmt = sharedConnBinary.prepareStatement(sb.toString())) {
+    // a SELECT with 100_000 placeholders returns a 100_000-column result-set, above the default
+    // maxAllowedColumns (65535), so raise the limit for this connection.
+    try (Connection con = createCon("&maxAllowedColumns=200000&useServerPrepStmts");
+        PreparedStatement stmt = con.prepareStatement(sb.toString())) {
       for (int i = 0; i < 100_000; i++) {
         stmt.setInt(i + 1, i);
       }

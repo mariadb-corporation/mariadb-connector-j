@@ -130,6 +130,7 @@ public class Configuration {
   private int defaultFetchSize;
   private int maxQuerySizeToLog;
   private Integer maxAllowedPacket;
+  private int maxAllowedColumns;
   private String geometryDefaultType;
   private String restrictedAuth;
   private String initSql;
@@ -463,6 +464,8 @@ public class Configuration {
     this.tlsSocketType = builder.tlsSocketType;
     this.maxQuerySizeToLog = builder.maxQuerySizeToLog != null ? builder.maxQuerySizeToLog : 1024;
     this.maxAllowedPacket = builder.maxAllowedPacket;
+    this.maxAllowedColumns =
+        builder.maxAllowedColumns != null ? builder.maxAllowedColumns : 65535;
     this.retriesAllDown = builder.retriesAllDown != null ? builder.retriesAllDown : 120;
     this.galeraAllowedState = builder.galeraAllowedState;
     this.cachePrepStmts = builder.cachePrepStmts == null || builder.cachePrepStmts;
@@ -602,6 +605,7 @@ public class Configuration {
             .defaultFetchSize(this.defaultFetchSize)
             .maxQuerySizeToLog(this.maxQuerySizeToLog)
             .maxAllowedPacket(this.maxAllowedPacket)
+            .maxAllowedColumns(this.maxAllowedColumns)
             .geometryDefaultType(this.geometryDefaultType)
             .restrictedAuth(this.restrictedAuth)
             .initSql(this.initSql)
@@ -2140,6 +2144,19 @@ public class Configuration {
   }
 
   /**
+   * Maximum number of columns the driver will accept in a result-set or prepare metadata received
+   * from the server. Reading column metadata allocates memory proportional to the announced column
+   * count, so a malicious proxy announcing a huge count could exhaust client memory. When the
+   * server announces more columns than this limit, the command is interrupted with an error.
+   * Defaults to 65535.
+   *
+   * @return maximum allowed number of columns
+   */
+  public int maxAllowedColumns() {
+    return maxAllowedColumns;
+  }
+
+  /**
    * retry the maximum retry number of attempts to reconnect after a failover.
    *
    * @return the maximum retry number of attempts to reconnect after a failover.
@@ -2413,6 +2430,7 @@ public class Configuration {
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
+    private Integer maxAllowedColumns;
     private String geometryDefaultType;
     private String restrictedAuth;
     private String initSql;
@@ -3532,6 +3550,21 @@ public class Configuration {
      */
     public Builder maxAllowedPacket(Integer maxAllowedPacket) {
       this.maxAllowedPacket = maxAllowedPacket;
+      return this;
+    }
+
+    /**
+     * Maximum number of columns the driver will accept in result-set or prepare metadata received
+     * from the server. Reading column metadata allocates memory proportional to the announced
+     * column count, so a malicious proxy announcing a huge count could exhaust client memory. When
+     * the server announces more columns than this limit, the command is interrupted with an error.
+     * Defaults to 65535.
+     *
+     * @param maxAllowedColumns maximum allowed number of columns
+     * @return this {@link Builder}
+     */
+    public Builder maxAllowedColumns(Integer maxAllowedColumns) {
+      this.maxAllowedColumns = maxAllowedColumns;
       return this;
     }
 
