@@ -247,17 +247,23 @@ public class BinaryRowProtocol extends RowProtocol {
                     return;
 
                   case 254:
-                    // length is encoded on 9 bytes (0xfe header + 8 bytes indicating length)
-                    length =
-                        (int)
-                            ((buf[internalPos++] & 0xff)
-                                + ((long) (buf[internalPos++] & 0xff) << 8)
-                                + ((long) (buf[internalPos++] & 0xff) << 16)
-                                + ((long) (buf[internalPos++] & 0xff) << 24)
-                                + ((long) (buf[internalPos++] & 0xff) << 32)
-                                + ((long) (buf[internalPos++] & 0xff) << 40)
-                                + ((long) (buf[internalPos++] & 0xff) << 48)
-                                + ((long) (buf[internalPos++] & 0xff) << 56));
+                    // length is encoded on 9 bytes (0xfe header + 8 bytes indicating length);
+                    // reject anything that does not fit a non-negative int before narrowing,
+                    // otherwise a high value would become a negative length reaching new byte[].
+                    long fieldLength =
+                        (buf[internalPos++] & 0xff)
+                            + ((long) (buf[internalPos++] & 0xff) << 8)
+                            + ((long) (buf[internalPos++] & 0xff) << 16)
+                            + ((long) (buf[internalPos++] & 0xff) << 24)
+                            + ((long) (buf[internalPos++] & 0xff) << 32)
+                            + ((long) (buf[internalPos++] & 0xff) << 40)
+                            + ((long) (buf[internalPos++] & 0xff) << 48)
+                            + ((long) (buf[internalPos++] & 0xff) << 56);
+                    if (fieldLength < 0 || fieldLength > Integer.MAX_VALUE) {
+                      throw new IllegalArgumentException(
+                          "Invalid length-encoded field length " + fieldLength);
+                    }
+                    length = (int) fieldLength;
                     this.pos = internalPos;
                     this.lastValueNull = BIT_LAST_FIELD_NOT_NULL;
                     return;

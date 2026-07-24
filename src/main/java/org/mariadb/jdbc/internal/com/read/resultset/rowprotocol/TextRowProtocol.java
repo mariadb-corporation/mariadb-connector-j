@@ -150,16 +150,23 @@ public class TextRowProtocol extends RowProtocol {
                           + ((buf[pos++] & 0xff) << 16));
               break;
             case 254:
-              length =
-                  (int)
-                      ((buf[pos++] & 0xff)
-                          + ((long) (buf[pos++] & 0xff) << 8)
-                          + ((long) (buf[pos++] & 0xff) << 16)
-                          + ((long) (buf[pos++] & 0xff) << 24)
-                          + ((long) (buf[pos++] & 0xff) << 32)
-                          + ((long) (buf[pos++] & 0xff) << 40)
-                          + ((long) (buf[pos++] & 0xff) << 48)
-                          + ((long) (buf[pos++] & 0xff) << 56));
+              // length is encoded on 8 bytes; reject anything that does not fit a non-negative int
+              // before narrowing, otherwise a high value would become a negative length or, ending
+              // 0xFFFFFFFF, NULL_LENGTH (turning a non-null value into SQL NULL).
+              long fieldLength =
+                  (buf[pos++] & 0xff)
+                      + ((long) (buf[pos++] & 0xff) << 8)
+                      + ((long) (buf[pos++] & 0xff) << 16)
+                      + ((long) (buf[pos++] & 0xff) << 24)
+                      + ((long) (buf[pos++] & 0xff) << 32)
+                      + ((long) (buf[pos++] & 0xff) << 40)
+                      + ((long) (buf[pos++] & 0xff) << 48)
+                      + ((long) (buf[pos++] & 0xff) << 56);
+              if (fieldLength < 0 || fieldLength > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException(
+                    "Invalid length-encoded field length " + fieldLength);
+              }
+              length = (int) fieldLength;
               break;
             default:
               length = type;
