@@ -29,9 +29,7 @@ public class RowDecoderLengthTest {
     ReadableByteBuf buf = new ReadableByteBuf(row, row.length);
     assertThrows(
         SQLException.class,
-        () ->
-            new TextRowDecoder()
-                .setPosition(0, new MutableInt(), 1, buf, new byte[0], META));
+        () -> new TextRowDecoder().setPosition(0, new MutableInt(), 1, buf, new byte[0], META));
   }
 
   @Test
@@ -49,9 +47,7 @@ public class RowDecoderLengthTest {
     ReadableByteBuf buf = new ReadableByteBuf(row, row.length);
     assertThrows(
         SQLException.class,
-        () ->
-            new BinaryRowDecoder()
-                .setPosition(0, new MutableInt(), 1, buf, new byte[1], META));
+        () -> new BinaryRowDecoder().setPosition(0, new MutableInt(), 1, buf, new byte[1], META));
   }
 
   @Test

@@ -1284,8 +1284,7 @@ public class ConnectionTest extends Common {
       // disabled: legacy behavior, no statement sent, DML still allowed while read-only
       try (Connection con = createCon("&readOnlyPropagatesToServer=false")) {
         con.setReadOnly(true);
-        assertEquals(
-            1, con.createStatement().executeUpdate("INSERT INTO readOnlyProp VALUES (3)"));
+        assertEquals(1, con.createStatement().executeUpdate("INSERT INTO readOnlyProp VALUES (3)"));
       }
     } finally {
       stmt.execute("DROP TABLE IF EXISTS readOnlyProp");

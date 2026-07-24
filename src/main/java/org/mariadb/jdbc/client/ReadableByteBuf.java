@@ -150,9 +150,9 @@ public final class ReadableByteBuf {
    *
    * <p>Length-encoded integers are unsigned on the wire, so a value that does not fit a
    * non-negative int is malformed. Every caller uses the result as a length or a count, so
-   * returning it verbatim would let a server drive negative array sizes
-   * ({@link NegativeArraySizeException}) or silently truncate to an unrelated value. The range is
-   * validated here rather than at each call site.
+   * returning it verbatim would let a server drive negative array sizes ({@link
+   * NegativeArraySizeException}) or silently truncate to an unrelated value. The range is validated
+   * here rather than at each call site.
    *
    * @return decoded value, always in range [0, {@link Integer#MAX_VALUE}]
    * @throws IllegalArgumentException if the encoded value does not fit a non-negative int

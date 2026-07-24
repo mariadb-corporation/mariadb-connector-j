@@ -137,7 +137,11 @@ public class ConfigurationTest {
     assertEquals(1000, conf.toBuilder().build().maxAllowedColumns());
     // override through builder
     assertEquals(
-        512, new Configuration.Builder().maxAllowedColumns(512).database("test").build()
+        512,
+        new Configuration.Builder()
+            .maxAllowedColumns(512)
+            .database("test")
+            .build()
             .maxAllowedColumns());
   }
 

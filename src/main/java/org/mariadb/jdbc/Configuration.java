@@ -467,8 +467,7 @@ public class Configuration {
     this.tlsSocketType = builder.tlsSocketType;
     this.maxQuerySizeToLog = builder.maxQuerySizeToLog != null ? builder.maxQuerySizeToLog : 1024;
     this.maxAllowedPacket = builder.maxAllowedPacket;
-    this.maxAllowedColumns =
-        builder.maxAllowedColumns != null ? builder.maxAllowedColumns : 65535;
+    this.maxAllowedColumns = builder.maxAllowedColumns != null ? builder.maxAllowedColumns : 65535;
     this.retriesAllDown = builder.retriesAllDown != null ? builder.retriesAllDown : 120;
     this.galeraAllowedState = builder.galeraAllowedState;
     this.cachePrepStmts = builder.cachePrepStmts == null || builder.cachePrepStmts;
