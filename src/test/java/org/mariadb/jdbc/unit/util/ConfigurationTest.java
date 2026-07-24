@@ -28,6 +28,24 @@ public class ConfigurationTest {
   }
 
   @Test
+  public void maxAllowedColumns() throws SQLException {
+    // default
+    assertEquals(65535, Configuration.parse("jdbc:mariadb://localhost/test").maxAllowedColumns());
+    // override through url
+    Configuration conf =
+        Configuration.parse("jdbc:mariadb://localhost/test?maxAllowedColumns=1000");
+    assertEquals(1000, conf.maxAllowedColumns());
+    // override through builder
+    assertEquals(
+        512,
+        new Configuration.Builder()
+            .maxAllowedColumns(512)
+            .database("test")
+            .build()
+            .maxAllowedColumns());
+  }
+
+  @Test
   public void testParseProps() throws SQLException {
     Configuration conf = Configuration.parse("jdbc:mariadb://localhost/test", null);
     assertEquals(0, conf.socketTimeout());

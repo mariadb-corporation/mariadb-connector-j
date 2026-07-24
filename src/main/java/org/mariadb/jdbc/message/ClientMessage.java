@@ -255,6 +255,19 @@ public interface ClientMessage {
         // *********************************************************************************************************
       default:
         int fieldCount = buf.readIntLengthEncodedNotNull();
+        int maxAllowedColumns = context.getConf().maxAllowedColumns();
+        if (fieldCount > maxAllowedColumns) {
+          throw exceptionFactory
+              .withSql(this.description())
+              .create(
+                  String.format(
+                      "Server metadata announces %d columns, exceeding the maximum allowed number"
+                          + " of columns (%d) permitted by the 'maxAllowedColumns' option. This may"
+                          + " indicate a malicious proxy attempting to exhaust client memory."
+                          + " Command interrupted.",
+                      fieldCount, maxAllowedColumns),
+                  "HY000");
+        }
 
         ColumnDecoder[] ci;
         if (context.canSkipMeta() && this.canSkipMeta()) {
