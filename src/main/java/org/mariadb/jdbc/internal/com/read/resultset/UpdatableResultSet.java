@@ -179,7 +179,9 @@ public class UpdatableResultSet extends SelectResultSet {
       connection = results.getStatement().getConnection();
       Statement stmt =
           connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-      ResultSet rs = stmt.executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
+      ResultSet rs =
+          stmt.executeQuery(
+              "SHOW COLUMNS FROM " + quoteIdentifier(database) + "." + quoteIdentifier(table));
 
       UpdatableColumnDefinition[] updatableColumns =
           new UpdatableColumnDefinition[columnInformationLength];
@@ -1048,7 +1050,9 @@ public class UpdatableResultSet extends SelectResultSet {
       // if field are not updated, value DEFAULT will be set
       // (if field has no default, then insert will throw an exception that will be return to
       // user)
-      StringBuilder insertSql = new StringBuilder("INSERT `" + database + "`.`" + table + "` ( ");
+      StringBuilder insertSql =
+          new StringBuilder(
+              "INSERT " + quoteIdentifier(database) + "." + quoteIdentifier(table) + " ( ");
       StringBuilder valueClause = new StringBuilder();
       StringBuilder returningClause = new StringBuilder();
       int fieldsIndex = 0;
@@ -1060,7 +1064,7 @@ public class UpdatableResultSet extends SelectResultSet {
         if (pos != 0) {
           returningClause.append(", ");
         }
-        returningClause.append("`").append(colInfo.getOriginalName()).append("`");
+        returningClause.append(quoteIdentifier(colInfo.getOriginalName()));
 
         ParameterHolder value = parameterHolders[pos];
         if (value != null) {
@@ -1068,7 +1072,7 @@ public class UpdatableResultSet extends SelectResultSet {
             insertSql.append(",");
             valueClause.append(", ");
           }
-          insertSql.append("`").append(colInfo.getOriginalName()).append("`");
+          insertSql.append(quoteIdentifier(colInfo.getOriginalName()));
           valueClause.append("?");
           paramMap.put((fieldsIndex++) + 1, value);
           firstParam = false;
@@ -1101,7 +1105,7 @@ public class UpdatableResultSet extends SelectResultSet {
               valueClause.append(", ");
             }
             firstParam = false;
-            insertSql.append("`").append(colInfo.getOriginalName()).append("`");
+            insertSql.append(quoteIdentifier(colInfo.getOriginalName()));
             valueClause.append("?");
 
             paramMap.put((fieldsIndex++) + 1, new NullParameter());
@@ -1162,7 +1166,9 @@ public class UpdatableResultSet extends SelectResultSet {
       // state is STATE_UPDATE, meaning that at least one field is modified, update query can be
       // run.
       // Construct UPDATE query according to modified field only
-      StringBuilder updateSql = new StringBuilder("UPDATE `" + database + "`.`" + table + "` SET ");
+      StringBuilder updateSql =
+          new StringBuilder(
+              "UPDATE " + quoteIdentifier(database) + "." + quoteIdentifier(table) + " SET ");
       StringBuilder whereClause = new StringBuilder(" WHERE ");
 
       boolean firstUpdate = true;
@@ -1177,7 +1183,7 @@ public class UpdatableResultSet extends SelectResultSet {
             whereClause.append("AND ");
           }
           firstPrimary = false;
-          whereClause.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+          whereClause.append(quoteIdentifier(colInfo.getOriginalName())).append(" = ? ");
         }
 
         if (value != null) {
@@ -1186,7 +1192,7 @@ public class UpdatableResultSet extends SelectResultSet {
           }
           firstUpdate = false;
           fieldsToUpdate++;
-          updateSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+          updateSql.append(quoteIdentifier(colInfo.getOriginalName())).append(" = ? ");
         }
       }
       updateSql.append(whereClause);
@@ -1243,7 +1249,12 @@ public class UpdatableResultSet extends SelectResultSet {
     if (deletePreparedStatement == null) {
       // Create query with WHERE clause contain primary field.
       StringBuilder deleteSql =
-          new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
+          new StringBuilder(
+              "DELETE FROM "
+                  + quoteIdentifier(database)
+                  + "."
+                  + quoteIdentifier(table)
+                  + " WHERE ");
       boolean firstPrimary = true;
       for (int pos = 0; pos < columnInformationLength; pos++) {
         UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
@@ -1253,7 +1264,7 @@ public class UpdatableResultSet extends SelectResultSet {
             deleteSql.append("AND ");
           }
           firstPrimary = false;
-          deleteSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+          deleteSql.append(quoteIdentifier(colInfo.getOriginalName())).append(" = ? ");
         }
       }
       deletePreparedStatement = connection.clientPrepareStatement(deleteSql.toString());
@@ -1274,6 +1285,17 @@ public class UpdatableResultSet extends SelectResultSet {
     deleteCurrentRowData();
   }
 
+  /**
+   * Wrap a schema, table or column identifier in backticks, doubling any backtick it contains so a
+   * name that includes a backtick cannot terminate the quoting.
+   *
+   * @param identifier identifier
+   * @return quoted identifier
+   */
+  private static String quoteIdentifier(String identifier) {
+    return "`" + identifier.replace("`", "``") + "`";
+  }
+
   private void prepareRefreshStmt() throws SQLException {
     if (refreshPreparedStatement == null) {
       // Construct SELECT query according to column metadata, with WHERE part containing primary
@@ -1287,22 +1309,21 @@ public class UpdatableResultSet extends SelectResultSet {
         if (pos != 0) {
           selectSql.append(",");
         }
-        selectSql.append("`").append(colInfo.getOriginalName()).append("`");
+        selectSql.append(quoteIdentifier(colInfo.getOriginalName()));
 
         if (colInfo.isPrimary()) {
           if (!firstPrimary) {
             whereClause.append("AND ");
           }
           firstPrimary = false;
-          whereClause.append("`").append(colInfo.getOriginalName()).append("` = ? ");
+          whereClause.append(quoteIdentifier(colInfo.getOriginalName())).append(" = ? ");
         }
       }
       selectSql
-          .append(" FROM `")
-          .append(database)
-          .append("`.`")
-          .append(table)
-          .append("`")
+          .append(" FROM ")
+          .append(quoteIdentifier(database))
+          .append(".")
+          .append(quoteIdentifier(table))
           .append(whereClause);
 
       // row's raw bytes must be encoded according to current resultSet type

@@ -190,6 +190,42 @@ public class UpdateResultSetTest extends BaseTest {
   }
 
   @Test
+  public void updatableResultBacktickIdentifier() throws SQLException {
+    // a column whose name contains a backtick (valid in MariaDB) must be escaped when the
+    // updatable result-set builds its INSERT/UPDATE/SELECT statements. Otherwise the backtick
+    // terminates the identifier quoting and arbitrary SQL is injected into the generated statement.
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS `testBacktickCol`");
+    stmt.execute(
+        "CREATE TABLE `testBacktickCol`(`id` INT NOT NULL AUTO_INCREMENT,`a``b` VARCHAR(50) NULL,"
+            + "PRIMARY KEY (`id`))");
+    stmt.execute("INSERT INTO `testBacktickCol`(`a``b`) values ('one')");
+
+    try (PreparedStatement prep =
+        sharedConnection.prepareStatement(
+            "SELECT `id`, `a``b` FROM `testBacktickCol`",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
+      ResultSet rs = prep.executeQuery();
+      assertTrue(rs.next());
+      rs.updateString(2, "two");
+      rs.updateRow();
+
+      rs.moveToInsertRow();
+      rs.updateString(2, "three");
+      rs.insertRow();
+    }
+
+    ResultSet rs = stmt.executeQuery("SELECT `a``b` FROM `testBacktickCol` ORDER BY `id`");
+    assertTrue(rs.next());
+    assertEquals("two", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("three", rs.getString(1));
+    assertFalse(rs.next());
+    stmt.execute("DROP TABLE IF EXISTS `testBacktickCol`");
+  }
+
+  @Test
   public void testNoDatabase() throws Exception {
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
