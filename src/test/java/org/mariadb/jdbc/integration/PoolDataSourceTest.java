@@ -694,6 +694,32 @@ public class PoolDataSourceTest extends Common {
   }
 
   @Test
+  public void poolWithDifferentUserSamePassword() throws SQLException {
+    // username must be compared even when the caller supplies the pool's own password
+    Assumptions.assumeTrue(password != null && !password.isEmpty());
+    try (MariaDbPoolDataSource pool =
+        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=userCheckPool")) {
+      long threadId;
+      try (Connection conn = pool.getConnection()) {
+        conn.isValid(1);
+        threadId = ((org.mariadb.jdbc.Connection) conn).getThreadId();
+      }
+
+      // pool credentials : pooled connection is reused
+      try (Connection conn = pool.getConnection(user, password)) {
+        conn.isValid(1);
+        assertEquals(threadId, ((org.mariadb.jdbc.Connection) conn).getThreadId());
+      }
+
+      // different username with the pool's password must not hand out the pool identity
+      assertThrows(SQLException.class, () -> pool.getConnection("poolUser", password));
+
+      // mismatched username with a null password must raise SQLException, not NullPointerException
+      assertThrows(SQLException.class, () -> pool.getConnection("poolUser", null));
+    }
+  }
+
+  @Test
   @SuppressWarnings("try")
   public void various() throws SQLException {
     Common.assertThrowsContains(
