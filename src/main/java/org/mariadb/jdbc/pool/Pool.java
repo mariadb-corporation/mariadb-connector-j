@@ -404,11 +404,12 @@ public class Pool implements AutoCloseable, PoolMBean {
    */
   public MariaDbInnerPoolConnection getPoolConnection(String username, String password)
       throws SQLException {
-    if (username == null
-        ? conf.user() == null
-        : username.equals(conf.user()) && (password == null || password.isEmpty())
+    boolean sameUser = username == null ? conf.user() == null : username.equals(conf.user());
+    boolean samePassword =
+        (password == null || password.isEmpty())
             ? conf.password() == null
-            : password.equals(conf.password())) {
+            : password.equals(conf.password());
+    if (sameUser && samePassword) {
       return getPoolConnection();
     }
 
