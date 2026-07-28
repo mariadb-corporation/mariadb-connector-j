@@ -115,6 +115,13 @@ public class UpdatableResult extends CompleteResult {
       table = columnDefinition.getTable();
     }
 
+    if (database == null || database.isEmpty() || table == null) {
+      cannotUpdateInsertRow(
+          "The result-set contains fields without without any database/table information");
+      sqlStateError = "0A000";
+      return;
+    }
+
     // check that listed column contain primary field
     for (Column col : metadataList) {
       if (col.isPrimaryKey()) {
