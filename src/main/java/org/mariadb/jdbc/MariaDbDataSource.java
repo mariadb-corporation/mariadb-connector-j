@@ -12,20 +12,14 @@ import javax.sql.*;
 /** MariaDB basic datasource */
 public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
-  /** configuration */
+  /**
+   * Sole state of this datasource. Every setter writes here, so a property can never be lost by
+   * re-deriving the configuration from several independent fields.
+   */
+  private Configuration.Builder builder = new Configuration.Builder();
+
+  /** Configuration derived from {@link #builder}, discarded whenever a property changes. */
   private Configuration conf = null;
-
-  /** url permitting creating configuration */
-  private String url = null;
-
-  /** username */
-  private String user = null;
-
-  /** password */
-  private String password = null;
-
-  /** connect timeout */
-  private Integer loginTimeout = null;
 
   /** Basic constructor */
   public MariaDbDataSource() {}
@@ -37,32 +31,22 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * @throws SQLException if url is not supported
    */
   public MariaDbDataSource(String url) throws SQLException {
-    if (Configuration.acceptsUrl(url)) {
-      this.url = url;
-    } else {
-      throw new SQLException(String.format("Wrong mariaDB url: %s", url));
-    }
+    applyUrl(url);
   }
 
   /**
-   * Create configuration from url/user/password/loginTimeout
+   * Configuration for the properties set so far, built once and cached until a setter invalidates
+   * it.
    *
-   * @throws SQLException if not supported
+   * @return current configuration
+   * @throws SQLException if no url has been set
    */
-  private void config() throws SQLException {
-    if (url == null) throw new SQLException("url not set");
-    conf = Configuration.parse(url);
-    if (conf == null) throw new SQLException(String.format("Wrong mariaDB url: %s", url));
-    if (loginTimeout != null) conf.connectTimeout(loginTimeout * 1000);
-    if (user != null || password != null) {
-      conf = conf.clone(user, password);
+  private Configuration conf() throws SQLException {
+    if (conf == null) {
+      if (builder._addresses.isEmpty()) throw new SQLException("url not set");
+      conf = builder.build();
     }
-    if (user != null) {
-      user = conf.user();
-    }
-    if (password != null) {
-      password = conf.password();
-    }
+    return conf;
   }
 
   /**
@@ -77,8 +61,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public Connection getConnection() throws SQLException {
-    if (conf == null) config();
-    return Driver.connect(conf);
+    return Driver.connect(conf());
   }
 
   /**
@@ -95,9 +78,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-    if (conf == null) config();
-    Configuration conf = this.conf.clone(username, password);
-    return Driver.connect(conf);
+    return Driver.connect(conf().clone(username, password));
   }
 
   /**
@@ -174,8 +155,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public int getLoginTimeout() {
-    if (loginTimeout != null) return loginTimeout;
-    if (conf != null) return conf.connectTimeout() / 1000;
+    if (builder.connectTimeout != null) return builder.connectTimeout / 1000;
     return DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() : 30;
   }
 
@@ -191,8 +171,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public void setLoginTimeout(int seconds) throws SQLException {
-    loginTimeout = seconds;
-    if (conf != null) config();
+    builder.connectTimeout(seconds * 1000);
+    conf = null;
   }
 
   /**
@@ -207,7 +187,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
-    if (conf == null) config();
+    Configuration conf = conf();
     org.mariadb.jdbc.Connection conn = Driver.connect(conf);
     MariaDbPoolConnection poolConnection =
         conf.pinGlobalTxToPhysicalConnection()
@@ -219,8 +199,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
-    if (conf == null) config();
-    Configuration conf = this.conf.clone(username, password);
+    Configuration conf = conf().clone(username, password);
     org.mariadb.jdbc.Connection conn = Driver.connect(conf);
     MariaDbPoolConnection poolConnection =
         conf.pinGlobalTxToPhysicalConnection()
@@ -245,23 +224,37 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * @return the URL for this datasource
    */
   public String getUrl() {
-    if (conf == null) return url;
-    return conf.initialUrl();
+    try {
+      return conf().toString();
+    } catch (SQLException e) {
+      return null;
+    }
   }
 
   /**
-   * Sets the URL for this datasource
+   * Sets the URL for this datasource.
+   *
+   * <p>Properties set explicitly through {@link #setUser}, {@link #setPassword} or {@link
+   * #setLoginTimeout} win over the ones carried by the url, whichever order the container calls
+   * them in.
    *
    * @param url connection string
    * @throws SQLException if url is not accepted
    */
   public void setUrl(String url) throws SQLException {
-    if (Configuration.acceptsUrl(url)) {
-      this.url = url;
-      config();
-    } else {
+    applyUrl(url);
+  }
+
+  private void applyUrl(String url) throws SQLException {
+    if (!Configuration.acceptsUrl(url)) {
       throw new SQLException(String.format("Wrong mariaDB url: %s", url));
     }
+    Configuration.Builder parsed = Configuration.parse(url).toBuilder();
+    if (builder.user != null) parsed.user(builder.user);
+    if (builder.password != null) parsed.password(builder.password);
+    if (builder.connectTimeout != null) parsed.connectTimeout(builder.connectTimeout);
+    builder = parsed;
+    conf = null;
   }
 
   /**
@@ -270,7 +263,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * @return user
    */
   public String getUser() {
-    return user;
+    return builder.user;
   }
 
   /**
@@ -280,8 +273,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * @throws SQLException if wrong resulting connection string
    */
   public void setUser(String user) throws SQLException {
-    this.user = user;
-    if (conf != null) config();
+    builder.user(user);
+    conf = null;
   }
 
   /**
@@ -291,7 +284,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * @throws SQLException if wrong configuration
    */
   public void setPassword(String password) throws SQLException {
-    this.password = password;
-    if (conf != null) config();
+    builder.password(password);
+    conf = null;
   }
 }

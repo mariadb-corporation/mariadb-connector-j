@@ -19,12 +19,17 @@ import org.mariadb.jdbc.pool.Pools;
 public class MariaDbPoolDataSource
     implements DataSource, ConnectionPoolDataSource, XADataSource, Closeable, AutoCloseable {
 
-  private Pool pool;
+  /**
+   * Sole state of this datasource. Every setter writes here, so a property can never be lost by
+   * re-deriving the configuration from several independent fields.
+   */
+  private Configuration.Builder builder = new Configuration.Builder();
+
+  /** Configuration derived from {@link #builder}, discarded whenever a property changes. */
   private Configuration conf = null;
-  private String url = null;
-  private String user = null;
-  private String password = null;
-  private Integer loginTimeout = null;
+
+  /** Pool derived from {@link #conf}, discarded along with it. */
+  private Pool pool;
 
   /** Constructor */
   public MariaDbPoolDataSource() {}
@@ -36,31 +41,23 @@ public class MariaDbPoolDataSource
    * @throws SQLException if configuration fails
    */
   public MariaDbPoolDataSource(String url) throws SQLException {
-    if (Configuration.acceptsUrl(url)) {
-      this.url = url;
-      conf = Configuration.parse(url);
-      pool = Pools.retrievePool(conf);
-    } else {
-      throw new SQLException(String.format("Wrong mariaDB url: %s", url));
-    }
+    applyUrl(url);
   }
 
-  private void config() throws SQLException {
-    if (url == null) throw new SQLException("url not set");
-    conf = Configuration.parse(url);
-    if (conf == null) throw new SQLException(String.format("Wrong mariaDB url: %s", url));
-    if (loginTimeout != null) conf.connectTimeout(loginTimeout * 1000);
-    if (user != null || password != null) {
-      conf = conf.clone(user, password);
+  /**
+   * Pool for the properties set so far, retrieved once and cached until a setter invalidates it.
+   *
+   * @return current pool
+   * @throws SQLException if no url has been set
+   */
+  private Pool pool() throws SQLException {
+    if (conf == null) {
+      // a Builder that never saw a url has no _nonMappedOptions, which NPEs further down
+      if (builder._addresses.isEmpty()) throw new SQLException("url not set");
+      conf = builder.build();
+      pool = Pools.retrievePool(conf);
     }
-    if (user != null) {
-      user = conf.user();
-    }
-    if (password != null) {
-      password = conf.password();
-    }
-
-    pool = Pools.retrievePool(conf);
+    return pool;
   }
 
   /**
@@ -75,8 +72,7 @@ public class MariaDbPoolDataSource
    */
   @Override
   public Connection getConnection() throws SQLException {
-    if (conf == null) config();
-    return pool.getPoolConnection().getConnection();
+    return pool().getPoolConnection().getConnection();
   }
 
   /**
@@ -93,8 +89,7 @@ public class MariaDbPoolDataSource
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-    if (conf == null) config();
-    return pool.getPoolConnection(username, password).getConnection();
+    return pool().getPoolConnection(username, password).getConnection();
   }
 
   /**
@@ -171,8 +166,7 @@ public class MariaDbPoolDataSource
    */
   @Override
   public int getLoginTimeout() {
-    if (loginTimeout != null) return loginTimeout;
-    if (conf != null) return conf.connectTimeout() / 1000;
+    if (builder.connectTimeout != null) return builder.connectTimeout / 1000;
     return DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() : 30;
   }
 
@@ -188,8 +182,11 @@ public class MariaDbPoolDataSource
    */
   @Override
   public void setLoginTimeout(int seconds) throws SQLException {
-    loginTimeout = seconds;
-    if (conf != null) config();
+    builder.connectTimeout(seconds * 1000);
+    if (conf != null) {
+      conf = null;
+      pool();
+    }
   }
 
   /**
@@ -204,27 +201,23 @@ public class MariaDbPoolDataSource
 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
-    if (conf == null) config();
-    return pool.getPoolConnection();
+    return pool().getPoolConnection();
   }
 
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
-    if (conf == null) config();
-    return pool.getPoolConnection(username, password);
+    return pool().getPoolConnection(username, password);
   }
 
   @Override
   public XAConnection getXAConnection() throws SQLException {
-    if (conf == null) config();
-    return pool.getPoolConnection();
+    return pool().getPoolConnection();
   }
 
   @Override
   public XAConnection getXAConnection(String username, String password) throws SQLException {
-    if (conf == null) config();
-    return pool.getPoolConnection(username, password);
+    return pool().getPoolConnection(username, password);
   }
 
   /**
@@ -233,8 +226,12 @@ public class MariaDbPoolDataSource
    * @return the URL for this datasource
    */
   public String getUrl() {
-    if (conf == null) return url;
-    return conf.initialUrl();
+    try {
+      pool();
+      return conf.toString();
+    } catch (SQLException e) {
+      return null;
+    }
   }
 
   /**
@@ -244,12 +241,22 @@ public class MariaDbPoolDataSource
    * @throws SQLException if url is not accepted
    */
   public void setUrl(String url) throws SQLException {
-    if (Configuration.acceptsUrl(url)) {
-      this.url = url;
-      config();
-    } else {
+    applyUrl(url);
+  }
+
+  private void applyUrl(String url) throws SQLException {
+    if (!Configuration.acceptsUrl(url)) {
       throw new SQLException(String.format("Wrong mariaDB url: %s", url));
     }
+    Configuration.Builder parsed = Configuration.parse(url).toBuilder();
+    if (builder.user != null) parsed.user(builder.user);
+    if (builder.password != null) parsed.password(builder.password);
+    if (builder.connectTimeout != null) parsed.connectTimeout(builder.connectTimeout);
+    builder = parsed;
+    conf = null;
+    // a pool datasource establishes its pool as soon as it is fully configured, as it did when
+    // every setter went through config()
+    pool();
   }
 
   /**
@@ -258,7 +265,7 @@ public class MariaDbPoolDataSource
    * @return user
    */
   public String getUser() {
-    return user;
+    return builder.user;
   }
 
   /**
@@ -268,8 +275,11 @@ public class MariaDbPoolDataSource
    * @throws SQLException if configuration fails
    */
   public void setUser(String user) throws SQLException {
-    this.user = user;
-    if (conf != null) config();
+    builder.user(user);
+    if (conf != null) {
+      conf = null;
+      pool();
+    }
   }
 
   /**
@@ -279,13 +289,16 @@ public class MariaDbPoolDataSource
    * @throws SQLException if configuration fails
    */
   public void setPassword(String password) throws SQLException {
-    this.password = password;
-    if (conf != null) config();
+    builder.password(password);
+    if (conf != null) {
+      conf = null;
+      pool();
+    }
   }
 
   /** Close datasource. */
   public void close() {
-    pool.close();
+    if (pool != null) pool.close();
   }
 
   /**
