@@ -284,12 +284,6 @@ public class MultiPrimaryClient implements Client {
   }
 
   /**
-   * Synchronized previous and new client states.
-   *
-   * @param oldCli previous client
-   * @throws SQLException if error occurs
-   */
-  /**
    * Synchronizes client states between previous and new clients.
    *
    * @param oldCli previous client instance
