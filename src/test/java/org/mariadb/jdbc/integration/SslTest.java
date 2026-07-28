@@ -557,7 +557,9 @@ public class SslTest extends Common {
           () ->
               DriverManager.getConnection(
                   url + "&sslMode=VERIFY_FULL&serverSslCert=" + serverCertPath),
-          "DNS host \"localhost\" doesn't correspond to certificate");
+          // the tail differs depending on whether the CN is consulted, which since CONJ-1327
+          // happens only when the SAN carries no entry of the host type
+          "DNS host \"localhost\" doesn't correspond to");
     }
 
     String urlPath = Paths.get(serverCertPath).toUri().toURL().toString();
