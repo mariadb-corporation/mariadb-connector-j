@@ -79,4 +79,12 @@ public class IPUtility {
       return false;
     }
   }
+
+  // RFC 6066 section 3 prohibits trailing dots in SNI hostnames
+  public static String stripTrailingDot(String host) {
+    if (host != null && host.endsWith(".")) {
+      return host.substring(0, host.length() - 1);
+    }
+    return host;
+  }
 }
