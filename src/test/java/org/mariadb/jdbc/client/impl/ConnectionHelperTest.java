@@ -74,7 +74,7 @@ public class ConnectionHelperTest {
   }
 
   @Test
-  public void standardSocketRejectsUrlSocketFactoryBeforeConnecting() {
+  public void standardSocketRejectsUrlSocketFactoryBeforeConnecting() throws Exception {
     // a value that is not a class name must be refused at the sink, before any socket is opened;
     // 127.0.0.1:1 would fail to connect, so a thrown "not a valid class name" proves the guard
     // ran first rather than a connection error.
