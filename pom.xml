@@ -324,7 +324,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.10.1</version>
+                        <version>3.13.0</version>
                         <configuration>
                             <showWarnings>true</showWarnings>
                             <compilerArgs>
@@ -352,7 +352,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.10.1</version>
+                        <version>3.13.0</version>
                         <configuration>
                             <showWarnings>true</showWarnings>
                             <source>1.8</source>
@@ -379,16 +379,7 @@
                                     <source>9</source>
                                     <target>9</target>
                                     <compilerArgs>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                                        <arg>-Xlint:all,-options,-path,-processing,-requires-automatic,-requires-transitive-automatic</arg>
                                     </compilerArgs>
                                     <compileSourceRoots>
                                         <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
@@ -468,7 +459,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.10.1</version>
+                        <version>3.13.0</version>
                         <configuration>
                             <showWarnings>true</showWarnings>
                             <source>1.8</source>
@@ -495,16 +486,7 @@
                                     <source>9</source>
                                     <target>9</target>
                                     <compilerArgs>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                                        <arg>-Xlint:all,-options,-path,-processing,-requires-automatic,-requires-transitive-automatic</arg>
                                     </compilerArgs>
                                     <compileSourceRoots>
                                         <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
@@ -634,7 +616,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.10.1</version>
+                        <version>3.13.0</version>
                         <configuration>
                             <showWarnings>true</showWarnings>
                             <compilerArgs>
@@ -664,16 +646,7 @@
                                     <source>9</source>
                                     <target>9</target>
                                     <compilerArgs>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
-                                        <arg>--add-exports</arg>
-                                        <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                                        <arg>-Xlint:all,-options,-path,-processing,-requires-automatic,-requires-transitive-automatic</arg>
                                     </compilerArgs>
                                     <compileSourceRoots>
                                         <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
