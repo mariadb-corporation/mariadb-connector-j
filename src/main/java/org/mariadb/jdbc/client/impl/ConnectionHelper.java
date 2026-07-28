@@ -67,6 +67,8 @@ public final class ConnectionHelper {
     SocketFactory socketFactory;
     String socketFactoryName = conf.socketFactory();
     if (socketFactoryName != null) {
+      // socketFactory must be a class name, never an URL
+      assertValidClassName(socketFactoryName);
       try {
         @SuppressWarnings("unchecked")
         Class<SocketFactory> socketFactoryClass =
@@ -92,6 +94,43 @@ public final class ConnectionHelper {
     }
     socketFactory = SocketFactory.getDefault();
     return socketFactory.createSocket();
+  }
+
+  /**
+   * Ensure a {@code socketFactory} option is a plain Java binary class name, i.e. a dot-separated
+   * sequence of ASCII Java identifiers ({@code org.example.MyFactory}, {@code com.foo.Bar$Baz}).
+   * This
+   * rejects resource locators such as {@code jar:file:/proc/self/fd/N!/Evil} that would otherwise
+   * be passed verbatim to {@link Class#forName}, preventing bytecode from being loaded from an
+   * attacker-controlled location.
+   *
+   * @param className socketFactory option value
+   * @throws IOException if the value is not a valid class name
+   */
+  static void assertValidClassName(String className) throws IOException {
+    boolean valid = !className.isEmpty();
+    boolean segmentStart = true;
+    for (int i = 0; valid && i < className.length(); i++) {
+      char c = className.charAt(i);
+      if (c == '.') {
+        valid = !segmentStart; // reject empty segment: leading dot or ".."
+        segmentStart = true;
+      } else {
+        boolean ascii =
+            (c >= 'a' && c <= 'z')
+                || (c >= 'A' && c <= 'Z')
+                || c == '_'
+                || c == '$'
+                || (!segmentStart && c >= '0' && c <= '9');
+        valid = ascii;
+        segmentStart = false;
+      }
+    }
+    if (segmentStart) valid = false; // reject trailing dot (or empty string)
+    if (!valid) {
+      throw new IOException(
+          "Wrong socketFactory value '" + className + "' : not a valid class name");
+    }
   }
 
   /**
