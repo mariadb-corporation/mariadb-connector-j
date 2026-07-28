@@ -187,21 +187,21 @@ public class LoggingTest extends Common {
     verifyExceptionEqual(
         "local.host",
         cert,
-        "DNS host \"local.host\" doesn't correspond to certificate CN \"*.mariadb.org\" and"
+        "DNS host \"local.host\" doesn't correspond to"
             + " SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
 
     HostnameVerifier.verify("127.0.0.1", cert, -1);
     verifyExceptionEqual(
         "127.0.0.2",
         cert,
-        "IPv4 host \"127.0.0.2\" doesn't correspond to certificate CN \"*.mariadb.org\" and"
+        "IPv4 host \"127.0.0.2\" doesn't correspond to"
             + " SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
 
     HostnameVerifier.verify("2001:db8:3902:3468:0:0:0:443", cert, -1);
     verifyExceptionEqual(
         "2001:db8:1::",
         cert,
-        "IPv6 host \"2001:db8:1::\" doesn't correspond to certificate CN \"*.mariadb.org\" and"
+        "IPv6 host \"2001:db8:1::\" doesn't correspond to"
             + " SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
     try {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
