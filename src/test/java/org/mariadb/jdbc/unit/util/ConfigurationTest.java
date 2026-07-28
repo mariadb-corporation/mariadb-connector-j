@@ -178,7 +178,7 @@ public class ConfigurationTest {
             .addHost("local", 3306, true)
             .haMode(HaMode.REPLICATION)
             .build();
-    assertEquals("jdbc:mariadb:replication://local/DB", conf.initialUrl());
+    assertEquals("jdbc:mariadb:replication://local/DB", conf.toString());
     assertEquals("jdbc:mariadb:replication://local/DB", conf.toString());
     assertEquals(
         Configuration.parse(
@@ -193,7 +193,7 @@ public class ConfigurationTest {
             .haMode(HaMode.REPLICATION)
             .build();
 
-    assertEquals("jdbc:mariadb:replication://local,host2:3307/DB", conf.initialUrl());
+    assertEquals("jdbc:mariadb:replication://local,host2:3307/DB", conf.toString());
 
     conf =
         new Configuration.Builder()
@@ -202,7 +202,7 @@ public class ConfigurationTest {
             .haMode(HaMode.REPLICATION)
             .socketTimeout(50)
             .build();
-    assertEquals("jdbc:mariadb:replication://local/DB?socketTimeout=50", conf.initialUrl());
+    assertEquals("jdbc:mariadb:replication://local/DB?socketTimeout=50", conf.toString());
 
     conf =
         new Configuration.Builder()
@@ -215,7 +215,7 @@ public class ConfigurationTest {
             .build();
     assertEquals(
         "jdbc:mariadb:replication://local,local:3307,local:3308/DB?socketTimeout=50",
-        conf.initialUrl());
+        conf.toString());
 
     conf =
         new Configuration.Builder()
@@ -228,7 +228,7 @@ public class ConfigurationTest {
             .build();
     assertEquals(
         "jdbc:mariadb:loadbalance://local,local:3307,local:3308/DB?socketTimeout=50",
-        conf.initialUrl());
+        conf.toString());
 
     conf =
         new Configuration.Builder()
@@ -243,7 +243,7 @@ public class ConfigurationTest {
             .build();
     assertEquals(
         "jdbc:mariadb:loadbalance://local1,local2,local3,address=(host=local4)(type=replica),address=(host=local5)(type=replica)/DB?socketTimeout=50",
-        conf.initialUrl());
+        conf.toString());
 
     conf =
         new Configuration.Builder()
@@ -252,7 +252,7 @@ public class ConfigurationTest {
             .haMode(HaMode.REPLICATION)
             .autocommit(false)
             .build();
-    assertEquals("jdbc:mariadb:replication://local/DB?autocommit=false", conf.initialUrl());
+    assertEquals("jdbc:mariadb:replication://local/DB?autocommit=false", conf.toString());
   }
 
   @Test
@@ -268,9 +268,9 @@ public class ConfigurationTest {
             .haMode(HaMode.SEQUENTIAL)
             .socketTimeout(50)
             .build();
-    assertEquals(url, conf.initialUrl());
+    assertEquals(url, conf.toString());
     conf = Configuration.parse(url);
-    assertEquals(url, conf.initialUrl());
+    assertEquals(url, conf.toString());
   }
 
   @Test
@@ -287,16 +287,16 @@ public class ConfigurationTest {
             .haMode(HaMode.LOAD_BALANCE_READ)
             .socketTimeout(50)
             .build();
-    assertEquals(url, conf.initialUrl());
+    assertEquals(url, conf.toString());
     conf = Configuration.parse(url);
-    assertEquals(url, conf.initialUrl());
+    assertEquals(url, conf.toString());
 
     // alias
     assertEquals(
         url,
         Configuration.parse(
                 "jdbc:mariadb:load-balance-read://127.0.0.5,127.0.0.6,address=(host=127.0.0.7)(type=replica),address=(host=127.0.0.8)(type=replica)/DB?socketTimeout=50")
-            .initialUrl());
+            .toString());
   }
 
   @Test
@@ -312,9 +312,9 @@ public class ConfigurationTest {
             .haMode(HaMode.SEQUENTIAL)
             .socketTimeout(50)
             .build();
-    assertEquals(url, conf.initialUrl());
+    assertEquals(url, conf.toString());
     conf = Configuration.parse(url);
-    assertEquals(url, conf.initialUrl());
+    assertEquals(url, conf.toString());
   }
 
   @Test
@@ -541,23 +541,23 @@ public class ConfigurationTest {
   public void testJdbcParserSimpleIpv4basic() throws SQLException {
     String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database";
     Configuration conf = Configuration.parse(url);
-    assertEquals("jdbc:mariadb://master,slave1:3307,slave2:3308/database", conf.initialUrl());
+    assertEquals("jdbc:mariadb://master,slave1:3307,slave2:3308/database", conf.toString());
     url =
         "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database";
     conf = Configuration.parse(url);
     assertEquals(
         "jdbc:mariadb://master,address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
-        conf.initialUrl());
+        conf.toString());
     url =
         "jdbc:mariadb://address=(host=master)(port=3306)(type=master),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database";
     conf = Configuration.parse(url);
     assertEquals(
         "jdbc:mariadb://master,address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
-        conf.initialUrl());
+        conf.toString());
     url = "jdbc:mariadb:replication://master:3306,slave1:3307,slave2:3308/database";
     conf = Configuration.parse(url);
     assertEquals(
-        "jdbc:mariadb:replication://master,slave1:3307,slave2:3308/database", conf.initialUrl());
+        "jdbc:mariadb:replication://master,slave1:3307,slave2:3308/database", conf.toString());
   }
 
   @Test
@@ -1164,7 +1164,7 @@ public class ConfigurationTest {
         "jdbc:mariadb://localhost/test?user=me&password=myPass&secretKey=SECRETVAL&password2=PAMVAL";
     Configuration conf = Configuration.parse(url);
 
-    String built = conf.initialUrl();
+    String built = conf.toString();
     assertFalse(built.contains("SECRETVAL"), built);
     assertFalse(built.contains("PAMVAL"), built);
     assertTrue(built.contains("password=***"), built);
@@ -1174,6 +1174,69 @@ public class ConfigurationTest {
     String conf2 = Configuration.toConf(url);
     assertFalse(conf2.contains("SECRETVAL"), conf2);
     assertFalse(conf2.contains("PAMVAL"), conf2);
+  }
+
+  @Test
+  public void toConfMasksUnknownOptionsWithoutHidingThem() throws SQLException {
+    // asserting only that the raw values are absent would also pass if the option were dropped
+    // from the report, or if masking widened to options that carry no credential.
+    String conf =
+        Configuration.toConf(
+            "jdbc:mariadb://localhost/test?user=me&password=myPass&secretKey=SECRETVAL"
+                + "&password2=PAMVAL&someOption=plain");
+
+    // "Unknown options" entries are sorted by key, so the block is deterministic
+    assertTrue(
+        conf.contains(
+            "Unknown options : \n"
+                + " * password2 : ***\n"
+                + " * secretKey : ***\n"
+                + " * someOption : plain\n"),
+        conf);
+
+    // the "resulting Url" line is built by a different path than the block above, and must mask
+    // the same options while leaving the rest readable
+    assertTrue(conf.contains("secretKey=***"), conf);
+    assertTrue(conf.contains("password2=***"), conf);
+    assertTrue(conf.contains("someOption=plain"), conf);
+  }
+
+  @Test
+  public void sensitiveOptionsStillDistinguishConfigurations() throws SQLException {
+    // Redaction must not reach the value equals()/hashCode() compare, otherwise two configurations
+    // differing only by a credential collapse into one entry of the Pools map and a caller gets
+    // connections authenticated with someone else's credentials.
+    String base = "jdbc:mariadb://localhost/test?user=me&password=samePass&";
+    Configuration pam1 = Configuration.parse(base + "password2=alicePam");
+    Configuration pam2 = Configuration.parse(base + "password2=bobPam");
+    assertNotEquals(pam1, pam2);
+
+    String aws = "jdbc:mariadb://localhost/test?user=me&accessKeyId=sameKey&secretKey=";
+    Configuration aws1 = Configuration.parse(aws + "oldSecret");
+    Configuration aws2 = Configuration.parse(aws + "rotatedSecret");
+    assertNotEquals(aws1, aws2);
+
+    // the declared password fields must keep distinguishing configurations too
+    Configuration pwd1 = Configuration.parse("jdbc:mariadb://localhost/test?user=me&password=one");
+    Configuration pwd2 = Configuration.parse("jdbc:mariadb://localhost/test?user=me&password=two");
+    assertNotEquals(pwd1, pwd2);
+
+    // ... while what they expose stays redacted, and identical for both
+    assertEquals(pam1.toString(), pam2.toString());
+    assertFalse(pam1.toString().contains("alicePam"), pam1.toString());
+    assertFalse(pam1.toString().contains("alicePam"), pam1.toString());
+  }
+
+  @Test
+  public void redactedUrlExposesNoDerivedField() throws SQLException {
+    // initialUrl() builds the url a second time, when the derived fields buildUrl() relies on
+    // being null are already set. They must not leak in as url parameters.
+    Configuration conf = Configuration.parse("jdbc:mariadb://localhost/test?user=me&password=pwd");
+    String redacted = conf.toString();
+    assertFalse(redacted.contains("initialUrl="), redacted);
+    assertFalse(redacted.contains("codecs="), redacted);
+    // stable across calls, and the codec load triggered by the first build changes nothing
+    assertEquals(redacted, conf.toString());
   }
 
   private String normalizeConfigurationString(String configString) {

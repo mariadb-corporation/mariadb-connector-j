@@ -79,6 +79,8 @@ public class Configuration {
     EXCLUDED_FIELDS.add("haMode");
     EXCLUDED_FIELDS.add("$jacocoData");
     EXCLUDED_FIELDS.add("addresses");
+    EXCLUDED_FIELDS.add("initialUrl");
+    EXCLUDED_FIELDS.add("codecs");
 
     SECURE_FIELDS = new HashSet<>();
     SECURE_FIELDS.add("password");
@@ -1039,7 +1041,7 @@ public class Configuration {
   }
 
   private static void appendBasicConfiguration(StringBuilder sb, Configuration conf) {
-    sb.append("Configuration:\n * resulting Url : ").append(conf.initialUrl);
+    sb.append("Configuration:\n * resulting Url : ").append(buildUrl(conf, true));
   }
 
   private static void appendUnknownOptions(StringBuilder sb, Configuration conf) {
@@ -1054,9 +1056,11 @@ public class Configuration {
             entry ->
                 new AbstractMap.SimpleEntry<>(
                     entry.getKey().toString(),
-                    isSensitiveOption(entry.getKey().toString())
-                        ? "***"
-                        : (entry.getValue() != null ? entry.getValue().toString() : "")))
+                    entry.getValue() != null
+                        ? isSensitiveOption(entry.getKey().toString())
+                            ? "***"
+                            : entry.getValue().toString()
+                        : ""))
         .sorted(Map.Entry.comparingByKey())
         .forEach(
             entry ->
@@ -1203,16 +1207,23 @@ public class Configuration {
   /**
    * Builds a JDBC URL from the provided configuration.
    *
+   * <p>Redaction is a rendering choice, not a property of the url: a redacted url cannot be parsed
+   * back into a working configuration, so it must only be used for display. The configuration's own
+   * url is built unredacted, otherwise credentials that have no dedicated field would vanish from
+   * the value {@link #equals(Object)} compares, and two configurations differing only by an AWS IAM
+   * {@code secretKey} or a PAM {@code password2} would share a connection pool.
+   *
    * @param conf Current configuration
+   * @param hideSensitive replace every credential value by {@code ***}
    * @return Complete JDBC URL string
    */
-  protected static String buildUrl(Configuration conf) {
+  protected static String buildUrl(Configuration conf, boolean hideSensitive) {
     try {
       StringBuilder urlBuilder = new StringBuilder("jdbc:mariadb:");
       appendHaModeIfPresent(urlBuilder, conf);
       appendHostAddresses(urlBuilder, conf);
       appendDatabase(urlBuilder, conf);
-      appendConfigurationParameters(urlBuilder, conf);
+      appendConfigurationParameters(urlBuilder, conf, hideSensitive);
 
       conf.loadCodecs();
       return urlBuilder.toString();
@@ -1263,7 +1274,8 @@ public class Configuration {
     }
   }
 
-  private static void appendConfigurationParameters(StringBuilder sb, Configuration conf) {
+  private static void appendConfigurationParameters(
+      StringBuilder sb, Configuration conf, boolean hideSensitive) {
     try {
       Configuration defaultConf = new Configuration(new Builder());
       ParameterAppender paramAppender = new ParameterAppender(sb);
@@ -1278,7 +1290,7 @@ public class Configuration {
           continue;
         }
 
-        appendFieldParameter(paramAppender, field, value, defaultConf);
+        appendFieldParameter(paramAppender, field, value, defaultConf, hideSensitive);
       }
     } catch (IllegalAccessException e) {
       throw new IllegalStateException(e);
@@ -1286,10 +1298,14 @@ public class Configuration {
   }
 
   private static void appendFieldParameter(
-      ParameterAppender appender, Field field, Object value, Configuration defaultConf)
+      ParameterAppender appender,
+      Field field,
+      Object value,
+      Configuration defaultConf,
+      boolean hideSensitive)
       throws IllegalAccessException {
 
-    if (SECURE_FIELDS.contains(field.getName())) {
+    if (hideSensitive && SECURE_FIELDS.contains(field.getName())) {
       appender.appendParameter(field.getName(), "***");
       return;
     }
@@ -1302,7 +1318,7 @@ public class Configuration {
     } else if (fieldType.equals(int.class)) {
       appendIntParameter(appender, field, value, defaultConf);
     } else if (fieldType.equals(Properties.class)) {
-      appendPropertiesParameter(appender, (Properties) value);
+      appendPropertiesParameter(appender, (Properties) value, hideSensitive);
     } else if (fieldType.equals(CatalogTerm.class)) {
       appendCatalogTermParameter(appender, field, value, defaultConf);
     } else if (fieldType.equals(CredentialPlugin.class)) {
@@ -1342,11 +1358,15 @@ public class Configuration {
     }
   }
 
-  private static void appendPropertiesParameter(ParameterAppender appender, Properties props) {
+  private static void appendPropertiesParameter(
+      ParameterAppender appender, Properties props, boolean hideSensitive) {
     for (Map.Entry<Object, Object> entry : props.entrySet()) {
       String keyName = entry.getKey().toString();
       appender.appendParameter(
-          keyName, isSensitiveOption(keyName) ? "***" : entry.getValue().toString());
+          keyName,
+          entry.getValue() == null
+              ? ""
+              : hideSensitive && isSensitiveOption(keyName) ? "***" : entry.getValue().toString());
     }
   }
 
@@ -1485,12 +1505,11 @@ public class Configuration {
   }
 
   /**
-   * Configuration generated URL depending on current configuration option. Password will be hidden
-   * by "***"
+   * Configuration generated URL depending on current configuration option.
    *
    * @return generated url
    */
-  public String initialUrl() {
+  protected String initialUrl() {
     return initialUrl;
   }
 
@@ -2388,7 +2407,7 @@ public class Configuration {
    * @return String value
    */
   public String toString() {
-    return initialUrl;
+    return buildUrl(this, true);
   }
 
   @Override
@@ -2436,11 +2455,11 @@ public class Configuration {
 
     private Properties _nonMappedOptions;
     private HaMode _haMode;
-    private List<HostAddress> _addresses = new ArrayList<>();
+    List<HostAddress> _addresses = new ArrayList<>();
 
     // standard options
-    private String user;
-    private String password;
+    String user;
+    String password;
     private String database;
 
     // various
@@ -2476,7 +2495,7 @@ public class Configuration {
 
     // socket
     private String socketFactory;
-    private Integer connectTimeout;
+    Integer connectTimeout;
     private String pipe;
     private String localSocket;
     private Boolean tcpKeepAlive;
@@ -3823,7 +3842,7 @@ public class Configuration {
      */
     public Configuration build() {
       Configuration conf = new Configuration(this);
-      conf.initialUrl = buildUrl(conf);
+      conf.initialUrl = buildUrl(conf, false);
       return conf;
     }
   }
