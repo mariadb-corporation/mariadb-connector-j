@@ -294,7 +294,7 @@ public class StandardClient implements Client, AutoCloseable {
     // Set SNI hostname
     if (this.hostAddress != null && !IPUtility.isInetAddress(this.hostAddress.host)) {
       SSLParameters params = sslSocket.getSSLParameters();
-      SNIHostName serverName = new SNIHostName(this.hostAddress.host);
+      SNIHostName serverName = new SNIHostName(IPUtility.stripTrailingDot(this.hostAddress.host));
       params.setServerNames(Collections.singletonList(serverName));
       sslSocket.setSSLParameters(params);
     }
@@ -314,7 +314,10 @@ public class StandardClient implements Client, AutoCloseable {
   private void verifyHostname(SSLSocket sslSocket, TlsSocketPlugin socketPlugin)
       throws SQLException {
     try {
-      socketPlugin.verify(hostAddress.host, sslSocket.getSession(), context.getThreadId());
+      socketPlugin.verify(
+          IPUtility.stripTrailingDot(hostAddress.host),
+          sslSocket.getSession(),
+          context.getThreadId());
     } catch (SSLException ex) {
       throw context
           .getExceptionFactory()
