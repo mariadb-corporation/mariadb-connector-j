@@ -54,6 +54,7 @@ package org.mariadb.jdbc.internal.util;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.com.send.parameters.StringParameter;
@@ -208,5 +209,45 @@ public class UtilsTest {
             "/*test*/ LOAD XML LOCAL INFILE\n?", pathParameterHolders, "file_name"));
     assertFalse(
         Utils.validateFileName("LOAD XML INFILE ? /**/", goodParameterHolders, "file_name"));
+  }
+
+  @Test
+  public void assertValidClassNameAcceptsRealClassNames() throws IOException {
+    for (String ok :
+        new String[] {
+          "org.example.MyFactory", "com.foo.Bar$Baz", "SingleName", "_leadingUnderscore"
+        }) {
+      Utils.assertValidClassName(ok); // must not throw
+    }
+  }
+
+  @Test
+  public void assertValidClassNameRejectsResourceLocatorsAndBadChars() {
+    // the CONJ-1342 vector (jar: URL, dotted and slashed), plus other non-class-name shapes and
+    // characters Character.isJavaIdentifier* would accept but that are never part of a real name.
+    String[] bad =
+        new String[] {
+          "jar:file:/proc/self/fd/42!/Evil",
+          "jar:file:.proc.self.fd.42!.Evil",
+          "http://attacker/x.jar",
+          "/etc/passwd",
+          "a/b/c",
+          "a b",
+          "",
+          ".leadingDot",
+          "trailingDot.",
+          "double..dot",
+          "com.Foo" + (char) 0x00 + "Bar", // null byte
+          "com.Foo" + (char) 0x200B + "Bar", // zero-width space
+          "com.Foo" + (char) 0x00E9 // non-ASCII letter (é)
+        };
+    for (String value : bad) {
+      try {
+        Utils.assertValidClassName(value);
+        fail("expected IOException for: " + value);
+      } catch (IOException e) {
+        assertTrue(e.getMessage(), e.getMessage().contains("not a valid class name"));
+      }
+    }
   }
 }
