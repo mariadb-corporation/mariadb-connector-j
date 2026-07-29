@@ -126,6 +126,7 @@ public class StandardClient implements Client, AutoCloseable {
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
+  private final long connectDeadlineNs;
 
   private final Consumer<String> redirectConsumer = this::redirect;
 
@@ -143,6 +144,7 @@ public class StandardClient implements Client, AutoCloseable {
       Configuration conf, HostAddress hostAddress, ClosableLock lock, boolean skipPostCommands)
       throws SQLException {
 
+    this.connectDeadlineNs = System.nanoTime() + conf.connectTimeout() * 1_000_000L;
     this.conf = conf;
     this.lock = lock;
     this.hostAddress = hostAddress;
@@ -474,6 +476,20 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   /**
+   * Indicate if the connection phase has exhausted the connectTimeout budget. connectTimeout is
+   * applied as a socket timeout during connection, so it bounds each individual read, but not their
+   * number: without this check a malicious server can keep a client in the authentication phase
+   * forever by sending an endless stream of authentication switch requests.
+   *
+   * @param deadlineNs monotonic deadline ({@link System#nanoTime()} based)
+   * @param connectTimeout configured connect timeout, in milliseconds, zero meaning no timeout
+   * @return true if connectTimeout is set and the deadline is reached
+   */
+  static boolean connectDeadlineReached(long deadlineNs, int connectTimeout) {
+    return connectTimeout > 0 && System.nanoTime() - deadlineNs > 0;
+  }
+
+  /**
    * @param credential credential
    * @param hostAddress host address
    * @throws IOException if any socket error occurs
@@ -494,6 +510,20 @@ public class StandardClient implements Client, AutoCloseable {
           // Authentication Switch Request see
           // https://mariadb.com/kb/en/library/connection/#authentication-switch-request
           // *************************************************************************************
+          // each read is bounded by connectTimeout, but a rogue server can chain authentication
+          // switches indefinitely, restarting that per-read timeout every time. The connection
+          // phase as a whole must stay within the connectTimeout budget.
+          if (connectDeadlineReached(connectDeadlineNs, conf.connectTimeout())) {
+            throw context
+                .getExceptionFactory()
+                .create(
+                    String.format(
+                        "Connection timeout: connectTimeout (%sms) reached during authentication"
+                            + " phase with %s",
+                        conf.connectTimeout(), hostAddress),
+                    "08000");
+          }
+
           AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf);
           AuthenticationPluginFactory authPluginFactory =
               AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
