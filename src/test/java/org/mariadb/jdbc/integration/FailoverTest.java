@@ -6,7 +6,6 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.sql.BatchUpdateException;
@@ -309,19 +308,17 @@ public class FailoverTest extends Common {
         }
       }
     }
+    con.setNetworkTimeout(Runnable::run, 10_000);
     try {
       stmt.execute("TRUNCATE transaction_failover_batch_" + idx);
     } catch (SQLTransientConnectionException e) {
-      // might occur depending on socket detection
-      if (!transactionReplay) {
-        assertTrue(
-            e.getMessage()
-                .contains("Driver has reconnect connection after a communications link failure"));
-      } else {
-        e.printStackTrace();
-        fail("must not have thrown error");
-      }
+      // only expected when the failure was not consumed by the previous command
+      assertTrue(
+          e.getMessage()
+              .contains("Driver has reconnect connection after a communications link failure"),
+          e.getMessage());
     }
+    con.setNetworkTimeout(Runnable::run, 800);
     stmt.execute("TRUNCATE transaction_failover_batch_" + idx);
     stmt.executeUpdate(
         "INSERT INTO transaction_failover_batch_" + idx + " (test) VALUES ('test0')");
