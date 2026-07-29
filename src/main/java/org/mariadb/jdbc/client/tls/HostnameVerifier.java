@@ -14,6 +14,7 @@ import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
+import org.mariadb.jdbc.util.IPUtility;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
@@ -209,7 +210,10 @@ public class HostnameVerifier {
     if (host == null) {
       return; // no validation if no host (possible for name pipe)
     }
-    String lowerCaseHost = host.toLowerCase(Locale.ROOT);
+    // a trailing dot is a DNS root-label marker, not part of the identity: it must be removed
+    // before the host is classified, otherwise an IP literal like `10.0.0.1.` is handled as a DNS
+    // name and becomes eligible for wildcard matching. IP literals never carry one.
+    String lowerCaseHost = IPUtility.stripTrailingDot(host).toLowerCase(Locale.ROOT);
     try {
       // ***********************************************************
       // RFC 6125 : check Subject Alternative Name (SAN)

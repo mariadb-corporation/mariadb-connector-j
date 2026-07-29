@@ -196,6 +196,14 @@ public class HostnameVerifierTest {
         "DNS host \"a.other.org\" doesn't correspond to "
             + "SAN[{DNS:\"other.org\"},{DNS:\"www.other.org\"}]");
     HostnameVerifier.verify("www.other.org", cert, -1);
+    // absolute FQDN : the root label marker is not part of the identity
+    HostnameVerifier.verify("other.org.", cert, -1);
+    HostnameVerifier.verify("www.other.org.", cert, -1);
+    verifyExceptionEqual(
+        "a.other.org.",
+        cert,
+        "DNS host \"a.other.org\" doesn't correspond to "
+            + "SAN[{DNS:\"other.org\"},{DNS:\"www.other.org\"}]");
   }
 
   @Test
@@ -469,6 +477,8 @@ public class HostnameVerifierTest {
 
     // iPAddress SAN entry present : CN is ignored for IP hosts
     HostnameVerifier.verify("127.0.0.1", cert, -1);
+    // an IP written with a trailing dot is still an IP, matched against the iPAddress SAN entry
+    HostnameVerifier.verify("127.0.0.1.", cert, -1);
     verifyExceptionEqual(
         "127.0.0.2", cert, "IPv4 host \"127.0.0.2\" doesn't correspond to SAN[{IP:\"127.0.0.1\"}]");
   }
@@ -500,6 +510,13 @@ public class HostnameVerifierTest {
                 + "-----END CERTIFICATE-----\n");
     verifyExceptionEqual(
         "127.0.0.1",
+        cert,
+        "IPv4 host \"127.0.0.1\" doesn't correspond to "
+            + "certificate CN \"*.0.0.1\" : wildcards not possible for IPs");
+    // a trailing dot must not make an IP literal be treated as a DNS name, which would permit
+    // wildcard matching
+    verifyExceptionEqual(
+        "127.0.0.1.",
         cert,
         "IPv4 host \"127.0.0.1\" doesn't correspond to "
             + "certificate CN \"*.0.0.1\" : wildcards not possible for IPs");

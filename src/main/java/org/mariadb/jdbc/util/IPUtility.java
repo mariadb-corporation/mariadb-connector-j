@@ -80,11 +80,23 @@ public class IPUtility {
     }
   }
 
-  // RFC 6066 section 3 prohibits trailing dots in SNI hostnames
+  /**
+   * Remove the DNS root label marker from a hostname. A trailing dot marks a name as absolute for
+   * resolution only: it must be kept for DNS resolution, but removed for every TLS use of the name.
+   * RFC 6066 section 3 prohibits it in SNI, and certificates never carry it, so an IP literal
+   * written as {@code 10.0.0.1.} must be normalized before being recognized as an IP.
+   *
+   * @param host hostname, may be null
+   * @return hostname without any trailing dot
+   */
   public static String stripTrailingDot(String host) {
-    if (host != null && host.endsWith(".")) {
-      return host.substring(0, host.length() - 1);
+    if (host == null) {
+      return null;
     }
-    return host;
+    int end = host.length();
+    while (end > 0 && host.charAt(end - 1) == '.') {
+      end--;
+    }
+    return end == host.length() ? host : host.substring(0, end);
   }
 }
