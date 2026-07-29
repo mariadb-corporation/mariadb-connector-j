@@ -1,5 +1,95 @@
 # Change Log
 
+## [3.5.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.10) (Jul 2026)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.9...3.5.10)
+
+#### Key Enhancements
+
+* CONJ-1333 - Add maxAllowedPacket connection option (send/receive limit)
+* CONJ-1339 - Add maxAllowedColumns option to bound server-announced column count (report by fg0x0)
+* CONJ-1330 - add infer test to CI
+
+#### Issues Resolved
+
+* CONJ-1332 - Reject multipart (>16 MB) packets before authentication to prevent pre-auth OOM from a rogue server
+* CONJ-1342 - socketFactory option allows loading arbitrary bytecode via jar: URL, enabling RCE when JDBC URL is
+	attacker-controlled (report by Qing Xu)
+* CONJ-1307 - Connection.setReadOnly(true) still allows DML statements to execute
+* CONJ-1326 - Unsafe escaping in enquoteLiteral()/enquoteNCharLiteral() (thanks to jmestwa-coder)
+* CONJ-1327 - Align SSL hostname verification with TLS libraries (thanks to jmestwa-coder)
+* CONJ-1329 - LOAD DATA LOCAL INFILE validation fails open when a bound parameter can't be rendered (thanks to
+	jmestwa-coder)
+* CONJ-1331 - trustStore-configured TLS connections defer certificate-chain/identity validation instead of validating
+	up front (thanks to jmestwa-coder)
+* CONJ-1340 - SQL injection via unescaped identifiers in updatable ResultSet generated statements (thanks to
+	jmestwa-coder)
+* CONJ-1341 - MariaDbPoolDataSource.getConnection(user, password) ignores the user argument when the pool's own
+	password is supplied (report by fg0x0)
+* CONJ-1328 - restrictedAuth allowlist is matched with substring contains() instead of equality (thanks to
+	jmestwa-coder)
+* CONJ-1338 - Validate length-encoded integers fit a non-negative int before use as a length (report by fg0x0)
+
+
+## [3.4.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.4) (Jul 2026)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.3...3.4.4)
+
+##### Notable Changes
+
+* CONJ-1339 - Add maxAllowedColumns option to bound server-announced column count (report by fg0x0)
+
+##### Bugs Fixed
+
+* CONJ-1332 - Reject multipart (>16 MB) packets before authentication to prevent pre-auth OOM from a rogue server
+* CONJ-1342 - socketFactory option allows loading arbitrary bytecode via jar: URL, enabling RCE when JDBC URL is
+	attacker-controlled (report by Qing Xu)
+* CONJ-1326 - Unsafe escaping in enquoteLiteral()/enquoteNCharLiteral() (thanks to jmestwa-coder)
+* CONJ-1329 - LOAD DATA LOCAL INFILE validation fails open when a bound parameter can't be rendered (thanks to
+	jmestwa-coder)
+* CONJ-1340 - SQL injection via unescaped identifiers in updatable ResultSet generated statements (thanks to
+	jmestwa-coder)
+* CONJ-1341 - MariaDbPoolDataSource.getConnection(user, password) ignores the user argument when the pool's own
+	password is supplied (report by fg0x0)
+* CONJ-1328 - restrictedAuth allowlist is matched with substring contains() instead of equality (thanks to
+	jmestwa-coder)
+
+## [3.3.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.6) (Jul 2026)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.5...3.3.6)
+
+##### Notable Changes
+
+* CONJ-1339 - Add maxAllowedColumns option to bound server-announced column count (report by fg0x0)
+
+##### Bugs Fixed
+
+* CONJ-1332 - Reject multipart (>16 MB) packets before authentication to prevent pre-auth OOM from a rogue server
+* CONJ-1342 - socketFactory option allows loading arbitrary bytecode via jar: URL, enabling RCE when JDBC URL is
+	attacker-controlled (report by Qing Xu)
+* CONJ-1326 - Unsafe escaping in enquoteLiteral()/enquoteNCharLiteral() (thanks to jmestwa-coder)
+* CONJ-1329 - LOAD DATA LOCAL INFILE validation fails open when a bound parameter can't be rendered (thanks to
+	jmestwa-coder)
+* CONJ-1340 - SQL injection via unescaped identifiers in updatable ResultSet generated statements (thanks to
+	jmestwa-coder)
+* CONJ-1341 - MariaDbPoolDataSource.getConnection(user, password) ignores the user argument when the pool's own
+	password is supplied (report by fg0x0)
+* CONJ-1328 - restrictedAuth allowlist is matched with substring contains() instead of equality (thanks to
+	jmestwa-coder)
+
+## [2.7.15](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.15) (Jul 2026)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.14...2.7.15)
+
+##### Bugs Fixed
+
+* CONJ-1332 - Reject multipart (>16 MB) packets before authentication to prevent pre-auth OOM from a rogue server
+* CONJ-1342 - socketFactory option allows loading arbitrary bytecode via jar: URL, enabling RCE when JDBC URL is
+	attacker-controlled (report by Qing Xu)
+* CONJ-1326 - Unsafe escaping in enquoteLiteral()/enquoteNCharLiteral() (thanks to jmestwa-coder)
+* CONJ-1339 - Add maxAllowedColumns option to bound server-announced column count (report by fg0x0)
+* CONJ-1340 - SQL injection via unescaped identifiers in updatable ResultSet generated statements (thanks to
+	jmestwa-coder)
+
 ## [3.5.9](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.9) (Jun 2026)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.8...3.5.9)
 

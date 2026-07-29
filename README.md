@@ -1,6 +1,6 @@
 <p style="text-align: center;">
 	<a href="https://mariadb.com/">
-		<img alt="mariadb logo" src="https://mariadb.com/kb/static/images/logo-2018-black.png">
+		<img alt="mariadb logo" src="https://mariadb.com/wp-content/uploads/2019/11/mariadb-logo_blue-transparent.png">
 	</a>
 </p>
 
@@ -29,7 +29,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>3.5.9</version>
+	<version>3.5.10</version>
 </dependency>
 ```
 
