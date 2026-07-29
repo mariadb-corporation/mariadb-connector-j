@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.7.15](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.15) (Jul 2026)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.14...2.7.15)
+
+* CONJ-1332 Reject multipart (>16 MB) packets before authentication to prevent pre-auth OOM from a rogue server
+* CONJ-1342 socketFactory option allows loading arbitrary bytecode via jar: URL, enabling RCE when JDBC URL is attacker-controlled (report by Qing Xu)
+* CONJ-1326 Unsafe escaping in enquoteLiteral()/enquoteNCharLiteral() (thanks to jmestwa-coder)
+* CONJ-1339 Add maxAllowedColumns option to bound server-announced column count (report by fg0x0)
+* CONJ-1340 SQL injection via unescaped identifiers in updatable ResultSet generated statements (thanks to jmestwa-coder)
+
 ## [2.7.14](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.14) (Jun 2026)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.13...2.7.14)
 
