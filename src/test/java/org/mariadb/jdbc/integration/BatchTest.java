@@ -168,6 +168,79 @@ public class BatchTest extends Common {
   }
 
   @Test
+  public void batchGeneratedKeysOverIntegerRange() throws SQLException {
+    // bulk unitary results, where auto-increment values are read from
+    Assumptions.assumeTrue(
+        hasCapability(org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS));
+    for (boolean binary : new boolean[] {true, false}) {
+      try (Connection con = createCon("useBulkStmtsForInserts=true&useServerPrepStmts=" + binary)) {
+        Statement stmt = con.createStatement();
+        stmt.execute("DROP TABLE IF EXISTS batchGeneratedKeysBigId");
+        stmt.execute(
+            "CREATE TABLE batchGeneratedKeysBigId(id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+                + " val VARCHAR(10)) AUTO_INCREMENT=2147483646");
+        try (PreparedStatement prep =
+            con.prepareStatement(
+                "INSERT INTO batchGeneratedKeysBigId(val) VALUES (?)",
+                Statement.RETURN_GENERATED_KEYS)) {
+          for (int i = 0; i < 3; i++) {
+            prep.setString(1, "x" + i);
+            prep.addBatch();
+          }
+          prep.executeBatch();
+          try (ResultSet rs = prep.getGeneratedKeys()) {
+            // last one is over Integer.MAX_VALUE
+            for (long expected : new long[] {2147483646L, 2147483647L, 2147483648L}) {
+              assertTrue(rs.next());
+              assertEquals(expected, rs.getLong(1));
+            }
+            assertFalse(rs.next());
+          }
+        }
+        stmt.execute("DROP TABLE IF EXISTS batchGeneratedKeysBigId");
+      }
+    }
+  }
+
+  @Test
+  public void batchGeneratedKeysWithExplicitIds() throws SQLException {
+    Assumptions.assumeTrue(
+        hasCapability(org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS));
+    try (Connection con = createCon("useBulkStmtsForInserts=true")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("DROP TABLE IF EXISTS batchGenKeysExplicit");
+      stmt.execute(
+          "CREATE TABLE batchGenKeysExplicit(id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, val"
+              + " VARCHAR(10)) AUTO_INCREMENT=10");
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "INSERT INTO batchGenKeysExplicit(id, val) VALUES (?, ?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        prep.setNull(1, Types.BIGINT);
+        prep.setString(2, "a");
+        prep.addBatch();
+        prep.setLong(1, 200);
+        prep.setString(2, "b");
+        prep.addBatch();
+        prep.setNull(1, Types.BIGINT);
+        prep.setString(2, "c");
+        prep.addBatch();
+        prep.executeBatch();
+
+        // rows with an explicit id have generated no key, others are returned in batch order
+        try (ResultSet rs = prep.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(10, rs.getLong(1));
+          assertTrue(rs.next());
+          assertEquals(201, rs.getLong(1));
+          assertFalse(rs.next());
+        }
+      }
+      stmt.execute("DROP TABLE IF EXISTS batchGenKeysExplicit");
+    }
+  }
+
+  @Test
   public void testBatchParameterClearAfterError() throws SQLException {
     try (Statement stmt = sharedConn.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS testBatchParameterClearAfterError");
