@@ -28,6 +28,10 @@
 * CONJ-1328 - restrictedAuth allowlist is matched with substring contains() instead of equality (thanks to
 	jmestwa-coder)
 * CONJ-1338 - Validate length-encoded integers fit a non-negative int before use as a length (report by fg0x0)
+* CONJ-1336 - CONJ-1282 regression: TLS connection fails when JDBC hostname is an absolute FQDN ending with a trailing
+	dot (report by Shaswata, thanks to Pepo48 for PR)
+* CONJ-1335 - getGeneratedKeys() throws "integer overflow" after a batch insert when the auto-increment value exceeds
+	Integer.MAX_VALUE, and returns bulk generated keys out of batch order
 
 
 ## [3.4.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.4) (Jul 2026)
