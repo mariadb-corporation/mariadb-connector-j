@@ -97,6 +97,9 @@ import org.mariadb.jdbc.util.log.Loggers;
 public class StandardClient implements Client, AutoCloseable {
   private static final Logger logger = Loggers.getLogger(StandardClient.class);
 
+  /** maximum number of authentication switch requests a server may send during connection */
+  private static final int MAX_AUTHENTICATION_SWITCH = 10;
+
   /** connection exception factory */
   protected final ExceptionFactory exceptionFactory;
 
@@ -501,6 +504,7 @@ public class StandardClient implements Client, AutoCloseable {
     writer.permitTrace(false);
     Configuration conf = context.getConf();
     ReadableByteBuf buf = reader.readReusablePacket();
+    int authSwitchCount = 0;
 
     authentication_loop:
     while (true) {
@@ -510,6 +514,19 @@ public class StandardClient implements Client, AutoCloseable {
           // Authentication Switch Request see
           // https://mariadb.com/kb/en/library/connection/#authentication-switch-request
           // *************************************************************************************
+          // a legitimate connection needs a couple of switches at most. Bound their number so a
+          // rogue server cannot keep the client in the authentication phase.
+          if (++authSwitchCount > MAX_AUTHENTICATION_SWITCH) {
+            throw context
+                .getExceptionFactory()
+                .create(
+                    String.format(
+                        "Too many authentication switch requests (maximum %s) during authentication"
+                            + " phase with %s",
+                        MAX_AUTHENTICATION_SWITCH, hostAddress),
+                    "08000");
+          }
+
           // each read is bounded by connectTimeout, but a rogue server can chain authentication
           // switches indefinitely, restarting that per-read timeout every time. The connection
           // phase as a whole must stay within the connectTimeout budget.
