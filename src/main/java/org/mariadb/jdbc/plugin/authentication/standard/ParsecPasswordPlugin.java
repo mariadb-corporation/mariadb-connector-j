@@ -25,6 +25,24 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
         0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04,
         0x20
       };
+
+  /**
+   * Deliberately conservative PBKDF2-HMAC-SHA512 throughput reference: 262144 rounds measured in
+   * 225ms. Used to convert the connection time budget into a maximum iteration factor.
+   */
+  private static final long PBKDF2_REFERENCE_ROUNDS = 262_144L;
+
+  private static final long PBKDF2_REFERENCE_MS = 225L;
+
+  /** Time budget used when connectTimeout is disabled (zero). */
+  private static final int DEFAULT_CONNECT_BUDGET_MS = 10_000;
+
+  /**
+   * Absolute ceiling, whatever the time budget: a factor of 22 would overflow the {@code 1024 <<
+   * iterations} round count.
+   */
+  private static final int MAX_ITERATION_FACTOR = 20;
+
   private final String authenticationData;
   private final byte[] seed;
   private byte[] hash;
@@ -70,9 +88,22 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       iterations = buf.readUnsignedByte();
     }
 
-    if (firstByte != 0x50 || iterations > 20) {
-      // expected 'P' for KDF algorithm (PBKDF2) and maximum iteration of 8192
+    if (firstByte != 0x50) {
+      // expected 'P' for KDF algorithm (PBKDF2)
       throw new SQLException("Wrong parsec authentication format", "S1009");
+    }
+
+    // a rogue server must not be able to pin a client core for minutes: the PBKDF2 cost is
+    // computed before authentication completes, without any interruptible socket read.
+    int budgetMs = connectBudgetMs(context.getConf().connectTimeout());
+    int maxIterations = maxIterationFactor(budgetMs);
+    if (iterations > maxIterations) {
+      throw new SQLException(
+          String.format(
+              "Wrong parsec authentication format: server requested iteration factor %s (%s PBKDF2"
+                  + " rounds), maximum permitted is %s for a connection time budget of %sms",
+              iterations, 1024L << iterations, maxIterations, budgetMs),
+          "S1009");
     }
 
     byte[] salt = new byte[buf.readableBytes()];
@@ -142,6 +173,36 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       // not expected
       throw new SQLException("Error during parsec authentication", e);
     }
+  }
+
+  /**
+   * Connection time budget the PBKDF2 hashing must fit in: the configured connectTimeout, or a
+   * default budget when connectTimeout is disabled (zero).
+   *
+   * @param connectTimeout configured connect timeout, in milliseconds
+   * @return time budget in milliseconds
+   */
+  static int connectBudgetMs(int connectTimeout) {
+    return connectTimeout > 0 ? connectTimeout : DEFAULT_CONNECT_BUDGET_MS;
+  }
+
+  /**
+   * Maximum iteration factor a server may request, derived from the connection time budget. The
+   * factor is an exponent: hashing costs {@code 1024 << factor} PBKDF2-HMAC-SHA512 rounds, which
+   * are computed before authentication completes, with no interruptible socket read in between. The
+   * bound therefore scales with connectTimeout: a client declaring a longer budget permits a larger
+   * factor (100ms&rarr;6, 2500ms&rarr;11, 10s&rarr;13, 30s&rarr;15).
+   *
+   * @param budgetMs connection time budget, in milliseconds
+   * @return maximum permitted iteration factor
+   */
+  static int maxIterationFactor(int budgetMs) {
+    long maxRounds = PBKDF2_REFERENCE_ROUNDS * budgetMs / PBKDF2_REFERENCE_MS;
+    long factorBase = maxRounds / 1024L;
+    if (factorBase < 1) return 0;
+    // floor(log2(factorBase))
+    int factor = 63 - Long.numberOfLeadingZeros(factorBase);
+    return Math.min(factor, MAX_ITERATION_FACTOR);
   }
 
   public boolean isMitMProof() {
