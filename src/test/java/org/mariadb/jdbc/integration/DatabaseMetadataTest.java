@@ -6,6 +6,7 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
+import java.util.Properties;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Statement;
 
@@ -3103,6 +3104,54 @@ public class DatabaseMetadataTest extends Common {
     } finally {
       stmt.execute("DROP DATABASE dbTmpFct1");
       stmt.execute("DROP DATABASE dbTmpFct2");
+    }
+  }
+
+  @Test
+  public void getUrlDoesNotExposeCredentials() throws SQLException {
+    // CONJ-1345: frameworks log DatabaseMetaData#getURL(). Credentials supplied outside the url
+    // (DriverManager properties, as connection pools do) must be redacted from it, exactly like
+    // credentials that are part of the url.
+    Statement stmt = sharedConn.createStatement();
+    try {
+      stmt.execute("DROP USER metaUrlUser" + getHostSuffix());
+    } catch (SQLException e) {
+      // eat
+    }
+    boolean useOldNotation =
+        (!isMariaDBServer() || !minVersion(10, 2, 0))
+            && (isMariaDBServer() || !minVersion(8, 0, 0));
+    stmt.execute("CREATE USER metaUrlUser" + getHostSuffix() + " IDENTIFIED BY 'metaUrlPwd!42'");
+    if (useOldNotation) {
+      stmt.execute(
+          "GRANT SELECT ON *.* TO metaUrlUser"
+              + getHostSuffix()
+              + " IDENTIFIED BY 'metaUrlPwd!42'");
+    } else {
+      stmt.execute("GRANT SELECT ON *.* TO metaUrlUser" + getHostSuffix());
+    }
+    stmt.execute("FLUSH PRIVILEGES");
+
+    // same url as the shared connection, minus credentials
+    StringBuilder url = new StringBuilder(mDefUrl.substring(0, mDefUrl.indexOf("?")));
+    char sep = '?';
+    for (String param : mDefUrl.substring(mDefUrl.indexOf("?") + 1).split("&")) {
+      if (!param.isEmpty() && !param.startsWith("user=") && !param.startsWith("password=")) {
+        url.append(sep).append(param);
+        sep = '&';
+      }
+    }
+    Properties props = new Properties();
+    props.setProperty("user", "metaUrlUser");
+    props.setProperty("password", "metaUrlPwd!42");
+    try (Connection con = DriverManager.getConnection(url.toString(), props)) {
+      String metaUrl = con.getMetaData().getURL();
+      assertTrue(metaUrl.startsWith("jdbc:mariadb://"), metaUrl);
+      assertTrue(metaUrl.contains("user=metaUrlUser"), metaUrl);
+      assertTrue(metaUrl.contains("password=***"), metaUrl);
+      assertFalse(metaUrl.contains("metaUrlPwd!42"), metaUrl);
+    } finally {
+      stmt.execute("DROP USER metaUrlUser" + getHostSuffix());
     }
   }
 }

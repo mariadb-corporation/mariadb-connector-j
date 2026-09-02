@@ -1541,7 +1541,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   @Override
   public String getURL() {
-    return conf.initialUrl();
+    // conf.initialUrl() is the unredacted url used for configuration identity; the url handed to
+    // the application must never carry credentials (CONJ-1345).
+    return Configuration.buildUrl(conf, true);
   }
 
   public String getUserName() {
