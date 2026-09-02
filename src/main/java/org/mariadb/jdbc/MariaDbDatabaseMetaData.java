@@ -307,9 +307,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         row[11] = constraintName.name; // FK_NAME
         if (importedKeysWithConstraintNames) {
           String ext =
-              (pkTable.schema == null
-                      ? ""
-                      : MariaDbConnection.quoteIdentifier(pkTable.schema) + ".")
+              MariaDbConnection.quoteIdentifier(pkTable.schema == null ? catalog : pkTable.schema)
+                  + "."
                   + MariaDbConnection.quoteIdentifier(pkTable.name);
           if (!externalInfos.containsKey(ext)) {
             externalInfos.put(ext, getExtImportedKeys(ext, connection));
@@ -1083,6 +1082,53 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
+   * Table name as stored by the server, read from the "CREATE TABLE `name` (" first line of a SHOW
+   * CREATE TABLE output. With lower_case_table_names=1 the server stores names lowercased whatever
+   * the case used by the caller, and information_schema based methods return that stored name: SHOW
+   * CREATE TABLE based methods must return the same value rather than echoing the caller parameter
+   * (CONJ-1344).
+   *
+   * @param tableDef SHOW CREATE TABLE output
+   * @param fallback value returned if the output cannot be parsed
+   * @return stored table name
+   */
+  private static String storedTableName(String tableDef, String fallback) {
+    int eol = tableDef.indexOf('\n');
+    String firstLine = eol == -1 ? tableDef : tableDef.substring(0, eol);
+    String upper = firstLine.toUpperCase(Locale.ROOT);
+    int pos;
+    if (upper.startsWith("CREATE TABLE ")) {
+      pos = "CREATE TABLE ".length();
+    } else if (upper.startsWith("CREATE TEMPORARY TABLE ")) {
+      pos = "CREATE TEMPORARY TABLE ".length();
+    } else {
+      return fallback;
+    }
+    try {
+      Identifier identifier = new Identifier();
+      parseIdentifier(firstLine.toCharArray(), pos, identifier);
+      return identifier.name;
+    } catch (ParseException | ArrayIndexOutOfBoundsException e) {
+      return fallback;
+    }
+  }
+
+  /**
+   * Database name as stored by the server. With lower_case_table_names=1 database names are stored
+   * lowercased, like table names. SHOW CREATE TABLE output doesn't carry the table's own schema, so
+   * the caller value is normalized instead. (lower_case_table_names=2 stores names as declared: the
+   * caller value is then the best available information without an additional query.)
+   *
+   * @param catalog database name provided by the caller
+   * @return stored database name
+   * @throws SQLException if lower_case_table_names cannot be read
+   */
+  private String storedCatalogName(String catalog) throws SQLException {
+    if (catalog == null || connection.getLowercaseTableNames() != 1) return catalog;
+    return catalog.toLowerCase(Locale.ROOT);
+  }
+
+  /**
    * GetImportedKeysUsingShowCreateTable.
    *
    * @param catalog catalog
@@ -1111,8 +1157,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                     + MariaDbConnection.quoteIdentifier(table));
     if (rs.next()) {
       String tableDef = rs.getString(2);
+      // report names as stored by the server, not as given by the caller
       return MariaDbDatabaseMetaData.getImportedKeys(
-          tableDef, table, catalog, connection, urlParser);
+          tableDef,
+          storedTableName(tableDef, table),
+          storedCatalogName(catalog),
+          connection,
+          urlParser);
     }
     throw new SQLException("Fail to retrieve table information using SHOW CREATE TABLE");
   }

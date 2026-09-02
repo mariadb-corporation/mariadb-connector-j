@@ -55,6 +55,9 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import org.junit.*;
 
 public class DatabaseMetadataTest extends BaseTest {
@@ -186,6 +189,9 @@ public class DatabaseMetadataTest extends BaseTest {
   @AfterClass
   public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP DATABASE IF EXISTS CONJ1344_DB");
+      stmt.execute("DROP TABLE IF EXISTS CONJ1344_CHILD");
+      stmt.execute("DROP TABLE IF EXISTS CONJ1344_PARENT");
       stmt.execute("DROP TABLE IF EXISTS dbpk_test");
       stmt.execute("DROP TABLE IF EXISTS datetime_test");
       stmt.execute("DROP TABLE IF EXISTS `manycols`");
@@ -1761,5 +1767,148 @@ public class DatabaseMetadataTest extends BaseTest {
 
     rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"TABLE"});
     assertFalse(rs.next());
+  }
+
+  private static String storedName(DatabaseMetaData meta, String catalog, String table, String col)
+      throws SQLException {
+    ResultSet rs = meta.getTables(catalog, null, table, null);
+    assertTrue(catalog + "." + table, rs.next());
+    return rs.getString(col);
+  }
+
+  /**
+   * Rows of an imported/exported keys result, "PKTABLE_CAT.PKTABLE_NAME>FKTABLE_CAT.FKTABLE_NAME"
+   * by FK_NAME.
+   */
+  private static Map<String, String> keysByName(ResultSet rs) throws SQLException {
+    Map<String, String> res = new HashMap<>();
+    while (rs.next()) {
+      res.put(
+          rs.getString("FK_NAME"),
+          rs.getString("PKTABLE_CAT")
+              + "."
+              + rs.getString("PKTABLE_NAME")
+              + ">"
+              + rs.getString("FKTABLE_CAT")
+              + "."
+              + rs.getString("FKTABLE_NAME"));
+    }
+    return res;
+  }
+
+  @Test
+  public void importedKeysIdentifierCase() throws Exception {
+    // CONJ-1344: SHOW CREATE TABLE based getImportedKeys must return table and database names as
+    // stored by the server (lowercased with lower_case_table_names=1), like information_schema
+    // based methods do, whatever the case used by the caller. Tables live in the current database
+    // and in an uppercase one, with a cross database reference.
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("DROP DATABASE IF EXISTS CONJ1344_DB");
+    stmt.execute("DROP TABLE IF EXISTS CONJ1344_CHILD");
+    stmt.execute("DROP TABLE IF EXISTS CONJ1344_PARENT");
+    stmt.execute("CREATE DATABASE CONJ1344_DB");
+    try {
+      stmt.execute("CREATE TABLE CONJ1344_PARENT (TBL_ID bigint PRIMARY KEY)");
+      stmt.execute(
+          "CREATE TABLE CONJ1344_CHILD (TBL_ID bigint NOT NULL, PKEY_NAME varchar(128) NOT NULL,"
+              + " PRIMARY KEY (TBL_ID, PKEY_NAME), CONSTRAINT CONJ1344_FK1 FOREIGN KEY (TBL_ID)"
+              + " REFERENCES CONJ1344_PARENT (TBL_ID))");
+      stmt.execute("CREATE TABLE CONJ1344_DB.PARENT_UP (TBL_ID bigint PRIMARY KEY)");
+      stmt.execute(
+          "CREATE TABLE CONJ1344_DB.CHILD_UP (TBL_ID bigint NOT NULL PRIMARY KEY, CONSTRAINT"
+              + " CHILD_UP_FK1 FOREIGN KEY (TBL_ID) REFERENCES CONJ1344_DB.PARENT_UP (TBL_ID))");
+      stmt.execute(
+          "CREATE TABLE CONJ1344_DB.XCHILD_UP (TBL_ID bigint NOT NULL PRIMARY KEY, CONSTRAINT"
+              + " XCHILD_UP_FK1 FOREIGN KEY (TBL_ID) REFERENCES "
+              + database
+              + ".CONJ1344_PARENT (TBL_ID))");
+
+      MariaDbDatabaseMetaData meta = (MariaDbDatabaseMetaData) sharedConnection.getMetaData();
+      boolean caseInsensitive = !meta.supportsMixedCaseIdentifiers();
+
+      // names as stored by the server
+      String curDb = storedName(meta, database, "CONJ1344_PARENT", "TABLE_CAT");
+      String parent = storedName(meta, database, "CONJ1344_PARENT", "TABLE_NAME");
+      String child = storedName(meta, database, "CONJ1344_CHILD", "TABLE_NAME");
+      String upDb = storedName(meta, "CONJ1344_DB", "PARENT_UP", "TABLE_CAT");
+      String parentUp = storedName(meta, "CONJ1344_DB", "PARENT_UP", "TABLE_NAME");
+      String childUp = storedName(meta, "CONJ1344_DB", "CHILD_UP", "TABLE_NAME");
+      String xchildUp = storedName(meta, "CONJ1344_DB", "XCHILD_UP", "TABLE_NAME");
+      assertEquals(caseInsensitive ? "conj1344_db" : "CONJ1344_DB", upDb);
+      assertEquals(caseInsensitive ? "conj1344_child" : "CONJ1344_CHILD", child);
+
+      String childKey = curDb + "." + parent + ">" + curDb + "." + child;
+      String childUpKey = upDb + "." + parentUp + ">" + upDb + "." + childUp;
+      String xchildUpKey = curDb + "." + parent + ">" + upDb + "." + xchildUp;
+
+      // parameters as {currentDb, parent, child, upperDb, parentUp, childUp, xchildUp}: the caller
+      // may use any case when the server is case-insensitive
+      String[] declared = {
+        database,
+        "CONJ1344_PARENT",
+        "CONJ1344_CHILD",
+        "CONJ1344_DB",
+        "PARENT_UP",
+        "CHILD_UP",
+        "XCHILD_UP"
+      };
+      String[] otherCase = {
+        database.toUpperCase(Locale.ROOT),
+        "conj1344_parent",
+        "conj1344_child",
+        "conj1344_db",
+        "parent_up",
+        "child_up",
+        "xchild_up"
+      };
+      String[][] params =
+          caseInsensitive ? new String[][] {declared, otherCase} : new String[][] {declared};
+
+      for (String[] p : params) {
+        for (int impl = 0; impl < 3; impl++) {
+          String ctx = "impl=" + impl + " params=" + String.join(",", p);
+          Map<String, String> childKeys;
+          Map<String, String> childUpKeys;
+          Map<String, String> xchildUpKeys;
+          switch (impl) {
+            case 0: // default: SHOW CREATE TABLE
+              childKeys = keysByName(meta.getImportedKeys(p[0], null, p[2]));
+              childUpKeys = keysByName(meta.getImportedKeys(p[3], null, p[5]));
+              xchildUpKeys = keysByName(meta.getImportedKeys(p[3], null, p[6]));
+              break;
+            case 1:
+              childKeys = keysByName(meta.getImportedKeysUsingShowCreateTable(p[0], p[2]));
+              childUpKeys = keysByName(meta.getImportedKeysUsingShowCreateTable(p[3], p[5]));
+              xchildUpKeys = keysByName(meta.getImportedKeysUsingShowCreateTable(p[3], p[6]));
+              break;
+            default:
+              childKeys = keysByName(meta.getImportedKeysUsingInformationSchema(p[0], p[2]));
+              childUpKeys = keysByName(meta.getImportedKeysUsingInformationSchema(p[3], p[5]));
+              xchildUpKeys = keysByName(meta.getImportedKeysUsingInformationSchema(p[3], p[6]));
+              break;
+          }
+          assertEquals(ctx, 1, childKeys.size());
+          assertEquals(ctx, childKey, childKeys.get("CONJ1344_FK1"));
+          assertEquals(ctx, 1, childUpKeys.size());
+          assertEquals(ctx, childUpKey, childUpKeys.get("CHILD_UP_FK1"));
+          assertEquals(ctx, 1, xchildUpKeys.size());
+          assertEquals(ctx, xchildUpKey, xchildUpKeys.get("XCHILD_UP_FK1"));
+        }
+
+        // information_schema based getExportedKeys must agree with the above
+        String ctx = "params=" + String.join(",", p);
+        Map<String, String> exported = keysByName(meta.getExportedKeys(p[0], null, p[1]));
+        assertEquals(ctx, 2, exported.size());
+        assertEquals(ctx, childKey, exported.get("CONJ1344_FK1"));
+        assertEquals(ctx, xchildUpKey, exported.get("XCHILD_UP_FK1"));
+        exported = keysByName(meta.getExportedKeys(p[3], null, p[4]));
+        assertEquals(ctx, 1, exported.size());
+        assertEquals(ctx, childUpKey, exported.get("CHILD_UP_FK1"));
+      }
+    } finally {
+      stmt.execute("DROP DATABASE IF EXISTS CONJ1344_DB");
+      stmt.execute("DROP TABLE IF EXISTS CONJ1344_CHILD");
+      stmt.execute("DROP TABLE IF EXISTS CONJ1344_PARENT");
+    }
   }
 }
