@@ -154,6 +154,67 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   /**
+   * Compare two table/schema identifiers following the server rules: case-sensitively when
+   * lower_case_table_names=0, case-insensitively otherwise (CONJ-1344).
+   *
+   * @param identifier identifier read from server output
+   * @param expected identifier provided by the caller
+   * @return true if both denote the same object
+   * @throws SQLException if lower_case_table_names cannot be read
+   */
+  private boolean identifiersMatch(String identifier, String expected) throws SQLException {
+    return connection.getLowercaseTableNames() == 0
+        ? identifier.equals(expected)
+        : identifier.equalsIgnoreCase(expected);
+  }
+
+  /**
+   * Table name as stored by the server, read from the "CREATE TABLE `name` (" first line of a SHOW
+   * CREATE TABLE output. With lower_case_table_names=1 the server stores names lowercased whatever
+   * the case used by the caller, and information_schema based methods return that stored name: SHOW
+   * CREATE TABLE based methods must return the same value rather than echoing the caller parameter
+   *
+   * @param tableDef SHOW CREATE TABLE output
+   * @param fallback value returned if the output cannot be parsed
+   * @return stored table name
+   */
+  private static String storedTableName(String tableDef, String fallback) {
+    int eol = tableDef.indexOf('\n');
+    String firstLine = eol == -1 ? tableDef : tableDef.substring(0, eol);
+    String upper = firstLine.toUpperCase(Locale.ROOT);
+    int pos;
+    if (upper.startsWith("CREATE TABLE ")) {
+      pos = "CREATE TABLE ".length();
+    } else if (upper.startsWith("CREATE TEMPORARY TABLE ")) {
+      pos = "CREATE TEMPORARY TABLE ".length();
+    } else {
+      return fallback;
+    }
+    try {
+      Identifier identifier = new Identifier();
+      parseIdentifier(firstLine.toCharArray(), pos, identifier);
+      return identifier.name;
+    } catch (ParseException | ArrayIndexOutOfBoundsException e) {
+      return fallback;
+    }
+  }
+
+  /**
+   * Database name as stored by the server. With lower_case_table_names=1 database names are stored
+   * lowercased, like table names. SHOW CREATE TABLE output doesn't carry the table's own schema, so
+   * the caller value is normalized instead. (lower_case_table_names=2 stores names as declared: the
+   * caller value is then the best available information without an additional query.)
+   *
+   * @param database database name provided by the caller
+   * @return stored database name
+   * @throws SQLException if lower_case_table_names cannot be read
+   */
+  private String storedDatabaseName(String database) throws SQLException {
+    if (database == null || connection.getLowercaseTableNames() != 1) return database;
+    return database.toLowerCase(Locale.ROOT);
+  }
+
+  /**
    * Escape String.
    *
    * @param value value to escape
@@ -1065,8 +1126,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             List<Identifier> primaryKeyCols = new ArrayList<>();
             parseIdentifierList(partChar, pos, primaryKeyCols);
             String pkTableSchema = pkTable.schema != null ? pkTable.schema : db;
-            if (database != null && !database.equals(pkTableSchema)) continue;
-            if (!pkTable.name.equals(table)) continue;
+            if (database != null && !identifiersMatch(pkTableSchema, database)) continue;
+            if (!identifiersMatch(pkTable.name, table)) continue;
             int onUpdateReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
             int onDeleteReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
 
@@ -1082,20 +1143,20 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
             for (int i = 0; i < primaryKeyCols.size(); i++) {
               String[] row = new String[14];
+              // database names as stored: pkTableSchema comes from the table definition or the
+              // SHOW DATABASES listing, db from the SHOW DATABASES listing
               row[0] =
                   conf.useCatalogTerm() == CatalogTerm.UseCatalog
-                      ? (pkTable.schema == null ? database : pkTable.schema)
+                      ? pkTableSchema
                       : "def"; // PKTABLE_CAT
               row[1] =
                   conf.useCatalogTerm() == CatalogTerm.UseSchema
-                      ? (pkTable.schema == null ? database : pkTable.schema)
+                      ? pkTableSchema
                       : null; // PKTABLE_SCHEM
               row[2] = pkTable.name; // PKTABLE_NAME
               row[3] = primaryKeyCols.get(i).name; // PKCOLUMN_NAME
-              row[4] =
-                  conf.useCatalogTerm() == CatalogTerm.UseCatalog ? database : "def"; // FKTABLE_CAT
-              row[5] =
-                  conf.useCatalogTerm() == CatalogTerm.UseSchema ? database : null; // FKTABLE_SCHEM
+              row[4] = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? db : "def"; // FKTABLE_CAT
+              row[5] = conf.useCatalogTerm() == CatalogTerm.UseSchema ? db : null; // FKTABLE_SCHEM
               row[6] = tableName; // FKTABLE_NAME
               row[7] = foreignKeyCols.get(i).name; // FKCOLUMN_NAME
               row[8] = Integer.toString(i + 1); // KEY_SEQ
@@ -1309,7 +1370,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
               "SHOW CREATE TABLE " + quoteIdentifier(database) + "." + quoteIdentifier(table));
       rs.next();
       String tableDef = rs.getString(2);
-      parseShowCreateTable(tableDef, database, table, importedKeysWithConstraintNames, data);
+      parseShowCreateTable(
+          tableDef,
+          storedDatabaseName(database),
+          storedTableName(tableDef, table),
+          importedKeysWithConstraintNames,
+          data);
 
     } else {
       List<String> databases = new ArrayList<>();
@@ -1327,7 +1393,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                   "SHOW CREATE TABLE " + quoteIdentifier(db) + "." + quoteIdentifier(table));
           rs.next();
           String tableDef = rs.getString(2);
-          parseShowCreateTable(tableDef, db, table, importedKeysWithConstraintNames, data);
+          parseShowCreateTable(
+              tableDef,
+              db,
+              storedTableName(tableDef, table),
+              importedKeysWithConstraintNames,
+              data);
         } catch (SQLException e) {
           // eat
         }
