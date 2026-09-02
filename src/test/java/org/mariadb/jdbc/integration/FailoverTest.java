@@ -120,19 +120,24 @@ public class FailoverTest extends Common {
       assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
       con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 200);
+      // generous timeout while setting up: a slow statement on a loaded CI host would otherwise be
+      // seen as a communication failure and trigger an unexpected failover
+      con.setNetworkTimeout(Runnable::run, 10_000);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test0')");
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO " + tableName + " (test) VALUES ('test2')");
+      // short timeout only for the command that is expected to fail
+      con.setNetworkTimeout(Runnable::run, 200);
       proxy.restart(500);
       if (transactionReplay) {
         Common.assertThrowsContains(
             SQLTransientConnectionException.class,
             con::commit,
             "Driver has reconnect connection after a communications failure");
+        con.setNetworkTimeout(Runnable::run, 10_000);
 
         ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
         for (int i = 0; i < 1; i++) {
