@@ -584,6 +584,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Savepoint setSavepoint() throws SQLException {
+    checkNotClosed();
     MariaDbSavepoint savepoint = new MariaDbSavepoint(savepointId.incrementAndGet());
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
@@ -591,6 +592,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
+    checkNotClosed();
     MariaDbSavepoint savepoint = new MariaDbSavepoint(name.replace("`", "``"));
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
