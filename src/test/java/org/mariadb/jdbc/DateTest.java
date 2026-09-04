@@ -91,8 +91,10 @@ public class DateTest extends BaseTest {
           "CREATE TABLE date_test(id int not null primary key auto_increment, d_test date,dt_test datetime, "
               + "t_test time)");
       boolean isMariadbServer = isMariadbServer();
-      if (isMariadbServer) {
+      if (hasYear2()) {
         stmt.execute("CREATE TABLE yeartest(y1 year, y2 year(2))");
+      }
+      if (isMariadbServer) {
         stmt.execute(
             "CREATE TABLE timestampMillisecondsTest(id decimal(10), create_time datetime(6))");
       } else {
@@ -235,7 +237,8 @@ public class DateTest extends BaseTest {
 
   @Test
   public void yearTest() throws SQLException {
-    Assume.assumeTrue(isMariadbServer());
+    // checks 2 digits YEAR conversion (70 -> 1970, 69 -> 2069): needs YEAR(2) support
+    Assume.assumeTrue(hasYear2());
     sharedConnection
         .createStatement()
         .execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
