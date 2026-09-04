@@ -6,6 +6,8 @@ package org.mariadb.jdbc.client.socket;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -117,23 +119,7 @@ public class Reader {
     int packetLength = readHeader();
     checkMaxAllowedLength(packetLength);
     byte[] rawBytes = new byte[packetLength];
-
-    // Read content
-    int remaining = packetLength;
-    int off = 0;
-    do {
-      int count = inputStream.read(rawBytes, off, remaining);
-      if (count < 0) {
-        throw new EOFException(
-            "unexpected end of stream, read "
-                + (packetLength - remaining)
-                + " bytes from "
-                + packetLength
-                + " (socket was closed by server)");
-      }
-      remaining -= count;
-      off += count;
-    } while (remaining > 0);
+    readFully(rawBytes, packetLength);
 
     if (traceEnable) {
       logger.trace(
@@ -142,41 +128,77 @@ public class Reader {
           LoggerHelper.hex(header, rawBytes, 0, packetLength, maxQuerySizeToLog));
     }
 
-    // Handle large packets
     if (packetLength == MAX_PACKET_SIZE) {
-      do {
-        packetLength = readHeader();
-        int currentLength = rawBytes.length;
-        checkMaxAllowedLength((long) currentLength + packetLength);
-        byte[] newRawBytes = new byte[currentLength + packetLength];
-        System.arraycopy(rawBytes, 0, newRawBytes, 0, currentLength);
-        rawBytes = newRawBytes;
-
-        remaining = packetLength;
-        off = currentLength;
-        do {
-          int count = inputStream.read(rawBytes, off, remaining);
-          if (count < 0) {
-            throw new EOFException(
-                "unexpected end of stream, read "
-                    + (packetLength - remaining)
-                    + " bytes from "
-                    + packetLength);
-          }
-          remaining -= count;
-          off += count;
-        } while (remaining > 0);
-
-        if (traceEnable) {
-          logger.trace(
-              "read: {}\n{}",
-              serverThreadLog,
-              LoggerHelper.hex(header, rawBytes, currentLength, packetLength, maxQuerySizeToLog));
-        }
-      } while (packetLength == MAX_PACKET_SIZE);
+      return readMultiPacket(rawBytes, traceEnable);
     }
-
     return rawBytes;
+  }
+
+  /**
+   * Reassemble a MySQL packet split over several 16Mb fragments. Fragments are buffered as they
+   * arrive and copied once into the final array: growing and copying the accumulated content for
+   * every fragment would copy O(n²/16Mb) bytes for an n-byte packet.
+   *
+   * @param firstFragment first (full 16Mb) fragment, already read
+   * @param traceEnable must trace packet
+   * @return complete packet content
+   * @throws IOException if socket exception occur
+   */
+  private byte[] readMultiPacket(byte[] firstFragment, boolean traceEnable) throws IOException {
+    List<byte[]> fragments = new ArrayList<>();
+    fragments.add(firstFragment);
+    long totalLength = firstFragment.length;
+
+    int packetLength;
+    do {
+      packetLength = readHeader();
+      totalLength += packetLength;
+      checkMaxAllowedLength(totalLength);
+      byte[] fragment = new byte[packetLength];
+      readFully(fragment, packetLength);
+
+      if (traceEnable) {
+        logger.trace(
+            "read: {}\n{}",
+            serverThreadLog,
+            LoggerHelper.hex(header, fragment, 0, packetLength, maxQuerySizeToLog));
+      }
+      fragments.add(fragment);
+    } while (packetLength == MAX_PACKET_SIZE);
+
+    // checkMaxAllowedLength bounds totalLength to maxAllowedPacket, so it fits an int
+    byte[] rawBytes = new byte[(int) totalLength];
+    int off = 0;
+    for (byte[] fragment : fragments) {
+      System.arraycopy(fragment, 0, rawBytes, off, fragment.length);
+      off += fragment.length;
+    }
+    return rawBytes;
+  }
+
+  /**
+   * Read exactly {@code length} bytes from the socket into the beginning of {@code dest}.
+   *
+   * @param dest destination array
+   * @param length number of bytes to read
+   * @throws IOException if socket exception occur or the stream ends early
+   */
+  private void readFully(byte[] dest, int length) throws IOException {
+    int remaining = length;
+    int off = 0;
+    while (remaining > 0) {
+      int count = inputStream.read(dest, off, remaining);
+      if (count < 0) {
+        throw new EOFException(
+            "unexpected end of stream, read "
+                + (length - remaining)
+                + " bytes from "
+                + length
+                + " (socket was closed by server)");
+      }
+      remaining -= count;
+      off += count;
+    }
   }
 
   /**

@@ -104,6 +104,59 @@ public class ReaderMultiPacketTest {
         ex.getMessage().contains("maxAllowedPacket"), "unexpected message: " + ex.getMessage());
   }
 
+  @Test
+  void readPacket_reassemblesContentAcrossFragmentBoundaries() throws Exception {
+    // three fragments: two full 16Mb fragments and a short terminating one. Content must be
+    // contiguous and in order, in particular around each fragment boundary.
+    int total = 2 * MAX_PACKET_SIZE + 1000;
+    byte[] payload = new byte[total];
+    for (int i = 0; i < total; i++) payload[i] = (byte) (i % 251);
+
+    ByteArrayOutputStream out = new ByteArrayOutputStream(total + 12);
+    writeHeader(out, MAX_PACKET_SIZE, (byte) 0);
+    out.write(payload, 0, MAX_PACKET_SIZE);
+    writeHeader(out, MAX_PACKET_SIZE, (byte) 1);
+    out.write(payload, MAX_PACKET_SIZE, MAX_PACKET_SIZE);
+    writeHeader(out, 1000, (byte) 2);
+    out.write(payload, 2 * MAX_PACKET_SIZE, 1000);
+
+    Reader reader = reader(out.toByteArray());
+    reader.setMaxAllowedPacket(total);
+    byte[] packet = reader.readPacket(false);
+    assertArrayEquals(payload, packet);
+  }
+
+  @Test
+  void readPacket_acceptsEmptyTerminatingFragment() throws Exception {
+    // a payload of exactly 16Mb is sent as a full fragment followed by an empty one.
+    ByteArrayOutputStream out = new ByteArrayOutputStream(MAX_PACKET_SIZE + 8);
+    writeHeader(out, MAX_PACKET_SIZE, (byte) 0);
+    out.write(new byte[MAX_PACKET_SIZE], 0, MAX_PACKET_SIZE);
+    writeHeader(out, 0, (byte) 1);
+
+    Reader reader = reader(out.toByteArray());
+    reader.setMaxAllowedPacket(MAX_PACKET_SIZE + 1);
+    assertEquals(MAX_PACKET_SIZE, reader.readPacket(false).length);
+  }
+
+  @Test
+  void readPacket_reportsTruncatedFragment() throws Exception {
+    // stream ends in the middle of the second fragment: must fail with EOF, not return partial
+    // data.
+    ByteArrayOutputStream out = new ByteArrayOutputStream(MAX_PACKET_SIZE + 100);
+    writeHeader(out, MAX_PACKET_SIZE, (byte) 0);
+    out.write(new byte[MAX_PACKET_SIZE], 0, MAX_PACKET_SIZE);
+    writeHeader(out, 500, (byte) 1);
+    out.write(new byte[100], 0, 100);
+
+    Reader reader = reader(out.toByteArray());
+    reader.setMaxAllowedPacket(MAX_PACKET_SIZE + 500);
+    IOException ex = assertThrows(IOException.class, () -> reader.readPacket(false));
+    assertTrue(
+        ex.getMessage().contains("unexpected end of stream"),
+        "unexpected message: " + ex.getMessage());
+  }
+
   private static Reader reader(byte[] stream) throws Exception {
     Configuration conf = Configuration.parse("jdbc:mariadb://localhost/");
     return new Reader(new ByteArrayInputStream(stream), conf, new MutableByte());
