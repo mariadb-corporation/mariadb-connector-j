@@ -1028,7 +1028,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                    + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME");
+                    + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                    + " AND KCU.TABLE_NAME = RC.TABLE_NAME ");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schema;
     boolean firstCondition =
         databaseCond(
@@ -1083,7 +1084,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                    + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME ");
+                    + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                    + " AND KCU.TABLE_NAME = RC.TABLE_NAME ");
 
     boolean firstCondition = databaseCond(true, sb, "KCU.TABLE_SCHEMA", database, false);
     sb.append(firstCondition ? " WHERE " : " AND ")
@@ -2691,7 +2693,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     + "FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                     + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                     + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-                    + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME ");
+                    + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
+                    + " AND KCU.TABLE_NAME = RC.TABLE_NAME ");
     String parentDatabase =
         conf.useCatalogTerm() == CatalogTerm.UseCatalog ? parentCatalog : parentSchema;
     String foreignDatabase =

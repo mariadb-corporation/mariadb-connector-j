@@ -467,7 +467,11 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(1, rs.getInt("KEY_SEQ"));
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
-      assertEquals("product order 1_ibfk_1", rs.getString("FK_NAME"));
+      if (isMariaDBServer() && minVersion(12, 1, 0)) {
+        assertEquals("1", rs.getString("FK_NAME"));
+      } else {
+        assertEquals("product order 1_ibfk_1", rs.getString("FK_NAME"));
+      }
       // with show, meta don't know contraint name
       assertEquals(
           (i == 0 && !importedKeysWithConstraintNames) ? null : "unik_name",
@@ -486,7 +490,11 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(2, rs.getInt("KEY_SEQ"));
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
-      assertEquals("product order 1_ibfk_1", rs.getString("FK_NAME"));
+      if (isMariaDBServer() && minVersion(12, 1, 0)) {
+        assertEquals("1", rs.getString("FK_NAME"));
+      } else {
+        assertEquals("product order 1_ibfk_1", rs.getString("FK_NAME"));
+      }
       // with show, meta don't know contraint name
       assertEquals(
           (i == 0 && !importedKeysWithConstraintNames) ? null : "unik_name",
@@ -510,7 +518,11 @@ public class DatabaseMetadataTest extends Common {
         assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
         assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
       }
-      assertEquals("product order 1_ibfk_2", rs.getString("FK_NAME"));
+      if (isMariaDBServer() && minVersion(12, 1, 0)) {
+        assertEquals("2", rs.getString("FK_NAME"));
+      } else {
+        assertEquals("product order 1_ibfk_2", rs.getString("FK_NAME"));
+      }
       // with show, meta don't know contraint name
       assertEquals(
           (i == 0 && !importedKeysWithConstraintNames) ? null : "PRIMARY", rs.getString("PK_NAME"));
@@ -613,7 +625,11 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
+    if (isMariaDBServer() && minVersion(12, 1, 0)) {
+      assertEquals("1", rs.getString("FK_NAME"));
+    } else {
+      assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
+    }
     assertTrue(
         "PRIMARY".equals(rs.getString("PK_NAME"))
             || "__idx_cross1__PRIMARY".equals(rs.getString("PK_NAME")));
@@ -687,7 +703,11 @@ public class DatabaseMetadataTest extends Common {
         assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
         assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
       }
-      assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
+      if (isMariaDBServer() && minVersion(12, 1, 0)) {
+        assertEquals("1", rs.getString("FK_NAME"));
+      } else {
+        assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
+      }
       assertTrue(
           "PRIMARY".equals(rs.getString("PK_NAME"))
               || "__idx_cross1__PRIMARY".equals(rs.getString("PK_NAME")));
@@ -1769,7 +1789,15 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    assertEquals("cross2_ibfk_1", rs.getString(12));
+    if (isMariaDBServer() && minVersion(12, 1, 0)) {
+      assertEquals("1", rs.getString(12));
+    } else {
+      if (isMariaDBServer() && minVersion(12, 1, 0)) {
+        assertEquals("1", rs.getString(12));
+      } else {
+        assertEquals("cross2_ibfk_1", rs.getString(12));
+      }
+    }
 
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1));
@@ -1835,7 +1863,15 @@ public class DatabaseMetadataTest extends Common {
         assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
         assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
       }
-      assertEquals("cross2_ibfk_1", rs.getString(12));
+      if (isMariaDBServer() && minVersion(12, 1, 0)) {
+        assertEquals("1", rs.getString(12));
+      } else {
+        if (isMariaDBServer() && minVersion(12, 1, 0)) {
+          assertEquals("1", rs.getString(12));
+        } else {
+          assertEquals("cross2_ibfk_1", rs.getString(12));
+        }
+      }
 
       assertTrue(rs.next());
       assertEquals("def", rs.getString(1));
