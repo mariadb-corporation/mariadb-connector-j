@@ -1777,6 +1777,19 @@ public class DatabaseMetadataTest extends BaseTest {
   }
 
   /**
+   * Compare a "db.table>db.table" key, ignoring case when the server stores names as declared but
+   * matches them in lowercase (lower_case_table_names=2) and the caller used another case.
+   */
+  private static void assertKey(String ctx, String expected, String actual, boolean ignoreCase) {
+    if (ignoreCase) {
+      assertNotNull(ctx, actual);
+      assertEquals(ctx, expected.toLowerCase(Locale.ROOT), actual.toLowerCase(Locale.ROOT));
+    } else {
+      assertEquals(ctx, expected, actual);
+    }
+  }
+
+  /**
    * Rows of an imported/exported keys result, "PKTABLE_CAT.PKTABLE_NAME>FKTABLE_CAT.FKTABLE_NAME"
    * by FK_NAME.
    */
@@ -1825,6 +1838,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
       MariaDbDatabaseMetaData meta = (MariaDbDatabaseMetaData) sharedConnection.getMetaData();
       boolean caseInsensitive = !meta.supportsMixedCaseIdentifiers();
+      boolean storesMixedCase = meta.storesMixedCaseIdentifiers();
 
       // names as stored by the server
       String curDb = storedName(meta, database, "CONJ1344_PARENT", "TABLE_CAT");
@@ -1834,8 +1848,8 @@ public class DatabaseMetadataTest extends BaseTest {
       String parentUp = storedName(meta, "CONJ1344_DB", "PARENT_UP", "TABLE_NAME");
       String childUp = storedName(meta, "CONJ1344_DB", "CHILD_UP", "TABLE_NAME");
       String xchildUp = storedName(meta, "CONJ1344_DB", "XCHILD_UP", "TABLE_NAME");
-      assertEquals(caseInsensitive ? "conj1344_db" : "CONJ1344_DB", upDb);
-      assertEquals(caseInsensitive ? "conj1344_child" : "CONJ1344_CHILD", child);
+      assertEquals(meta.storesLowerCaseIdentifiers() ? "conj1344_db" : "CONJ1344_DB", upDb);
+      assertEquals(meta.storesLowerCaseIdentifiers() ? "conj1344_child" : "CONJ1344_CHILD", child);
 
       String childKey = curDb + "." + parent + ">" + curDb + "." + child;
       String childUpKey = upDb + "." + parentUp + ">" + upDb + "." + childUp;
@@ -1865,6 +1879,7 @@ public class DatabaseMetadataTest extends BaseTest {
           caseInsensitive ? new String[][] {declared, otherCase} : new String[][] {declared};
 
       for (String[] p : params) {
+        boolean ignoreCase = storesMixedCase && p == otherCase;
         for (int impl = 0; impl < 3; impl++) {
           String ctx = "impl=" + impl + " params=" + String.join(",", p);
           Map<String, String> childKeys;
@@ -1888,22 +1903,22 @@ public class DatabaseMetadataTest extends BaseTest {
               break;
           }
           assertEquals(ctx, 1, childKeys.size());
-          assertEquals(ctx, childKey, childKeys.get("CONJ1344_FK1"));
+          assertKey(ctx, childKey, childKeys.get("CONJ1344_FK1"), ignoreCase);
           assertEquals(ctx, 1, childUpKeys.size());
-          assertEquals(ctx, childUpKey, childUpKeys.get("CHILD_UP_FK1"));
+          assertKey(ctx, childUpKey, childUpKeys.get("CHILD_UP_FK1"), ignoreCase);
           assertEquals(ctx, 1, xchildUpKeys.size());
-          assertEquals(ctx, xchildUpKey, xchildUpKeys.get("XCHILD_UP_FK1"));
+          assertKey(ctx, xchildUpKey, xchildUpKeys.get("XCHILD_UP_FK1"), ignoreCase);
         }
 
         // information_schema based getExportedKeys must agree with the above
         String ctx = "params=" + String.join(",", p);
         Map<String, String> exported = keysByName(meta.getExportedKeys(p[0], null, p[1]));
         assertEquals(ctx, 2, exported.size());
-        assertEquals(ctx, childKey, exported.get("CONJ1344_FK1"));
-        assertEquals(ctx, xchildUpKey, exported.get("XCHILD_UP_FK1"));
+        assertKey(ctx, childKey, exported.get("CONJ1344_FK1"), ignoreCase);
+        assertKey(ctx, xchildUpKey, exported.get("XCHILD_UP_FK1"), ignoreCase);
         exported = keysByName(meta.getExportedKeys(p[3], null, p[4]));
         assertEquals(ctx, 1, exported.size());
-        assertEquals(ctx, childUpKey, exported.get("CHILD_UP_FK1"));
+        assertKey(ctx, childUpKey, exported.get("CHILD_UP_FK1"), ignoreCase);
       }
     } finally {
       stmt.execute("DROP DATABASE IF EXISTS CONJ1344_DB");
