@@ -127,9 +127,7 @@ public class DatatypeTest extends BaseTest {
               + "datetime0 DATETIME default '2001-01-01 00:00:00',"
               + "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00',"
               + "time0 TIME default '22:11:00',"
-              + ((minVersion(5, 6) && strictBeforeVersion(10, 0))
-                  ? "year2 YEAR(4) default 99,"
-                  : "year2 YEAR(2) default 99,")
+              + (hasYear2() ? "year2 YEAR(2) default 99," : "year2 YEAR(4) default 99,")
               + "year4 YEAR(4) default 2011,"
               + "char0 CHAR(1) default '0',"
               + "char_binary CHAR (1) binary default '0',"
@@ -299,8 +297,8 @@ public class DatatypeTest extends BaseTest {
     checkClass("time0", Time.class, "TIME", Types.TIME);
     checkClass("timestamp0", Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
 
-    if (minVersion(5, 6) && strictBeforeVersion(10, 0)) {
-      // MySQL deprecated YEAR(2) since 5.6
+    if (!hasYear2()) {
+      // YEAR(2) removed: MySQL deprecated it since 5.6, MariaDB removed it in 13.0
       checkClass(
           "year2",
           yearIsDateType ? Date.class : Short.class,

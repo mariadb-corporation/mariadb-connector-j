@@ -577,7 +577,7 @@ public class BlobTest extends BaseTest {
       Object objectInputFilterImpl =
           Proxy.newProxyInstance(
               cl,
-              new Class[] {objectInputFilterClass},
+              new Class<?>[] {objectInputFilterClass},
               (proxy, method, args) -> {
                 Class<?> filterInfoClass = Class.forName("java.io.ObjectInputFilter$FilterInfo");
                 Method arrayLengthMethod = filterInfoClass.getDeclaredMethod("arrayLength");

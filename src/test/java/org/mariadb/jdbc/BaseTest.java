@@ -418,6 +418,17 @@ public class BaseTest {
   }
 
   /**
+   * Check if server supports the YEAR(2) column type: MySQL deprecated it in 5.6 (creating a
+   * YEAR(4) instead), MariaDB removed it in 13.0.
+   *
+   * @return true if YEAR(2) columns can be created
+   * @throws SQLException exception
+   */
+  static boolean hasYear2() throws SQLException {
+    return isMariadbServer() ? !minVersion(13, 0) : !minVersion(5, 6);
+  }
+
+  /**
    * List current connections to server.
    *
    * @return number of thread connected.

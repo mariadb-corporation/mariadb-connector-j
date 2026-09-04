@@ -39,6 +39,7 @@ jobs:
     needs: setup
     timeout-minutes: 50
     strategy:
+      fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
 
     runs-on: ${{ matrix.os }}
@@ -65,7 +66,7 @@ jobs:
         with:
           java-version: ${{ matrix.java || '21' }}
           cache: maven
-          distribution: ${{ (matrix.java && matrix.java > 17) && 'oracle' || 'adopt' }}
+          distribution: ${{ (matrix.java && matrix.java > 17) && 'oracle' || 'temurin' }}
 
       - name: Run Tests non windows
         if: ${{ !startsWith(matrix.os, 'windows') }}
@@ -104,3 +105,16 @@ jobs:
           bash <(curl -s https://codecov.io/bash)
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # Single check with a stable name for the branch ruleset (matrix job names vary). Runs even
+  # when a dependency failed so the check is reported as failed rather than skipped.
+  ci-result:
+    name: Run CI Tests
+    needs: [ci]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job results
+        run: |
+          echo "ci: ${{ needs.ci.result }}"
+          [[ "${{ needs.ci.result }}" == "success" ]]
