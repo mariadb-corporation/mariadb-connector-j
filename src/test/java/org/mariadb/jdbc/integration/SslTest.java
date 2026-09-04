@@ -242,7 +242,9 @@ public class SslTest extends Common {
   public void mutualAuthSsl() throws Exception {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
+    Assumptions.assumeTrue(
+        System.getenv("TEST_DB_CLIENT_PKCS") != null
+            && !"".equals(System.getenv("TEST_DB_CLIENT_PKCS")));
 
     // without password
     try {

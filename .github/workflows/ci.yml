@@ -79,6 +79,8 @@ jobs:
           TEST_DB_CLIENT_PKCS: ${{ steps.setup-env.outputs.database-type == 'container' && format('{0}/.github/workflows/certs/client.p12', github.workspace) || '' }}
           DB_VERSION: ${{ matrix.db-tag }}
           MAXSCALE_VERSION: ${{ matrix.maxscale-tag || ''}}
+          # tests of this branch detect MaxScale / Enterprise server through the srv variable
+          srv: ${{ matrix.maxscale-tag && 'maxscale' || (matrix.db-type == 'enterprise' && 'mariadb-es' || '') }}
 
       - name: Generate Coverage Report
         shell: bash

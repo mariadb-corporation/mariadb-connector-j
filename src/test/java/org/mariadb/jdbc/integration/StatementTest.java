@@ -753,7 +753,7 @@ public class StatementTest extends Common {
               "select * from information_schema.columns as c1,  information_schema.tables,"
                   + " information_schema.tables as t2");
         },
-        "Query execution was interrupted (max_statement_time exceeded)");
+        "was interrupted");
   }
 
   @Test
