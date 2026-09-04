@@ -83,8 +83,14 @@ public class RedirectionTest extends Common {
 
   @Test
   void connectionRedirection() throws Exception {
-    // need maxscale 23.08+
     Assumptions.assumeTrue("maxscale".equals(System.getenv("srv")));
+    int maxscaleVersion;
+    try {
+      maxscaleVersion = getMaxScaleVersion();
+    } catch (SQLException e) {
+      maxscaleVersion = 0;
+    }
+    Assumptions.assumeTrue(maxscaleVersion >= 230800);
     try {
       proxy = new TcpProxy(hostname, port);
     } catch (IOException i) {
