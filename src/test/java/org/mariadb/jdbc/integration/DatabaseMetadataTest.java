@@ -3183,6 +3183,7 @@ public class DatabaseMetadataTest extends Common {
     String storedChild = rs.getString("TABLE_NAME");
     String storedDb = rs.getString("TABLE_CAT");
     boolean caseInsensitive = !meta.supportsMixedCaseIdentifiers();
+    boolean storesMixedCase = meta.storesMixedCaseIdentifiers();
 
     // lower_case_table_names only concerns table and database names: column, index and
     // constraint names must keep the declared case, whatever the server setting
@@ -3267,16 +3268,16 @@ public class DatabaseMetadataTest extends Common {
           String otherCaseCat = catalog.toUpperCase(Locale.ROOT);
           rs = md.getImportedKeys(otherCaseCat, null, "conj1344_child");
           assertTrue(rs.next(), option);
-          assertEquals(storedDb, rs.getString("PKTABLE_CAT"), option);
-          assertEquals(storedDb, rs.getString("FKTABLE_CAT"), option);
-          assertEquals(storedChild, rs.getString("FKTABLE_NAME"), option);
+          assertIdentifier(storedDb, rs.getString("PKTABLE_CAT"), storesMixedCase, option);
+          assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), storesMixedCase, option);
+          assertIdentifier(storedChild, rs.getString("FKTABLE_NAME"), storesMixedCase, option);
           assertFalse(rs.next(), option);
 
           rs = md.getExportedKeys(otherCaseCat, null, "conj1344_parent");
           assertTrue(rs.next(), option);
-          assertEquals(storedDb, rs.getString("PKTABLE_CAT"), option);
-          assertEquals(storedDb, rs.getString("FKTABLE_CAT"), option);
-          assertEquals(storedChild, rs.getString("FKTABLE_NAME"), option);
+          assertIdentifier(storedDb, rs.getString("PKTABLE_CAT"), storesMixedCase, option);
+          assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), storesMixedCase, option);
+          assertIdentifier(storedChild, rs.getString("FKTABLE_NAME"), storesMixedCase, option);
           assertFalse(rs.next(), option);
         }
       }
@@ -3321,8 +3322,10 @@ public class DatabaseMetadataTest extends Common {
       String storedCurrentDb = rs.getString("TABLE_CAT");
       String storedXParent = rs.getString("TABLE_NAME");
       boolean caseInsensitive = !meta.supportsMixedCaseIdentifiers();
-      // with lower_case_table_names=1 the server stores the database lowercased
-      assertEquals(caseInsensitive ? "conj1344_db" : "CONJ1344_DB", storedDb);
+      boolean storesMixedCase = meta.storesMixedCaseIdentifiers();
+      // with lower_case_table_names=1 the server stores the database lowercased; with 0 and 2
+      // (macOS default) it is stored as declared
+      assertEquals(meta.storesLowerCaseIdentifiers() ? "conj1344_db" : "CONJ1344_DB", storedDb);
 
       String[] catalogs =
           caseInsensitive
@@ -3339,21 +3342,24 @@ public class DatabaseMetadataTest extends Common {
           for (String cat : catalogs) {
             String ctx = option + " catalog=" + cat;
 
+            // with lower_case_table_names=2 the database name is echoed as given by the caller
+            boolean otherCase = storesMixedCase && !cat.equals(storedDb);
+
             // same database reference
             rs = md.getImportedKeys(cat, null, "CHILD_UP");
             assertTrue(rs.next(), ctx);
-            assertEquals(storedDb, rs.getString("PKTABLE_CAT"), ctx);
+            assertIdentifier(storedDb, rs.getString("PKTABLE_CAT"), otherCase, ctx);
             assertEquals(storedParent, rs.getString("PKTABLE_NAME"), ctx);
-            assertEquals(storedDb, rs.getString("FKTABLE_CAT"), ctx);
+            assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), otherCase, ctx);
             assertEquals(storedChild, rs.getString("FKTABLE_NAME"), ctx);
             assertEquals("CHILD_UP_FK1", rs.getString("FK_NAME"), ctx);
             assertFalse(rs.next(), ctx);
 
             rs = md.getExportedKeys(cat, null, "PARENT_UP");
             assertTrue(rs.next(), ctx);
-            assertEquals(storedDb, rs.getString("PKTABLE_CAT"), ctx);
+            assertIdentifier(storedDb, rs.getString("PKTABLE_CAT"), otherCase, ctx);
             assertEquals(storedParent, rs.getString("PKTABLE_NAME"), ctx);
-            assertEquals(storedDb, rs.getString("FKTABLE_CAT"), ctx);
+            assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), otherCase, ctx);
             assertEquals(storedChild, rs.getString("FKTABLE_NAME"), ctx);
             assertEquals("CHILD_UP_FK1", rs.getString("FK_NAME"), ctx);
             assertFalse(rs.next(), ctx);
@@ -3363,7 +3369,7 @@ public class DatabaseMetadataTest extends Common {
             assertTrue(rs.next(), ctx);
             assertEquals(storedCurrentDb, rs.getString("PKTABLE_CAT"), ctx);
             assertEquals(storedXParent, rs.getString("PKTABLE_NAME"), ctx);
-            assertEquals(storedDb, rs.getString("FKTABLE_CAT"), ctx);
+            assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), otherCase, ctx);
             assertEquals(storedXChild, rs.getString("FKTABLE_NAME"), ctx);
             assertEquals("XCHILD_UP_FK1", rs.getString("FK_NAME"), ctx);
             assertFalse(rs.next(), ctx);
@@ -3382,8 +3388,8 @@ public class DatabaseMetadataTest extends Common {
             rs = md.getImportedKeys("conj1344_db", null, "xchild_up");
             assertTrue(rs.next(), option);
             assertEquals(storedCurrentDb, rs.getString("PKTABLE_CAT"), option);
-            assertEquals(storedDb, rs.getString("FKTABLE_CAT"), option);
-            assertEquals(storedXChild, rs.getString("FKTABLE_NAME"), option);
+            assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), storesMixedCase, option);
+            assertIdentifier(storedXChild, rs.getString("FKTABLE_NAME"), storesMixedCase, option);
             assertFalse(rs.next(), option);
           }
         }
@@ -3391,6 +3397,20 @@ public class DatabaseMetadataTest extends Common {
     } finally {
       stmt.execute("DROP DATABASE IF EXISTS CONJ1344_DB");
       stmt.execute("DROP TABLE IF EXISTS CONJ1344_XPARENT");
+    }
+  }
+
+  /**
+   * Compare a table or database identifier returned by metadata with its stored name. With
+   * lower_case_table_names=2 (names stored as declared, matched in lowercase) SHOW CREATE TABLE
+   * based methods echo the caller case, so only a case-insensitive comparison is possible.
+   */
+  private static void assertIdentifier(
+      String expected, String actual, boolean ignoreCase, String message) {
+    if (ignoreCase) {
+      assertEquals(expected.toLowerCase(Locale.ROOT), actual.toLowerCase(Locale.ROOT), message);
+    } else {
+      assertEquals(expected, actual, message);
     }
   }
 }
