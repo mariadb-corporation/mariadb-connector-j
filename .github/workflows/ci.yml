@@ -65,7 +65,7 @@ jobs:
         with:
           java-version: ${{ matrix.java || '21' }}
           cache: maven
-          distribution: ${{ (matrix.java && matrix.java > 17) && 'oracle' || 'adopt' }}
+          distribution: ${{ (matrix.java && matrix.java > 17) && 'oracle' || 'temurin' }}
 
       - name: Run Tests
         run: mvn clean test ${{ matrix.java == '8' && '-P java8' || '' }} ${{ matrix.java == '11' && '-P java11' || '' }}
@@ -98,7 +98,7 @@ jobs:
         with:
           java-version: '17'
           cache: maven
-          distribution: 'adopt'
+          distribution: 'temurin'
 
       - name: Install Infer
         run: |
