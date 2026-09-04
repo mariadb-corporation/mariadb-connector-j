@@ -60,6 +60,8 @@ jobs:
     needs: setup
     timeout-minutes: 50
     strategy:
+      # one failing server (e.g. a dev version) must not cancel the other matrix jobs
+      fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
 
     runs-on: ${{ matrix.os }}
@@ -80,7 +82,7 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           cache: maven
-          distribution: 'adopt'
+          distribution: 'temurin'
 
       - name: Setup MariaDB
         id: mariadb-install
@@ -108,3 +110,16 @@ jobs:
         run: mvn clean test ${{ matrix.java == '8' && '-P java8' || '' }} ${{ matrix.java == '11' && '-P java11' || '' }}
         env:
           LOCAL_DB: ${{ steps.mariadb-install.outputs.database-type }}
+
+  # Single check with a stable name for the branch ruleset (matrix job names vary). Runs even
+  # when a dependency failed so the check is reported as failed rather than skipped.
+  ci-result:
+    name: Run CI Tests
+    needs: [ci]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job results
+        run: |
+          echo "ci: ${{ needs.ci.result }}"
+          [[ "${{ needs.ci.result }}" == "success" ]]
