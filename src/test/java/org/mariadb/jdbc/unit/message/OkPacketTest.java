@@ -26,7 +26,7 @@ public class OkPacketTest {
     return (Context)
         Proxy.newProxyInstance(
             Context.class.getClassLoader(),
-            new Class[] {Context.class},
+            new Class<?>[] {Context.class},
             (proxy, method, args) -> {
               switch (method.getName()) {
                 case "hasClientCapability":

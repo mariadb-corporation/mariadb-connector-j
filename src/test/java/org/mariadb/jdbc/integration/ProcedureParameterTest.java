@@ -99,7 +99,7 @@ public class ProcedureParameterTest extends Common {
     Assumptions.assumeTrue(
         !con.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
 
-    Statement stmt = (Statement) con.createStatement();
+    Statement stmt = con.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc2");
     stmt.execute(
         "CREATE PROCEDURE basic_proc2 (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3),"
