@@ -99,10 +99,9 @@ public final class ConnectionHelper {
   /**
    * Ensure a {@code socketFactory} option is a plain Java binary class name, i.e. a dot-separated
    * sequence of ASCII Java identifiers ({@code org.example.MyFactory}, {@code com.foo.Bar$Baz}).
-   * This
-   * rejects resource locators such as {@code jar:file:/proc/self/fd/N!/Evil} that would otherwise
-   * be passed verbatim to {@link Class#forName}, preventing bytecode from being loaded from an
-   * attacker-controlled location.
+   * This rejects resource locators such as {@code jar:file:/proc/self/fd/N!/Evil} that would
+   * otherwise be passed verbatim to {@link Class#forName}, preventing bytecode from being loaded
+   * from an attacker-controlled location.
    *
    * @param className socketFactory option value
    * @throws IOException if the value is not a valid class name

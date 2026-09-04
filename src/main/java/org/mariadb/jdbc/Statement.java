@@ -1739,13 +1739,7 @@ public class Statement implements java.sql.Statement {
   private static boolean mustEscapeLiteral(char c, boolean noBackslashEscapes) {
     if (c == '\'') return true;
     if (noBackslashEscapes) return false; // only the quote is special
-    return c == '\\'
-        || c == '"'
-        || c == 0
-        || c == '\b'
-        || c == '\n'
-        || c == '\r'
-        || c == '\t'
+    return c == '\\' || c == '"' || c == 0 || c == '\b' || c == '\n' || c == '\r' || c == '\t'
         || c == 26;
   }
 
