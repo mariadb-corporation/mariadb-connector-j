@@ -39,6 +39,8 @@ jobs:
     needs: setup
     timeout-minutes: 50
     strategy:
+      # one failing server (e.g. a dev version) must not cancel the other matrix jobs
+      fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
 
     runs-on: ${{ matrix.os }}
@@ -120,3 +122,16 @@ jobs:
           name: infer-report
           path: infer-out/report.txt
           if-no-files-found: ignore
+
+  # Single check with a stable name for the branch ruleset (matrix job names vary). Runs even
+  # when a dependency failed so the check is reported as failed rather than skipped.
+  ci-result:
+    name: Run CI Tests
+    needs: [ci, infer]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job results
+        run: |
+          echo "ci: ${{ needs.ci.result }}, infer: ${{ needs.infer.result }}"
+          [[ "${{ needs.ci.result }}" == "success" && "${{ needs.infer.result }}" == "success" ]]

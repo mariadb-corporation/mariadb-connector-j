@@ -144,3 +144,16 @@ jobs:
             --spring.datasource.username=${{ env.TEST_DB_USER }} \
             --spring.datasource.password=${{ env.TEST_DB_PASSWORD }}
         working-directory: .github/native-image-test/spring-boot
+
+  # Single check with a stable name for the branch ruleset (matrix job names vary). Runs even
+  # when a dependency failed so the check is reported as failed rather than skipped.
+  native-image-result:
+    name: GraalVM Native Image Test
+    needs: [native-image-test, spring-boot-native-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job results
+        run: |
+          echo "native-image-test: ${{ needs.native-image-test.result }}, spring-boot-native-test: ${{ needs.spring-boot-native-test.result }}"
+          [[ "${{ needs.native-image-test.result }}" == "success" && "${{ needs.spring-boot-native-test.result }}" == "success" ]]
