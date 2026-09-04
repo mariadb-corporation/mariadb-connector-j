@@ -1252,6 +1252,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     catalogCond(false, sb, "TABLE_SCHEMA", catalog);
     sb.append(" AND TABLE_NAME = ").append(escapeQuote(table));
     if (!nullable) sb.append(" AND IS_NULLABLE = 'NO'");
+    sb.append(" ORDER BY ORDINAL_POSITION");
 
     return executeQuery(sb.toString());
   }
