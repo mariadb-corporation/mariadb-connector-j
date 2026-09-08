@@ -2750,7 +2750,20 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(meta.storesLowerCaseIdentifiers(), meta.storesLowerCaseQuotedIdentifiers());
     assertEquals(meta.storesMixedCaseIdentifiers(), meta.storesMixedCaseQuotedIdentifiers());
     assertEquals("`", meta.getIdentifierQuoteString());
-    assertNotNull(meta.getSQLKeywords());
+    // CONJ-1343: each keyword must be a single well-formed word, without duplicates
+    String[] keywords = meta.getSQLKeywords().split(",");
+    java.util.Set<String> keywordSet = new java.util.HashSet<>();
+    for (String keyword : keywords) {
+      assertTrue(keyword.matches("[A-Z][A-Z0-9_]*"), "malformed keyword: " + keyword);
+      assertTrue(keywordSet.add(keyword), "duplicated keyword: " + keyword);
+    }
+    for (String keyword :
+        new String[] {
+          "ENCLOSED", "ESCAPED", "EXCEPT", "EXISTS", "FROM", "FULLTEXT", "INTERSECT", "INTERVAL",
+          "OFFSET", "ON", "REAL", "RECURSIVE", "ROW_NUMBER", "ROWS", "WINDOW", "WITH"
+        }) {
+      assertTrue(keywordSet.contains(keyword), "missing keyword: " + keyword);
+    }
     assertNotNull(meta.getNumericFunctions());
     assertNotNull(meta.getStringFunctions());
     assertNotNull(meta.getSystemFunctions());
