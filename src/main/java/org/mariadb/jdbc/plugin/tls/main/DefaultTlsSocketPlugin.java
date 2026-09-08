@@ -422,7 +422,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       X509Certificate cert = (X509Certificate) certs[0];
       HostnameVerifier.verify(host, cert, serverThreadId);
     } catch (SSLException ex) {
-      logger.info(ex.getMessage(), ex);
+      logger.debug(ex.getMessage(), ex);
       throw ex;
     }
   }
