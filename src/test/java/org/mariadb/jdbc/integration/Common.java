@@ -372,8 +372,15 @@ public class Common {
 
   @AfterEach
   public void afterEach1() throws SQLException {
-    sharedConn.isValid(2000);
-    sharedConnBinary.isValid(2000);
+    if (!sharedConn.isValid(2000)) {
+      System.out.println("  ! shared connection lost, reconnecting");
+      sharedConn = (Connection) DriverManager.getConnection(mDefUrl);
+    }
+    if (!sharedConnBinary.isValid(2000)) {
+      System.out.println("  ! shared binary connection lost, reconnecting");
+      String binUrl = mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "useServerPrepStmts=true";
+      sharedConnBinary = (Connection) DriverManager.getConnection(binUrl);
+    }
   }
 
   private static class Follow implements TestWatcher, BeforeEachCallback {
