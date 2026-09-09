@@ -7,6 +7,7 @@ import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
@@ -63,6 +64,29 @@ public class LocalDateCodec implements Codec<LocalDate> {
       return null;
     }
     return datePart;
+  }
+
+  /**
+   * LocalDate from server values, or SQLDataException when they cannot be represented (zero day or
+   * month, permitted by the server when sql_mode doesn't contain NO_ZERO_IN_DATE).
+   *
+   * @param year year
+   * @param month month
+   * @param dayOfMonth day of month
+   * @return LocalDate
+   * @throws SQLDataException if the value is not a valid date
+   */
+  static LocalDate localDateOf(int year, int month, int dayOfMonth) throws SQLDataException {
+    try {
+      return LocalDate.of(year, month, dayOfMonth);
+    } catch (DateTimeException e) {
+      throw new SQLDataException(
+          String.format(
+              "value '%04d-%02d-%02d' cannot be decoded as LocalDate: %s",
+              year, month, dayOfMonth, e.getMessage()),
+          "22007",
+          e);
+    }
   }
 
   public String className() {
@@ -146,7 +170,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
             length.set(NULL_LENGTH);
             return null;
           }
-          return LocalDate.of(year, month, dayOfMonth);
+          return localDateOf(year, month, dayOfMonth);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
@@ -161,7 +185,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
       length.set(NULL_LENGTH);
       return null;
     }
-    return LocalDate.of(parts[0], parts[1], parts[2]);
+    return localDateOf(parts[0], parts[1], parts[2]);
   }
 
   @Override
@@ -198,7 +222,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
           length.set(NULL_LENGTH);
           return null;
         }
-        return LocalDate.of(year, month, dayOfMonth);
+        return localDateOf(year, month, dayOfMonth);
 
       case BLOB:
       case TINYBLOB:
@@ -230,7 +254,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
             length.set(NULL_LENGTH);
             return null;
           }
-          return LocalDate.of(year, month, dayOfMonth);
+          return localDateOf(year, month, dayOfMonth);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
@@ -264,7 +288,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
           return null;
         }
 
-        return LocalDate.of(year, month, dayOfMonth);
+        return localDateOf(year, month, dayOfMonth);
 
       default:
         buf.skip(length.get());

@@ -14,8 +14,10 @@ import java.time.*;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.integration.Common;
 
@@ -816,5 +818,55 @@ public class DateCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2010-12-31"), rs.getDate(2));
     con.commit();
+  }
+
+  @Test
+  public void invalidDayOfMonth() throws SQLException {
+    // CONJ-1195: a zero day, permitted by the server when sql_mode doesn't contain NO_ZERO_IN_DATE,
+    // must be reported by every getter through an SQLException, never an unchecked exception
+    Assumptions.assumeTrue(isMariaDBServer() && !isMaxscale());
+    try (Connection con = createCon();
+        Connection conBinary = createCon("useServerPrepStmts=true")) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("DROP TABLE IF EXISTS DateCodecInvalid");
+      stmt.execute("CREATE TABLE DateCodecInvalid (t1 DATE)");
+      stmt.execute(
+          "SET SESSION sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,"
+              + "NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'");
+      stmt.execute("INSERT INTO DateCodecInvalid VALUES ('2000-03-00')");
+      try {
+        for (Connection c : new Connection[] {con, conBinary}) {
+          try (PreparedStatement prep =
+              c.prepareStatement("SELECT t1 FROM DateCodecInvalid WHERE 1 > ?")) {
+            prep.setInt(1, 0);
+            ResultSet rs = prep.executeQuery();
+            assertTrue(rs.next());
+            onlySqlException(() -> rs.getString(1));
+            onlySqlException(() -> rs.getDate(1));
+            onlySqlException(() -> rs.getTimestamp(1));
+            onlySqlException(() -> rs.getObject(1));
+            onlySqlException(() -> rs.getObject(1, LocalDateTime.class));
+            onlySqlException(() -> rs.getObject(1, ZonedDateTime.class));
+            Common.assertThrowsContains(
+                SQLDataException.class,
+                () -> rs.getObject(1, LocalDate.class),
+                "cannot be decoded as LocalDate");
+          }
+        }
+      } finally {
+        stmt.execute("DROP TABLE IF EXISTS DateCodecInvalid");
+      }
+    }
+  }
+
+  /** The getter may return a value or fail, but only with an SQLException. */
+  private static void onlySqlException(Executable getter) {
+    try {
+      getter.execute();
+    } catch (SQLException e) {
+      // acceptable outcome for a value that cannot be represented
+    } catch (Throwable t) {
+      fail("unchecked exception " + t, t);
+    }
   }
 }

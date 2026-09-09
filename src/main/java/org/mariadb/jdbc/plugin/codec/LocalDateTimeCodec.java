@@ -7,6 +7,7 @@ import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -120,6 +121,35 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
     return true;
   }
 
+  /**
+   * LocalDateTime from server values, or SQLDataException when they cannot be represented (zero day
+   * or month, permitted by the server when sql_mode doesn't contain NO_ZERO_IN_DATE).
+   *
+   * @param year year
+   * @param month month
+   * @param dayOfMonth day of month
+   * @param hour hour
+   * @param minutes minutes
+   * @param seconds seconds
+   * @param nanos nanoseconds
+   * @return LocalDateTime
+   * @throws SQLDataException if the value is not a valid date-time
+   */
+  static LocalDateTime localDateTimeOf(
+      int year, int month, int dayOfMonth, int hour, int minutes, int seconds, int nanos)
+      throws SQLDataException {
+    try {
+      return LocalDateTime.of(year, month, dayOfMonth, hour, minutes, seconds, nanos);
+    } catch (DateTimeException e) {
+      throw new SQLDataException(
+          String.format(
+              "value '%04d-%02d-%02d %02d:%02d:%02d' cannot be decoded as LocalDateTime: %s",
+              year, month, dayOfMonth, hour, minutes, seconds, e.getMessage()),
+          "22007",
+          e);
+    }
+  }
+
   public String className() {
     return LocalDateTime.class.getName();
   }
@@ -150,7 +180,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
           return null;
         }
         return fromConnectionTimeZone(
-            LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6]),
+            localDateTimeOf(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6]),
             cal,
             context);
 
@@ -202,7 +232,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
           return null;
         }
         return fromConnectionTimeZone(
-            LocalDateTime.of(
+            localDateTimeOf(
                 year, month, dayOfMonth, hour, minutes, seconds, (int) (microseconds * 1000)),
             cal,
             context);

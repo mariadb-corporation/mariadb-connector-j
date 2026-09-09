@@ -103,7 +103,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           return null;
         }
         TimeZone tz = calParam == null ? TimeZone.getDefault() : calParam.getTimeZone();
-        return LocalDateTime.of(parts[0], parts[1], parts[2], 0, 0, 0).atZone(tz.toZoneId());
+        return LocalDateTimeCodec.localDateTimeOf(parts[0], parts[1], parts[2], 0, 0, 0, 0)
+            .atZone(tz.toZoneId());
 
       case DATETIME:
       case TIMESTAMP:
@@ -113,8 +114,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           return null;
         }
         LocalDateTime ldt =
-            LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
-                .plusNanos(parts[6]);
+            LocalDateTimeCodec.localDateTimeOf(
+                parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6]);
         return TimestampColumn.localDateTimeToZoneDateTime(ldt, calParam, context);
 
       case TIME:
@@ -237,7 +238,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           return null;
         }
         TimeZone tz = calParam == null ? TimeZone.getDefault() : calParam.getTimeZone();
-        return LocalDateTime.of(year, month, (int) dayOfMonth, 0, 0, 0).atZone(tz.toZoneId());
+        return LocalDateTimeCodec.localDateTimeOf(year, month, (int) dayOfMonth, 0, 0, 0, 0)
+            .atZone(tz.toZoneId());
 
       case TIMESTAMP:
       case DATETIME:
@@ -271,8 +273,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
         }
 
         LocalDateTime ldt =
-            LocalDateTime.of(year, month, (int) dayOfMonth, hour, minutes, seconds)
-                .plusNanos(microseconds * 1000);
+            LocalDateTimeCodec.localDateTimeOf(
+                year, month, (int) dayOfMonth, hour, minutes, seconds, (int) (microseconds * 1000));
         return TimestampColumn.localDateTimeToZoneDateTime(ldt, calParam, context);
 
       case YEAR:
