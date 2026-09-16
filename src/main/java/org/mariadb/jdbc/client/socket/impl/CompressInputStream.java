@@ -99,7 +99,7 @@ public class CompressInputStream extends InputStream {
       System.arraycopy(buf, pos, b, off + totalReads, copyLength);
       pos += copyLength;
       totalReads += copyLength;
-    } while (totalReads < len && super.available() > 0);
+    } while (totalReads < len && available() > 0);
 
     return totalReads;
   }
