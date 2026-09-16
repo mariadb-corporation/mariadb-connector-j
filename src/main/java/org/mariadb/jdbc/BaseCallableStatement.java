@@ -2193,7 +2193,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public Reader getCharacterStream(String parameterName) throws SQLException {
-    return getNCharacterStream(nameToIndex(parameterName));
+    return getCharacterStream(nameToIndex(parameterName));
   }
 
   /**
