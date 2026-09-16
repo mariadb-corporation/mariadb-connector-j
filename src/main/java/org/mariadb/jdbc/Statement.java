@@ -188,19 +188,22 @@ public class Statement implements java.sql.Statement {
    * @throws SQLException if a database access error occurs
    */
   @Override
+  @SuppressWarnings("try")
   public void close() throws SQLException {
-    if (!closed) {
-      closed = true;
+    try (ClosableLock ignore = lock.closeableLock()) {
+      if (!closed) {
+        closed = true;
 
-      if (currResult != null && currResult instanceof Result) {
-        ((Result) currResult).closeFromStmtClose(lock);
-      }
+        if (currResult != null && currResult instanceof Result) {
+          ((Result) currResult).closeFromStmtClose(lock);
+        }
 
-      // close result-set
-      if (results != null && !results.isEmpty()) {
-        for (Completion completion : results) {
-          if (completion instanceof Result) {
-            ((Result) completion).closeFromStmtClose(lock);
+        // close result-set
+        if (results != null && !results.isEmpty()) {
+          for (Completion completion : results) {
+            if (completion instanceof Result) {
+              ((Result) completion).closeFromStmtClose(lock);
+            }
           }
         }
       }
