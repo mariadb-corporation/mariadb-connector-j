@@ -49,7 +49,8 @@ public class Point implements Geometry {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || !(o instanceof Point)) return false;
-    return toString().equals(o.toString());
+    Point other = (Point) o;
+    return Double.compare(x, other.x) == 0 && Double.compare(y, other.y) == 0;
   }
 
   @Override

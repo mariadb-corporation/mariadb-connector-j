@@ -54,7 +54,7 @@ public class Polygon implements Geometry {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || !(o instanceof Polygon)) return false;
-    return toString().equals(o.toString());
+    return Arrays.equals(lines, ((Polygon) o).lines);
   }
 
   @Override

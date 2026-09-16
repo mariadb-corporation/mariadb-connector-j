@@ -62,7 +62,7 @@ public class MultiPolygon implements Geometry {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || !(o instanceof MultiPolygon)) return false;
-    return toString().equals(o.toString());
+    return Arrays.equals(polygons, ((MultiPolygon) o).polygons);
   }
 
   @Override

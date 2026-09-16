@@ -54,7 +54,7 @@ public class MultiLineString implements Geometry {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || !(o instanceof MultiLineString)) return false;
-    return toString().equals(o.toString());
+    return Arrays.equals(lines, ((MultiLineString) o).lines);
   }
 
   @Override
