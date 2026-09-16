@@ -16,9 +16,6 @@
         <jmh.version>1.37</jmh.version>
         <junit.version>5.14.4</junit.version>
         <junit-pioneer.version>1.9.1</junit-pioneer.version>
-        <assertj.version>3.27.7</assertj.version>
-        <osgi.version>6.0.0</osgi.version>
-        <osgi.compendium.version>5.0.0</osgi.compendium.version>
         <logback.version>1.6.3</logback.version>
         <logback-java8.version>1.3.16</logback-java8.version>
         <jacoco.version>0.8.15</jacoco.version>
@@ -27,6 +24,7 @@
         <mysql-connector-java.version>26.7.0</mysql-connector-java.version>
         <bnd-maven-plugin.version>6.4.0</bnd-maven-plugin.version>
         <spotless.version>3.10.2</spotless.version>
+        <cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
     </properties>
 
     <licenses>
@@ -143,7 +141,7 @@
                 <executions>
                     <execution>
                         <goals>
-                            <goal>jar</goal>
+                            <goal>jar-no-fork</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -224,6 +222,30 @@
             </plugin>
 
             <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>${cyclonedx-maven-plugin.version}</version>
+                <configuration>
+                    <projectType>library</projectType>
+                    <schemaVersion>1.6</schemaVersion>
+                    <outputFormat>json</outputFormat>
+                    <outputName>bom</outputName>
+                    <includeBomSerialNumber>true</includeBomSerialNumber>
+                    <includeLicenseText>false</includeLicenseText>
+                    <includeTestScope>false</includeTestScope>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>generate-sbom</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>makeBom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>biz.aQute.bnd</groupId>
                 <artifactId>bnd-maven-plugin</artifactId>
                 <version>${bnd-maven-plugin.version}</version>
@@ -243,13 +265,6 @@
     </build>
 
     <dependencies>
-
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
-            <scope>test</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -276,20 +291,6 @@
             <artifactId>bcpkix-jdk18on</artifactId>
             <version>1.86</version>
             <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
-            <version>${osgi.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
-            <version>${osgi.compendium.version}</version>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -593,11 +594,6 @@
                     <groupId>com.mysql</groupId>
                     <artifactId>mysql-connector-j</artifactId>
                     <version>${mysql-connector-java.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.zaxxer</groupId>
-                    <artifactId>HikariCP</artifactId>
-                    <version>7.1.0</version>
                 </dependency>
                 <dependency>
                     <groupId>ch.qos.logback</groupId>

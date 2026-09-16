@@ -1,0 +1,43 @@
+---
+name: Attach SBOM to Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  attach-sbom:
+    name: Generate and attach CycloneDX SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          cache: maven
+          distribution: 'temurin'
+
+      - name: Generate SBOM
+        run: mvn package -DskipTests -Dgpg.skip -q
+
+      - name: Resolve connector version
+        id: version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -Dgpg.skip -DforceStdout)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Connector version: $VERSION"
+
+      - name: Rename SBOM to match Maven Central classifier naming
+        run: cp target/bom.json "mariadb-java-client-${{ steps.version.outputs.version }}-cyclonedx.json"
+
+      - name: Upload SBOM to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "mariadb-java-client-${{ steps.version.outputs.version }}-cyclonedx.json" --clobber
