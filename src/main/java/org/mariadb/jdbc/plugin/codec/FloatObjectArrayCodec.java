@@ -35,7 +35,7 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
           DataType.STRING);
 
   public String className() {
-    return float[].class.getName();
+    return Float[].class.getName();
   }
 
   public boolean canDecode(ColumnDecoder column, Class<?> type) {
@@ -88,23 +88,10 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
   }
 
   public static Float[] toFloatArray(byte[] byteArray) {
-    int len = (int) Math.ceil(byteArray.length / 4.0);
-    Float[] res = new Float[len];
-    int pos = 0;
-    int value;
-    while (pos < len) {
-      if (pos + 1 <= len) {
-        value =
-            ((byteArray[pos * 4] & 0xff)
-                + ((byteArray[pos * 4 + 1] & 0xff) << 8)
-                + ((byteArray[pos * 4 + 2] & 0xff) << 16)
-                + ((byteArray[pos * 4 + 3] & 0xff) << 24));
-      } else {
-        value = (byteArray[pos * 4] & 0xff);
-        if (pos + 1 < byteArray.length) value += ((byteArray[pos * 4 + 1] & 0xff) << 8);
-        if (pos + 2 < byteArray.length) value += ((byteArray[pos * 4 + 2] & 0xff) << 16);
-      }
-      res[pos++] = Float.intBitsToFloat(value);
+    float[] primitive = FloatArrayCodec.toFloatArray(byteArray);
+    Float[] res = new Float[primitive.length];
+    for (int i = 0; i < primitive.length; i++) {
+      res[i] = primitive[i];
     }
     return res;
   }
