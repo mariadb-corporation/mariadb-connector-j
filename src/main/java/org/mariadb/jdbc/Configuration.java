@@ -71,7 +71,7 @@ public class Configuration {
   private static final Set<String> SENSITIVE_FIELDS;
   private static final String CATALOG_TERM = "CATALOG";
   private static final String SCHEMA_TERM = "SCHEMA";
-  private static Codec<?>[] cachedCodecs = null;
+  private static volatile Codec<?>[] cachedCodecs = null;
 
   static {
     EXCLUDED_FIELDS = new HashSet<>();
