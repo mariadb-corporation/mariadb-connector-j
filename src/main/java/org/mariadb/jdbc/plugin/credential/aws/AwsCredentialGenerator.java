@@ -13,6 +13,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.rds.RdsUtilities;
+import software.amazon.awssdk.utils.SdkAutoCloseable;
 
 /** AWS credential generator */
 public class AwsCredentialGenerator {
@@ -52,14 +53,20 @@ public class AwsCredentialGenerator {
                     : new DefaultAwsRegionProviderChain().getRegion())
             .build();
 
-    this.authenticationToken =
-        utilities.generateAuthenticationToken(
-            builder ->
-                builder
-                    .username(userName)
-                    .hostname(hostAddress.host)
-                    .port(hostAddress.port)
-                    .credentialsProvider(awsCredentialsProvider));
+    try {
+      this.authenticationToken =
+          utilities.generateAuthenticationToken(
+              builder ->
+                  builder
+                      .username(userName)
+                      .hostname(hostAddress.host)
+                      .port(hostAddress.port)
+                      .credentialsProvider(awsCredentialsProvider));
+    } finally {
+      if (awsCredentialsProvider instanceof SdkAutoCloseable) {
+        ((SdkAutoCloseable) awsCredentialsProvider).close();
+      }
+    }
   }
 
   /**
