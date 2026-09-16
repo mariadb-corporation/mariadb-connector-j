@@ -317,7 +317,7 @@
                     <groupId>com.github.waffle</groupId>
                     <artifactId>waffle-jna</artifactId>
                     <version>${waffle-jna-java8.version}</version>
-                    <scope>provided</scope>
+                    <optional>true</optional>
                 </dependency>
 
             </dependencies>
@@ -446,7 +446,7 @@
                     <groupId>com.github.waffle</groupId>
                     <artifactId>waffle-jna</artifactId>
                     <version>${waffle-jna.version}</version>
-                    <scope>provided</scope>
+                    <optional>true</optional>
                 </dependency>
             </dependencies>
         </profile>
@@ -571,7 +571,7 @@
                     <groupId>com.github.waffle</groupId>
                     <artifactId>waffle-jna</artifactId>
                     <version>${waffle-jna.version}</version>
-                    <scope>provided</scope>
+                    <optional>true</optional>
                 </dependency>
             </dependencies>
         </profile>
@@ -605,7 +605,7 @@
                     <groupId>com.github.waffle</groupId>
                     <artifactId>waffle-jna</artifactId>
                     <version>${waffle-jna.version}</version>
-                    <scope>provided</scope>
+                    <optional>true</optional>
                 </dependency>
             </dependencies>
             <build>
