@@ -69,6 +69,13 @@ public class ClientParserRewritableTest {
     assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) -- EOL ", 25, 37));
   }
 
+  @Test
+  public void utf8IdentifierTouchingValuesIsNotMistakenForBoundary() {
+    // "é" is 2 UTF-8 bytes (0xC3 0xA9); "TABLEé" is one identifier with no ASCII boundary before
+    // VALUES, so this must not be recognized as a rewritable INSERT ... VALUES (...) statement.
+    assertFalse(checkRewritable("INSERT INTO TABLEéVALUES (?)", 0, 0));
+  }
+
   private boolean checkRewritable(String query, int pos1, int pos2) {
     List<Integer> valuesBracketPositions =
         ClientParser.rewritableParts(query, true).getValuesBracketPositions();

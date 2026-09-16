@@ -166,10 +166,10 @@ public final class ClientParser implements PrepareResult {
               && equalsIgnoreCase(query[i + 3], (byte) 'e')
               && equalsIgnoreCase(query[i + 4], (byte) 'r')
               && equalsIgnoreCase(query[i + 5], (byte) 't')) {
-            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
+            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 6] > ' ' && !isDelimiter(query[i + 6])) {
+            if ((query[i + 6] & 0xFF) > ' ' && !isDelimiter(query[i + 6])) {
               break;
             }
             i += 5;
@@ -189,10 +189,10 @@ public final class ClientParser implements PrepareResult {
               && equalsIgnoreCase(query[i + 6], (byte) 'a')
               && equalsIgnoreCase(query[i + 7], (byte) 't')
               && equalsIgnoreCase(query[i + 8], (byte) 'e')) {
-            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
+            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 9] > ' ' && !isDelimiter(query[i + 9])) {
+            if ((query[i + 9] & 0xFF) > ' ' && !isDelimiter(query[i + 9])) {
               break;
             }
             i += 9;
@@ -363,10 +363,10 @@ public final class ClientParser implements PrepareResult {
               && equalsIgnoreCase(query[i + 3], (byte) 'e')
               && equalsIgnoreCase(query[i + 4], (byte) 'r')
               && equalsIgnoreCase(query[i + 5], (byte) 't')) {
-            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
+            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 6] > ' ' && !isDelimiter(query[i + 6])) {
+            if ((query[i + 6] & 0xFF) > ' ' && !isDelimiter(query[i + 6])) {
               break;
             }
             i += 5;
@@ -386,10 +386,10 @@ public final class ClientParser implements PrepareResult {
               && equalsIgnoreCase(query[i + 6], (byte) 'a')
               && equalsIgnoreCase(query[i + 7], (byte) 't')
               && equalsIgnoreCase(query[i + 8], (byte) 'e')) {
-            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
+            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 9] > ' ' && !isDelimiter(query[i + 9])) {
+            if ((query[i + 9] & 0xFF) > ' ' && !isDelimiter(query[i + 9])) {
               break;
             }
             i += 9;
@@ -408,10 +408,10 @@ public final class ClientParser implements PrepareResult {
               && equalsIgnoreCase(query[i + 5], (byte) 't')) {
 
             // field/table name might contain 'select'
-            if (i > 0 && (query[i - 1] > ' ' && !isDelimiter(query[i - 1]))) {
+            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
               break;
             }
-            if (query[i + 6] > ' ' && !isDelimiter(query[i + 6])) {
+            if ((query[i + 6] & 0xFF) > ' ' && !isDelimiter(query[i + 6])) {
               break;
             }
 
@@ -423,14 +423,14 @@ public final class ClientParser implements PrepareResult {
         case 'V':
           if (state == LexState.Normal
               && valuesBracketPositions.isEmpty()
-              && (lastChar == ')' || (lastChar <= 40))
+              && (lastChar == ')' || ((lastChar & 0xFF) <= 40))
               && queryLength > i + 7
               && equalsIgnoreCase(query[i + 1], (byte) 'a')
               && equalsIgnoreCase(query[i + 2], (byte) 'l')
               && equalsIgnoreCase(query[i + 3], (byte) 'u')
               && equalsIgnoreCase(query[i + 4], (byte) 'e')
               && equalsIgnoreCase(query[i + 5], (byte) 's')
-              && (query[i + 6] == '(' || (query[i + 6] <= 40))) {
+              && (query[i + 6] == '(' || ((query[i + 6] & 0xFF) <= 40))) {
             afterValues = true;
             if (query[i + 6] == '(') {
               valuesBracketPositions.add(i + 6);
