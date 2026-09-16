@@ -1635,17 +1635,7 @@ public class Configuration {
   public int connectTimeout() {
     return connectTimeout;
   }
-
-  /**
-   * Set connect timeout
-   *
-   * @param connectTimeout timeout value
-   * @return current configuration
-   */
-  public Configuration connectTimeout(int connectTimeout) {
-    this.connectTimeout = connectTimeout;
-    return this;
-  }
+  
 
   /**
    * Pipe path
