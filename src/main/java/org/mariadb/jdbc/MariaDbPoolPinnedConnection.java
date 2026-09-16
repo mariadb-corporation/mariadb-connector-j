@@ -66,7 +66,9 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
           }
           try (ClosableLock ignore = con.getLock().closeableLock()) {
             con.createStatement().execute(command);
-            currentXid = null;
+            if (xid.equals(currentXid)) {
+              currentXid = null;
+            }
             if (removeMappingAfterExecution) xidToConnection.remove(xid);
           }
         }
