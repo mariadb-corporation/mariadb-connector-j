@@ -53,6 +53,10 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
       try {
         if (xid.equals(currentXid)) {
           getConnection().createStatement().execute(command);
+          if (removeMappingAfterExecution) {
+            currentXid = null;
+            xidToConnection.remove(xid);
+          }
         } else {
           Connection con = xidToConnection.get(xid);
           if (con == null) {
