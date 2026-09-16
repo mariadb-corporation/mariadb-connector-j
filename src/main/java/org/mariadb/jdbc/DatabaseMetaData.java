@@ -1595,12 +1595,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getPseudoColumns(
       String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
       throws SQLException {
-    return connection
-        .createStatement()
-        .executeQuery(
-            "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0"
-                + " COLUMN_SIZE, 0 DECIMAL_DIGITS, 10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' '"
-                + " REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL WHERE 1=0");
+    Statement stmt = connection.createStatement();
+    stmt.setFetchSize(0);
+    return stmt.executeQuery(
+        "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0"
+            + " COLUMN_SIZE, 0 DECIMAL_DIGITS, 10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' '"
+            + " REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL WHERE 1=0");
   }
 
   public boolean allProceduresAreCallable() {
@@ -1623,11 +1623,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean isReadOnly() throws SQLException {
-    java.sql.Statement st = connection.createStatement();
-    ResultSet rs = st.executeQuery("SELECT @@READ_ONLY");
-    rs.next();
-    String readOnly = rs.getString(1);
-    return "ON".equals(readOnly) || "1".equals(readOnly);
+    try (ResultSet rs = connection.createStatement().executeQuery("SELECT @@READ_ONLY")) {
+      rs.next();
+      String readOnly = rs.getString(1);
+      return "ON".equals(readOnly) || "1".equals(readOnly);
+    }
   }
 
   public boolean nullsAreSortedHigh() {
