@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
 
 /** permit loading authentication plugins */
@@ -27,7 +27,8 @@ public final class AuthenticationPluginLoader {
       throws SQLException {
 
     ServiceLoader<AuthenticationPluginFactory> loader =
-        ServiceLoader.load(AuthenticationPluginFactory.class, Driver.class.getClassLoader());
+        ServiceLoader.load(
+            AuthenticationPluginFactory.class, NonRegisteringDriver.class.getClassLoader());
 
     String[] authList = (conf.restrictedAuth() != null) ? conf.restrictedAuth().split(",") : null;
 

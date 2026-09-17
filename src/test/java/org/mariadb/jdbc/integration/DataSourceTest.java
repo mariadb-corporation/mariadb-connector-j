@@ -32,6 +32,19 @@ public class DataSourceTest extends Common {
   }
 
   @Test
+  public void doesNotRegisterDriver() throws Exception {
+    // a datasource connects through NonRegisteringDriver, never through Driver
+    try (DriverRejectingLoader loader = new DriverRejectingLoader()) {
+      DataSource ds = loader.dataSource(MariaDbDataSource.class, mDefUrl);
+      assertSame(loader, ds.getClass().getClassLoader(), "datasource must be the isolated one");
+
+      try (Connection con = ds.getConnection()) {
+        assertFalse(con.isClosed());
+      }
+    }
+  }
+
+  @Test
   public void basicTimeout() throws SQLException {
     MariaDbDataSource ds = new MariaDbDataSource(mDefUrl);
     ds.setLoginTimeout(0);

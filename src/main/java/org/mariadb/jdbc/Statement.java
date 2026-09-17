@@ -1660,7 +1660,7 @@ public class Statement implements java.sql.Statement {
    */
   // @Override when not supporting java 8
   public String enquoteLiteral(String val) {
-    return Driver.enquoteLiteral(val, noBackslashEscapes());
+    return NonRegisteringDriver.enquoteLiteral(val, noBackslashEscapes());
   }
 
   private boolean noBackslashEscapes() {
@@ -1678,7 +1678,7 @@ public class Statement implements java.sql.Statement {
    */
   // @Override when not supporting java 8
   public String enquoteIdentifier(String identifier, boolean alwaysQuote) throws SQLException {
-    return Driver.enquoteIdentifier(identifier, alwaysQuote);
+    return NonRegisteringDriver.enquoteIdentifier(identifier, alwaysQuote);
   }
 
   public String getLastSql() {
@@ -1694,6 +1694,6 @@ public class Statement implements java.sql.Statement {
   // @Override when not supporting java 8
   public String enquoteNCharLiteral(String val) {
     // don't use  N prefix, that is forcing utf8mb3
-    return Driver.enquoteLiteral(val, noBackslashEscapes());
+    return NonRegisteringDriver.enquoteLiteral(val, noBackslashEscapes());
   }
 }

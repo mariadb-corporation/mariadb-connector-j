@@ -12,6 +12,7 @@ import java.sql.*;
 import java.util.Locale;
 import java.util.Properties;
 import org.junit.jupiter.api.*;
+import org.mariadb.jdbc.NonRegisteringDriver;
 
 public class UnixsocketTest extends Common {
 
@@ -71,7 +72,7 @@ public class UnixsocketTest extends Common {
 
     String url = mDefUrl + "&localSocket=/tmp/not_valid_socket&localSocketAddress=localhost";
 
-    java.sql.Driver driver = new org.mariadb.jdbc.Driver();
+    java.sql.Driver driver = new NonRegisteringDriver();
 
     Runtime rt = Runtime.getRuntime();
     // System.out.println("netstat-apnx | grep " + ProcessHandle.current().pid());
@@ -124,7 +125,7 @@ public class UnixsocketTest extends Common {
   public void unixSocketErrorOnWindows() throws IOException {
     Assumptions.assumeTrue(isWindows());
     String url = mDefUrl + "&localSocket=/tmp/not_valid_socket&localSocketAddress=localhost";
-    java.sql.Driver driver = new org.mariadb.jdbc.Driver();
+    java.sql.Driver driver = new NonRegisteringDriver();
     assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> driver.connect(url, new Properties()),

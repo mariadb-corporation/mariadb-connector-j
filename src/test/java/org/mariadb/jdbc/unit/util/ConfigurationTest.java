@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.TransactionIsolation;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
@@ -319,7 +319,7 @@ public class ConfigurationTest {
 
   @Test
   public void testAcceptsUrl() {
-    Driver driver = new Driver();
+    NonRegisteringDriver driver = new NonRegisteringDriver();
     assertFalse(driver.acceptsURL(null));
     assertTrue(driver.acceptsURL("jdbc:mariadb://localhost/test"));
     assertFalse(driver.acceptsURL("jdbc:mysql://localhost/test"));

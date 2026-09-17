@@ -958,7 +958,9 @@ public class Configuration {
     if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
       Properties deprecatedDesc = new Properties();
       try (InputStream inputStream =
-          Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
+          NonRegisteringDriver.class
+              .getClassLoader()
+              .getResourceAsStream("deprecated.properties")) {
         deprecatedDesc.load(inputStream);
         logger.warn(deprecatedDesc.getProperty("useSsl"));
 
@@ -1635,7 +1637,6 @@ public class Configuration {
   public int connectTimeout() {
     return connectTimeout;
   }
-  
 
   /**
    * Pipe path
