@@ -32,8 +32,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.DatabaseMetaData;
-import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
@@ -245,9 +245,9 @@ public class Common {
         newAddresses.add(host.withPort(sslPort));
       }
       builder.addresses(newAddresses);
-      return Driver.connect(builder.build());
+      return NonRegisteringDriver.connect(builder.build());
     }
-    return Driver.connect(conf);
+    return NonRegisteringDriver.connect(conf);
   }
 
   public static Connection createBasicCon(String option, Integer sslPort) throws SQLException {
@@ -260,9 +260,9 @@ public class Common {
         newAddresses.add(host.withPort(sslPort));
       }
       builder.addresses(newAddresses);
-      return Driver.connect(builder.build());
+      return NonRegisteringDriver.connect(builder.build());
     }
-    return Driver.connect(conf);
+    return NonRegisteringDriver.connect(conf);
   }
 
   public static int getMaxAllowedPacket() throws SQLException {

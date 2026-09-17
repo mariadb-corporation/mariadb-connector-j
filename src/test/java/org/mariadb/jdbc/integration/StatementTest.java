@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mariadb.jdbc.Connection;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.plugin.Codec;
@@ -1262,11 +1263,11 @@ public class StatementTest extends Common {
 
   @Test
   public void statementIdentifier() throws SQLException {
-    assertTrue(org.mariadb.jdbc.Driver.isSimpleIdentifier("good_$one"));
-    assertTrue(org.mariadb.jdbc.Driver.isSimpleIdentifier("anotherçone"));
-    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier("another'çone"));
-    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier(null));
-    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier(""));
+    assertTrue(NonRegisteringDriver.isSimpleIdentifier("good_$one"));
+    assertTrue(NonRegisteringDriver.isSimpleIdentifier("anotherçone"));
+    assertFalse(NonRegisteringDriver.isSimpleIdentifier("another'çone"));
+    assertFalse(NonRegisteringDriver.isSimpleIdentifier(null));
+    assertFalse(NonRegisteringDriver.isSimpleIdentifier(""));
   }
 
   @ParameterizedTest(name = "{0} - enquote identifier validation")

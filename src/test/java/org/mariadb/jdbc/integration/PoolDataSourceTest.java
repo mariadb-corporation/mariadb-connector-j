@@ -5,6 +5,7 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.sql.*;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionPoolDataSource;
+import javax.sql.DataSource;
 import javax.sql.PooledConnection;
 import javax.sql.XAConnection;
 import org.junit.jupiter.api.AfterAll;
@@ -83,6 +85,24 @@ public class PoolDataSourceTest extends Common {
       return -1;
     } catch (SQLException e) {
       return -1;
+    }
+  }
+
+  @Test
+  public void doesNotRegisterDriver() throws Exception {
+    // same guarantee as DataSourceTest, over the other connection path : Pool
+    try (DriverRejectingLoader loader = new DriverRejectingLoader()) {
+      DataSource ds =
+          loader.dataSource(
+              MariaDbPoolDataSource.class, mDefUrl + "&maxPoolSize=1&poolName=isolatedPool");
+      assertSame(
+          loader, ds.getClass().getClassLoader(), "pool datasource must be the isolated one");
+
+      // closing shuts the pool down, so its threads and JMX MBean do not outlive the loader
+      try (Closeable ignored = (Closeable) ds;
+          Connection con = ds.getConnection()) {
+        assertFalse(con.isClosed());
+      }
     }
   }
 

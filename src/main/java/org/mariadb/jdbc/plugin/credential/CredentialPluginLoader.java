@@ -4,7 +4,7 @@
 package org.mariadb.jdbc.plugin.credential;
 
 import java.util.ServiceLoader;
-import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 
 /**
@@ -23,7 +23,7 @@ public final class CredentialPluginLoader {
     if (type == null) return null;
 
     ServiceLoader<CredentialPlugin> loader =
-        ServiceLoader.load(CredentialPlugin.class, Driver.class.getClassLoader());
+        ServiceLoader.load(CredentialPlugin.class, NonRegisteringDriver.class.getClassLoader());
 
     for (CredentialPlugin implClass : loader) {
       if (type.equals(implClass.type())) {

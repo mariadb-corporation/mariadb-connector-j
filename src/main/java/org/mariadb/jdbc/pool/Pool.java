@@ -20,7 +20,7 @@ import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
-import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
@@ -194,7 +194,7 @@ public class Pool implements AutoCloseable, PoolMBean {
   private void addConnection() throws SQLException {
 
     // create new connection
-    Connection connection = Driver.connect(conf);
+    Connection connection = NonRegisteringDriver.connect(conf);
     MariaDbInnerPoolConnection item = new MariaDbInnerPoolConnection(connection);
     item.addConnectionEventListener(
         new ConnectionEventListener() {
@@ -410,7 +410,7 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
 
     Configuration tmpConf = conf.clone(username, password);
-    return new MariaDbInnerPoolConnection(Driver.connect(tmpConf));
+    return new MariaDbInnerPoolConnection(NonRegisteringDriver.connect(tmpConf));
   }
 
   private String generatePoolTag(int poolIndex) {

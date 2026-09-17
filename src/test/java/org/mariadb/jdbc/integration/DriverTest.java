@@ -5,65 +5,42 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.sql.*;
-import java.util.Map;
-import java.util.Properties;
+import java.util.Collections;
 import org.junit.jupiter.api.*;
-import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.NonRegisteringDriver;
 
-public class DriverTest extends Common {
+public class DriverTest extends NonRegisteringDriverTest {
 
-  @Test
-  public void ensureDescriptionFilled() throws IOException, NoSuchFieldException {
-    Properties descr = new Properties();
-    try (InputStream inputStream =
-        Common.class.getClassLoader().getResourceAsStream("driver.properties")) {
-      descr.load(inputStream);
-    }
-
-    // check that description is present
-    for (Field field : Configuration.Builder.class.getDeclaredFields()) {
-      if (!field.getName().startsWith("_")
-          && descr.get(field.getName()) == null
-          && !"$jacocoData".equals(field.getName())) {
-        throw new IllegalStateException(String.format("Missing %s description", field.getName()));
-      }
-    }
-
-    // check that no description without option
-    for (Map.Entry<Object, Object> entry : descr.entrySet()) {
-      // NoSuchFieldException will be thrown if not present
-      Configuration.Builder.class.getDeclaredField(entry.getKey().toString());
-    }
+  @Override
+  protected Driver newDriver() {
+    return new org.mariadb.jdbc.Driver();
   }
 
   @Test
-  public void getPropertyInfo() throws SQLException {
-    Driver driver = new org.mariadb.jdbc.Driver();
-    assertEquals(0, driver.getPropertyInfo(null, null).length);
-    assertEquals(0, driver.getPropertyInfo("jdbc:bla//", null).length);
-
-    Properties properties = new Properties();
-    properties.put("password", "myPwd");
-    DriverPropertyInfo[] driverPropertyInfos =
-        driver.getPropertyInfo("jdbc:mariadb://localhost/db?user=root", properties);
-    for (DriverPropertyInfo driverPropertyInfo : driverPropertyInfos) {
-      if (!"$jacocoData".equals(driverPropertyInfo.name)) {
-        assertNotNull(
-            driverPropertyInfo.description, "no description for " + driverPropertyInfo.name);
+  public void registersInDriverManager() throws ClassNotFoundException {
+    // the only behaviour that sets this driver apart from its parent class
+    Class.forName("org.mariadb.jdbc.Driver");
+    boolean registered = false;
+    for (Driver driver : Collections.list(DriverManager.getDrivers())) {
+      if (driver.getClass() == org.mariadb.jdbc.Driver.class) {
+        registered = true;
       }
     }
+    assertTrue(registered, "org.mariadb.jdbc.Driver must register itself in DriverManager");
   }
 
   @Test
-  public void basicInfo() {
-    Driver driver = new org.mariadb.jdbc.Driver();
-    assertEquals(3, driver.getMajorVersion());
-    assertTrue(driver.getMinorVersion() > -1);
-    assertTrue(driver.jdbcCompliant());
-    assertThrows(SQLFeatureNotSupportedException.class, driver::getParentLogger);
+  public void staticHelpersInheritedFromParent() throws SQLException {
+    // the static helpers live on NonRegisteringDriver : callers naming Driver must still compile
+    // and get the same answers
+    assertEquals(
+        NonRegisteringDriver.enquoteLiteral("a'b"), org.mariadb.jdbc.Driver.enquoteLiteral("a'b"));
+    assertEquals(
+        NonRegisteringDriver.enquoteIdentifier("a`b", true),
+        org.mariadb.jdbc.Driver.enquoteIdentifier("a`b", true));
+    assertEquals(
+        NonRegisteringDriver.isSimpleIdentifier("simple"),
+        org.mariadb.jdbc.Driver.isSimpleIdentifier("simple"));
   }
 }

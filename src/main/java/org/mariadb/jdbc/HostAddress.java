@@ -45,9 +45,9 @@ public class HostAddress {
   /**
    * Process-wide latch shared across all {@link HostAddress} instances that point to the same
    * physical endpoint (same host:port, named pipe, or unix socket). Keyed by content rather than
-   * object identity because {@link org.mariadb.jdbc.Driver#connect} parses the URL afresh on every
-   * call, producing new {@code HostAddress} objects — without a shared map, each pooled connection
-   * would re-probe {@code mysql.proc}.
+   * object identity because {@link org.mariadb.jdbc.NonRegisteringDriver#connect} parses the URL
+   * afresh on every call, producing new {@code HostAddress} objects — without a shared map, each
+   * pooled connection would re-probe {@code mysql.proc}.
    */
   private static final ConcurrentMap<String, MysqlProcStatus> MYSQL_PROC_STATUS =
       new ConcurrentHashMap<>();
