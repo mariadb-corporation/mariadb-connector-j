@@ -879,14 +879,32 @@ public class ConnectionTest extends Common {
               + sharedConn.getCatalog()
               + ".* to verifEd25519Utf8"
               + getHostSuffix());
-      try (Connection connection = createCon("user=verifEd25519Empty&password=")) {
-        connection.getCatalog();
+      if (hasAuthenticationString(stmt, "verifEd25519Empty")) {
+        try (Connection connection = createCon("user=verifEd25519Empty&password=")) {
+          connection.getCatalog();
+        }
       }
       try (Connection connection = createCon("user=verifEd25519Utf8&password=pässwörd€")) {
         connection.getCatalog();
       }
       stmt.execute("drop user verifEd25519Empty" + getHostSuffix());
       stmt.execute("drop user verifEd25519Utf8" + getHostSuffix());
+    }
+  }
+
+  /**
+   * Whether the server derived a key for the account password. Up to 11.4 at least, {@code USING
+   * PASSWORD('')} stores an empty authentication string for ed25519, an account no client can
+   * authenticate as; 11.8 stores the key of the empty password.
+   */
+  private boolean hasAuthenticationString(Statement stmt, String user) {
+    try (ResultSet rs =
+        stmt.executeQuery(
+            "SELECT authentication_string FROM mysql.user WHERE user='" + user + "'")) {
+      return rs.next() && rs.getString(1) != null && !rs.getString(1).isEmpty();
+    } catch (SQLException e) {
+      // no SELECT privilege on mysql.user: cannot tell, do not assert
+      return false;
     }
   }
 
@@ -946,8 +964,10 @@ public class ConnectionTest extends Common {
             + " IDENTIFIED VIA parsec USING PASSWORD('pässwörd€')");
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsecEmpty" + getHostSuffix());
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsecUtf8" + getHostSuffix());
-    try (Connection connection = createCon("user=verifParsecEmpty&password=")) {
-      connection.getCatalog();
+    if (hasAuthenticationString(stmt, "verifParsecEmpty")) {
+      try (Connection connection = createCon("user=verifParsecEmpty&password=")) {
+        connection.getCatalog();
+      }
     }
     try (Connection connection = createCon("user=verifParsecUtf8&password=pässwörd€")) {
       connection.getCatalog();
