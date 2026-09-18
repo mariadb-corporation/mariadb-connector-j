@@ -147,6 +147,21 @@ public class Common {
     return sharedConn.getContext().getVersion().isMariaDBServer();
   }
 
+  /**
+   * Whether the server is MariaDB Enterprise Server, from the CI matrix (DB_TYPE) or the version
+   * string (e.g. 11.4.4-3-MariaDB-enterprise). Enterprise enforces a password policy that refuses
+   * passwords community accepts.
+   */
+  public static boolean isEnterprise() {
+    return "enterprise".equals(System.getenv("DB_TYPE"))
+        || sharedConn
+            .getContext()
+            .getVersion()
+            .getVersion()
+            .toLowerCase(Locale.ROOT)
+            .contains("enterprise");
+  }
+
   public static boolean hasCapability(long capability) {
     return sharedConn.getContext().hasClientCapability(capability);
   }

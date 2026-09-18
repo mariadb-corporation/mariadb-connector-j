@@ -862,42 +862,46 @@ public class ConnectionTest extends Common {
       stmt.execute("drop user IF EXISTS verifEd25519Empty" + getHostSuffix());
       stmt.execute("drop user IF EXISTS verifEd25519Utf8" + getHostSuffix());
       stmt.execute(
-          "CREATE USER verifEd25519Empty"
-              + getHostSuffix()
-              + " IDENTIFIED VIA ed25519 USING PASSWORD('')");
-      stmt.execute(
           "CREATE USER verifEd25519Utf8"
               + getHostSuffix()
-              + " IDENTIFIED VIA ed25519 USING PASSWORD('pässwörd€')");
-      stmt.execute(
-          "GRANT SELECT on "
-              + sharedConn.getCatalog()
-              + ".* to verifEd25519Empty"
-              + getHostSuffix());
-      stmt.execute(
-          "GRANT SELECT on "
-              + sharedConn.getCatalog()
-              + ".* to verifEd25519Utf8"
-              + getHostSuffix());
-      if (hasAuthenticationString(stmt, "verifEd25519Empty")) {
+              + " IDENTIFIED VIA ed25519 USING PASSWORD('Pässw0rd€!')");
+      stmt.execute("GRANT SELECT on `" + database + "`.* to verifEd25519Utf8" + getHostSuffix());
+      if (createEmptyPasswordUser(stmt, "verifEd25519Empty", "ed25519")) {
         try (Connection connection = createCon("user=verifEd25519Empty&password=")) {
           connection.getCatalog();
         }
       }
-      try (Connection connection = createCon("user=verifEd25519Utf8&password=pässwörd€")) {
+      try (Connection connection = createCon("user=verifEd25519Utf8&password=Pässw0rd€!")) {
         connection.getCatalog();
       }
-      stmt.execute("drop user verifEd25519Empty" + getHostSuffix());
+      stmt.execute("drop user IF EXISTS verifEd25519Empty" + getHostSuffix());
       stmt.execute("drop user verifEd25519Utf8" + getHostSuffix());
     }
   }
 
   /**
-   * Whether the server derived a key for the account password. Up to 11.4 at least, {@code USING
-   * PASSWORD('')} stores an empty authentication string for ed25519, an account no client can
-   * authenticate as; 11.8 stores the key of the empty password.
+   * Create an account with an empty password for the given authentication plugin, and tell whether
+   * a client can authenticate as it. It cannot when a password policy plugin refuses the empty
+   * password (simple_password_check on enterprise servers, ER_NOT_VALID_PASSWORD), or when the
+   * server stores an empty authentication string for {@code PASSWORD('')} (up to 11.4 at least;
+   * 11.8 stores the key of the empty password).
    */
-  private boolean hasAuthenticationString(Statement stmt, String user) {
+  private boolean createEmptyPasswordUser(Statement stmt, String user, String plugin)
+      throws SQLException {
+    if (isEnterprise()) return false;
+    try {
+      stmt.execute(
+          "CREATE USER "
+              + user
+              + getHostSuffix()
+              + " IDENTIFIED VIA "
+              + plugin
+              + " USING PASSWORD('')");
+    } catch (SQLException e) {
+      if (e.getErrorCode() == 1819) return false;
+      throw e;
+    }
+    stmt.execute("GRANT SELECT on `" + database + "`.* to " + user + getHostSuffix());
     try (ResultSet rs =
         stmt.executeQuery(
             "SELECT authentication_string FROM mysql.user WHERE user='" + user + "'")) {
@@ -955,28 +959,23 @@ public class ConnectionTest extends Common {
     stmt.execute("drop user IF EXISTS verifParsecEmpty" + getHostSuffix());
     stmt.execute("drop user IF EXISTS verifParsecUtf8" + getHostSuffix());
     stmt.execute(
-        "CREATE USER verifParsecEmpty"
-            + getHostSuffix()
-            + " IDENTIFIED VIA parsec USING PASSWORD('')");
-    stmt.execute(
         "CREATE USER verifParsecUtf8"
             + getHostSuffix()
-            + " IDENTIFIED VIA parsec USING PASSWORD('pässwörd€')");
-    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsecEmpty" + getHostSuffix());
+            + " IDENTIFIED VIA parsec USING PASSWORD('Pässw0rd€!')");
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsecUtf8" + getHostSuffix());
-    if (hasAuthenticationString(stmt, "verifParsecEmpty")) {
+    if (createEmptyPasswordUser(stmt, "verifParsecEmpty", "parsec")) {
       try (Connection connection = createCon("user=verifParsecEmpty&password=")) {
         connection.getCatalog();
       }
     }
-    try (Connection connection = createCon("user=verifParsecUtf8&password=pässwörd€")) {
+    try (Connection connection = createCon("user=verifParsecUtf8&password=Pässw0rd€!")) {
       connection.getCatalog();
     }
     assertThrowsContains(
         SQLException.class,
-        () -> createCon("user=verifParsecUtf8&password=passwörd€"),
+        () -> createCon("user=verifParsecUtf8&password=Passw0rd€!"),
         "Access denied");
-    stmt.execute("drop user verifParsecEmpty" + getHostSuffix());
+    stmt.execute("drop user IF EXISTS verifParsecEmpty" + getHostSuffix());
     stmt.execute("drop user verifParsecUtf8" + getHostSuffix());
   }
 
