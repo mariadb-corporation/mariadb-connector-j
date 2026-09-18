@@ -21,7 +21,6 @@ import java.security.MessageDigest
 def suppliers = [
   'software.amazon.awssdk'        : 'Amazon Web Services, Inc.',
   'software.amazon.eventstream'   : 'Amazon Web Services, Inc.',
-  'org.bouncycastle'              : 'Legion of the Bouncy Castle Inc.',
   'net.java.dev.jna'              : 'Java Native Access project',
   'com.github.ben-manes.caffeine' : 'Ben Manes',
   'org.jspecify'                  : 'JSpecify',
@@ -30,7 +29,7 @@ def suppliers = [
 ]
 
 // Licenses declared by name only in the dependency POM, mapped to their SPDX identifier.
-def licenseIds = ['Bouncy Castle Licence': 'MIT']
+def licenseIds = [:]
 
 def mariadb = { -> [name: 'MariaDB plc', url: ['https://mariadb.com']] }
 
@@ -40,7 +39,7 @@ def ed25519 = [
   supplier          : [name: 'str4d', url: ['https://github.com/str4d/ed25519-java']],
   name              : 'ed25519-java',
   version           : '0.3.0',
-  description       : 'ref10 Ed25519 implementation (SUPERCOP), bundled as org.mariadb.jdbc.plugin.authentication.standard.ed25519 for client_ed25519 authentication',
+  description       : 'ref10 Ed25519 implementation (SUPERCOP), bundled as org.mariadb.jdbc.plugin.authentication.standard.ed25519 for client_ed25519 and parsec authentication',
   scope             : 'required',
   licenses          : [[license: [id: 'CC0-1.0']]],
   purl              : 'pkg:maven/net.i2p.crypto/eddsa@0.3.0',

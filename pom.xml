@@ -324,13 +324,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk18on</artifactId>
-            <version>1.86</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>rds</artifactId>
             <optional>true</optional>
@@ -549,22 +542,6 @@
                                     <multiReleaseOutput>true</multiReleaseOutput>
                                 </configuration>
                             </execution>
-                            <execution>
-                                <id>compile-java-15</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>compile</goal>
-                                </goals>
-                                <configuration>
-                                    <release>15</release>
-                                    <source>15</source>
-                                    <target>15</target>
-                                    <compileSourceRoots>
-                                        <compileSourceRoot>${project.basedir}/src/main/java15</compileSourceRoot>
-                                    </compileSourceRoots>
-                                    <multiReleaseOutput>true</multiReleaseOutput>
-                                </configuration>
-                            </execution>
                         </executions>
                     </plugin>
 
@@ -700,22 +677,6 @@
                                     <target>11</target>
                                     <compileSourceRoots>
                                         <compileSourceRoot>${project.basedir}/src/main/java11</compileSourceRoot>
-                                    </compileSourceRoots>
-                                    <multiReleaseOutput>true</multiReleaseOutput>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>compile-java-15</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>compile</goal>
-                                </goals>
-                                <configuration>
-                                    <release>15</release>
-                                    <source>15</source>
-                                    <target>15</target>
-                                    <compileSourceRoots>
-                                        <compileSourceRoot>${project.basedir}/src/main/java15</compileSourceRoot>
                                     </compileSourceRoots>
                                     <multiReleaseOutput>true</multiReleaseOutput>
                                 </configuration>

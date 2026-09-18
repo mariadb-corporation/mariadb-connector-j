@@ -1,4 +1,4 @@
-This plugin uses public domain (CC0-1.0) ed25519 code by str4d (https://github.com/str4d/ed25519-java).
+The client_ed25519 and parsec authentication plugins use public domain (CC0-1.0) ed25519 code by str4d (https://github.com/str4d/ed25519-java).
 It is "ref10" java implementation from the SUPERCOP ed25519:
 
 Upstream version: 0.3.0 (net.i2p.crypto:eddsa:0.3.0, the latest release), plus the only later

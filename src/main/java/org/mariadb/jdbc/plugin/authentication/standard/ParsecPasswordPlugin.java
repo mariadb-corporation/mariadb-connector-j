@@ -4,8 +4,9 @@
 package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
-import java.security.*;
-import java.security.spec.*;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -19,12 +20,6 @@ import org.mariadb.jdbc.plugin.Credential;
 
 /** Parsec password plugin */
 public class ParsecPasswordPlugin implements AuthenticationPlugin {
-
-  private static final byte[] pkcs8Ed25519header =
-      new byte[] {
-        0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04,
-        0x20
-      };
 
   /**
    * Deliberately conservative PBKDF2-HMAC-SHA512 throughput reference: 262144 rounds measured in
@@ -111,38 +106,12 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
     char[] password =
         this.authenticationData == null ? new char[0] : this.authenticationData.toCharArray();
 
-    KeyFactory ed25519KeyFactory;
-    Signature ed25519Signature;
-
     try {
-      // in case using java 15+
-      ed25519KeyFactory = KeyFactory.getInstance("Ed25519");
-      ed25519Signature = Signature.getInstance("Ed25519");
-    } catch (NoSuchAlgorithmException e) {
-      try {
-        // java before 15, try using BouncyCastle if present
-        ed25519KeyFactory = KeyFactory.getInstance("Ed25519", "BC");
-        ed25519Signature = Signature.getInstance("Ed25519", "BC");
-      } catch (NoSuchAlgorithmException | NoSuchProviderException ee) {
-        throw new SQLException(
-            "Parsec authentication not available. Either use Java 15+ or add BouncyCastle"
-                + " dependency",
-            e);
-      }
-    }
-
-    try {
-      // hash password with PBKDF2
+      // hash password with PBKDF2: the 256-bit result is the Ed25519 secret seed
       PBEKeySpec spec = new PBEKeySpec(password, salt, 1024 << iterations, 256);
       SecretKey key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512").generateSecret(spec);
-      byte[] derivedKey = key.getEncoded();
-
-      // create a PKCS8 ED25519 private key with raw secret
-      PKCS8EncodedKeySpec keySpec =
-          new PKCS8EncodedKeySpec(combineArray(pkcs8Ed25519header, derivedKey));
-      PrivateKey privateKey = ed25519KeyFactory.generatePrivate(keySpec);
-
-      byte[] rawPublicKey = ParsecPasswordPluginTool.process(derivedKey);
+      byte[] expandedKey = Ed25519Signer.expand(key.getEncoded());
+      byte[] rawPublicKey = Ed25519Signer.publicKey(expandedKey);
 
       hash =
           combineArray(
@@ -153,10 +122,8 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
       SecureRandom.getInstanceStrong().nextBytes(clientScramble);
 
       // sign concatenation of server nonce + client nonce with private key
-
-      ed25519Signature.initSign(privateKey);
-      ed25519Signature.update(combineArray(seed, clientScramble));
-      byte[] signature = ed25519Signature.sign();
+      byte[] signature =
+          Ed25519Signer.sign(expandedKey, rawPublicKey, combineArray(seed, clientScramble));
 
       // send result to server
       out.writeBytes(clientScramble);
@@ -165,11 +132,7 @@ public class ParsecPasswordPlugin implements AuthenticationPlugin {
 
       return in.readReusablePacket();
 
-    } catch (NoSuchAlgorithmException
-        | InvalidKeySpecException
-        | InvalidKeyException
-        | InvalidAlgorithmParameterException
-        | SignatureException e) {
+    } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
       // not expected
       throw new SQLException("Error during parsec authentication", e);
     }

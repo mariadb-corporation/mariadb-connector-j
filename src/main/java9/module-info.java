@@ -14,7 +14,6 @@ module org.mariadb.jdbc {
   requires static com.sun.jna;
   requires static com.sun.jna.platform;
   requires static org.slf4j;
-  requires static org.bouncycastle.pkix;
 
   exports org.mariadb.jdbc;
   exports org.mariadb.jdbc.client;

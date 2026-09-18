@@ -5,21 +5,13 @@ package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Objects;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 import org.mariadb.jdbc.plugin.Credential;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.GroupElement;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Ed25519ScalarOps;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSANamedCurveTable;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSAParameterSpec;
 
 /** ED25519 password plugin */
 public class Ed25519PasswordPlugin implements AuthenticationPlugin {
@@ -28,61 +20,16 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
   private final byte[] seed;
 
   /**
-   * Sign password
+   * Sign the server seed with the password. This is an RFC 8032 signature where the raw password
+   * takes the place of the 32-byte secret seed.
    *
    * @param password password
    * @param seed server seed
-   * @return encrypted value
-   * @throws SQLException if any error occurs
+   * @return 64-byte signature
    */
-  private static byte[] ed25519SignWithPassword(final String password, final byte[] seed)
-      throws SQLException {
-
-    try {
-      byte[] bytePwd = password.getBytes(StandardCharsets.UTF_8);
-
-      MessageDigest hash = MessageDigest.getInstance("SHA-512");
-
-      int mlen = seed.length;
-      final byte[] sm = new byte[64 + mlen];
-
-      byte[] az = hash.digest(bytePwd);
-      az[0] &= (byte) 248;
-      az[31] &= 63;
-      az[31] |= 64;
-
-      System.arraycopy(seed, 0, sm, 64, mlen);
-      System.arraycopy(az, 32, sm, 32, 32);
-
-      byte[] buff = Arrays.copyOfRange(sm, 32, 96);
-      hash.reset();
-      byte[] nonce = hash.digest(buff);
-
-      Ed25519ScalarOps scalar = new Ed25519ScalarOps();
-
-      EdDSAParameterSpec spec =
-          Objects.requireNonNull(
-              EdDSANamedCurveTable.getByName("Ed25519"), "Ed25519 curve not registered");
-      GroupElement elementAvalue = spec.getB().scalarMultiply(az);
-      byte[] elementAarray = elementAvalue.toByteArray();
-      System.arraycopy(elementAarray, 0, sm, 32, elementAarray.length);
-
-      nonce = scalar.reduce(nonce);
-      GroupElement elementRvalue = spec.getB().scalarMultiply(nonce);
-      byte[] elementRarray = elementRvalue.toByteArray();
-      System.arraycopy(elementRarray, 0, sm, 0, elementRarray.length);
-
-      hash.reset();
-      byte[] hram = hash.digest(sm);
-      hram = scalar.reduce(hram);
-      byte[] tt = scalar.multiplyAndAdd(hram, az, nonce);
-      System.arraycopy(tt, 0, sm, 32, tt.length);
-
-      return Arrays.copyOfRange(sm, 0, 64);
-
-    } catch (NoSuchAlgorithmException e) {
-      throw new SQLException("Could not use SHA-512, failing", e);
-    }
+  private static byte[] ed25519SignWithPassword(final String password, final byte[] seed) {
+    byte[] expandedKey = Ed25519Signer.expand(password.getBytes(StandardCharsets.UTF_8));
+    return Ed25519Signer.sign(expandedKey, Ed25519Signer.publicKey(expandedKey), seed);
   }
 
   public Ed25519PasswordPlugin(String authenticationData, byte[] seed) {
@@ -104,12 +51,11 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
   public ReadableByteBuf process(
       Writer out, Reader in, Context context, boolean sslFingerPrintValidation)
       throws SQLException, IOException {
-    if (authenticationData == null) {
-      out.writeEmptyPacket();
-    } else {
-      out.writeBytes(ed25519SignWithPassword(authenticationData, seed));
-      out.flush();
-    }
+    // the server expects a 64-byte signature whatever the account password: an account created
+    // with PASSWORD('') is authenticated by a signature over the empty password, as Connector/C
+    out.writeBytes(
+        ed25519SignWithPassword(authenticationData == null ? "" : authenticationData, seed));
+    out.flush();
 
     return in.readReusablePacket();
   }
@@ -125,21 +71,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
    * @return hash
    */
   public byte[] hash(Credential credential) {
-
-    try {
-      byte[] bytePwd = credential.getPassword().getBytes(StandardCharsets.UTF_8);
-      MessageDigest hash = MessageDigest.getInstance("SHA-512");
-      byte[] az = hash.digest(bytePwd);
-      az[0] &= (byte) 248;
-      az[31] &= 63;
-      az[31] |= 64;
-      EdDSAParameterSpec spec =
-          Objects.requireNonNull(
-              EdDSANamedCurveTable.getByName("Ed25519"), "Ed25519 curve not registered");
-      return spec.getB().scalarMultiply(az).toByteArray();
-
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("Could not use SHA-512, failing", e);
-    }
+    String password = credential.getPassword() == null ? "" : credential.getPassword();
+    return Ed25519Signer.publicKey(Ed25519Signer.expand(password.getBytes(StandardCharsets.UTF_8)));
   }
 }

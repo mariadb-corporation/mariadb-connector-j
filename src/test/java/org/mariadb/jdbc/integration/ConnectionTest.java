@@ -849,7 +849,45 @@ public class ConnectionTest extends Common {
       // must have succeeded
       connection.getCatalog();
     }
+    // the server does verify the signature
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@orD"),
+        "Access denied");
     stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
+
+    if (minVersion(10, 4, 0)) {
+      // empty password (null authentication data) and non-ASCII password (signed over the UTF-8
+      // bytes, as the server does)
+      stmt.execute("drop user IF EXISTS verifEd25519Empty" + getHostSuffix());
+      stmt.execute("drop user IF EXISTS verifEd25519Utf8" + getHostSuffix());
+      stmt.execute(
+          "CREATE USER verifEd25519Empty"
+              + getHostSuffix()
+              + " IDENTIFIED VIA ed25519 USING PASSWORD('')");
+      stmt.execute(
+          "CREATE USER verifEd25519Utf8"
+              + getHostSuffix()
+              + " IDENTIFIED VIA ed25519 USING PASSWORD('pässwörd€')");
+      stmt.execute(
+          "GRANT SELECT on "
+              + sharedConn.getCatalog()
+              + ".* to verifEd25519Empty"
+              + getHostSuffix());
+      stmt.execute(
+          "GRANT SELECT on "
+              + sharedConn.getCatalog()
+              + ".* to verifEd25519Utf8"
+              + getHostSuffix());
+      try (Connection connection = createCon("user=verifEd25519Empty&password=")) {
+        connection.getCatalog();
+      }
+      try (Connection connection = createCon("user=verifEd25519Utf8&password=pässwörd€")) {
+        connection.getCatalog();
+      }
+      stmt.execute("drop user verifEd25519Empty" + getHostSuffix());
+      stmt.execute("drop user verifEd25519Utf8" + getHostSuffix());
+    }
   }
 
   @Test
@@ -876,21 +914,16 @@ public class ConnectionTest extends Common {
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec" + getHostSuffix());
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec2" + getHostSuffix());
 
-    int majorVersion = getJavaVersion();
-    if (majorVersion < 15) {
-      // before java 15, Ed25519 is not supported
-      // assuming, that BouncyCastle is not on test classpath
-      assertThrowsContains(
-          SQLException.class,
-          () -> createCon("user=verifParsec&password=heyPassw-!*20oRd"),
-          "Parsec authentication not available. Either use Java 15+ or add BouncyCastle"
-              + " dependency");
-    } else {
-      try (Connection connection = createCon("user=verifParsec&password=heyPassw-!*20oRd")) {
-        // must have succeeded
-        connection.getCatalog();
-      }
+    // signing is done by the driver's own Ed25519 code: no Java 15+ or BouncyCastle requirement
+    try (Connection connection = createCon("user=verifParsec&password=heyPassw-!*20oRd")) {
+      // must have succeeded
+      connection.getCatalog();
     }
+    // the server does verify the signature
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("user=verifParsec&password=heyPassw-!*20oRe"),
+        "Access denied");
 
     assertThrowsContains(
         SQLException.class,
@@ -898,6 +931,33 @@ public class ConnectionTest extends Common {
         "Client restrict authentication plugin to a limited set");
     stmt.execute("drop user verifParsec" + getHostSuffix());
     stmt.execute("drop user verifParsec2" + getHostSuffix());
+
+    // empty password (null authentication data) and non-ASCII password (PBKDF2 over the UTF-8
+    // bytes, as the server does)
+    stmt.execute("drop user IF EXISTS verifParsecEmpty" + getHostSuffix());
+    stmt.execute("drop user IF EXISTS verifParsecUtf8" + getHostSuffix());
+    stmt.execute(
+        "CREATE USER verifParsecEmpty"
+            + getHostSuffix()
+            + " IDENTIFIED VIA parsec USING PASSWORD('')");
+    stmt.execute(
+        "CREATE USER verifParsecUtf8"
+            + getHostSuffix()
+            + " IDENTIFIED VIA parsec USING PASSWORD('pässwörd€')");
+    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsecEmpty" + getHostSuffix());
+    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsecUtf8" + getHostSuffix());
+    try (Connection connection = createCon("user=verifParsecEmpty&password=")) {
+      connection.getCatalog();
+    }
+    try (Connection connection = createCon("user=verifParsecUtf8&password=pässwörd€")) {
+      connection.getCatalog();
+    }
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("user=verifParsecUtf8&password=passwörd€"),
+        "Access denied");
+    stmt.execute("drop user verifParsecEmpty" + getHostSuffix());
+    stmt.execute("drop user verifParsecUtf8" + getHostSuffix());
   }
 
   @Test
