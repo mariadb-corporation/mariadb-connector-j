@@ -123,15 +123,39 @@ jobs:
           path: infer-out/report.txt
           if-no-files-found: ignore
 
+  # Same generation and validation as release-sbom.yml, so an SBOM that no longer passes (new
+  # dependency without supplier or SPDX license, plugin regression) is caught before a release.
+  sbom:
+    name: SBOM generation and validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          cache: maven
+          distribution: 'temurin'
+
+      - name: Generate and validate SBOM
+        run: .github/sbom/generate.sh
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: target/*.cdx.json
+
   # Single check with a stable name for the branch ruleset (matrix job names vary). Runs even
   # when a dependency failed so the check is reported as failed rather than skipped.
   ci-result:
     name: Run CI Tests
-    needs: [ci, infer]
+    needs: [ci, infer, sbom]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check job results
         run: |
-          echo "ci: ${{ needs.ci.result }}, infer: ${{ needs.infer.result }}"
-          [[ "${{ needs.ci.result }}" == "success" && "${{ needs.infer.result }}" == "success" ]]
+          echo "ci: ${{ needs.ci.result }}, infer: ${{ needs.infer.result }}, sbom: ${{ needs.sbom.result }}"
+          [[ "${{ needs.ci.result }}" == "success" && "${{ needs.infer.result }}" == "success" && "${{ needs.sbom.result }}" == "success" ]]

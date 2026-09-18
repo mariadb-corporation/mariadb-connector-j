@@ -24,20 +24,13 @@ jobs:
           cache: maven
           distribution: 'temurin'
 
-      - name: Generate SBOM
-        run: mvn package -DskipTests -Dgpg.skip -q
-
-      - name: Resolve connector version
-        id: version
-        run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -Dgpg.skip -DforceStdout)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Connector version: $VERSION"
-
-      - name: Rename SBOM to match Maven Central classifier naming
-        run: cp target/bom.json "mariadb-java-client-${{ steps.version.outputs.version }}-cyclonedx.json"
+      # Builds, enriches and validates target/mariadb-java-client-<version>.cdx.json; fails the
+      # job if the SBOM does not pass schema and minimum-elements validation.
+      - name: Generate and validate SBOM
+        id: sbom
+        run: echo "path=$(.github/sbom/generate.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Upload SBOM to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" "mariadb-java-client-${{ steps.version.outputs.version }}-cyclonedx.json" --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.sbom.outputs.path }}" --clobber

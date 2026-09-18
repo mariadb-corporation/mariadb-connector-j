@@ -25,6 +25,8 @@
         <bnd-maven-plugin.version>6.4.0</bnd-maven-plugin.version>
         <spotless.version>3.10.2</spotless.version>
         <cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
+        <gmavenplus-plugin.version>4.2.1</gmavenplus-plugin.version>
+        <groovy.version>4.0.33</groovy.version>
     </properties>
 
     <licenses>
@@ -241,6 +243,41 @@
                         <goals>
                             <goal>makeBom</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Rewrites target/bom.json in place after makeBom with supplier, bundled code, jar hash
+                 and a random serial number (see .github/sbom/enrich.groovy). Must stay declared right
+                 after cyclonedx-maven-plugin so it runs after it within the package phase. -->
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>${gmavenplus-plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.groovy</groupId>
+                        <artifactId>groovy</artifactId>
+                        <version>${groovy.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.groovy</groupId>
+                        <artifactId>groovy-json</artifactId>
+                        <version>${groovy.version}</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>enrich-sbom</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>execute</goal>
+                        </goals>
+                        <configuration>
+                            <scripts>
+                                <script>file:///${project.basedir}/.github/sbom/enrich.groovy</script>
+                            </scripts>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
