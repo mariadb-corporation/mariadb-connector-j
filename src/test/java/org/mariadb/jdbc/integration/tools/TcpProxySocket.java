@@ -21,7 +21,7 @@ public class TcpProxySocket implements Runnable {
   private volatile Socket client = null;
   private volatile Socket server = null;
   private volatile ServerSocket ss;
-  private volatile Thread relayThread;
+  private volatile boolean running = false;
   private int delay;
 
   /**
@@ -113,10 +113,12 @@ public class TcpProxySocket implements Runnable {
    * @param millis maximum time to wait
    */
   public void awaitStop(long millis) {
-    Thread t = relayThread;
-    if (t != null && t != Thread.currentThread()) {
+    // run() executes on an executor worker thread that stays alive after run() returns, so the
+    // thread's termination cannot be waited for: wait for the relay loop itself to exit
+    long deadline = System.currentTimeMillis() + millis;
+    while (running && System.currentTimeMillis() < deadline) {
       try {
-        t.join(millis);
+        Thread.sleep(5);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       }
@@ -127,7 +129,7 @@ public class TcpProxySocket implements Runnable {
   public void run() {
 
     logger.trace("host proxy port " + this.localport + " for " + host + " started");
-    relayThread = Thread.currentThread();
+    running = true;
     stop = false;
     try {
       try {
@@ -220,6 +222,8 @@ public class TcpProxySocket implements Runnable {
       }
     } catch (IOException e) {
       e.printStackTrace();
+    } finally {
+      running = false;
     }
   }
 
