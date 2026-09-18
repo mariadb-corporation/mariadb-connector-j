@@ -972,4 +972,79 @@ public class BatchTest extends Common {
       assertEquals(rs.getInt(1), 4);
     }
   }
+
+  @Test
+  public void batchWithTriggerDml() throws SQLException {
+    // CONJ-1352: bulk unit results hold one row per completed statement, so DML run by a trigger
+    // adds rows that cannot be mapped on the batch entries
+    for (String options :
+        new String[] {
+          "&useServerPrepStmts=false&useBulkStmts=true",
+          "&useServerPrepStmts=true&useBulkStmts=true",
+          "&useServerPrepStmts=false&useBulkStmts=false"
+        }) {
+      try (Connection con = createCon(options)) {
+        batchWithTriggerDml(con);
+      }
+    }
+  }
+
+  private void batchWithTriggerDml(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("DROP TRIGGER IF EXISTS batchTriggerDml_ai");
+    stmt.execute("DROP TABLE IF EXISTS batchTriggerDml, batchTriggerDmlTarget");
+    stmt.execute(
+        "CREATE TABLE batchTriggerDml(id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, val INT NOT"
+            + " NULL)");
+    stmt.execute("CREATE TABLE batchTriggerDmlTarget(val INT NOT NULL)");
+    stmt.execute("INSERT INTO batchTriggerDmlTarget VALUES (1), (2), (2), (5)");
+    // per inserted row, the trigger deletes 1, 2, 0 rows: three distinct affected-rows counts
+    stmt.execute(
+        "CREATE TRIGGER batchTriggerDml_ai AFTER INSERT ON batchTriggerDml FOR EACH ROW DELETE"
+            + " FROM batchTriggerDmlTarget WHERE val = NEW.val");
+    try {
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "INSERT INTO batchTriggerDml(val) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+        for (int i = 1; i <= 3; i++) {
+          prep.setInt(1, i);
+          prep.addBatch();
+        }
+        int[] updates = prep.executeBatch();
+        assertEquals(3, updates.length);
+        for (int update : updates) {
+          assertTrue(
+              update == 1 || update == Statement.SUCCESS_NO_INFO, "unexpected count " + update);
+        }
+        try (ResultSet rs = prep.getGeneratedKeys()) {
+          for (int i = 1; i <= 3; i++) {
+            assertTrue(rs.next());
+            assertEquals(i, rs.getInt(1));
+          }
+          assertFalse(rs.next());
+        }
+
+        for (int i = 4; i <= 6; i++) {
+          prep.setInt(1, i);
+          prep.addBatch();
+        }
+        long[] largeUpdates = prep.executeLargeBatch();
+        assertEquals(3, largeUpdates.length);
+        for (long update : largeUpdates) {
+          assertTrue(
+              update == 1 || update == Statement.SUCCESS_NO_INFO, "unexpected count " + update);
+        }
+      }
+      ResultSet rs =
+          stmt.executeQuery(
+              "SELECT (SELECT count(*) FROM batchTriggerDml), (SELECT count(*) FROM"
+                  + " batchTriggerDmlTarget)");
+      assertTrue(rs.next());
+      assertEquals(6, rs.getInt(1));
+      assertEquals(0, rs.getInt(2));
+    } finally {
+      stmt.execute("DROP TRIGGER IF EXISTS batchTriggerDml_ai");
+      stmt.execute("DROP TABLE IF EXISTS batchTriggerDml, batchTriggerDmlTarget");
+    }
+  }
 }
