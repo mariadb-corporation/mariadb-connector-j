@@ -1,7 +1,13 @@
-This plugin uses public domain ed25519 code by str4d (https://github.com/str4d/ed25519-java).
+This plugin uses public domain (CC0-1.0) ed25519 code by str4d (https://github.com/str4d/ed25519-java).
 It is "ref10" java implementation from the SUPERCOP ed25519:
+
+Upstream version: 0.3.0 (net.i2p.crypto:eddsa:0.3.0, the latest release), plus the only later
+upstream change to the files kept here: Utils.hexToBytes() rejecting odd-length input
+(commit ad02a7f). Upstream master e0ac357 (2019-08-04) contains no further change to these files.
+Declared as a bundled component in the SBOM (.github/sbom/enrich.groovy); keep the version there
+in sync with this file.
 
 ==============================
 MariaDB changes:
 - doesn't register ed25519 to global java providers
-- remove unused classes
+- remove unused classes (EdDSAEngine, key classes, security provider)
