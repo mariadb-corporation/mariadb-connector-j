@@ -136,16 +136,9 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
         ArrayList<MariaDbXid> xidList = new ArrayList<>();
 
         while (rs.next()) {
-          int formatId = rs.getInt(1);
-          int len1 = rs.getInt(2);
-          int len2 = rs.getInt(3);
-          byte[] arr = rs.getBytes(4);
-
-          byte[] globalTransactionId = new byte[len1];
-          byte[] branchQualifier = new byte[len2];
-          System.arraycopy(arr, 0, globalTransactionId, 0, len1);
-          System.arraycopy(arr, len1, branchQualifier, 0, len2);
-          xidList.add(new MariaDbXid(formatId, globalTransactionId, branchQualifier));
+          // lengths and payload are server-supplied: validated before allocation / copy
+          xidList.add(
+              MariaDbXid.fromRecoverRow(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getBytes(4)));
         }
         Xid[] xids = new Xid[xidList.size()];
         xidList.toArray(xids);
