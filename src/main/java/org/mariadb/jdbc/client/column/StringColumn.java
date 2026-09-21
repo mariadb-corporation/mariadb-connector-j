@@ -144,9 +144,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
     if (isBinary()) {
-      byte[] arr = new byte[length.get()];
-      buf.readBytes(arr);
-      return arr;
+      return buf.readBytes(length.get());
     }
     return buf.readString(length.get());
   }
@@ -156,9 +154,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
     if (isBinary()) {
-      byte[] arr = new byte[length.get()];
-      buf.readBytes(arr);
-      return arr;
+      return buf.readBytes(length.get());
     }
     return buf.readString(length.get());
   }

@@ -73,17 +73,15 @@ public interface ColumnDecoder extends Column {
       while (subPacket.readableBytes() > 0) {
         switch (subPacket.readByte()) {
           case 0:
-            int nameLen = subPacket.readLength();
-            extTypeName = new byte[nameLen];
-            subPacket.readBytes(extTypeName);
+            extTypeName = subPacket.readBytes(subPacket.readIntLengthEncodedNotNull());
             break;
           case 1:
-            int formatLen = subPacket.readLength();
-            extTypeFormat = new byte[formatLen];
-            subPacket.readBytes(extTypeFormat);
+            extTypeFormat = subPacket.readBytes(subPacket.readIntLengthEncodedNotNull());
             break;
           default: // skip data
-            subPacket.skip(subPacket.readLength());
+            int skipLen = subPacket.readIntLengthEncodedNotNull();
+            subPacket.checkLength(skipLen);
+            subPacket.skip(skipLen);
             break;
         }
       }

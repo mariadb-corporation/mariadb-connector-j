@@ -70,18 +70,12 @@ public class OkPacket implements Completion {
                 ReadableByteBuf tmpBufsv;
                 do {
                   tmpBufsv = sessionStateBuf.readLengthBuffer();
+                  // lengths are server-declared: readBytes validates them before allocating
                   int len = tmpBufsv.readIntLengthEncodedNotNull();
-                  byte[] variableBytes = new byte[len];
-                  tmpBufsv.readBytes(variableBytes);
+                  byte[] variableBytes = tmpBufsv.readBytes(len);
 
                   Integer lenSv = tmpBufsv.readLength();
-                  byte[] valueBytes;
-                  if (lenSv == null) {
-                    valueBytes = null;
-                  } else {
-                    valueBytes = new byte[lenSv];
-                    tmpBufsv.readBytes(valueBytes);
-                  }
+                  byte[] valueBytes = lenSv == null ? null : tmpBufsv.readBytes(lenSv);
 
                   if (logger.isDebugEnabled())
                     logger.debug(
@@ -157,8 +151,7 @@ public class OkPacket implements Completion {
     context.setWarning(buf.readUnsignedShort());
     byte[] info;
     if (buf.readableBytes() > 0) {
-      info = new byte[buf.readIntLengthEncodedNotNull()];
-      buf.readBytes(info);
+      info = buf.readBytes(buf.readIntLengthEncodedNotNull());
       if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
         while (buf.readableBytes() > 0) {
           ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
@@ -168,18 +161,12 @@ public class OkPacket implements Completion {
                 ReadableByteBuf tmpBufsv;
                 do {
                   tmpBufsv = sessionStateBuf.readLengthBuffer();
+                  // lengths are server-declared: readBytes validates them before allocating
                   int len = tmpBufsv.readIntLengthEncodedNotNull();
-                  byte[] variableBytes = new byte[len];
-                  tmpBufsv.readBytes(variableBytes);
+                  byte[] variableBytes = tmpBufsv.readBytes(len);
 
                   Integer lenSv = tmpBufsv.readLength();
-                  byte[] valueBytes;
-                  if (lenSv == null) {
-                    valueBytes = null;
-                  } else {
-                    valueBytes = new byte[lenSv];
-                    tmpBufsv.readBytes(valueBytes);
-                  }
+                  byte[] valueBytes = lenSv == null ? null : tmpBufsv.readBytes(lenSv);
 
                   if (logger.isDebugEnabled())
                     logger.debug(

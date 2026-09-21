@@ -90,6 +90,7 @@ public final class ReadableByteBuf {
   }
 
   public MariaDbBlob readBlob(int length) {
+    checkLength(length);
     pos += length;
     return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
   }
@@ -193,6 +194,15 @@ public final class ReadableByteBuf {
     return pos;
   }
 
+  /**
+   * Read a nullable length-encoded integer as an Integer.
+   *
+   * <p>Same range validation as {@link #readIntLengthEncodedNotNull()}: the 8-byte form is rejected
+   * when it does not fit a non-negative int instead of being silently narrowed.
+   *
+   * @return decoded value in range [0, {@link Integer#MAX_VALUE}], or null for the NULL marker
+   * @throws IllegalArgumentException if the encoded value does not fit a non-negative int
+   */
   public Integer readLength() {
     int type = readUnsignedByte();
     switch (type) {
@@ -203,9 +213,36 @@ public final class ReadableByteBuf {
       case 253:
         return readUnsignedMedium();
       case 254:
-        return (int) readLong();
+        long val = readLong();
+        if (val < 0 || val > Integer.MAX_VALUE) {
+          throw new IllegalArgumentException(
+              "invalid length-encoded value: " + Long.toUnsignedString(val));
+        }
+        return (int) val;
       default:
         return type;
+    }
+  }
+
+  /**
+   * Ensure a server-declared length fits in the bytes remaining in this buffer.
+   *
+   * <p>Declared lengths come from the server. Allocating or copying before checking them against
+   * the packet would let a rogue server drive a multi-gigabyte allocation or an out-of-bounds read
+   * from a packet of a few bytes, so every read that consumes a declared length goes through this
+   * check first.
+   *
+   * @param length server-declared length
+   * @throws IllegalArgumentException if the length is negative or exceeds the readable bytes
+   */
+  public void checkLength(int length) {
+    if (length < 0 || length > readableBytes()) {
+      throw new IllegalArgumentException(
+          "invalid length-encoded value: declared "
+              + length
+              + " bytes, but only "
+              + readableBytes()
+              + " remaining in packet");
     }
   }
 
@@ -281,8 +318,25 @@ public final class ReadableByteBuf {
   }
 
   public void readBytes(byte[] dst) {
+    checkLength(dst.length);
     System.arraycopy(buf, pos, dst, 0, dst.length);
     pos += dst.length;
+  }
+
+  /**
+   * Read {@code length} bytes into a new array, validating the length against the remaining bytes
+   * before allocating.
+   *
+   * @param length server-declared number of bytes to read
+   * @return the bytes read
+   * @throws IllegalArgumentException if the length is negative or exceeds the readable bytes
+   */
+  public byte[] readBytes(int length) {
+    checkLength(length);
+    byte[] dst = new byte[length];
+    System.arraycopy(buf, pos, dst, 0, length);
+    pos += length;
+    return dst;
   }
 
   public byte[] readBytesNullEnd() {
@@ -298,6 +352,7 @@ public final class ReadableByteBuf {
 
   public ReadableByteBuf readLengthBuffer() {
     int len = this.readIntLengthEncodedNotNull();
+    checkLength(len);
 
     ReadableByteBuf b = new ReadableByteBuf(buf, pos + len);
     b.pos = pos;
@@ -306,11 +361,13 @@ public final class ReadableByteBuf {
   }
 
   public String readString(int length) {
+    checkLength(length);
     pos += length;
     return new String(buf, pos - length, length, StandardCharsets.UTF_8);
   }
 
   public String readAscii(int length) {
+    checkLength(length);
     pos += length;
     return new String(buf, pos - length, length, StandardCharsets.US_ASCII);
   }

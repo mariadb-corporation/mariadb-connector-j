@@ -94,4 +94,56 @@ public class OkPacketTest {
     OkPacket.parseWithInfo(new ReadableByteBuf(backing, packet.length), context(rec2));
     Assertions.assertEquals("newdb", rec2.database);
   }
+
+  /**
+   * OK packet whose session-state info holds a SESSION_TRACK_SYSTEM_VARIABLES entry declaring a
+   * 0x7FFFFFFF-byte variable name with no bytes behind it.
+   */
+  private static byte[] okPacketWithHugeVariableNameLength() throws Exception {
+    byte[] hugeLen = {(byte) 254, -1, -1, -1, 127, 0, 0, 0, 0};
+    ByteArrayOutputStream block = new ByteArrayOutputStream();
+    block.write(StateChange.SESSION_TRACK_SYSTEM_VARIABLES);
+    block.write(hugeLen.length); // entry length
+    block.write(hugeLen); // variable name length-encoded, nothing follows
+    byte[] blockBytes = block.toByteArray();
+
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    out.write(0x00); // ok header
+    out.write(0x00); // affected rows
+    out.write(0x00); // last insert id
+    out.write(0x02);
+    out.write(0x00); // server status
+    out.write(0x00);
+    out.write(0x00); // warnings
+    out.write(0x00); // info (empty)
+    out.write(blockBytes.length); // session state info length
+    out.write(blockBytes);
+    return out.toByteArray();
+  }
+
+  @Test
+  public void hugeSessionVariableLengthRejectedBeforeAllocation() throws Exception {
+    // must fail with a bounds error, not OutOfMemoryError from a 2 GB allocation
+    byte[] packet = okPacketWithHugeVariableNameLength();
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            OkPacket.parse(new ReadableByteBuf(packet, packet.length), context(new DbRecorder())));
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            OkPacket.parseWithInfo(
+                new ReadableByteBuf(packet, packet.length), context(new DbRecorder())));
+  }
+
+  @Test
+  public void hugeInfoLengthRejectedBeforeAllocation() {
+    // ok header, affected rows, last insert id, status, warnings, then info declaring 0x7FFFFFFF
+    byte[] packet = {0, 0, 0, 2, 0, 0, 0, (byte) 254, -1, -1, -1, 127, 0, 0, 0, 0};
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            OkPacket.parseWithInfo(
+                new ReadableByteBuf(packet, packet.length), context(new DbRecorder())));
+  }
 }

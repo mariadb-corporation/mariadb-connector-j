@@ -71,9 +71,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
       case VARSTRING:
       case VARCHAR:
       case GEOMETRY:
-        byte[] arr = new byte[length.get()];
-        buf.readBytes(arr);
-        return arr;
+        return buf.readBytes(length.get());
 
       default:
         buf.skip(length.get());

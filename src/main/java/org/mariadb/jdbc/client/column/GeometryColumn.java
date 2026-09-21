@@ -104,9 +104,7 @@ public class GeometryColumn extends BlobColumn {
       buf.skip(4); // SRID
       return Geometry.getGeometry(buf, length.get() - 4, this);
     }
-    byte[] arr = new byte[length.get()];
-    buf.readBytes(arr);
-    return arr;
+    return buf.readBytes(length.get());
   }
 
   @Override

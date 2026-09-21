@@ -237,22 +237,27 @@ public class BinaryRowDecoder implements RowDecoder {
     }
 
     // read asked field position and length
+    int fieldLength;
     switch (metadataList[fi].getType()) {
       case BIGINT:
       case DOUBLE:
-        return 8;
+        fieldLength = 8;
+        break;
 
       case INTEGER:
       case MEDIUMINT:
       case FLOAT:
-        return 4;
+        fieldLength = 4;
+        break;
 
       case SMALLINT:
       case YEAR:
-        return 2;
+        fieldLength = 2;
+        break;
 
       case TINYINT:
-        return 1;
+        fieldLength = 1;
+        break;
 
       default:
         // field with variable length
@@ -260,22 +265,35 @@ public class BinaryRowDecoder implements RowDecoder {
         switch (len) {
           case (byte) 252:
             // length is encoded on 3 bytes (0xfc header + 2 bytes indicating length)
-            return rowBuf.readUnsignedShort();
+            fieldLength = rowBuf.readUnsignedShort();
+            break;
 
           case (byte) 253:
             // length is encoded on 4 bytes (0xfd header + 3 bytes indicating length)
-            return rowBuf.readUnsignedMedium();
+            fieldLength = rowBuf.readUnsignedMedium();
+            break;
 
           case (byte) 254:
             // length is encoded on 9 bytes (0xfe header + 8 bytes indicating length)
-            long fieldLength = rowBuf.readLong();
-            if (fieldLength < 0 || fieldLength > Integer.MAX_VALUE) {
-              throw new SQLException("Invalid length-encoded field length " + fieldLength);
+            long longLength = rowBuf.readLong();
+            if (longLength < 0 || longLength > Integer.MAX_VALUE) {
+              throw new SQLException("Invalid length-encoded field length " + longLength);
             }
-            return (int) fieldLength;
+            fieldLength = (int) longLength;
+            break;
           default:
-            return len & 0xff;
+            fieldLength = len & 0xff;
         }
     }
+    // the length is server-declared and column decoders allocate from it: it must fit in the row
+    if (fieldLength > rowBuf.readableBytes()) {
+      throw new SQLException(
+          "Invalid length-encoded field length "
+              + fieldLength
+              + ": exceeds the "
+              + rowBuf.readableBytes()
+              + " bytes remaining in row packet");
+    }
+    return fieldLength;
   }
 }

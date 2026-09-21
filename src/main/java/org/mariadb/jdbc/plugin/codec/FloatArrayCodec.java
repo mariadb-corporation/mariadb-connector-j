@@ -103,9 +103,7 @@ public class FloatArrayCodec implements Codec<float[]> {
       case VARSTRING:
       case VARCHAR:
       case GEOMETRY:
-        byte[] arr = new byte[length.get()];
-        buf.readBytes(arr);
-        return arr;
+        return buf.readBytes(length.get());
 
       default:
         buf.skip(length.get());

@@ -47,4 +47,18 @@ public class ColumnDecoderTest {
     assertEquals("test", columnDecoder.getColumnAlias());
     assertEquals("db", columnDecoder.getCatalog());
   }
+
+  @Test
+  public void hugeExtendedTypeNameLengthRejectedBeforeAllocation() {
+    // catalog "def", schema "s", table "t", table alias "t", column alias "c", column "c",
+    // then extended info: 10-byte sub-packet holding type 0 and a 0x7FFFFFFF name length
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " 0A 00 FE FF FF FF 7F 00 00 00 00"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    // must fail with a bounds error, not OutOfMemoryError from a 2 GB allocation
+    assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf));
+  }
 }
