@@ -210,11 +210,6 @@
     "allDeclaredMethods": true
   },
   {
-    "condition": { "typeReachable": "waffle.windows.auth.impl.WindowsAuthProviderImpl" },
-    "name": "waffle.windows.auth.impl.WindowsAuthProviderImpl",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
     "condition": { "typeReachable": "software.amazon.awssdk.auth.credentials.AwsBasicCredentials" },
     "name": "org.mariadb.jdbc.plugin.credential.aws.AwsIamCredentialPlugin",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]

@@ -11,24 +11,15 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
-import org.mariadb.jdbc.plugin.authentication.addon.gssapi.GssUtility;
-import org.mariadb.jdbc.plugin.authentication.addon.gssapi.GssapiAuth;
 import org.mariadb.jdbc.plugin.authentication.addon.gssapi.StandardGssapiAuthentication;
 
-/** GSSAPI plugin */
+/**
+ * GSSAPI plugin. Single sign-on with operating system credentials requires the JVM to be started
+ * with {@code -Dsun.security.jgss.native=true}, see {@link StandardGssapiAuthentication}.
+ */
 public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
-  private static final GssapiAuth gssapiAuth;
-
-  static {
-    GssapiAuth init;
-    try {
-      init = GssUtility.getAuthenticationMethod();
-    } catch (Throwable t) {
-      init = new StandardGssapiAuthentication();
-    }
-    gssapiAuth = init;
-  }
+  private static final StandardGssapiAuthentication gssapiAuth = new StandardGssapiAuthentication();
 
   private final byte[] seed;
   private final String optionServicePrincipalName;

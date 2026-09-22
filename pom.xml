@@ -19,8 +19,8 @@
         <logback.version>1.6.3</logback.version>
         <logback-java8.version>1.3.16</logback-java8.version>
         <jacoco.version>0.8.15</jacoco.version>
-        <waffle-jna.version>3.6.0</waffle-jna.version>
-        <waffle-jna-java8.version>3.3.0</waffle-jna-java8.version>
+        <jna.version>5.18.1</jna.version>
+        <jna-java8.version>5.13.0</jna-java8.version>
         <mysql-connector-java.version>26.7.0</mysql-connector-java.version>
         <bnd-maven-plugin.version>6.4.0</bnd-maven-plugin.version>
         <spotless.version>3.10.2</spotless.version>
@@ -128,7 +128,7 @@
                             <Multi-Release>true</Multi-Release>
                             <Export-Package>org.mariadb.jdbc</Export-Package>
                             <Import-Package>
-                                javax.naming,javax.naming.ldap,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,waffle.windows.auth;resolution:=optional,waffle.windows.auth.impl;resolution:=optional,org.ietf.jgss;resolution:=optional,javax.security.auth.login;resolution:=optional,javax.security.auth.x500;resolution:=optional,javax.crypto;resolution:=optional,software.amazon.awssdk.*;resolution:=optional,org.slf4j;resolution:=optional
+                                javax.naming,javax.naming.ldap,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,org.ietf.jgss;resolution:=optional,javax.security.auth.login;resolution:=optional,javax.security.auth.x500;resolution:=optional,javax.crypto;resolution:=optional,software.amazon.awssdk.*;resolution:=optional,org.slf4j;resolution:=optional
                             </Import-Package>
                         </manifestEntries>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -221,6 +221,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.6.0</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- GSSAPI tests use the JDK native GSS-API bridge (SSPI on windows CI) -->
+                        <sun.security.jgss.native>true</sun.security.jgss.native>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
 
             <plugin>
@@ -344,9 +350,15 @@
                 </dependency>
 
                 <dependency>
-                    <groupId>com.github.waffle</groupId>
-                    <artifactId>waffle-jna</artifactId>
-                    <version>${waffle-jna-java8.version}</version>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna</artifactId>
+                    <version>${jna-java8.version}</version>
+                    <optional>true</optional>
+                </dependency>
+                <dependency>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna-platform</artifactId>
+                    <version>${jna-java8.version}</version>
                     <optional>true</optional>
                 </dependency>
 
@@ -473,9 +485,15 @@
                     <scope>test</scope>
                 </dependency>
                 <dependency>
-                    <groupId>com.github.waffle</groupId>
-                    <artifactId>waffle-jna</artifactId>
-                    <version>${waffle-jna.version}</version>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna</artifactId>
+                    <version>${jna.version}</version>
+                    <optional>true</optional>
+                </dependency>
+                <dependency>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna-platform</artifactId>
+                    <version>${jna.version}</version>
                     <optional>true</optional>
                 </dependency>
             </dependencies>
@@ -582,9 +600,15 @@
                     <scope>test</scope>
                 </dependency>
                 <dependency>
-                    <groupId>com.github.waffle</groupId>
-                    <artifactId>waffle-jna</artifactId>
-                    <version>${waffle-jna.version}</version>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna</artifactId>
+                    <version>${jna.version}</version>
+                    <optional>true</optional>
+                </dependency>
+                <dependency>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna-platform</artifactId>
+                    <version>${jna.version}</version>
                     <optional>true</optional>
                 </dependency>
             </dependencies>
@@ -616,9 +640,15 @@
                     <scope>test</scope>
                 </dependency>
                 <dependency>
-                    <groupId>com.github.waffle</groupId>
-                    <artifactId>waffle-jna</artifactId>
-                    <version>${waffle-jna.version}</version>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna</artifactId>
+                    <version>${jna.version}</version>
+                    <optional>true</optional>
+                </dependency>
+                <dependency>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna-platform</artifactId>
+                    <version>${jna.version}</version>
                     <optional>true</optional>
                 </dependency>
             </dependencies>

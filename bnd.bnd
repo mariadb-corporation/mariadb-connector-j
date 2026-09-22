@@ -11,8 +11,6 @@ Import-Package: \
     com.sun.jna;resolution:=optional,\
     com.sun.jna.platform.win32;resolution:=optional,\
     javax.transaction.xa;resolution:=optional,\
-    waffle.windows.auth;resolution:=optional,\
-    waffle.windows.auth.impl;resolution:=optional,\
     org.ietf.jgss;resolution:=optional,\
     javax.crypto;resolution:=optional,\
     javax.security.auth.login;resolution:=optional,\
