@@ -9,6 +9,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.util.SchedulerProvider;
 
 /** Pools */
 public final class Pools {
@@ -79,7 +80,10 @@ public final class Pools {
     }
   }
 
-  /** Close all pools. */
+  /**
+   * Close all pools and release the driver's shared threads (pool idle checker and query timeout
+   * scheduler), so an application server can unload the driver on undeploy.
+   */
   public static void close() {
     synchronized (poolMap) {
       for (PoolHolder holder : poolMap.values()) {
@@ -92,6 +96,7 @@ public final class Pools {
       shutdownExecutor();
       poolMap.clear();
     }
+    SchedulerProvider.close();
   }
 
   /**

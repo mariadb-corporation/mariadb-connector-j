@@ -10,32 +10,29 @@ import org.mariadb.jdbc.client.util.SchedulerProvider;
 
 public class QueryTimeoutHandlerImpl implements QueryTimeoutHandler {
   private Future<?> timerTaskFuture;
-  private ScheduledExecutorService timeoutScheduler;
   private Connection conn;
-  private ClosableLock lock;
 
   public QueryTimeoutHandler create(int queryTimeout) {
     assert (timerTaskFuture == null);
     if (queryTimeout > 0) {
-      if (timeoutScheduler == null) timeoutScheduler = SchedulerProvider.getTimeoutScheduler(lock);
       timerTaskFuture =
-          timeoutScheduler.schedule(
-              () -> {
-                try {
-                  conn.cancelCurrentQuery();
-                } catch (Throwable e) {
-                  // eat
-                }
-              },
-              queryTimeout,
-              TimeUnit.SECONDS);
+          SchedulerProvider.getTimeoutScheduler()
+              .schedule(
+                  () -> {
+                    try {
+                      conn.cancelCurrentQuery();
+                    } catch (Throwable e) {
+                      // eat
+                    }
+                  },
+                  queryTimeout,
+                  TimeUnit.SECONDS);
     }
     return this;
   }
 
   public QueryTimeoutHandlerImpl(Connection conn, ClosableLock lock) {
     this.conn = conn;
-    this.lock = lock;
   }
 
   @Override
