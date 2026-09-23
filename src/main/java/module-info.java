@@ -9,8 +9,6 @@ module org.mariadb.jdbc {
   requires static software.amazon.awssdk.services.rds;
   requires static software.amazon.awssdk.regions;
   requires static software.amazon.awssdk.auth;
-  requires static com.sun.jna;
-  requires static com.sun.jna.platform;
   requires static org.slf4j;
 
   exports org.mariadb.jdbc;

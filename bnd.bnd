@@ -8,8 +8,6 @@ Import-Package: \
     org.slf4j;resolution:=optional, \
     javax.net;resolution:=optional,\
     javax.net.ssl;resolution:=optional,\
-    com.sun.jna;resolution:=optional,\
-    com.sun.jna.platform.win32;resolution:=optional,\
     javax.transaction.xa;resolution:=optional,\
     org.ietf.jgss;resolution:=optional,\
     javax.crypto;resolution:=optional,\

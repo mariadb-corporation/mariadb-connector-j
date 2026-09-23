@@ -18,8 +18,8 @@ import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.SocketHelper;
-import org.mariadb.jdbc.client.socket.impl.SocketHandlerFunction;
-import org.mariadb.jdbc.client.socket.impl.SocketUtility;
+import org.mariadb.jdbc.client.socket.impl.NamedPipeSocket;
+import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
@@ -28,18 +28,6 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 
 /** Connection creation helper class */
 public final class ConnectionHelper {
-
-  private static final SocketHandlerFunction socketHandler;
-
-  static {
-    SocketHandlerFunction init;
-    try {
-      init = SocketUtility.getSocketHandler();
-    } catch (Throwable t) {
-      init = ConnectionHelper::standardSocket;
-    }
-    socketHandler = init;
-  }
 
   /**
    * Create socket accordingly to options.
@@ -52,7 +40,13 @@ public final class ConnectionHelper {
    */
   public static Socket createSocket(Configuration conf, HostAddress hostAddress)
       throws IOException, SQLException {
-    return socketHandler.apply(conf, hostAddress);
+    if (hostAddress.pipe != null) {
+      return new NamedPipeSocket(hostAddress.host, hostAddress.pipe);
+    }
+    if (hostAddress.localSocket != null) {
+      return new UnixDomainSocket(hostAddress.localSocket);
+    }
+    return standardSocket(conf, hostAddress);
   }
 
   /**

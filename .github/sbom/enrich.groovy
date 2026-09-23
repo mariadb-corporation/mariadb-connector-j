@@ -21,7 +21,6 @@ import java.security.MessageDigest
 def suppliers = [
   'software.amazon.awssdk'        : 'Amazon Web Services, Inc.',
   'software.amazon.eventstream'   : 'Amazon Web Services, Inc.',
-  'net.java.dev.jna'              : 'Java Native Access project',
   'com.github.ben-manes.caffeine' : 'Ben Manes',
   'org.jspecify'                  : 'JSpecify',
   'org.checkerframework'          : 'Checker Framework developers',

@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.impl.ConnectionHelper;
-import org.mariadb.jdbc.client.socket.impl.SocketUtility;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
@@ -45,7 +44,6 @@ public class HaModeTest {
     new Pools();
     new Loggers();
     new VersionFactory();
-    new SocketUtility();
   }
 
   @Test

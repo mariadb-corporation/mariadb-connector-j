@@ -3,14 +3,12 @@
 // Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.socket.impl;
 
-import com.sun.jna.platform.win32.Kernel32;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
 /** Windows named pipe socket implementation */
-@SuppressWarnings("UnnecessaryInitCause")
 public class NamedPipeSocket extends Socket {
 
   private final String host;
@@ -59,32 +57,24 @@ public class NamedPipeSocket extends Socket {
         file = new RandomAccessFile(filename, "rw");
         break;
       } catch (FileNotFoundException fileNotFoundException) {
+        // the pipe may be busy (ERROR_PIPE_BUSY): wait before retrying, until timeout
+        if (System.nanoTime() - initialNano > TimeUnit.MILLISECONDS.toNanos(usedTimeout)) {
+          if (timeout == 0) {
+            throw new FileNotFoundException(
+                fileNotFoundException.getMessage()
+                    + "\n"
+                    + "please consider set connectTimeout option, so connection can retry having"
+                    + " access to named pipe. \n"
+                    + "(Named pipe can throw ERROR_PIPE_BUSY error)");
+          }
+          throw fileNotFoundException;
+        }
         try {
-          // using JNA if available
-          Kernel32.INSTANCE.WaitNamedPipe(filename, timeout);
-          // then retry connection
-          file = new RandomAccessFile(filename, "rw");
-        } catch (Throwable cle) {
-          // in case JNA not on classpath, then wait 10ms before next try.
-          if (System.nanoTime() - initialNano > TimeUnit.MILLISECONDS.toNanos(usedTimeout)) {
-            if (timeout == 0) {
-              throw new FileNotFoundException(
-                  fileNotFoundException.getMessage()
-                      + "\n"
-                      + "please consider set connectTimeout option, so connection can retry having"
-                      + " access to named pipe. \n"
-                      + "(Named pipe can throw ERROR_PIPE_BUSY error)");
-            }
-            throw fileNotFoundException;
-          }
-          try {
-            TimeUnit.MILLISECONDS.sleep(5);
-          } catch (InterruptedException interrupted) {
-            IOException ioException =
-                new IOException("Interruption during connection to named pipe");
-            ioException.initCause(interrupted);
-            throw ioException;
-          }
+          TimeUnit.MILLISECONDS.sleep(5);
+        } catch (InterruptedException interrupted) {
+          IOException ioException =
+              new IOException("Interruption during connection to named pipe", interrupted);
+          throw ioException;
         }
       }
     } while (true);

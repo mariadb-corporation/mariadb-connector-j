@@ -19,7 +19,6 @@
         <junit-pioneer.version>2.3.0</junit-pioneer.version>
         <logback.version>1.6.3</logback.version>
         <jacoco.version>0.8.15</jacoco.version>
-        <jna.version>5.19.1</jna.version>
         <mysql-connector-java.version>26.7.0</mysql-connector-java.version>
         <bnd-maven-plugin.version>7.4.0</bnd-maven-plugin.version>
         <spotless.version>3.10.2</spotless.version>
@@ -234,7 +233,6 @@
                         <excludes>
                             <exclude>src/main/java/org/mariadb/jdbc/plugin/authentication/standard/ed25519/**/*.java
                             </exclude>
-                            <exclude>src/main/java/org/mariadb/jdbc/client/socket/impl/UnixDomainSocket.java</exclude>
                         </excludes>
                         <googleJavaFormat>
                             <version>1.36.1</version>
@@ -372,19 +370,6 @@
         </dependency>
 
         <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>${jna.version}</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna-platform</artifactId>
-            <version>${jna.version}</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
@@ -392,7 +377,6 @@
         </dependency>
 
     </dependencies>
-
 
     <profiles>
         <profile>
