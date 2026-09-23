@@ -432,7 +432,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
@@ -468,7 +468,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500");
     con2.abort(Runnable::run);
   }
 
@@ -556,7 +556,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
@@ -592,7 +592,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500");
     con2.abort(Runnable::run);
   }
 

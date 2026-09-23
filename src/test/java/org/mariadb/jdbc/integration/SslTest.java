@@ -149,9 +149,6 @@ public class SslTest extends Common {
     try (Connection con = createCon("sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    try (Connection con = createCon("sslMode=trust&useReadAheadInput=false", sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
   }
 
   @Test

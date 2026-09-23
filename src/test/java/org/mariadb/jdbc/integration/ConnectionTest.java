@@ -1039,18 +1039,6 @@ public class ConnectionTest extends Common {
   }
 
   @Test
-  public void testNoUseReadAheadInputConnection() throws Exception {
-    try (Connection connection = createCon("useReadAheadInput=false")) {
-      // must have succeeded
-      Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10");
-      int i = 0;
-      while (rs.next()) i++;
-      assertTrue(i > 0);
-    }
-  }
-
-  @Test
   public void useNoDatabase() throws SQLException {
     try (Connection con = createCon()) {
       con.getCatalog();

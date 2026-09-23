@@ -58,7 +58,6 @@ import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.CompressInputStream;
 import org.mariadb.jdbc.client.socket.impl.CompressOutputStream;
-import org.mariadb.jdbc.client.socket.impl.ReadAheadBufferedStream;
 import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
 import org.mariadb.jdbc.client.tls.MariaDbX509DeferredIdentityTrustManager;
 import org.mariadb.jdbc.client.util.ClosableLock;
@@ -174,10 +173,7 @@ public class StandardClient implements Client, AutoCloseable {
 
   private void setupConnection(boolean skipPostCommands) throws SQLException, IOException {
     OutputStream out = socket.getOutputStream();
-    InputStream in =
-        conf.useReadAheadInput()
-            ? new ReadAheadBufferedStream(socket.getInputStream())
-            : new BufferedInputStream(socket.getInputStream(), 16384);
+    InputStream in = new BufferedInputStream(socket.getInputStream(), 16384);
     assignStream(out, in, conf, null);
     configureTimeout();
 
@@ -188,10 +184,7 @@ public class StandardClient implements Client, AutoCloseable {
     if (sslSocket != null) {
       this.socket = sslSocket;
       out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
-      in =
-          conf.useReadAheadInput()
-              ? new ReadAheadBufferedStream(sslSocket.getInputStream())
-              : new BufferedInputStream(sslSocket.getInputStream(), 16384);
+      in = new BufferedInputStream(sslSocket.getInputStream(), 16384);
       assignStream(out, in, conf, handshake.getThreadId());
     }
 

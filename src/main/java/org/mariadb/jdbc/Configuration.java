@@ -155,7 +155,6 @@ public class Configuration {
   private boolean tcpAbortiveClose;
   private String localSocketAddress;
   private int socketTimeout;
-  private boolean useReadAheadInput;
   private String tlsSocketType;
 
   // SSL
@@ -332,7 +331,6 @@ public class Configuration {
     this.tcpAbortiveClose = builder.tcpAbortiveClose != null && builder.tcpAbortiveClose;
     this.localSocketAddress = builder.localSocketAddress;
     this.socketTimeout = builder.socketTimeout != null ? builder.socketTimeout : 0;
-    this.useReadAheadInput = builder.useReadAheadInput != null && builder.useReadAheadInput;
     this.tlsSocketType = builder.tlsSocketType;
     this.useCompression = builder.useCompression != null && builder.useCompression;
   }
@@ -626,7 +624,6 @@ public class Configuration {
             .tcpAbortiveClose(this.tcpAbortiveClose)
             .localSocketAddress(this.localSocketAddress)
             .socketTimeout(this.socketTimeout)
-            .useReadAheadInput(this.useReadAheadInput)
             .tlsSocketType(this.tlsSocketType)
             .sslMode(this.sslMode.name())
             .serverSslCert(this.serverSslCert)
@@ -2311,15 +2308,6 @@ public class Configuration {
   }
 
   /**
-   * Read all data from socket in advance
-   *
-   * @return use read ahead buffer implementation
-   */
-  public boolean useReadAheadInput() {
-    return useReadAheadInput;
-  }
-
-  /**
    * Cache prepared statement result.
    *
    * @return cache prepare results
@@ -2497,7 +2485,6 @@ public class Configuration {
     private Boolean tcpAbortiveClose;
     private String localSocketAddress;
     private Integer socketTimeout;
-    private Boolean useReadAheadInput;
     private String tlsSocketType;
 
     // SSL
@@ -3765,17 +3752,6 @@ public class Configuration {
      */
     public Builder allowPublicKeyRetrieval(Boolean allowPublicKeyRetrieval) {
       this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
-      return this;
-    }
-
-    /**
-     * Cache all socket available information.
-     *
-     * @param useReadAheadInput cache available socket data when reading socket.
-     * @return this {@link Builder}
-     */
-    public Builder useReadAheadInput(Boolean useReadAheadInput) {
-      this.useReadAheadInput = useReadAheadInput;
       return this;
     }
 
