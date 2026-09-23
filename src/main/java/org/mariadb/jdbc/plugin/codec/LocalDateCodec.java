@@ -16,6 +16,7 @@ import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.util.StringUtils;
 
 /** LocalDate codec */
 public class LocalDateCodec implements Codec<LocalDate> {
@@ -156,16 +157,15 @@ public class LocalDateCodec implements Codec<LocalDate> {
       case VARCHAR:
       case STRING:
         String val = buf.readString(length.get());
-        String[] stDatePart = val.split("[- ]");
-        if (stDatePart.length < 3) {
-          throw new SQLDataException(
-              String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-        }
-
         try {
-          int year = Integer.parseInt(stDatePart[0]);
-          int month = Integer.parseInt(stDatePart[1]);
-          int dayOfMonth = Integer.parseInt(stDatePart[2]);
+          int[] ymd = StringUtils.parseYearMonthDay(val);
+          if (ymd == null) {
+            throw new SQLDataException(
+                String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
+          }
+          int year = ymd[0];
+          int month = ymd[1];
+          int dayOfMonth = ymd[2];
           if (year == 0 && month == 0 && dayOfMonth == 0) {
             length.set(NULL_LENGTH);
             return null;
@@ -240,16 +240,15 @@ public class LocalDateCodec implements Codec<LocalDate> {
       case VARCHAR:
       case VARSTRING:
         String val = buf.readString(length.get());
-        String[] stDatePart = val.split("[- ]");
-        if (stDatePart.length < 3) {
-          throw new SQLDataException(
-              String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-        }
-
         try {
-          year = Integer.parseInt(stDatePart[0]);
-          month = Integer.parseInt(stDatePart[1]);
-          dayOfMonth = Integer.parseInt(stDatePart[2]);
+          int[] ymd = StringUtils.parseYearMonthDay(val);
+          if (ymd == null) {
+            throw new SQLDataException(
+                String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
+          }
+          year = ymd[0];
+          month = ymd[1];
+          dayOfMonth = ymd[2];
           if (year == 0 && month == 0 && dayOfMonth == 0) {
             length.set(NULL_LENGTH);
             return null;

@@ -46,6 +46,75 @@ public class OkPacket implements Completion {
   static final byte[] READ_COMMITTED = "READ-COMMITTED".getBytes(StandardCharsets.UTF_8);
   static final byte[] SERIALIZABLE = "SERIALIZABLE".getBytes(StandardCharsets.UTF_8);
 
+  private static boolean is(ReadableByteBuf buf, int pos, int len, byte[] expected) {
+    return len == expected.length && Arrays.equals(buf.buf(), pos, pos + len, expected, 0, len);
+  }
+
+  /**
+   * Apply one SESSION_TRACK_SYSTEM_VARIABLES entry. The variable name is compared with the tracked
+   * names and numeric values are parsed directly in the packet buffer, without intermediate byte
+   * arrays or strings.
+   *
+   * @param buf entry buffer, positioned on the length-encoded variable name
+   * @param context connection context
+   */
+  private static void applySystemVariable(ReadableByteBuf buf, Context context)
+      throws SQLException {
+    // lengths are server-declared: validate them before using them
+    int nameLen = buf.readIntLengthEncodedNotNull();
+    buf.checkLength(nameLen);
+    int namePos = buf.pos();
+    buf.skip(nameLen);
+    Integer valueLen = buf.readLength();
+    if (valueLen == null) {
+      if (logger.isDebugEnabled()) {
+        logger.debug("System variable change:  {} = null", new String(buf.buf(), namePos, nameLen));
+      }
+      return;
+    }
+    int len = valueLen;
+    buf.checkLength(len);
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "System variable change:  {} = {}",
+          new String(buf.buf(), namePos, nameLen),
+          new String(buf.buf(), buf.pos(), len));
+    }
+
+    if (is(buf, namePos, nameLen, CHARACTER_SET_CLIENT)) {
+      context.setCharset(buf.readString(len));
+    } else if (is(buf, namePos, nameLen, CONNECTION_ID)) {
+      context.setThreadId(buf.atoll(len));
+    } else if (is(buf, namePos, nameLen, THREAD_CONNECTED)) {
+      context.setTreadsConnected(buf.atoll(len));
+    } else if (is(buf, namePos, nameLen, AUTO_INCREMENT_INCREMENT)) {
+      context.setAutoIncrement(buf.atoll(len));
+    } else if (is(buf, namePos, nameLen, MAXSCALE)) {
+      context.setMaxscaleVersion(buf.readString(len));
+    } else if (is(buf, namePos, nameLen, REDIRECT_URL)) {
+      if (len > 0) {
+        context.setRedirectUrl(buf.readString(len));
+      }
+    } else if (is(buf, namePos, nameLen, TX_ISOLATION)
+        || is(buf, namePos, nameLen, TRANSACTION_ISOLATION)) {
+      int valuePos = buf.pos();
+      buf.skip(len);
+      if (is(buf, valuePos, len, REPEATABLE_READ)) {
+        context.setTransactionIsolationLevel(java.sql.Connection.TRANSACTION_REPEATABLE_READ);
+      } else if (is(buf, valuePos, len, READ_UNCOMMITTED)) {
+        context.setTransactionIsolationLevel(java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
+      } else if (is(buf, valuePos, len, READ_COMMITTED)) {
+        context.setTransactionIsolationLevel(java.sql.Connection.TRANSACTION_READ_COMMITTED);
+      } else if (is(buf, valuePos, len, SERIALIZABLE)) {
+        context.setTransactionIsolationLevel(java.sql.Connection.TRANSACTION_SERIALIZABLE);
+      } else {
+        context.setTransactionIsolationLevel(null);
+      }
+    } else {
+      buf.skip(len);
+    }
+  }
+
   /**
    * Parser
    *
@@ -70,48 +139,7 @@ public class OkPacket implements Completion {
                 ReadableByteBuf tmpBufsv;
                 do {
                   tmpBufsv = sessionStateBuf.readLengthBuffer();
-                  // lengths are server-declared: readBytes validates them before allocating
-                  int len = tmpBufsv.readIntLengthEncodedNotNull();
-                  byte[] variableBytes = tmpBufsv.readBytes(len);
-
-                  Integer lenSv = tmpBufsv.readLength();
-                  byte[] valueBytes = lenSv == null ? null : tmpBufsv.readBytes(lenSv);
-
-                  if (logger.isDebugEnabled())
-                    logger.debug(
-                        "System variable change:  {} = {}",
-                        new String(variableBytes, 0, len),
-                        valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
-
-                  if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
-                    context.setCharset(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(CONNECTION_ID, variableBytes)) {
-                    context.setThreadId(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(THREAD_CONNECTED, variableBytes)) {
-                    context.setTreadsConnected(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(AUTO_INCREMENT_INCREMENT, variableBytes)) {
-                    context.setAutoIncrement(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(MAXSCALE, variableBytes)) {
-                    context.setMaxscaleVersion(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(REDIRECT_URL, variableBytes)) {
-                    if (lenSv != null && lenSv > 0)
-                      context.setRedirectUrl(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(TX_ISOLATION, variableBytes)
-                      || Arrays.equals(TRANSACTION_ISOLATION, variableBytes)) {
-                    if (Arrays.equals(REPEATABLE_READ, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_REPEATABLE_READ);
-                    } else if (Arrays.equals(READ_UNCOMMITTED, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
-                    } else if (Arrays.equals(READ_COMMITTED, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_READ_COMMITTED);
-                    } else if (Arrays.equals(SERIALIZABLE, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_SERIALIZABLE);
-                    } else context.setTransactionIsolationLevel(null);
-                  }
+                  applySystemVariable(tmpBufsv, context);
                 } while (tmpBufsv.readableBytes() > 0);
                 break;
 
@@ -161,48 +189,7 @@ public class OkPacket implements Completion {
                 ReadableByteBuf tmpBufsv;
                 do {
                   tmpBufsv = sessionStateBuf.readLengthBuffer();
-                  // lengths are server-declared: readBytes validates them before allocating
-                  int len = tmpBufsv.readIntLengthEncodedNotNull();
-                  byte[] variableBytes = tmpBufsv.readBytes(len);
-
-                  Integer lenSv = tmpBufsv.readLength();
-                  byte[] valueBytes = lenSv == null ? null : tmpBufsv.readBytes(lenSv);
-
-                  if (logger.isDebugEnabled())
-                    logger.debug(
-                        "System variable change:  {} = {}",
-                        new String(variableBytes, 0, len),
-                        valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
-
-                  if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
-                    context.setCharset(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(CONNECTION_ID, variableBytes)) {
-                    context.setThreadId(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(THREAD_CONNECTED, variableBytes)) {
-                    context.setTreadsConnected(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(AUTO_INCREMENT_INCREMENT, variableBytes)) {
-                    context.setAutoIncrement(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(MAXSCALE, variableBytes)) {
-                    context.setMaxscaleVersion(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(REDIRECT_URL, variableBytes)) {
-                    if (lenSv != null && lenSv > 0)
-                      context.setRedirectUrl(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(TX_ISOLATION, variableBytes)
-                      || Arrays.equals(TRANSACTION_ISOLATION, variableBytes)) {
-                    if (Arrays.equals(REPEATABLE_READ, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_REPEATABLE_READ);
-                    } else if (Arrays.equals(READ_UNCOMMITTED, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
-                    } else if (Arrays.equals(READ_COMMITTED, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_READ_COMMITTED);
-                    } else if (Arrays.equals(SERIALIZABLE, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_SERIALIZABLE);
-                    } else context.setTransactionIsolationLevel(null);
-                  }
+                  applySystemVariable(tmpBufsv, context);
                 } while (tmpBufsv.readableBytes() > 0);
                 break;
 

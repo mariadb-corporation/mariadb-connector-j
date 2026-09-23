@@ -17,6 +17,7 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.util.StringUtils;
 
 /** Column metadata definition */
 public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -321,13 +322,20 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       }
     }
 
-    String[] datePart = buf.readAscii(length.get()).split("-");
+    String val = buf.readAscii(length.get());
+    int[] ymd;
+    try {
+      ymd = StringUtils.parseYearMonthDay(val);
+    } catch (NumberFormatException nfe) {
+      ymd = null;
+    }
+    if (ymd == null) {
+      throw new SQLDataException(
+          String.format("value '%s' cannot be decoded as Timestamp", val), "22007");
+    }
     synchronized (calParam) {
       calParam.clear();
-      calParam.set(
-          Integer.parseInt(datePart[0]),
-          Integer.parseInt(datePart[1]) - 1,
-          Integer.parseInt(datePart[2]));
+      calParam.set(ymd[0], ymd[1] - 1, ymd[2]);
       return new Timestamp(calParam.getTimeInMillis());
     }
   }

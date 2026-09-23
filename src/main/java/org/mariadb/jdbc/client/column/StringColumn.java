@@ -22,6 +22,7 @@ import org.mariadb.jdbc.plugin.codec.BigIntegerCodec;
 import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
 import org.mariadb.jdbc.plugin.codec.LocalTimeCodec;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
+import org.mariadb.jdbc.util.StringUtils;
 
 /** Column metadata definition */
 public class StringColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -304,29 +305,26 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       throws SQLDataException {
     String val = buf.readString(length.get());
     if ("0000-00-00".equals(val)) return null;
-    String[] stDatePart = val.split("[- ]");
-    if (stDatePart.length < 3) {
-      throw new SQLDataException(
-          String.format("value '%s' (%s) cannot be decoded as Date", val, dataType));
-    }
-
     try {
-      int year = Integer.parseInt(stDatePart[0]);
-      int month = Integer.parseInt(stDatePart[1]);
-      int dayOfMonth = Integer.parseInt(stDatePart[2]);
+      int[] ymd = StringUtils.parseYearMonthDay(val);
+      if (ymd == null) {
+        throw new SQLDataException(
+            String.format("value '%s' (%s) cannot be decoded as Date", val, dataType));
+      }
+
       if (cal == null) {
         Calendar c = Calendar.getInstance();
         c.clear();
-        c.set(Calendar.YEAR, year);
-        c.set(Calendar.MONTH, month - 1);
-        c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+        c.set(Calendar.YEAR, ymd[0]);
+        c.set(Calendar.MONTH, ymd[1] - 1);
+        c.set(Calendar.DAY_OF_MONTH, ymd[2]);
         return new Date(c.getTimeInMillis());
       } else {
         synchronized (cal) {
           cal.clear();
-          cal.set(Calendar.YEAR, year);
-          cal.set(Calendar.MONTH, month - 1);
-          cal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+          cal.set(Calendar.YEAR, ymd[0]);
+          cal.set(Calendar.MONTH, ymd[1] - 1);
+          cal.set(Calendar.DAY_OF_MONTH, ymd[2]);
           return new Date(cal.getTimeInMillis());
         }
       }

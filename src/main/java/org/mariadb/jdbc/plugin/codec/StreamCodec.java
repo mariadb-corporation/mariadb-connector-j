@@ -98,22 +98,24 @@ public class StreamCodec implements Codec<InputStream> {
       Writer encoder, Context context, InputStream value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
-    byte[] array = new byte[4096];
+    byte[] array = new byte[16384];
     int len;
     InputStream stream = value;
+    boolean noBackslashEscapes =
+        (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0;
 
+    // readNBytes fills the chunk (several reads if the stream returns short reads), so each
+    // escaped write handles a full chunk
     if (maxLen == null) {
-      while ((len = stream.read(array)) > 0) {
-        encoder.writeBytesEscaped(
-            array, len, (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
+      while ((len = stream.readNBytes(array, 0, array.length)) > 0) {
+        encoder.writeBytesEscaped(array, len, noBackslashEscapes);
       }
     } else {
-      while ((len = stream.read(array)) > 0 && maxLen > 0) {
-        encoder.writeBytesEscaped(
-            array,
-            Math.min(len, maxLen.intValue()),
-            (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
-        maxLen -= len;
+      long remaining = maxLen;
+      while (remaining > 0
+          && (len = stream.readNBytes(array, 0, (int) Math.min(array.length, remaining))) > 0) {
+        encoder.writeBytesEscaped(array, len, noBackslashEscapes);
+        remaining -= len;
       }
     }
     encoder.writeByte('\'');
@@ -132,75 +134,38 @@ public class StreamCodec implements Codec<InputStream> {
       final Calendar cal,
       final Long maxLength)
       throws IOException {
-    // length is not known
-    byte[] blobBytes = new byte[4096];
-    int pos = 0;
-    byte[] array = new byte[4096];
-    InputStream stream = value;
-
-    int len;
-    if (maxLength == null) {
-      while ((len = stream.read(array)) > 0) {
-        if (blobBytes.length - pos < len) {
-          byte[] newBlobBytes = new byte[blobBytes.length + 65536];
-          System.arraycopy(blobBytes, 0, newBlobBytes, 0, blobBytes.length);
-          blobBytes = newBlobBytes;
-        }
-        System.arraycopy(array, 0, blobBytes, pos, len);
-        pos += len;
-      }
-    } else {
-      long remainingLen = maxLength;
-      while ((len = stream.read(array)) > 0 && remainingLen > 0) {
-        len = Math.min((int) remainingLen, len);
-        if (blobBytes.length - pos < len) {
-          byte[] newBlobBytes = new byte[blobBytes.length + 65536];
-          System.arraycopy(blobBytes, 0, newBlobBytes, 0, blobBytes.length);
-          blobBytes = newBlobBytes;
-        }
-        System.arraycopy(array, 0, blobBytes, pos, len);
-        pos += len;
-        remainingLen -= len;
-      }
-    }
-    encoder.writeLength(pos);
-    encoder.writeBytes(blobBytes, 0, pos);
+    // length is not known: read everything (or up to maxLength) with the JDK's buffered readers
+    byte[] blobBytes =
+        maxLength == null
+            ? value.readAllBytes()
+            : value.readNBytes((int) Math.max(0, Math.min(maxLength, Integer.MAX_VALUE)));
+    encoder.writeLength(blobBytes.length);
+    encoder.writeBytes(blobBytes, 0, blobBytes.length);
   }
 
   @Override
   public void encodeLongData(Writer encoder, InputStream value, Long maxLength) throws IOException {
-    byte[] array = new byte[4096];
+    byte[] array = new byte[16384];
     int len;
     if (maxLength == null) {
-      while ((len = value.read(array)) > 0) {
+      while ((len = value.readNBytes(array, 0, array.length)) > 0) {
         encoder.writeBytes(array, 0, len);
       }
     } else {
-      long maxLen = maxLength;
-      while ((len = value.read(array)) > 0 && maxLen > 0) {
-        encoder.writeBytes(array, 0, Math.min(len, (int) maxLen));
-        maxLen -= len;
+      long remaining = maxLength;
+      while (remaining > 0
+          && (len = value.readNBytes(array, 0, (int) Math.min(array.length, remaining))) > 0) {
+        encoder.writeBytes(array, 0, len);
+        remaining -= len;
       }
     }
   }
 
   @Override
   public byte[] encodeData(InputStream value, Long maxLength) throws IOException {
-    ByteArrayOutputStream bb = new ByteArrayOutputStream();
-    byte[] array = new byte[4096];
-    int len;
-    if (maxLength == null) {
-      while ((len = value.read(array)) > 0) {
-        bb.write(array, 0, len);
-      }
-    } else {
-      long maxLen = maxLength;
-      while ((len = value.read(array)) > 0 && maxLen > 0) {
-        bb.write(array, 0, Math.min(len, (int) maxLen));
-        maxLen -= len;
-      }
-    }
-    return bb.toByteArray();
+    return maxLength == null
+        ? value.readAllBytes()
+        : value.readNBytes((int) Math.max(0, Math.min(maxLength, Integer.MAX_VALUE)));
   }
 
   public int getBinaryEncodeType() {
