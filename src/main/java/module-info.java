@@ -6,7 +6,6 @@ module org.mariadb.jdbc {
   requires transitive java.naming;
   requires transitive java.security.jgss;
   requires transitive jdk.net;
-
   requires static software.amazon.awssdk.services.rds;
   requires static software.amazon.awssdk.regions;
   requires static software.amazon.awssdk.auth;

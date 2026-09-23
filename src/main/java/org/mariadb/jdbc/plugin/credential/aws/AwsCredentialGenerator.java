@@ -13,7 +13,6 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.rds.RdsUtilities;
-import software.amazon.awssdk.utils.SdkAutoCloseable;
 
 /** AWS credential generator */
 public class AwsCredentialGenerator {
@@ -63,8 +62,13 @@ public class AwsCredentialGenerator {
                       .port(hostAddress.port)
                       .credentialsProvider(awsCredentialsProvider));
     } finally {
-      if (awsCredentialsProvider instanceof SdkAutoCloseable) {
-        ((SdkAutoCloseable) awsCredentialsProvider).close();
+      // DefaultCredentialsProvider is closeable (SdkAutoCloseable extends AutoCloseable)
+      if (awsCredentialsProvider instanceof AutoCloseable) {
+        try {
+          ((AutoCloseable) awsCredentialsProvider).close();
+        } catch (Exception e) {
+          // eat
+        }
       }
     }
   }

@@ -61,7 +61,8 @@ bom.serialNumber = "urn:uuid:${UUID.randomUUID()}".toString()
 bom.metadata.authors = [[name: 'MariaDB plc']]
 bom.metadata.supplier = mariadb()
 bom.metadata.manufacturer = mariadb()
-bom.metadata.properties = (bom.metadata.properties ?: []) + [[name: 'package_name', value: jar.name]]
+// explicit key access: on a Map, '.properties' resolves to Groovy's object property view (Groovy 5+)
+bom.metadata['properties'] = (bom.metadata['properties'] ?: []) + [[name: 'package_name', value: jar.name]]
 root.supplier = mariadb()
 root.hashes = [[alg: 'SHA-256', content: sha256]]
 

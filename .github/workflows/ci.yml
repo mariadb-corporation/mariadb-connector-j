@@ -32,10 +32,10 @@ jobs:
         name: build matrix
         uses: mariadb-corporation/connector-ci-build-matrix@main
         with:
-          additional-matrix: '[{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 8},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 11},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": "25"}]'
+          additional-matrix: '[{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": "25"}]'
 
   ci:
-    name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != null && matrix.java != '' && matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
+    name: ${{ matrix.name }}${{ matrix.java != null && matrix.java != '' && matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
     needs: setup
     timeout-minutes: 50
     strategy:
@@ -70,7 +70,7 @@ jobs:
           distribution: ${{ (matrix.java && matrix.java > 17) && 'oracle' || 'temurin' }}
 
       - name: Run Tests
-        run: mvn clean test ${{ matrix.java == '8' && '-P java8' || '' }} ${{ matrix.java == '11' && '-P java11' || '' }}
+        run: mvn clean test
         env:
           LOCAL_DB: ${{ steps.setup-env.outputs.database-type }}
           DB_TYPE: ${{ matrix.db-type }}
@@ -108,12 +108,10 @@ jobs:
             | sudo tar -C /opt -xJ
           echo "/opt/infer-linux-x86_64-v${INFER_VERSION}/bin" >> "$GITHUB_PATH"
 
-      # -P default: Infer activates its own '-P infer-capture', which disables
-      # the activeByDefault profile carrying JNA and the multi-release compiler
-      # config; re-activate it explicitly. RacerD false positives are filtered
-      # via .inferconfig. --fail-on-issue exits non-zero if anything is reported.
+      # RacerD false positives are filtered via .inferconfig. --fail-on-issue exits
+      # non-zero if anything is reported.
       - name: Run Infer
-        run: infer run --fail-on-issue -- mvn clean compile -P default
+        run: infer run --fail-on-issue -- mvn clean compile
 
       - name: Upload Infer report
         if: failure()

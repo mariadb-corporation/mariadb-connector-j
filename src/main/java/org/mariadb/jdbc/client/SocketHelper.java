@@ -6,8 +6,10 @@ package org.mariadb.jdbc.client;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import jdk.net.ExtendedSocketOptions;
 import org.mariadb.jdbc.Configuration;
 
+/** Socket option helper */
 public class SocketHelper {
 
   /**
@@ -26,6 +28,16 @@ public class SocketHelper {
     }
     if (conf.tcpAbortiveClose()) {
       socket.setSoLinger(true, 0);
+    }
+
+    if (conf.tcpKeepIdle() > 0) {
+      socket.setOption(ExtendedSocketOptions.TCP_KEEPIDLE, conf.tcpKeepIdle());
+    }
+    if (conf.tcpKeepCount() > 0) {
+      socket.setOption(ExtendedSocketOptions.TCP_KEEPCOUNT, conf.tcpKeepCount());
+    }
+    if (conf.tcpKeepInterval() > 0) {
+      socket.setOption(ExtendedSocketOptions.TCP_KEEPINTERVAL, conf.tcpKeepInterval());
     }
 
     // Bind the socket to a particular interface if the connection property
