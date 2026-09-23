@@ -108,7 +108,12 @@ public class StandardClient implements Client, AutoCloseable {
           "(mariadb|mysql):\\/\\/(([^/@:]+)?(:([^/]+))?@)?(([^/:]+)(:([0-9]+))?)(\\/([^?]+)(\\?(.*))?)?$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
+  /** connection socket: the TLS socket once TLS is negotiated, the transport socket before */
   private Socket socket;
+
+  /** whether the transport is a unix domain socket (a MitM-proof connection method) */
+  private boolean unixSocketTransport;
+
   private final MutableByte sequence = new MutableByte();
   private final MutableByte compressionSequence = new MutableByte();
   private final ClosableLock lock;
@@ -155,6 +160,7 @@ public class StandardClient implements Client, AutoCloseable {
     this.disablePipeline = conf.disablePipeline();
     this.socketTimeout = conf.socketTimeout();
     this.socket = ConnectionHelper.connectSocket(conf, hostAddress);
+    this.unixSocketTransport = socket instanceof UnixDomainSocket;
     try {
       setupConnection(skipPostCommands);
     } catch (SQLException e) {
@@ -180,6 +186,7 @@ public class StandardClient implements Client, AutoCloseable {
 
     SSLSocket sslSocket = handleSSLConnection(handshake, clientCapabilities);
     if (sslSocket != null) {
+      this.socket = sslSocket;
       out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
       in =
           conf.useReadAheadInput()
@@ -609,7 +616,7 @@ public class StandardClient implements Client, AutoCloseable {
             // * connection method is MitM-proof (e.g. unix socket)
             // * auth plugin is MitM-proof and check SHA2(user's hashed password, scramble,
             // certificate fingerprint)
-            if (this.socket instanceof UnixDomainSocket) break authentication_loop;
+            if (unixSocketTransport) break authentication_loop;
             if (!authPlugin.isMitMProof()
                 || credential.getPassword() == null
                 || credential.getPassword().isEmpty()
@@ -729,6 +736,7 @@ public class StandardClient implements Client, AutoCloseable {
             // affect redirection to current client
             this.closed = false;
             this.socket = redirectClient.socket;
+            this.unixSocketTransport = redirectClient.unixSocketTransport;
             this.conf = redirectConf;
             this.hostAddress = redirectHostAddress;
             this.context = redirectClient.context;
@@ -1568,8 +1576,12 @@ public class StandardClient implements Client, AutoCloseable {
   private void closeSocket() {
     try {
       try {
+        // After COM_QUIT the server closes its side: wait briefly for that, consuming whatever is
+        // left, so that no unread data remains (the close is a FIN, not a RST) and the server's
+        // FIN comes first (the client is the passive side of the TCP close and takes no TIME_WAIT).
+        // The socket is the SSLSocket when TLS is enabled, so this drains at the TLS level, and the
+        // close below then sends the close_notify alert on an output that is still open
         long maxCurrentMillis = System.currentTimeMillis() + 10;
-        socket.shutdownOutput();
         socket.setSoTimeout(3);
         InputStream is = socket.getInputStream();
         //noinspection StatementWithEmptyBody
