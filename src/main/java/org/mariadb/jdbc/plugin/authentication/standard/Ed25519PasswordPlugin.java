@@ -71,7 +71,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
    * @return hash
    */
   public byte[] hash(Credential credential) {
-    String password = credential.getPassword() == null ? "" : credential.getPassword();
+    String password = credential.password() == null ? "" : credential.password();
     return Ed25519Signer.publicKey(Ed25519Signer.expand(password.getBytes(StandardCharsets.UTF_8)));
   }
 }

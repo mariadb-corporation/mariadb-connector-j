@@ -415,13 +415,12 @@ public class StandardClient implements Client, AutoCloseable {
     }
 
     authPlugin =
-        authPluginFactory.initialize(
-            credential.getPassword(), handshake.getSeed(), conf, hostAddress);
+        authPluginFactory.initialize(credential.password(), handshake.getSeed(), conf, hostAddress);
 
     if (certFingerprint != null
         && (!authPlugin.isMitMProof()
-            || credential.getPassword() == null
-            || credential.getPassword().isEmpty())) {
+            || credential.password() == null
+            || credential.password().isEmpty())) {
       throw context
           .getExceptionFactory()
           .create(
@@ -563,12 +562,12 @@ public class StandardClient implements Client, AutoCloseable {
           }
           authPlugin =
               authPluginFactory.initialize(
-                  credential.getPassword(), authSwitchPacket.getSeed(), conf, hostAddress);
+                  credential.password(), authSwitchPacket.getSeed(), conf, hostAddress);
 
           if (certFingerprint != null
               && (!authPlugin.isMitMProof()
-                  || credential.getPassword() == null
-                  || credential.getPassword().isEmpty())) {
+                  || credential.password() == null
+                  || credential.password().isEmpty())) {
             throw context
                 .getExceptionFactory()
                 .create(
@@ -609,8 +608,8 @@ public class StandardClient implements Client, AutoCloseable {
             // certificate fingerprint)
             if (unixSocketTransport) break authentication_loop;
             if (!authPlugin.isMitMProof()
-                || credential.getPassword() == null
-                || credential.getPassword().isEmpty()
+                || credential.password() == null
+                || credential.password().isEmpty()
                 || !validateFingerPrint(
                     authPlugin,
                     okPacket.getInfo(),

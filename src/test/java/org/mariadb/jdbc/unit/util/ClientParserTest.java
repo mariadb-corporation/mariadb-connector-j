@@ -40,32 +40,31 @@ public class ClientParserTest {
       boolean isInsertDuplicate,
       boolean isMulti) {
 
-    assertEquals(expected.length, parser.getParamCount() + 1, displayErr(parser, expected));
+    assertEquals(expected.length, parser.paramCount() + 1, displayErr(parser, expected));
 
     int pos = 0;
-    int paramPos = parser.getQuery().length;
-    for (int i = 0; i < parser.getParamCount(); i++) {
-      paramPos = parser.getParamPositions().get(i);
-      assertEquals(expected[i], new String(parser.getQuery(), pos, paramPos - pos));
+    int paramPos = parser.query().length;
+    for (int i = 0; i < parser.paramCount(); i++) {
+      paramPos = parser.paramPositions().get(i);
+      assertEquals(expected[i], new String(parser.query(), pos, paramPos - pos));
       pos = paramPos + 1;
     }
     assertEquals(
         expected[expected.length - 1],
-        new String(parser.getQuery(), pos, parser.getQuery().length - pos));
+        new String(parser.query(), pos, parser.query().length - pos));
 
     parser = ClientParser.parameterParts(sql, true);
-    assertEquals(
-        expectedNoBackSlash.length, parser.getParamCount() + 1, displayErr(parser, expected));
+    assertEquals(expectedNoBackSlash.length, parser.paramCount() + 1, displayErr(parser, expected));
     pos = 0;
-    paramPos = parser.getQuery().length;
-    for (int i = 0; i < parser.getParamCount(); i++) {
-      paramPos = parser.getParamPositions().get(i);
-      assertEquals(expectedNoBackSlash[i], new String(parser.getQuery(), pos, paramPos - pos));
+    paramPos = parser.query().length;
+    for (int i = 0; i < parser.paramCount(); i++) {
+      paramPos = parser.paramPositions().get(i);
+      assertEquals(expectedNoBackSlash[i], new String(parser.query(), pos, paramPos - pos));
       pos = paramPos + 1;
     }
     assertEquals(
         expectedNoBackSlash[expectedNoBackSlash.length - 1],
-        new String(parser.getQuery(), pos, parser.getQuery().length - pos));
+        new String(parser.query(), pos, parser.query().length - pos));
 
     assertEquals(isInsertDuplicate, parser.isInsertDuplicate());
     assertEquals(isMulti, parser.isMultiQuery());
@@ -76,15 +75,14 @@ public class ClientParserTest {
     sb.append("is:\n");
 
     int pos = 0;
-    int paramPos = parser.getQuery().length;
-    for (int i = 0; i < parser.getParamCount(); i++) {
-      paramPos = parser.getParamPositions().get(i);
-      sb.append(new String(parser.getQuery(), pos, paramPos - pos, StandardCharsets.UTF_8))
+    int paramPos = parser.query().length;
+    for (int i = 0; i < parser.paramCount(); i++) {
+      paramPos = parser.paramPositions().get(i);
+      sb.append(new String(parser.query(), pos, paramPos - pos, StandardCharsets.UTF_8))
           .append("\n");
       pos = paramPos + 1;
     }
-    sb.append(
-        new String(parser.getQuery(), pos, parser.getQuery().length - pos, StandardCharsets.UTF_8));
+    sb.append(new String(parser.query(), pos, parser.query().length - pos, StandardCharsets.UTF_8));
 
     sb.append("but was:\n");
     for (String s : exp) {
@@ -204,7 +202,7 @@ public class ClientParserTest {
         false);
     // '--' at end of query is a comment
     ClientParser parser = ClientParser.parameterParts("SELECT 1 --", false);
-    assertEquals(0, parser.getParamCount());
+    assertEquals(0, parser.paramCount());
   }
 
   /**

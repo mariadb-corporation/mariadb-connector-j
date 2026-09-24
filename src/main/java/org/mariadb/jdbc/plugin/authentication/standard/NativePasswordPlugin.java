@@ -116,7 +116,7 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
   public byte[] hash(Credential credential) {
     try {
       final MessageDigest messageDigestSHA1 = MessageDigest.getInstance("SHA-1");
-      byte[] bytePwd = credential.getPassword().getBytes(StandardCharsets.UTF_8);
+      byte[] bytePwd = credential.password().getBytes(StandardCharsets.UTF_8);
       final byte[] stage1 = messageDigestSHA1.digest(bytePwd);
       messageDigestSHA1.reset();
       final byte[] stage2 = messageDigestSHA1.digest(stage1);

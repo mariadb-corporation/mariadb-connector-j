@@ -7,34 +7,28 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class ClientParser implements PrepareResult {
-
-  private final String sql;
-  private final byte[] query;
-  private final List<Integer> paramPositions;
-  private final List<Integer> valuesBracketPositions;
-  private final int paramCount;
-  private final boolean isInsert;
-  private final boolean isInsertDuplicate;
-  private final boolean isMultiQuery;
-
-  private ClientParser(
-      String sql,
-      byte[] query,
-      List<Integer> paramPositions,
-      List<Integer> valuesBracketPositions,
-      boolean isInsert,
-      boolean isInsertDuplicate,
-      boolean isMultiQuery) {
-    this.sql = sql;
-    this.query = query;
-    this.paramPositions = paramPositions;
-    this.valuesBracketPositions = valuesBracketPositions;
-    this.paramCount = paramPositions.size();
-    this.isInsert = isInsert;
-    this.isInsertDuplicate = isInsertDuplicate;
-    this.isMultiQuery = isMultiQuery;
-  }
+/**
+ * Client-side parsed query: parameter positions and the properties needed to rewrite it.
+ *
+ * @param sql original query
+ * @param query query bytes
+ * @param paramPositions positions of the parameter placeholders in {@code query}
+ * @param valuesBracketPositions positions of the VALUES bracket, for batch rewriting
+ * @param paramCount number of parameters
+ * @param isInsert whether the query is an INSERT
+ * @param isInsertDuplicate whether the query has an ON DUPLICATE KEY UPDATE clause
+ * @param isMultiQuery whether the query contains several statements
+ */
+public record ClientParser(
+    String sql,
+    byte[] query,
+    List<Integer> paramPositions,
+    List<Integer> valuesBracketPositions,
+    int paramCount,
+    boolean isInsert,
+    boolean isInsertDuplicate,
+    boolean isMultiQuery)
+    implements PrepareResult {
 
   /**
    * For a given <code>queryString</code>, get
@@ -235,7 +229,14 @@ public final class ClientParser implements PrepareResult {
       isMulti = hasAdditionalPart;
     }
     return new ClientParser(
-        queryString, query, paramPositions, null, isInsert, isInsertDuplicate, isMulti);
+        queryString,
+        query,
+        paramPositions,
+        null,
+        paramPositions.size(),
+        isInsert,
+        isInsertDuplicate,
+        isMulti);
   }
 
   /**
@@ -568,41 +569,10 @@ public final class ClientParser implements PrepareResult {
         query,
         paramPositions,
         valuesBracketPositions,
+        paramPositions.size(),
         isInsert,
         isInsertDuplicate,
         isMulti);
-  }
-
-  public String getSql() {
-    return sql;
-  }
-
-  public byte[] getQuery() {
-    return query;
-  }
-
-  public List<Integer> getParamPositions() {
-    return paramPositions;
-  }
-
-  public List<Integer> getValuesBracketPositions() {
-    return valuesBracketPositions;
-  }
-
-  public int getParamCount() {
-    return paramCount;
-  }
-
-  public boolean isInsert() {
-    return isInsert;
-  }
-
-  public boolean isInsertDuplicate() {
-    return isInsertDuplicate;
-  }
-
-  public boolean isMultiQuery() {
-    return isMultiQuery;
   }
 
   /** Fast check if byte is a delimiter character: ();><=-+, Avoids String.indexOf() overhead */

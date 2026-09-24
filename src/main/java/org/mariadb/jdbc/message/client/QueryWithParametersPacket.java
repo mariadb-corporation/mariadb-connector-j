@@ -67,18 +67,18 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
     encoder.initPacket();
     encoder.writeByte(COM_QUERY);
     if (preSqlCmd != null) encoder.writeAscii(preSqlCmd);
-    if (parser.getParamPositions().isEmpty()) {
-      encoder.writeBytes(parser.getQuery());
+    if (parser.paramPositions().isEmpty()) {
+      encoder.writeBytes(parser.query());
     } else {
       int pos = 0;
       int paramPos;
-      for (int i = 0; i < parser.getParamPositions().size(); i++) {
-        paramPos = parser.getParamPositions().get(i);
-        encoder.writeBytes(parser.getQuery(), pos, paramPos - pos);
+      for (int i = 0; i < parser.paramPositions().size(); i++) {
+        paramPos = parser.paramPositions().get(i);
+        encoder.writeBytes(parser.query(), pos, paramPos - pos);
         pos = paramPos + 1;
         parameters.get(i).encodeText(encoder, context);
       }
-      encoder.writeBytes(parser.getQuery(), pos, parser.getQuery().length - pos);
+      encoder.writeBytes(parser.query(), pos, parser.query().length - pos);
     }
     encoder.flush();
     return 1;
@@ -91,7 +91,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   @Override
   public boolean validateLocalFileName(String fileName, Context context) {
-    return ClientMessage.validateLocalFileName(parser.getSql(), parameters, fileName, context);
+    return ClientMessage.validateLocalFileName(parser.sql(), parameters, fileName, context);
   }
 
   @Override
@@ -101,6 +101,6 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   @Override
   public String description() {
-    return parser.getSql();
+    return parser.sql();
   }
 }

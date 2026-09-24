@@ -3,37 +3,10 @@
 // Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin;
 
-/** basic Credential (couple of user/password) */
-public class Credential {
-  private final String password;
-  private final String user;
-
-  /**
-   * Constructor of basic credential
-   *
-   * @param user user
-   * @param password password
-   */
-  public Credential(String user, String password) {
-    this.user = user;
-    this.password = password;
-  }
-
-  /**
-   * Get user
-   *
-   * @return user
-   */
-  public String getUser() {
-    return user;
-  }
-
-  /**
-   * Get password
-   *
-   * @return password
-   */
-  public String getPassword() {
-    return password;
-  }
-}
+/**
+ * Credential returned by a {@link CredentialPlugin}.
+ *
+ * @param user user name
+ * @param password password, may be null
+ */
+public record Credential(String user, String password) {}

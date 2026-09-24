@@ -1168,7 +1168,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       return true;
     }
     if (obj instanceof Float[] floatObjects) {
-      parameters.set(parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, floatObjects));
+      parameters.set(
+          parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, floatObjects));
       return true;
     }
     if (obj instanceof FloatArray array) {

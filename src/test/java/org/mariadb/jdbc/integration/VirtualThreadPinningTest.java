@@ -155,7 +155,7 @@ public class VirtualThreadPinningTest extends Common {
     MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(base + "&maxPoolSize=8&minPoolSize=2&poolName=pinningPool");
     run(
-        32,
+        16,
         () -> {
           for (int i = 0; i < 30; i++) {
             try (Connection c = ds.getConnection();

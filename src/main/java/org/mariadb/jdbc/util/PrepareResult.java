@@ -5,7 +5,7 @@ package org.mariadb.jdbc.util;
 
 public interface PrepareResult {
 
-  String getSql();
+  String sql();
 
-  int getParamCount();
+  int paramCount();
 }

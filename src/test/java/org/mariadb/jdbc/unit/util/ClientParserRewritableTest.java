@@ -78,7 +78,7 @@ public class ClientParserRewritableTest {
 
   private boolean checkRewritable(String query, int pos1, int pos2) {
     List<Integer> valuesBracketPositions =
-        ClientParser.rewritableParts(query, true).getValuesBracketPositions();
+        ClientParser.rewritableParts(query, true).valuesBracketPositions();
     if (valuesBracketPositions == null) {
       return false;
     } else if (valuesBracketPositions.size() == 2) {
@@ -109,15 +109,15 @@ public class ClientParserRewritableTest {
   public void rewritableParser(
       String sql, int paramCount, int[] paramPosition, int[] valuesBracketPositions) {
     ClientParser parser = ClientParser.rewritableParts(sql, false);
-    assertEquals(parser.getSql(), sql);
-    assertEquals(parser.getParamCount(), paramCount);
+    assertEquals(parser.sql(), sql);
+    assertEquals(parser.paramCount(), paramCount);
     assertArrayEquals(
-        parser.getParamPositions().stream().mapToInt(Integer::intValue).toArray(), paramPosition);
+        parser.paramPositions().stream().mapToInt(Integer::intValue).toArray(), paramPosition);
     if (valuesBracketPositions == null) {
-      assertNull(parser.getValuesBracketPositions());
+      assertNull(parser.valuesBracketPositions());
     } else {
       assertArrayEquals(
-          parser.getValuesBracketPositions().stream().mapToInt(Integer::intValue).toArray(),
+          parser.valuesBracketPositions().stream().mapToInt(Integer::intValue).toArray(),
           valuesBracketPositions);
     }
   }
