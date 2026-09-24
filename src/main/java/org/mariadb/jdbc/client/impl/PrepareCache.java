@@ -6,6 +6,7 @@ package org.mariadb.jdbc.client.impl;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.mariadb.jdbc.BasePreparedStatement;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
@@ -18,6 +19,8 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
 
   /** cache maximum size */
   private final int maxSize;
+
+  private final transient ClosableLock lock = new ClosableLock();
 
   /** client */
   private final transient StandardClient con;
@@ -43,30 +46,35 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
     return false;
   }
 
-  public synchronized Prepare get(String key, BasePreparedStatement preparedStatement) {
-    CachedPrepareResultPacket prepare = super.get(key);
-    if (prepare != null && preparedStatement != null) {
-      prepare.incrementUse(preparedStatement);
+  public Prepare get(String key, BasePreparedStatement preparedStatement) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      CachedPrepareResultPacket prepare = super.get(key);
+      if (prepare != null && preparedStatement != null) {
+        prepare.incrementUse(preparedStatement);
+      }
+      return prepare;
     }
-    return prepare;
   }
 
-  public synchronized Prepare put(
-      String key, Prepare result, BasePreparedStatement preparedStatement) {
-    CachedPrepareResultPacket cached = super.get(key);
+  public Prepare put(String key, Prepare result, BasePreparedStatement preparedStatement) {
+    // a ReentrantLock, not a monitor: evicting an entry sends COM_STMT_CLOSE to the server, and a
+    // virtual thread parking in a socket write must not pin its carrier
+    try (ClosableLock ignore = lock.closeableLock()) {
+      CachedPrepareResultPacket cached = super.get(key);
 
-    // if there is already some cached data, return existing cached data
-    if (cached != null) {
-      cached.incrementUse(preparedStatement);
-      ((CachedPrepareResultPacket) result).unCache(con);
-      return cached;
-    }
+      // if there is already some cached data, return existing cached data
+      if (cached != null) {
+        cached.incrementUse(preparedStatement);
+        ((CachedPrepareResultPacket) result).unCache(con);
+        return cached;
+      }
 
-    if (((CachedPrepareResultPacket) result).cache()) {
-      ((CachedPrepareResultPacket) result).incrementUse(preparedStatement);
-      super.put(key, (CachedPrepareResultPacket) result);
+      if (((CachedPrepareResultPacket) result).cache()) {
+        ((CachedPrepareResultPacket) result).incrementUse(preparedStatement);
+        super.put(key, (CachedPrepareResultPacket) result);
+      }
+      return null;
     }
-    return null;
   }
 
   public CachedPrepareResultPacket get(Object key) {

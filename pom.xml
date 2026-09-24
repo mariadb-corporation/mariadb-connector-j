@@ -107,6 +107,16 @@
                         <arg>-Xlint:all,-path,-processing,-requires-automatic,-requires-transitive-automatic,-missing-explicit-ctor,-exports</arg>
                     </compilerArgs>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <configuration>
+                            <!-- tests run on the class path (surefire useModulePath=false): compile them
+                                 there too, so that test-only JDK modules such as jdk.jfr are visible -->
+                            <useModulePath>false</useModulePath>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

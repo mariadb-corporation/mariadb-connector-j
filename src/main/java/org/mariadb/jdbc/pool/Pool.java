@@ -22,6 +22,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
@@ -34,6 +35,7 @@ public class Pool implements AutoCloseable, PoolMBean {
   private static final int POOL_STATE_CLOSING = 1;
 
   private final AtomicInteger poolState = new AtomicInteger();
+  private final ClosableLock closeLock = new ClosableLock();
 
   private final Configuration conf;
   private final AtomicInteger pendingRequestNumber = new AtomicInteger();
@@ -433,7 +435,7 @@ public class Pool implements AutoCloseable, PoolMBean {
   @Override
   public void close() {
     try {
-      synchronized (this) {
+      try (ClosableLock ignore = closeLock.closeableLock()) {
         Pools.remove(this);
         poolState.set(POOL_STATE_CLOSING);
         pendingRequestNumber.set(0);
@@ -494,21 +496,19 @@ public class Pool implements AutoCloseable, PoolMBean {
   }
 
   private void closeAll(Collection<MariaDbInnerPoolConnection> collection) {
-    synchronized (collection) { // synchronized mandatory to iterate Collections.synchronizedList()
-      for (MariaDbInnerPoolConnection item : collection) {
-        if (!item.isClosed()) {
-          try {
-            item.close();
-            totalConnection.decrementAndGet();
-          } catch (SQLException e) {
-            // eat
-          }
-        } else {
-          if (idleConnections.contains(item)) {
-            silentCloseConnection(item.getConnection());
-            idleConnections.remove(item);
-            totalConnection.decrementAndGet();
-          }
+    for (MariaDbInnerPoolConnection item : collection) {
+      if (!item.isClosed()) {
+        try {
+          item.close();
+          totalConnection.decrementAndGet();
+        } catch (SQLException e) {
+          // eat
+        }
+      } else {
+        if (idleConnections.contains(item)) {
+          silentCloseConnection(item.getConnection());
+          idleConnections.remove(item);
+          totalConnection.decrementAndGet();
         }
       }
     }

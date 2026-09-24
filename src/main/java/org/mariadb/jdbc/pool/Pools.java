@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.pool;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -70,14 +72,18 @@ public final class Pools {
    * @param pool pool to remove
    */
   public static void remove(Pool pool) {
+    ScheduledThreadPoolExecutor toShutdown = null;
     if (poolMap.containsKey(pool.getConf())) {
       synchronized (poolMap) {
         PoolHolder previous = poolMap.remove(pool.getConf());
         if (previous != null && poolMap.isEmpty()) {
-          shutdownExecutor();
+          toShutdown = poolExecutor;
+          poolExecutor = null;
         }
       }
     }
+    // blocking wait outside the monitor (virtual threads must not pin their carrier here)
+    shutdownExecutor(toShutdown);
   }
 
   /**
@@ -85,17 +91,22 @@ public final class Pools {
    * scheduler), so an application server can unload the driver on undeploy.
    */
   public static void close() {
+    List<PoolHolder> holders;
+    ScheduledThreadPoolExecutor toShutdown;
     synchronized (poolMap) {
-      for (PoolHolder holder : poolMap.values()) {
-        try {
-          holder.getPool().close();
-        } catch (Exception exception) {
-          // eat
-        }
-      }
-      shutdownExecutor();
+      holders = new ArrayList<>(poolMap.values());
       poolMap.clear();
+      toShutdown = poolExecutor;
+      poolExecutor = null;
     }
+    for (PoolHolder holder : holders) {
+      try {
+        holder.getPool().close();
+      } catch (Exception exception) {
+        // eat
+      }
+    }
+    shutdownExecutor(toShutdown);
     SchedulerProvider.close();
   }
 
@@ -108,31 +119,34 @@ public final class Pools {
     if (poolName == null) {
       return;
     }
+    PoolHolder found = null;
     synchronized (poolMap) {
       for (PoolHolder holder : poolMap.values()) {
         if (poolName.equals(holder.conf.poolName())) {
-          try {
-            holder
-                .getPool()
-                .close(); // Pool.close() calls Pools.remove(), which does the rest of the cleanup
-          } catch (Exception exception) {
-            // eat
-          }
-          return;
+          found = holder;
+          break;
         }
+      }
+    }
+    if (found != null) {
+      try {
+        found
+            .getPool()
+            .close(); // Pool.close() calls Pools.remove(), which does the rest of the cleanup
+      } catch (Exception exception) {
+        // eat
       }
     }
   }
 
-  private static void shutdownExecutor() {
-    if (poolExecutor != null) {
-      poolExecutor.shutdown();
+  private static void shutdownExecutor(ScheduledThreadPoolExecutor executor) {
+    if (executor != null) {
+      executor.shutdown();
       try {
-        poolExecutor.awaitTermination(10, TimeUnit.SECONDS);
+        executor.awaitTermination(10, TimeUnit.SECONDS);
       } catch (InterruptedException interrupted) {
         // eat
       }
-      poolExecutor = null;
     }
   }
 }

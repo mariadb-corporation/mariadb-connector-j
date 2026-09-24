@@ -5,6 +5,7 @@ package org.mariadb.jdbc.util.log;
 
 import java.io.PrintStream;
 import java.util.regex.Matcher;
+import org.mariadb.jdbc.client.util.ClosableLock;
 
 /** Logger that will log to console */
 @SuppressWarnings("ALL")
@@ -14,6 +15,7 @@ public class ConsoleLogger implements Logger {
   private final PrintStream err;
   private final PrintStream log;
   private final boolean logDebugLvl;
+  private final ClosableLock lock = new ClosableLock();
 
   /**
    * Constructor. All logs will be send to console.
@@ -57,29 +59,35 @@ public class ConsoleLogger implements Logger {
   }
 
   @Override
-  public synchronized void trace(String msg) {
-    if (!logDebugLvl) {
-      return;
+  public void trace(String msg) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      if (!logDebugLvl) {
+        return;
+      }
+      this.log.format("[TRACE] (%s) %s\n", Thread.currentThread().getName(), msg);
     }
-    this.log.format("[TRACE] (%s) %s\n", Thread.currentThread().getName(), msg);
   }
 
   @Override
-  public synchronized void trace(String format, Object... arguments) {
-    if (!logDebugLvl) {
-      return;
+  public void trace(String format, Object... arguments) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      if (!logDebugLvl) {
+        return;
+      }
+      this.log.format(
+          "[TRACE] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
     }
-    this.log.format(
-        "[TRACE] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
   }
 
   @Override
-  public synchronized void trace(String msg, Throwable t) {
-    if (!logDebugLvl) {
-      return;
+  public void trace(String msg, Throwable t) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      if (!logDebugLvl) {
+        return;
+      }
+      this.log.format("[TRACE] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+      t.printStackTrace(this.log);
     }
-    this.log.format("[TRACE] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
-    t.printStackTrace(this.log);
   }
 
   @Override
@@ -88,29 +96,35 @@ public class ConsoleLogger implements Logger {
   }
 
   @Override
-  public synchronized void debug(String msg) {
-    if (!logDebugLvl) {
-      return;
+  public void debug(String msg) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      if (!logDebugLvl) {
+        return;
+      }
+      this.log.format("[DEBUG] (%s) %s\n", Thread.currentThread().getName(), msg);
     }
-    this.log.format("[DEBUG] (%s) %s\n", Thread.currentThread().getName(), msg);
   }
 
   @Override
-  public synchronized void debug(String format, Object... arguments) {
-    if (!logDebugLvl) {
-      return;
+  public void debug(String format, Object... arguments) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      if (!logDebugLvl) {
+        return;
+      }
+      this.log.format(
+          "[DEBUG] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
     }
-    this.log.format(
-        "[DEBUG] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
   }
 
   @Override
-  public synchronized void debug(String msg, Throwable t) {
-    if (!logDebugLvl) {
-      return;
+  public void debug(String msg, Throwable t) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      if (!logDebugLvl) {
+        return;
+      }
+      this.log.format("[DEBUG] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+      t.printStackTrace(this.log);
     }
-    this.log.format("[DEBUG] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
-    t.printStackTrace(this.log);
   }
 
   @Override
@@ -119,20 +133,26 @@ public class ConsoleLogger implements Logger {
   }
 
   @Override
-  public synchronized void info(String msg) {
-    this.log.format("[ INFO] (%s) %s\n", Thread.currentThread().getName(), msg);
+  public void info(String msg) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.log.format("[ INFO] (%s) %s\n", Thread.currentThread().getName(), msg);
+    }
   }
 
   @Override
-  public synchronized void info(String format, Object... arguments) {
-    this.log.format(
-        "[ INFO] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+  public void info(String format, Object... arguments) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.log.format(
+          "[ INFO] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+    }
   }
 
   @Override
-  public synchronized void info(String msg, Throwable t) {
-    this.log.format("[ INFO] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
-    t.printStackTrace(this.log);
+  public void info(String msg, Throwable t) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.log.format("[ INFO] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+      t.printStackTrace(this.log);
+    }
   }
 
   @Override
@@ -141,20 +161,26 @@ public class ConsoleLogger implements Logger {
   }
 
   @Override
-  public synchronized void warn(String msg) {
-    this.err.format("[ WARN] (%s) %s\n", Thread.currentThread().getName(), msg);
+  public void warn(String msg) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.err.format("[ WARN] (%s) %s\n", Thread.currentThread().getName(), msg);
+    }
   }
 
   @Override
-  public synchronized void warn(String format, Object... arguments) {
-    this.err.format(
-        "[ WARN] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+  public void warn(String format, Object... arguments) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.err.format(
+          "[ WARN] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+    }
   }
 
   @Override
-  public synchronized void warn(String msg, Throwable t) {
-    this.err.format("[ WARN] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
-    t.printStackTrace(this.err);
+  public void warn(String msg, Throwable t) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.err.format("[ WARN] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+      t.printStackTrace(this.err);
+    }
   }
 
   @Override
@@ -163,19 +189,25 @@ public class ConsoleLogger implements Logger {
   }
 
   @Override
-  public synchronized void error(String msg) {
-    this.err.format("[ERROR] (%s) %s\n", Thread.currentThread().getName(), msg);
+  public void error(String msg) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.err.format("[ERROR] (%s) %s\n", Thread.currentThread().getName(), msg);
+    }
   }
 
   @Override
-  public synchronized void error(String format, Object... arguments) {
-    this.err.format(
-        "[ERROR] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+  public void error(String format, Object... arguments) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.err.format(
+          "[ERROR] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+    }
   }
 
   @Override
-  public synchronized void error(String msg, Throwable t) {
-    this.err.format("[ERROR] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
-    t.printStackTrace(this.err);
+  public void error(String msg, Throwable t) {
+    try (ClosableLock ignore = lock.closeableLock()) {
+      this.err.format("[ERROR] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+      t.printStackTrace(this.err);
+    }
   }
 }
