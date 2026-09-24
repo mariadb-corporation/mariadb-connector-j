@@ -831,7 +831,7 @@ public class Statement implements java.sql.Statement {
       }
     }
 
-    if (results.size() > 0) {
+    if (results != null && results.size() > 0) {
       currResult = results.remove(0);
       return (currResult instanceof Result);
     }
