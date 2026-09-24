@@ -293,6 +293,25 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void getMoreResultsAfterFailedExecution() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    Assertions.assertThrows(
+        SQLSyntaxErrorException.class,
+        () -> stmt.executeQuery("SELECT * FROM getMoreResultsMissingTable"));
+    assertFalse(stmt.getMoreResults());
+    assertEquals(-1, stmt.getUpdateCount());
+
+    for (Connection con : new Connection[] {sharedConn, sharedConnBinary}) {
+      try (PreparedStatement prep =
+          con.prepareStatement("SELECT * FROM getMoreResultsMissingTable")) {
+        Assertions.assertThrows(SQLSyntaxErrorException.class, prep::executeQuery);
+        assertFalse(prep.getMoreResults());
+        assertEquals(-1, prep.getUpdateCount());
+      }
+    }
+  }
+
+  @Test
   public void execute() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     assertTrue(stmt.execute("SELECT 1", Statement.RETURN_GENERATED_KEYS));
