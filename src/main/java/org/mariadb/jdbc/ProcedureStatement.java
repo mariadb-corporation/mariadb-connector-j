@@ -47,7 +47,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
     // or in case finishing with an OK_PACKET, just the one before
     for (int i = 1; i <= Math.min(this.results.size(), 2); i++) {
       Completion compl = this.results.get(this.results.size() - i);
-      if (compl instanceof Result && (((Result) compl).isOutputParameter())) {
+      if (compl instanceof Result result && (result.isOutputParameter())) {
         outputResultFromRes(i);
       }
     }

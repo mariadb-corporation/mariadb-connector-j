@@ -6,7 +6,7 @@ package org.mariadb.jdbc.integration;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.sql.*;
 import org.junit.jupiter.api.*;
 
@@ -154,7 +154,7 @@ public class Sha256AuthenticationTest extends Common {
       String returnValue = f.getCanonicalPath().replace("\\", "/");
 
       try {
-        Files.readAllBytes(Paths.get(returnValue));
+        Files.readAllBytes(Path.of(returnValue));
       } catch (IOException ex) {
         return null;
       }

@@ -247,8 +247,7 @@ public class MariaDbPoolConnection implements XAConnection {
 
     @Override
     public boolean isSameRM(XAResource xaResource) {
-      if (xaResource instanceof MariaDbXAResource) {
-        MariaDbXAResource other = (MariaDbXAResource) xaResource;
+      if (xaResource instanceof MariaDbXAResource other) {
         return other.getConf().equals(this.getConf());
       }
       return false;

@@ -6,7 +6,7 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
@@ -559,7 +559,7 @@ public class SslTest extends Common {
           "DNS host \"localhost\" doesn't correspond to");
     }
 
-    String urlPath = Paths.get(serverCertPath).toUri().toURL().toString();
+    String urlPath = Path.of(serverCertPath).toUri().toURL().toString();
     // file certificate path, like  file:/path/certificate.crt
     try (Connection con =
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + urlPath, sslPort)) {

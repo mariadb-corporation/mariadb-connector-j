@@ -47,38 +47,36 @@ public class CommonCodecTest extends Common {
   }
 
   void testObject(ResultSet rs, Class<?> objClass, Object exp, int idx) throws Exception {
-    if (exp instanceof Blob) {
-      assertStreamEquals((Blob) exp, (Blob) rs.getObject(idx, objClass));
-      assertStreamEquals((Blob) exp, (Blob) rs.getObject("t" + idx + "alias", objClass));
+    if (exp instanceof Blob blob) {
+      assertStreamEquals(blob, (Blob) rs.getObject(idx, objClass));
+      assertStreamEquals(blob, (Blob) rs.getObject("t" + idx + "alias", objClass));
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
-    } else if (exp instanceof Clob) {
-      assertStreamEquals((Clob) exp, (Clob) rs.getObject(idx, objClass));
-      assertStreamEquals((Clob) exp, (Clob) rs.getObject("t" + idx + "alias", objClass));
+    } else if (exp instanceof Clob clob) {
+      assertStreamEquals(clob, (Clob) rs.getObject(idx, objClass));
+      assertStreamEquals(clob, (Clob) rs.getObject("t" + idx + "alias", objClass));
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
-    } else if (exp instanceof InputStream) {
-      assertStreamEquals((InputStream) exp, (InputStream) rs.getObject(idx, objClass));
+    } else if (exp instanceof InputStream stream) {
+      assertStreamEquals(stream, (InputStream) rs.getObject(idx, objClass));
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
-    } else if (exp instanceof byte[]) {
-      assertArrayEquals((byte[]) exp, (byte[]) rs.getObject(idx, objClass));
+    } else if (exp instanceof byte[] bytes) {
+      assertArrayEquals(bytes, (byte[]) rs.getObject(idx, objClass));
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
-    } else if (exp instanceof Reader) {
-      assertReaderEquals((Reader) exp, (Reader) rs.getObject(idx, objClass));
+    } else if (exp instanceof Reader reader) {
+      assertReaderEquals(reader, (Reader) rs.getObject(idx, objClass));
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
-    } else if (exp instanceof Time) {
-      assertEquals(((Time) exp).getTime(), ((Time) rs.getObject(idx, objClass)).getTime());
-      assertEquals(
-          ((Time) exp).getTime(), ((Time) rs.getObject("t" + idx + "alias", objClass)).getTime());
+    } else if (exp instanceof Time time) {
+      assertEquals(time.getTime(), ((Time) rs.getObject(idx, objClass)).getTime());
+      assertEquals(time.getTime(), ((Time) rs.getObject("t" + idx + "alias", objClass)).getTime());
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
-    } else if (exp instanceof Date) {
-      assertEquals(((Date) exp).getTime(), ((Date) rs.getObject(idx, objClass)).getTime());
-      assertEquals(
-          ((Date) exp).getTime(), ((Date) rs.getObject("t" + idx + "alias", objClass)).getTime());
+    } else if (exp instanceof Date date) {
+      assertEquals(date.getTime(), ((Date) rs.getObject(idx, objClass)).getTime());
+      assertEquals(date.getTime(), ((Date) rs.getObject("t" + idx + "alias", objClass)).getTime());
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
     } else {

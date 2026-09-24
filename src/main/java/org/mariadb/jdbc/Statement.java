@@ -136,8 +136,8 @@ public class Statement implements java.sql.Statement {
   public ResultSet executeQuery(String sql) throws SQLException {
     executeInternal(sql, Statement.NO_GENERATED_KEYS);
     currResult = results.remove(0);
-    if (currResult instanceof Result) {
-      return (Result) currResult;
+    if (currResult instanceof Result result) {
+      return result;
     }
 
     if (con.getContext().getConf().permitNoResults()) {
@@ -194,15 +194,15 @@ public class Statement implements java.sql.Statement {
       if (!closed) {
         closed = true;
 
-        if (currResult != null && currResult instanceof Result) {
-          ((Result) currResult).closeFromStmtClose(lock);
+        if (currResult != null && currResult instanceof Result result) {
+          result.closeFromStmtClose(lock);
         }
 
         // close result-set
         if (results != null && !results.isEmpty()) {
           for (Completion completion : results) {
-            if (completion instanceof Result) {
-              ((Result) completion).closeFromStmtClose(lock);
+            if (completion instanceof Result openResult) {
+              openResult.closeFromStmtClose(lock);
             }
           }
         }
@@ -220,15 +220,15 @@ public class Statement implements java.sql.Statement {
       if (!closed) {
         closed = true;
 
-        if (currResult != null && currResult instanceof Result) {
-          ((Result) currResult).abort();
+        if (currResult != null && currResult instanceof Result result) {
+          result.abort();
         }
 
         // close result-set
         if (results != null) {
           for (Completion completion : results) {
-            if (completion instanceof Result) {
-              ((Result) completion).abort();
+            if (completion instanceof Result openResult) {
+              openResult.abort();
             }
           }
         }
@@ -487,8 +487,8 @@ public class Statement implements java.sql.Statement {
   @Override
   public ResultSet getResultSet() throws SQLException {
     checkNotClosed();
-    if (currResult instanceof Result) {
-      return (Result) currResult;
+    if (currResult instanceof Result result) {
+      return result;
     }
     return null;
   }
@@ -507,8 +507,8 @@ public class Statement implements java.sql.Statement {
   @Override
   public int getUpdateCount() throws SQLException {
     checkNotClosed();
-    if (currResult instanceof OkPacket) {
-      return (int) ((OkPacket) currResult).getAffectedRows();
+    if (currResult instanceof OkPacket packet) {
+      return (int) packet.getAffectedRows();
     }
     return -1;
   }
@@ -892,8 +892,8 @@ public class Statement implements java.sql.Statement {
         && !clientParser.isInsertDuplicate()) {
       // For compatibility with 2.x connector
       long autoIncrement = con.getContext().getAutoIncrement();
-      if (currResult instanceof OkPacket) {
-        OkPacket ok = ((OkPacket) currResult);
+      if (currResult instanceof OkPacket packet) {
+        OkPacket ok = packet;
         if (ok.getLastInsertId() != 0) {
           insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
           if (ok.getAffectedRows() > 1) {
@@ -906,8 +906,7 @@ public class Statement implements java.sql.Statement {
       }
       if (results != null) {
         for (Completion result : results) {
-          if (result instanceof OkPacket) {
-            OkPacket ok = ((OkPacket) result);
+          if (result instanceof OkPacket ok) {
             if (ok.getLastInsertId() != 0) {
               insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
               if (ok.getAffectedRows() > 1) {
@@ -922,13 +921,13 @@ public class Statement implements java.sql.Statement {
       }
     } else {
       // standard behavior
-      if (currResult instanceof OkPacket && ((OkPacket) currResult).getLastInsertId() != 0) {
-        insertIds.add(new String[] {String.valueOf(((OkPacket) currResult).getLastInsertId())});
+      if (currResult instanceof OkPacket ok && ok.getLastInsertId() != 0) {
+        insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
       }
       if (results != null) {
         for (Completion result : results) {
-          if (result instanceof OkPacket && ((OkPacket) result).getLastInsertId() != 0) {
-            insertIds.add(new String[] {String.valueOf(((OkPacket) result).getLastInsertId())});
+          if (result instanceof OkPacket ok && ok.getLastInsertId() != 0) {
+            insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
           }
         }
       }
@@ -1342,8 +1341,8 @@ public class Statement implements java.sql.Statement {
     if (results != null && results.size() > 0) {
       for (int i = results.size(); i > 0; i--) {
         Completion completion = results.get(i - 1);
-        if (completion instanceof Result) {
-          ((Result) completion).closeOnCompletion();
+        if (completion instanceof Result result) {
+          result.closeOnCompletion();
           return;
         }
       }
@@ -1535,8 +1534,8 @@ public class Statement implements java.sql.Statement {
   @Override
   public long getLargeUpdateCount() throws SQLException {
     checkNotClosed();
-    if (currResult instanceof OkPacket) {
-      return (int) ((OkPacket) currResult).getAffectedRows();
+    if (currResult instanceof OkPacket packet) {
+      return (int) packet.getAffectedRows();
     }
     return -1;
   }
@@ -1642,8 +1641,7 @@ public class Statement implements java.sql.Statement {
       int[] updateCounts = new int[batchQueries.size()];
       for (int i = 0; i < Math.min(results.size(), updateCounts.length); i++) {
         Completion completion = results.get(i);
-        updateCounts[i] =
-            completion instanceof OkPacket ? (int) ((OkPacket) completion).getAffectedRows() : 0;
+        updateCounts[i] = completion instanceof OkPacket op ? (int) op.getAffectedRows() : 0;
       }
       throw new BatchUpdateException(
           sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), updateCounts, sqle);

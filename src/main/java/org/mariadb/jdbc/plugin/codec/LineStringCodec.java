@@ -52,7 +52,7 @@ public class LineStringCodec implements Codec<LineString> {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
-      if (geo instanceof LineString) return (LineString) geo;
+      if (geo instanceof LineString lineString) return lineString;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as LineString",

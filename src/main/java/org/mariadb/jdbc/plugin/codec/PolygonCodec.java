@@ -55,7 +55,7 @@ public class PolygonCodec implements Codec<Polygon> {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
-      if (geo instanceof Polygon) return (Polygon) geo;
+      if (geo instanceof Polygon polygon) return polygon;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as Polygon",

@@ -76,8 +76,7 @@ public class MariaDbXid implements Xid {
    * @return true if object is MariaDbXi and as same parameters
    */
   public boolean equals(Object obj) {
-    if (obj instanceof Xid) {
-      Xid other = (Xid) obj;
+    if (obj instanceof Xid other) {
       return formatId == other.getFormatId()
           && Arrays.equals(globalTransactionId, other.getGlobalTransactionId())
           && Arrays.equals(branchQualifier, other.getBranchQualifier());

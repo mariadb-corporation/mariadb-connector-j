@@ -122,8 +122,8 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
           if (issuers != null && issuers.length != 0) {
             checkLoop:
             for (Certificate cert : certs) {
-              if (cert instanceof X509Certificate) {
-                X500Principal certificateIssuer = ((X509Certificate) cert).getIssuerX500Principal();
+              if (cert instanceof X509Certificate certificate) {
+                X500Principal certificateIssuer = certificate.getIssuerX500Principal();
                 for (Principal issuer : issuers) {
                   if (certificateIssuer.equals(issuer)) {
                     accurateAliases.add(mapEntry.getKey());

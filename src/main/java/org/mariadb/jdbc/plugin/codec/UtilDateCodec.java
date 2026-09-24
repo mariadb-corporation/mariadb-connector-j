@@ -60,8 +60,8 @@ public class UtilDateCodec implements Codec<java.util.Date> {
    * @return microseconds
    */
   protected static int getMicroseconds(java.util.Date val) {
-    if (val instanceof Timestamp) {
-      return ((Timestamp) val).getNanos() / 1000;
+    if (val instanceof Timestamp timestamp) {
+      return timestamp.getNanos() / 1000;
     }
     return (int) ((val.getTime() % 1000) * 1000);
   }

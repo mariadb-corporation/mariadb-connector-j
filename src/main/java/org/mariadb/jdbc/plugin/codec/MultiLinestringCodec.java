@@ -55,7 +55,7 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
-      if (geo instanceof MultiLineString) return (MultiLineString) geo;
+      if (geo instanceof MultiLineString string) return string;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as MultiLineString",

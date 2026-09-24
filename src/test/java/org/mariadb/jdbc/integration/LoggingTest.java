@@ -16,7 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLException;
@@ -79,7 +79,7 @@ public class LoggingTest extends Common {
     pc.close();
     ds.close();
     try {
-      String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
+      String contents = new String(Files.readAllBytes(Path.of(tempFile.getPath())));
       String selectOne =
           "       +--------------------------------------------------+\n"
               + "       |  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
@@ -204,7 +204,7 @@ public class LoggingTest extends Common {
         "IPv6 host \"2001:db8:1::\" doesn't correspond to"
             + " SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
     try {
-      String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
+      String contents = new String(Files.readAllBytes(Path.of(tempFile.getPath())));
 
       assertTrue(
           contents.contains(

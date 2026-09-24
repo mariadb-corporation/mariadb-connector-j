@@ -205,8 +205,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   false);
     } catch (SQLException bue) {
       results = null;
-      throw exceptionFactory()
-          .createBatchUpdate(Collections.emptyList(), batchParameters.size(), bue);
+      throw exceptionFactory().createBatchUpdate(List.of(), batchParameters.size(), bue);
     }
   }
 
@@ -289,8 +288,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   public ResultSet executeQuery() throws SQLException {
     executeInternal();
     currResult = results.remove(0);
-    if (currResult instanceof Result) {
-      return (Result) currResult;
+    if (currResult instanceof Result result) {
+      return result;
     }
 
     if (con.getContext().getConf().permitNoResults()) {

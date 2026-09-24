@@ -76,8 +76,8 @@ public final class ConnectionHelper {
         }
         Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
         socketFactory = constructor.newInstance();
-        if (socketFactory instanceof ConfigurableSocketFactory) {
-          ((ConfigurableSocketFactory) socketFactory).setConfiguration(conf, hostAddress.host);
+        if (socketFactory instanceof ConfigurableSocketFactory factory) {
+          factory.setConfiguration(conf, hostAddress.host);
         }
         return socketFactory.createSocket();
       } catch (Exception exp) {

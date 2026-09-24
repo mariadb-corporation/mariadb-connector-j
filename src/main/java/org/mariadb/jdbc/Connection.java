@@ -603,13 +603,9 @@ public class Connection implements java.sql.Connection {
   public void rollback(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
     try (ClosableLock ignore = lock.closeableLock()) {
-      if (savepoint instanceof Connection.MariaDbSavepoint) {
+      if (savepoint instanceof Connection.MariaDbSavepoint dbSavepoint) {
         client.execute(
-            new QueryPacket(
-                "ROLLBACK TO SAVEPOINT `"
-                    + ((Connection.MariaDbSavepoint) savepoint).rawValue()
-                    + "`"),
-            true);
+            new QueryPacket("ROLLBACK TO SAVEPOINT `" + dbSavepoint.rawValue() + "`"), true);
       } else {
         throw exceptionFactory.create("Unknown savepoint type");
       }
@@ -621,11 +617,8 @@ public class Connection implements java.sql.Connection {
   public void releaseSavepoint(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
     try (ClosableLock ignore = lock.closeableLock()) {
-      if (savepoint instanceof Connection.MariaDbSavepoint) {
-        client.execute(
-            new QueryPacket(
-                "RELEASE SAVEPOINT `" + ((Connection.MariaDbSavepoint) savepoint).rawValue() + "`"),
-            true);
+      if (savepoint instanceof Connection.MariaDbSavepoint dbSavepoint) {
+        client.execute(new QueryPacket("RELEASE SAVEPOINT `" + dbSavepoint.rawValue() + "`"), true);
       } else {
         throw exceptionFactory.create("Unknown savepoint type");
       }

@@ -19,7 +19,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
@@ -821,7 +820,7 @@ public class PoolDataSourceTest extends Common {
                                 "jdbc:mariadb://myhost" + hostIndex + ":5500/db?someOption=val");
                             return ds;
                           }))
-              .collect(Collectors.toList());
+              .toList();
 
       ready.await();
       start.countDown();

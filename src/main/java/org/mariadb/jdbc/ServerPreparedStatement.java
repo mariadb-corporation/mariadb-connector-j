@@ -409,8 +409,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public ResultSet executeQuery() throws SQLException {
     executeInternal();
     handleParameterOutput();
-    if ((currResult instanceof Result)) {
-      return (Result) currResult;
+    if ((currResult instanceof Result result)) {
+      return result;
     }
 
     if (con.getContext().getConf().permitNoResults()) {

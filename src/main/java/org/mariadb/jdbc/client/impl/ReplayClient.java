@@ -42,8 +42,8 @@ public class ReplayClient extends StandardClient {
   public int sendQuery(ClientMessage message) throws SQLException {
     checkNotClosed();
     try {
-      if (message instanceof RedoableClientMessage)
-        ((RedoableClientMessage) message).ensureReplayable(context);
+      if (message instanceof RedoableClientMessage clientMessage)
+        clientMessage.ensureReplayable(context);
       return message.encode(writer, context);
     } catch (MaxAllowedPacketException maxE) {
       if (maxE.isMustReconnect()) {
@@ -127,12 +127,11 @@ public class ReplayClient extends StandardClient {
       for (int i = 0; i < transactionSaver.getIdx(); i++) {
         RedoableClientMessage querySaver = buffers[i];
         int responseNo;
-        if (querySaver instanceof RedoableWithPrepareClientMessage) {
+        if (querySaver instanceof RedoableWithPrepareClientMessage message) {
           // command is a prepare statement query
           // redo on new connection need to re-prepare query
           // and substitute statement id
-          RedoableWithPrepareClientMessage redoable =
-              ((RedoableWithPrepareClientMessage) querySaver);
+          RedoableWithPrepareClientMessage redoable = message;
           String cmd = redoable.getCommand();
           prepare = context.getPrepareCacheCmd(cmd, redoable.prep());
           if (prepare == null) {

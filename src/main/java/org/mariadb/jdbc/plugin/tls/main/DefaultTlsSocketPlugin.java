@@ -211,8 +211,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
           tmf.init(ks);
           for (TrustManager tm : tmf.getTrustManagers()) {
-            if (tm instanceof X509TrustManager) {
-              return new CachedTrust((X509TrustManager) tm, false);
+            if (tm instanceof X509TrustManager manager) {
+              return new CachedTrust(manager, false);
             }
           }
         } catch (GeneralSecurityException generalSecurityEx) {
@@ -248,8 +248,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
           tmf.init(ks);
           for (TrustManager tm : tmf.getTrustManagers()) {
-            if (tm instanceof X509TrustManager) {
-              return new CachedTrust((X509TrustManager) tm, false);
+            if (tm instanceof X509TrustManager manager1) {
+              return new CachedTrust(manager1, false);
             }
           }
         } catch (GeneralSecurityException generalSecurityEx) {
@@ -267,8 +267,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         tmf.init((KeyStore) null);
 
         for (TrustManager tm : tmf.getTrustManagers()) {
-          if (tm instanceof X509TrustManager) {
-            return new CachedTrust((X509TrustManager) tm, true);
+          if (tm instanceof X509TrustManager manager2) {
+            return new CachedTrust(manager2, true);
           }
         }
       } catch (Exception e) {

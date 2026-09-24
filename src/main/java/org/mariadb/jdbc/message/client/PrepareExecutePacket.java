@@ -171,11 +171,7 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
         PrepareResultPacket previousCached =
             (PrepareResultPacket)
                 context.putPrepareCacheCmd(
-                    sql,
-                    prepare,
-                    stmt instanceof ServerPreparedStatement
-                        ? (ServerPreparedStatement) stmt
-                        : null);
+                    sql, prepare, stmt instanceof ServerPreparedStatement sps ? sps : null);
         if (stmt != null) {
           ((BasePreparedStatement) stmt)
               .setPrepareResult(previousCached != null ? previousCached : prepare);

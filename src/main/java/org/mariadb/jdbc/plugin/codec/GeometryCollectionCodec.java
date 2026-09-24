@@ -52,7 +52,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
-      if (geo instanceof GeometryCollection) return (GeometryCollection) geo;
+      if (geo instanceof GeometryCollection collection) return collection;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as GeometryCollection",
@@ -93,23 +93,23 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
     for (Geometry geo : geometryCollection.getGeometries()) {
       if (geo instanceof Point) {
         length += 21;
-      } else if (geo instanceof LineString) {
-        length += 9 + ((LineString) geo).getPoints().length * 16;
-      } else if (geo instanceof Polygon) {
+      } else if (geo instanceof LineString lineString) {
+        length += 9 + lineString.getPoints().length * 16;
+      } else if (geo instanceof Polygon polygon) {
         length += 9;
-        for (LineString ls : ((Polygon) geo).getLines()) {
+        for (LineString ls : polygon.getLines()) {
           length += 4 + ls.getPoints().length * 16;
         }
-      } else if (geo instanceof MultiPoint) {
-        length += 9 + ((MultiPoint) geo).getPoints().length * 21;
-      } else if (geo instanceof MultiLineString) {
+      } else if (geo instanceof MultiPoint point) {
+        length += 9 + point.getPoints().length * 21;
+      } else if (geo instanceof MultiLineString string) {
         length += 9;
-        for (LineString ls : ((MultiLineString) geo).getLines()) {
+        for (LineString ls : string.getLines()) {
           length += 9 + ls.getPoints().length * 16;
         }
-      } else if (geo instanceof MultiPolygon) {
+      } else if (geo instanceof MultiPolygon polygon) {
         length += 9;
-        for (Polygon poly : ((MultiPolygon) geo).getPolygons()) {
+        for (Polygon poly : polygon.getPolygons()) {
           length += 9;
           for (LineString ls : poly.getLines()) {
             length += 4 + ls.getPoints().length * 16;
@@ -124,14 +124,12 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
     encoder.writeInt(7); // wkbGeometryCollection
     encoder.writeInt(geometryCollection.getGeometries().length);
     for (Geometry geo : geometryCollection.getGeometries()) {
-      if (geo instanceof Point) {
-        Point pt = (Point) geo;
+      if (geo instanceof Point pt) {
         encoder.writeByte(0x01); // LITTLE ENDIAN
         encoder.writeInt(1); // wkbPoint
         encoder.writeDouble(pt.getX());
         encoder.writeDouble(pt.getY());
-      } else if (geo instanceof LineString) {
-        LineString ls = (LineString) geo;
+      } else if (geo instanceof LineString ls) {
         encoder.writeByte(0x01); // LITTLE ENDIAN
         encoder.writeInt(2); // wkbLineString
         encoder.writeInt(ls.getPoints().length);
@@ -139,8 +137,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
           encoder.writeDouble(pt.getX());
           encoder.writeDouble(pt.getY());
         }
-      } else if (geo instanceof Polygon) {
-        Polygon poly = (Polygon) geo;
+      } else if (geo instanceof Polygon poly) {
         encoder.writeByte(0x01); // LITTLE ENDIAN
         encoder.writeInt(3); // wkbPolygon
         encoder.writeInt(poly.getLines().length);
@@ -151,8 +148,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
             encoder.writeDouble(pt.getY());
           }
         }
-      } else if (geo instanceof MultiPoint) {
-        MultiPoint mp = (MultiPoint) geo;
+      } else if (geo instanceof MultiPoint mp) {
         encoder.writeByte(0x01); // LITTLE ENDIAN
         encoder.writeInt(4); // wkbMultiPoint
         encoder.writeInt(mp.getPoints().length);
@@ -162,8 +158,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
           encoder.writeDouble(pt.getX());
           encoder.writeDouble(pt.getY());
         }
-      } else if (geo instanceof MultiLineString) {
-        MultiLineString mlines = (MultiLineString) geo;
+      } else if (geo instanceof MultiLineString mlines) {
         encoder.writeByte(0x01); // LITTLE ENDIAN
         encoder.writeInt(5); // wkbMultiLineString
         encoder.writeInt(mlines.getLines().length);
@@ -176,8 +171,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
             encoder.writeDouble(pt.getY());
           }
         }
-      } else if (geo instanceof MultiPolygon) {
-        MultiPolygon multiPolygon = (MultiPolygon) geo;
+      } else if (geo instanceof MultiPolygon multiPolygon) {
         encoder.writeByte(0x01); // LITTLE ENDIAN
         encoder.writeInt(6); // wkbMultiPolygon
         encoder.writeInt(multiPolygon.getPolygons().length); // nb polygon

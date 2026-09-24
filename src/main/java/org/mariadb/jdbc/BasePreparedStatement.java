@@ -31,7 +31,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
@@ -1164,19 +1163,18 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       throws SQLException {
     if (targetSqlType != Types.ARRAY) return false;
 
-    if (obj instanceof float[]) {
-      parameters.set(parameterIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) obj));
+    if (obj instanceof float[] floats) {
+      parameters.set(parameterIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, floats));
       return true;
     }
-    if (obj instanceof Float[]) {
-      parameters.set(
-          parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, (Float[]) obj));
+    if (obj instanceof Float[] floatObjects) {
+      parameters.set(parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, floatObjects));
       return true;
     }
-    if (obj instanceof FloatArray) {
+    if (obj instanceof FloatArray array) {
       parameters.set(
           parameterIndex - 1,
-          new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) ((FloatArray) obj).getArray()));
+          new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) array.getArray()));
       return true;
     }
 
@@ -1207,7 +1205,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
                   "Cannot convert a %s to a Blob", obj instanceof String ? "string" : "character"));
     }
 
-    String str = obj instanceof String ? (String) obj : ((Character) obj).toString();
+    String str = obj instanceof String s ? s : ((Character) obj).toString();
     return handleStringConversion(parameterIndex, str, targetSqlType);
   }
 
@@ -1320,8 +1318,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   private void handleNumericType(int parameterIndex, Object obj, Number bd) throws SQLException {
-    if (obj instanceof BigDecimal) {
-      setBigDecimal(parameterIndex, (BigDecimal) obj);
+    if (obj instanceof BigDecimal decimal) {
+      setBigDecimal(parameterIndex, decimal);
     } else if (obj instanceof Double || obj instanceof Float) {
       setDouble(parameterIndex, bd.doubleValue());
     } else {
@@ -2016,8 +2014,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
     } catch (SQLException bue) {
       results = null;
-      throw exceptionFactory()
-          .createBatchUpdate(Collections.emptyList(), batchParameters.size(), bue);
+      throw exceptionFactory().createBatchUpdate(List.of(), batchParameters.size(), bue);
     }
   }
 
@@ -2056,7 +2053,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   private List<String[]> extractInsertIds() throws SQLException {
     if (currResult == null) {
-      return Collections.emptyList();
+      return List.of();
     }
 
     List<String[]> insertIds = new ArrayList<>(results.size() + 1); // results + currResult
@@ -2081,7 +2078,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   private boolean isValidBulkResult(Completion completion) {
-    return completion instanceof CompleteResult && ((CompleteResult) completion).isBulkResult();
+    return completion instanceof CompleteResult cr && cr.isBulkResult();
   }
 
   private void processUnitaryResults(CompleteResult unitaryResults, List<String[]> insertIds)

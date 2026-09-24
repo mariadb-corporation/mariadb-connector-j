@@ -17,7 +17,6 @@ import java.sql.SQLTransactionRollbackException;
 import java.sql.SQLTransientConnectionException;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.mariadb.jdbc.Configuration;
@@ -34,8 +33,7 @@ import org.mariadb.jdbc.util.ThreadUtils;
  */
 public class ExceptionFactory {
 
-  private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES =
-      new HashSet<>(Arrays.asList(1205, 1213, 1614));
+  private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES = Set.of(1205, 1213, 1614);
   private final Configuration conf;
   private final HostAddress hostAddress;
   private Connection connection;
@@ -335,8 +333,8 @@ public class ExceptionFactory {
     }
 
     if (poolConnection != null) {
-      if (statement != null && statement instanceof PreparedStatement) {
-        poolConnection.fireStatementErrorOccurred((PreparedStatement) statement, returnEx);
+      if (statement != null && statement instanceof PreparedStatement preparedStatement) {
+        poolConnection.fireStatementErrorOccurred(preparedStatement, returnEx);
       }
       if (returnEx instanceof SQLNonTransientConnectionException
           || returnEx instanceof SQLTransientConnectionException) {

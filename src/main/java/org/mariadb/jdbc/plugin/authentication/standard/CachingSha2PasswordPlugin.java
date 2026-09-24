@@ -6,7 +6,7 @@ package org.mariadb.jdbc.plugin.authentication.standard;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -88,7 +88,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile) throws SQLException {
     byte[] keyBytes;
     try {
-      keyBytes = Files.readAllBytes(Paths.get(serverRsaPublicKeyFile));
+      keyBytes = Files.readAllBytes(Path.of(serverRsaPublicKeyFile));
     } catch (IOException ex) {
       throw new SQLException(
           "Could not read server RSA public key from file : "

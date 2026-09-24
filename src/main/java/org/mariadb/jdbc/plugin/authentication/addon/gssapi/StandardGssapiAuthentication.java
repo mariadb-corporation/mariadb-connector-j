@@ -147,8 +147,8 @@ public class StandardGssapiAuthentication {
       while (cause.getCause() != null && !(cause instanceof GSSException)) {
         cause = cause.getCause();
       }
-      if (cause instanceof IOException) {
-        throw (IOException) cause;
+      if (cause instanceof IOException exception) {
+        throw exception;
       }
       throw new SQLException(
           "GSS-API authentication exception: " + cause.getMessage() + NATIVE_HINT,

@@ -29,7 +29,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
@@ -299,15 +298,14 @@ public class StandardClient implements Client, AutoCloseable {
     if (sniHost != null && !sniHost.isEmpty() && !IPUtility.isInetAddress(sniHost)) {
       SSLParameters params = sslSocket.getSSLParameters();
       SNIHostName serverName = new SNIHostName(sniHost);
-      params.setServerNames(Collections.singletonList(serverName));
+      params.setServerNames(List.of(serverName));
       sslSocket.setSSLParameters(params);
     }
 
     sslSocket.startHandshake();
     if (trustManagers.length > 0
-        && trustManagers[0] instanceof MariaDbX509DeferredIdentityTrustManager) {
-      certFingerprint =
-          ((MariaDbX509DeferredIdentityTrustManager) trustManagers[0]).getFingerprint();
+        && trustManagers[0] instanceof MariaDbX509DeferredIdentityTrustManager manager) {
+      certFingerprint = manager.getFingerprint();
     }
   }
 
@@ -855,8 +853,8 @@ public class StandardClient implements Client, AutoCloseable {
 
     List<String> galeraAllowedStates =
         conf.galeraAllowedState() == null
-            ? Collections.emptyList()
-            : Arrays.asList(conf.galeraAllowedState().split(","));
+            ? List.of()
+            : List.of(conf.galeraAllowedState().split(","));
 
     if (hostAddress != null
         && Boolean.TRUE.equals(hostAddress.primary)
@@ -1273,9 +1271,10 @@ public class StandardClient implements Client, AutoCloseable {
 
         // prepare associated to PrepareStatement need to be uncached
         for (Completion result : results) {
-          if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
+          if (result instanceof PrepareResultPacket packet
+              && stmt instanceof ServerPreparedStatement statement) {
             try {
-              ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
+              packet.decrementUse(this, statement);
             } catch (SQLException e) {
               // eat
             }
@@ -1537,7 +1536,7 @@ public class StandardClient implements Client, AutoCloseable {
               traceEnable,
               message,
               redirectConsumer);
-      if (completion instanceof StreamingResult && !((StreamingResult) completion).loaded()) {
+      if (completion instanceof StreamingResult result && !result.loaded()) {
         streamStmt = stmt;
         streamMsg = message;
       }

@@ -63,9 +63,9 @@ public class AwsCredentialGenerator {
                       .credentialsProvider(awsCredentialsProvider));
     } finally {
       // DefaultCredentialsProvider is closeable (SdkAutoCloseable extends AutoCloseable)
-      if (awsCredentialsProvider instanceof AutoCloseable) {
+      if (awsCredentialsProvider instanceof AutoCloseable closeable) {
         try {
-          ((AutoCloseable) awsCredentialsProvider).close();
+          closeable.close();
         } catch (Exception e) {
           // eat
         }

@@ -1285,7 +1285,7 @@ public class Configuration {
         }
 
         Object value = field.get(conf);
-        if (value == null || (value instanceof Properties && ((Properties) value).isEmpty())) {
+        if (value == null || (value instanceof Properties properties && properties.isEmpty())) {
           continue;
         }
 

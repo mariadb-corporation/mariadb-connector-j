@@ -108,8 +108,7 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
 
     @Override
     public boolean isSameRM(XAResource xaResource) {
-      if (xaResource instanceof MariaDbXAPinnedResource) {
-        MariaDbXAPinnedResource other = (MariaDbXAPinnedResource) xaResource;
+      if (xaResource instanceof MariaDbXAPinnedResource other) {
         return other.getConf().equals(this.getConf());
       }
       return false;

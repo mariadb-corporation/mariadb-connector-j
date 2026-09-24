@@ -52,7 +52,7 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
-      if (geo instanceof MultiPolygon) return (MultiPolygon) geo;
+      if (geo instanceof MultiPolygon polygon) return polygon;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as MultiPolygon",

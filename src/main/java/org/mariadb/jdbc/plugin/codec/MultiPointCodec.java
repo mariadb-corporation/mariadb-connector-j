@@ -54,7 +54,7 @@ public class MultiPointCodec implements Codec<MultiPoint> {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
-      if (geo instanceof MultiPoint) return (MultiPoint) geo;
+      if (geo instanceof MultiPoint point) return point;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as MultiPoint",

@@ -49,7 +49,7 @@ class MariaDbX509DeferredIdentityTrustManagerTest {
 
   private static X509TrustManager firstX509(TrustManagerFactory tmf) {
     for (TrustManager tm : tmf.getTrustManagers()) {
-      if (tm instanceof X509TrustManager) return (X509TrustManager) tm;
+      if (tm instanceof X509TrustManager manager) return manager;
     }
     throw new IllegalStateException("no X509TrustManager");
   }

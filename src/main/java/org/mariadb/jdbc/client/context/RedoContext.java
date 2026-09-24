@@ -72,8 +72,7 @@ public class RedoContext extends BaseContext {
     // saver in that case; this guard stops us from re-adding the just-finished statement (which
     // would otherwise survive into a subsequently opened transaction and be replayed twice).
     if ((serverStatus & ServerStatus.IN_TRANSACTION) == 0) return;
-    if (msg instanceof RedoableClientMessage) {
-      RedoableClientMessage redoMsg = (RedoableClientMessage) msg;
+    if (msg instanceof RedoableClientMessage redoMsg) {
       redoMsg.saveParameters();
       transactionSaver.add(redoMsg);
     }
