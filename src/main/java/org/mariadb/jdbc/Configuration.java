@@ -171,6 +171,7 @@ public class Configuration {
   private String enabledSslProtocolSuites;
   private boolean fallbackToSystemKeyStore;
   private boolean fallbackToSystemTrustStore;
+  private boolean deferCertificateValidation;
   // protocol
   private boolean allowMultiQueries;
   private boolean allowLocalInfile;
@@ -294,6 +295,8 @@ public class Configuration {
         builder.fallbackToSystemKeyStore == null || builder.fallbackToSystemKeyStore;
     this.fallbackToSystemTrustStore =
         builder.fallbackToSystemTrustStore == null || builder.fallbackToSystemTrustStore;
+    this.deferCertificateValidation =
+        builder.deferCertificateValidation == null || builder.deferCertificateValidation;
     this.serverSslCert = builder.serverSslCert;
     this.keyStore = builder.keyStore;
     this.trustStore = builder.trustStore;
@@ -640,6 +643,7 @@ public class Configuration {
             .enabledSslProtocolSuites(this.enabledSslProtocolSuites)
             .fallbackToSystemKeyStore(this.fallbackToSystemKeyStore)
             .fallbackToSystemTrustStore(this.fallbackToSystemTrustStore)
+            .deferCertificateValidation(this.deferCertificateValidation)
             .allowMultiQueries(this.allowMultiQueries)
             .allowLocalInfile(this.allowLocalInfile)
             .rewriteBatchedStatements(this.rewriteBatchedStatements)
@@ -1620,6 +1624,19 @@ public class Configuration {
   }
 
   /**
+   * When the server certificate cannot be validated against the system trust store (self-signed or
+   * unknown issuer), indicate if the connector may defer server identity validation to
+   * authentication, where the certificate fingerprint is verified together with the password
+   * (MariaDB 11.4+, MitM-proof authentication plugin). When false, such a certificate is rejected
+   * at the TLS handshake.
+   *
+   * @return true if identity validation can be deferred to authentication
+   */
+  public boolean deferCertificateValidation() {
+    return deferCertificateValidation;
+  }
+
+  /**
    * Socket factory class name
    *
    * @return socket factory
@@ -2503,6 +2520,7 @@ public class Configuration {
     private String enabledSslProtocolSuites;
     private Boolean fallbackToSystemKeyStore;
     private Boolean fallbackToSystemTrustStore;
+    private Boolean deferCertificateValidation;
     // protocol
     private Boolean allowMultiQueries;
     private Boolean allowLocalInfile;
@@ -2698,6 +2716,20 @@ public class Configuration {
      */
     public Builder fallbackToSystemTrustStore(Boolean fallbackToSystemTrustStore) {
       this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
+      return this;
+    }
+
+    /**
+     * When the server certificate cannot be validated against the system trust store, indicate if
+     * server identity validation may be deferred to authentication (certificate fingerprint
+     * verified with the password). Default true. When false, such a certificate is rejected at the
+     * TLS handshake.
+     *
+     * @param deferCertificateValidation permit deferred identity validation
+     * @return this {@link Builder}
+     */
+    public Builder deferCertificateValidation(Boolean deferCertificateValidation) {
+      this.deferCertificateValidation = deferCertificateValidation;
       return this;
     }
 

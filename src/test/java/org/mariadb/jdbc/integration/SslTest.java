@@ -164,7 +164,7 @@ public class SslTest extends Common {
   }
 
   @Test
-  public void mandatoryEphemeralSsl() throws SQLException {
+  public void mandatoryEphemeralSsl() throws Exception {
     Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
     try (Connection con = createCon(baseOptions + "&sslMode=verify-ca", sslPort)) {
@@ -175,6 +175,30 @@ public class SslTest extends Common {
     }
     try (Connection con = createCon(baseOptions + "&sslMode=verify-full", sslPort)) {
       assertNotNull(getSslVersion(con));
+    }
+    // deferred validation disabled: the ephemeral certificate is rejected at the handshake
+    for (String mode : new String[] {"verify-ca", "verify-full"}) {
+      try {
+        createCon(baseOptions + "&sslMode=" + mode + "&deferCertificateValidation=false", sslPort);
+        fail("must have thrown error");
+      } catch (SQLException e) {
+        assertTrue(
+            e.getMessage().contains("unable to find valid certification")
+                || e.getMessage().contains("PKIX"),
+            e.getMessage());
+      }
+    }
+    String serverCertPath = retrieveCertificatePath();
+    if (serverCertPath != null) {
+      // a validated certificate does not need deferring
+      try (Connection con =
+          createCon(
+              baseOptions
+                  + "&sslMode=verify-ca&deferCertificateValidation=false&serverSslCert="
+                  + serverCertPath,
+              sslPort)) {
+        assertNotNull(getSslVersion(con));
+      }
     }
     assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
     assertThrows(

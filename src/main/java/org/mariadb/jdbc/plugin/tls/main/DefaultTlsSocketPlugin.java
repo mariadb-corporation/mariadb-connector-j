@@ -268,7 +268,9 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
 
         for (TrustManager tm : tmf.getTrustManagers()) {
           if (tm instanceof X509TrustManager manager2) {
-            return new CachedTrust(manager2, true);
+            // unless disabled, a certificate the system trust store cannot validate defers
+            // identity validation to authentication (fingerprint bound to the password)
+            return new CachedTrust(manager2, conf.deferCertificateValidation());
           }
         }
       } catch (Exception e) {
@@ -349,6 +351,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     appendValue(sb, conf.trustStorePassword());
     appendValue(sb, conf.trustStoreType());
     sb.append(conf.fallbackToSystemTrustStore()).append('\n');
+    sb.append(conf.deferCertificateValidation()).append('\n');
     // the system trust store the fallback path relies on (default cacerts when unset)
     appendFile(sb, System.getProperty("javax.net.ssl.trustStore"));
     appendValue(sb, System.getProperty("javax.net.ssl.trustStorePassword"));
