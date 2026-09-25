@@ -52,7 +52,6 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.BaseContext;
 import org.mariadb.jdbc.client.context.RedoContext;
 import org.mariadb.jdbc.client.result.Result;
-import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.CompressInputStream;
@@ -1535,7 +1534,7 @@ public class StandardClient implements Client, AutoCloseable {
               traceEnable,
               message,
               redirectConsumer);
-      if (completion instanceof StreamingResult result && !result.loaded()) {
+      if (completion instanceof Result result && result.streaming() && !result.loaded()) {
         streamStmt = stmt;
         streamMsg = message;
       }

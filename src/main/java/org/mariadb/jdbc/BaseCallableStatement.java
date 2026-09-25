@@ -65,7 +65,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         Statement.RETURN_GENERATED_KEYS,
         resultSetType,
         resultSetConcurrency,
-        defaultFetchSize);
+        Math.max(0, defaultFetchSize));
     this.databaseName = databaseName;
     this.procedureName = procedureName;
   }
@@ -83,6 +83,21 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * @param i index
    * @throws SQLException if any exception
    */
+  /**
+   * Sequential access (fetch size Integer.MIN_VALUE) is not available on callable statements, since
+   * all results must be read to retrieve output parameters.
+   *
+   * @param rows the number of rows to fetch
+   * @throws SQLException if rows is negative
+   */
+  @Override
+  public void setFetchSize(int rows) throws SQLException {
+    if (rows < 0) {
+      throw exceptionFactory().create("invalid fetch size");
+    }
+    super.setFetchSize(rows);
+  }
+
   protected void outputResultFromRes(int i) throws SQLException {
     this.outputResult = (Result) this.results.remove(this.results.size() - i);
     this.outputResult.next();

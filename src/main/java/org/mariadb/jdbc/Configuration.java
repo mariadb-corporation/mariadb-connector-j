@@ -556,7 +556,9 @@ public class Configuration {
       for (Field field : fields) {
         if (field.getType().equals(int.class)) {
           int val = field.getInt(this);
-          if (val < 0) {
+          // defaultFetchSize Integer.MIN_VALUE means sequential access
+          if (val < 0
+              && !(val == Integer.MIN_VALUE && "defaultFetchSize".equals(field.getName()))) {
             throw new IllegalArgumentException(
                 String.format("Value for %s must be >= 1 (value is %s)", field.getName(), val));
           }
@@ -3557,7 +3559,9 @@ public class Configuration {
     /**
      * Set default fetch size
      *
-     * @param defaultFetchSize default fetch size
+     * @param defaultFetchSize default fetch size. Integer.MIN_VALUE means sequential access: rows
+     *     are read from the socket one column at a time, LOB columns being streamed without being
+     *     loaded in memory, and columns must be read in increasing index order
      * @return this {@link Builder}
      */
     public Builder defaultFetchSize(Integer defaultFetchSize) {

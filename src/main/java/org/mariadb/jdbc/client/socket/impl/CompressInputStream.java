@@ -328,13 +328,14 @@ public class CompressInputStream extends InputStream {
    * end of the stream has been reached, the value <code>-1</code> is returned. This method blocks
    * until input data is available, the end of the stream is detected, or an exception is thrown.
    *
-   * <p>A subclass must provide an implementation of this method.
-   *
    * @return the next byte of data, or <code>-1</code> if the end of the stream is reached.
    * @throws IOException if an I/O error occurs.
    */
   @Override
   public int read() throws IOException {
-    throw new IOException("NOT IMPLEMENTED !");
+    if (pos >= end) {
+      retrieveBuffer();
+    }
+    return buf[pos++] & 0xff;
   }
 }

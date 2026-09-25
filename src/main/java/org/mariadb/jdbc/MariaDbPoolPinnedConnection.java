@@ -52,7 +52,7 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
 
       try {
         if (xid.equals(currentXid)) {
-          getConnection().createStatement().execute(command);
+          getConnection().createInternalStatement().execute(command);
           if (removeMappingAfterExecution) {
             currentXid = null;
             xidToConnection.remove(xid);
@@ -65,7 +65,7 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
             currentXid = xid;
           }
           try (ClosableLock ignore = con.getLock().closeableLock()) {
-            con.createStatement().execute(command);
+            con.createInternalStatement().execute(command);
             if (xid.equals(currentXid)) {
               currentXid = null;
             }
@@ -131,7 +131,7 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
       }
 
       try {
-        ResultSet rs = getConnection().createStatement().executeQuery("XA RECOVER");
+        ResultSet rs = getConnection().createInternalStatement().executeQuery("XA RECOVER");
         ArrayList<MariaDbXid> xidList = new ArrayList<>();
 
         while (rs.next()) {

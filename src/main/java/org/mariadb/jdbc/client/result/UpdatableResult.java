@@ -139,7 +139,7 @@ public class UpdatableResult extends CompleteResult {
     ResultSet rs =
         statement
             .getConnection()
-            .createStatement()
+            .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)
             .executeQuery(
                 "SHOW COLUMNS FROM " + quoteIdentifier(database) + "." + quoteIdentifier(table));
     List<String> primaryColumns = new ArrayList<>();

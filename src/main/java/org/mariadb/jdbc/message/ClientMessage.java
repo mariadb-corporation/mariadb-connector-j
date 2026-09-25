@@ -18,6 +18,7 @@ import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
+import org.mariadb.jdbc.client.result.SequentialResult;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -345,6 +346,36 @@ public interface ClientMessage {
           int status = context.getServerStatus();
           if ((status & ServerStatus.MORE_RESULTS_EXISTS) != 0) {
             context.setServerStatus(status & ~ServerStatus.MORE_RESULTS_EXISTS);
+          }
+
+          if (fetchSize < 0) {
+            // Integer.MIN_VALUE: sequential access, rows are read from the socket one column at a
+            // time. Only possible on a forward-only result-set
+            if (resultSetType == ResultSet.TYPE_FORWARD_ONLY) {
+              return new SequentialResult(
+                  stmt,
+                  binaryProtocol(),
+                  maxRows,
+                  ci,
+                  reader,
+                  context,
+                  lock,
+                  resultSetType,
+                  closeOnCompletion,
+                  traceEnable);
+            }
+            context.setServerStatus(status);
+            return new CompleteResult(
+                stmt,
+                binaryProtocol(),
+                maxRows,
+                ci,
+                reader,
+                context,
+                resultSetType,
+                closeOnCompletion,
+                traceEnable,
+                mightBeBulkResult());
           }
 
           return new StreamingResult(

@@ -150,6 +150,23 @@ public class Connection implements java.sql.Connection {
         defaultFetchSize);
   }
 
+  /**
+   * Statement for the driver's own queries whose result-set may be returned to the user (metadata):
+   * never using sequential access (fetch size Integer.MIN_VALUE), whatever the {@code
+   * defaultFetchSize} option.
+   *
+   * @return forward-only statement
+   */
+  Statement createInternalStatement() {
+    return new Statement(
+        this,
+        lock,
+        Statement.RETURN_GENERATED_KEYS,
+        ResultSet.TYPE_FORWARD_ONLY,
+        ResultSet.CONCUR_READ_ONLY,
+        Math.max(0, defaultFetchSize));
+  }
+
   @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
     return prepareInternal(
@@ -292,7 +309,7 @@ public class Connection implements java.sql.Connection {
    */
   public int getLowercaseTableNames() throws SQLException {
     if (lowercaseTableNames == -1) {
-      try (java.sql.Statement st = createStatement()) {
+      try (java.sql.Statement st = createInternalStatement()) {
         try (ResultSet rs = st.executeQuery("select @@lower_case_table_names")) {
           rs.next();
           lowercaseTableNames = rs.getInt(1);
@@ -353,7 +370,7 @@ public class Connection implements java.sql.Connection {
       return client.getContext().getDatabase();
     }
 
-    try (Statement stmt = createStatement()) {
+    try (Statement stmt = createInternalStatement()) {
       ResultSet rs = stmt.executeQuery("select database()");
       rs.next();
       client.getContext().setDatabase(rs.getString(1));
@@ -396,7 +413,7 @@ public class Connection implements java.sql.Connection {
             ? "SELECT @@session.transaction_isolation"
             : "SELECT @@session.tx_isolation";
 
-    try (Statement stmt = createStatement()) {
+    try (Statement stmt = createInternalStatement()) {
       ResultSet rs = stmt.executeQuery(sql);
       if (rs.next()) {
         final String response = rs.getString(1);
@@ -475,7 +492,7 @@ public class Connection implements java.sql.Connection {
     SQLWarning last = null;
     SQLWarning first = null;
 
-    try (Statement st = this.createStatement()) {
+    try (Statement st = this.createInternalStatement()) {
       try (ResultSet rs = st.executeQuery("show warnings")) {
         // returned result set has 'level', 'code' and 'message' columns, in this order.
         while (rs.next()) {

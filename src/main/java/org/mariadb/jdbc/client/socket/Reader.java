@@ -184,8 +184,103 @@ public class Reader {
    * @throws IOException if socket exception occur or the stream ends early
    */
   private void readFully(byte[] dest, int length) throws IOException {
+    readFully(dest, 0, length);
+  }
+
+  /**
+   * Read the header of the next packet, without reading its payload. The payload is then read
+   * through {@link #read(byte[], int, int)}, {@link #readFully(byte[], int, int)}, {@link
+   * #readByte()} and {@link #skip(long)}. A payload of {@code 0xffffff} bytes is followed by
+   * another packet continuing the same payload.
+   *
+   * @param traceEnable log the header
+   * @return payload length of the packet
+   * @throws IOException if socket error occurs
+   */
+  public int readPacketHeader(boolean traceEnable) throws IOException {
+    int packetLength = readHeader();
+    checkMaxAllowedLength(packetLength);
+    sequence.set(header[3]);
+    if (traceEnable) {
+      logger.trace(
+          "read: {}\n{} (payload of {} bytes read sequentially)",
+          serverThreadLog,
+          LoggerHelper.hex(header, new byte[0], 0, 0, maxQuerySizeToLog),
+          packetLength);
+    }
+    return packetLength;
+  }
+
+  /**
+   * Read up to {@code length} bytes of the current packet payload.
+   *
+   * @param dest destination array
+   * @param off destination offset
+   * @param length maximum number of bytes to read
+   * @return number of bytes read, at least 1
+   * @throws IOException if socket error occurs or the socket is closed
+   */
+  public int read(byte[] dest, int off, int length) throws IOException {
+    int count = inputStream.read(dest, off, length);
+    if (count < 0) {
+      throw new EOFException("unexpected end of stream (socket was closed by server)");
+    }
+    return count;
+  }
+
+  /**
+   * Read one byte of the current packet payload.
+   *
+   * @return byte value in 0-255 range
+   * @throws IOException if socket error occurs or the socket is closed
+   */
+  public int readByte() throws IOException {
+    int b = inputStream.read();
+    if (b < 0) {
+      throw new EOFException("unexpected end of stream (socket was closed by server)");
+    }
+    return b;
+  }
+
+  /**
+   * Skip {@code length} bytes of the current packet payload.
+   *
+   * @param length number of bytes to skip
+   * @throws IOException if socket error occurs or the socket is closed
+   */
+  public void skip(long length) throws IOException {
+    long remaining = length;
+    while (remaining > 0) {
+      // bounded chunks: some streams (compression) allocate a buffer of the requested size
+      long skipped = inputStream.skip(Math.min(remaining, REUSABLE_BUFFER_LENGTH));
+      if (skipped <= 0) {
+        // skip is not guaranteed to make progress: fall back to a read
+        int count =
+            inputStream.read(reusableArray, 0, (int) Math.min(remaining, reusableArray.length));
+        if (count < 0) {
+          throw new EOFException(
+              "unexpected end of stream, skipped "
+                  + (length - remaining)
+                  + " bytes from "
+                  + length
+                  + " (socket was closed by server)");
+        }
+        skipped = count;
+      }
+      remaining -= skipped;
+    }
+  }
+
+  /**
+   * Read exactly {@code length} bytes of the current packet payload.
+   *
+   * @param dest destination array
+   * @param off destination offset
+   * @param length number of bytes to read
+   * @throws IOException if socket error occurs or the socket is closed
+   */
+  public void readFully(byte[] dest, int off, int length) throws IOException {
     int remaining = length;
-    int off = 0;
     while (remaining > 0) {
       int count = inputStream.read(dest, off, remaining);
       if (count < 0) {
@@ -209,6 +304,16 @@ public class Reader {
    * @param maxAllowedPacket maximum received packet size, or {@code null} to use the default
    *     heap-relative ceiling
    */
+  /**
+   * Client-side limit on a packet size, multi-packet included: what the driver accepts to read for
+   * one row or one field.
+   *
+   * @return maximum packet size
+   */
+  public int getMaxAllowedPacket() {
+    return maxAllowedPacket != null ? maxAllowedPacket : DEFAULT_MAX_RECEIVE_PACKET;
+  }
+
   public void setMaxAllowedPacket(Integer maxAllowedPacket) {
     this.maxAllowedPacket =
         (maxAllowedPacket != null) ? maxAllowedPacket : DEFAULT_MAX_RECEIVE_PACKET;

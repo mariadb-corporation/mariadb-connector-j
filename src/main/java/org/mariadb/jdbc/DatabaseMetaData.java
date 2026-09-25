@@ -368,7 +368,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   private Map<String[], String> getExtImportedKeys(
       String tableName, org.mariadb.jdbc.Connection connection) throws SQLException {
-    ResultSet rs = connection.createStatement().executeQuery("SHOW CREATE TABLE " + tableName);
+    ResultSet rs =
+        connection.createInternalStatement().executeQuery("SHOW CREATE TABLE " + tableName);
     rs.next();
     String refTableDef = rs.getString(2);
     Map<String[], String> res = new HashMap<>();
@@ -1077,7 +1078,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schema;
 
     List<String[]> data = new ArrayList<>();
-    Statement stmt = connection.createStatement();
+    Statement stmt = connection.createInternalStatement();
 
     List<String> databases = new ArrayList<>();
 
@@ -1363,7 +1364,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     List<String[]> data = new ArrayList<>();
 
-    Statement stmt = connection.createStatement();
+    Statement stmt = connection.createInternalStatement();
     if (database != null) {
       ResultSet rs =
           stmt.executeQuery(
@@ -1595,7 +1596,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getPseudoColumns(
       String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
       throws SQLException {
-    Statement stmt = connection.createStatement();
+    Statement stmt = connection.createInternalStatement();
     stmt.setFetchSize(0);
     return stmt.executeQuery(
         "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0"
@@ -1623,7 +1624,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean isReadOnly() throws SQLException {
-    try (ResultSet rs = connection.createStatement().executeQuery("SELECT @@READ_ONLY")) {
+    try (ResultSet rs = connection.createInternalStatement().executeQuery("SELECT @@READ_ONLY")) {
       rs.next();
       String readOnly = rs.getString(1);
       return "ON".equals(readOnly) || "1".equals(readOnly);

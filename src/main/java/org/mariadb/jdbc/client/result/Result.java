@@ -73,10 +73,10 @@ public abstract class Result implements ResultSet, Completion {
   protected final ReadableByteBuf rowBuf = new ReadableByteBuf(null, 0);
 
   protected final boolean traceEnable;
-  private final int maxIndex;
-  private final MutableInt fieldLength = new MutableInt(0);
+  protected final int maxIndex;
+  protected final MutableInt fieldLength = new MutableInt(0);
   private final boolean forceAlias;
-  private final byte[] nullBitmap;
+  protected final byte[] nullBitmap;
 
   /** data size */
   protected int dataSize = 0;
@@ -445,7 +445,7 @@ public abstract class Result implements ResultSet, Completion {
     }
   }
 
-  private void checkIndex(int index) throws SQLException {
+  protected void checkIndex(int index) throws SQLException {
     if (index < 1 || index > maxIndex) {
       throw new SQLException(
           String.format("Wrong index position. Is %s but must be in 1-%s range", index, maxIndex));

@@ -210,7 +210,7 @@ public class MariaDbPoolConnection implements XAConnection {
 
     private void execute(String command) throws XAException {
       try {
-        connection.createStatement().execute(command);
+        connection.createInternalStatement().execute(command);
       } catch (SQLException sqle) {
         throw mapXaException(sqle);
       }
@@ -270,7 +270,7 @@ public class MariaDbPoolConnection implements XAConnection {
       }
 
       try {
-        ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
+        ResultSet rs = connection.createInternalStatement().executeQuery("XA RECOVER");
         ArrayList<MariaDbXid> xidList = new ArrayList<>();
 
         while (rs.next()) {
