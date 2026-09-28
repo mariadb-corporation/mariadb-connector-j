@@ -712,10 +712,40 @@ public class ConnectionTest extends Common {
   @Test
   public void savepointNotExistingTest() throws SQLException {
     try (Connection con = createCon()) {
-      Savepoint sp = con.setSavepoint("savepoint1");
+      Statement stmt = con.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10))");
       con.setAutoCommit(false);
-      con.commit();
+      stmt.executeUpdate("INSERT INTO spt values('hej1')");
+      Savepoint sp = con.setSavepoint("savepoint1");
+      con.commit(); // savepoint no longer exists
       assertThrows(SQLSyntaxErrorException.class, () -> con.rollback(sp));
+      con.rollback();
+    }
+  }
+
+  @Test
+  public void savepointAutoCommit() throws SQLException {
+    // CONJ-1347: savepoints are meaningless in auto-commit mode, JDBC requires an exception
+    try (Connection con = createCon()) {
+      assertTrue(con.getAutoCommit());
+      Common.assertThrowsContains(
+          SQLException.class, con::setSavepoint, "Cannot set a savepoint when the connection");
+      Common.assertThrowsContains(
+          SQLException.class,
+          () -> con.setSavepoint("sp1"),
+          "Cannot set a savepoint when the connection is in auto-commit mode");
+      con.setAutoCommit(false);
+      Savepoint sp = con.setSavepoint("sp1");
+      con.setAutoCommit(true);
+      Common.assertThrowsContains(
+          SQLException.class,
+          () -> con.rollback(sp),
+          "Cannot rollback to a savepoint when the connection is in auto-commit mode");
+      // back in a transaction, savepoints work again
+      con.setAutoCommit(false);
+      Savepoint sp2 = con.setSavepoint();
+      con.rollback(sp2);
+      con.rollback();
     }
   }
 

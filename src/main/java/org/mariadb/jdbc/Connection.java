@@ -599,9 +599,25 @@ public class Connection implements java.sql.Connection {
     // not supported
   }
 
+  /**
+   * Savepoints only exist inside a transaction: in auto-commit mode SAVEPOINT succeeds on the
+   * server but the next statement commits and discards it, so the JDBC specification requires an
+   * exception instead.
+   *
+   * @param action description of the refused action, for the error message
+   * @throws SQLException if the connection is in auto-commit mode
+   */
+  private void checkNotAutoCommit(String action) throws SQLException {
+    if ((client.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) {
+      throw exceptionFactory.create(
+          action + " when the connection is in auto-commit mode", "25000");
+    }
+  }
+
   @Override
   public Savepoint setSavepoint() throws SQLException {
     checkNotClosed();
+    checkNotAutoCommit("Cannot set a savepoint");
     MariaDbSavepoint savepoint = new MariaDbSavepoint(savepointId.incrementAndGet());
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
@@ -610,6 +626,7 @@ public class Connection implements java.sql.Connection {
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
     checkNotClosed();
+    checkNotAutoCommit("Cannot set a savepoint");
     MariaDbSavepoint savepoint = new MariaDbSavepoint(name.replace("`", "``"));
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
@@ -619,6 +636,7 @@ public class Connection implements java.sql.Connection {
   @SuppressWarnings("try")
   public void rollback(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
+    checkNotAutoCommit("Cannot rollback to a savepoint");
     try (ClosableLock ignore = lock.closeableLock()) {
       if (savepoint instanceof Connection.MariaDbSavepoint dbSavepoint) {
         client.execute(
