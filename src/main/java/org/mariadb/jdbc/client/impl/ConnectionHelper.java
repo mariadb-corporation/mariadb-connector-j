@@ -11,6 +11,7 @@ import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLTimeoutException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javax.net.SocketFactory;
@@ -311,19 +312,28 @@ public final class ConnectionHelper {
     return new Credential(configuration.user(), configuration.password());
   }
 
+  /** Protocols enabled by default: TLS 1.3 and 1.2 are always available with Java 17+. */
+  static final String[] DEFAULT_TLS_PROTOCOLS = {"TLSv1.3", "TLSv1.2"};
+
   /**
-   * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to
-   * "TLSv1,TLSv1.1". MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled
-   * with openSSL (default). MySQL's community versions &ge; 5.7.10 is compiled with yaSSL, so max
-   * TLS is TLSv1.1.
+   * Set the TLS protocols enabled on the socket: the values of the enabledSslProtocolSuites option
+   * when set, else TLSv1.3 and TLSv1.2, whatever the JSSE defaults of the running JVM. MariaDB
+   * 10.2+ and MySQL 5.7.28+ (OpenSSL builds) negotiate at least TLSv1.2.
    *
    * @param sslSocket current sslSocket
+   * @param conf configuration
    * @throws SQLException if protocol isn't a supported protocol
    */
   static void enabledSslProtocolSuites(SSLSocket sslSocket, Configuration conf)
       throws SQLException {
-    if (conf.enabledSslProtocolSuites() != null) {
-      List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
+    List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
+    if (conf.enabledSslProtocolSuites() == null) {
+      List<String> protocols = new ArrayList<>(DEFAULT_TLS_PROTOCOLS.length);
+      for (String protocol : DEFAULT_TLS_PROTOCOLS) {
+        if (possibleProtocols.contains(protocol)) protocols.add(protocol);
+      }
+      sslSocket.setEnabledProtocols(protocols.toArray(new String[0]));
+    } else {
       String[] protocols = conf.enabledSslProtocolSuites().split("[,;\\s]+");
       for (String protocol : protocols) {
         if (!possibleProtocols.contains(protocol)) {
@@ -339,7 +349,9 @@ public final class ConnectionHelper {
   }
 
   /**
-   * Set ssl socket cipher according to options.
+   * Set the cipher suites enabled on the socket when the enabledSslCipherSuites option is set. By
+   * default the JSSE cipher suites of the running JVM are used, which for TLS 1.3 and 1.2 are all
+   * AEAD or otherwise current suites.
    *
    * @param sslSocket current ssl socket
    * @param conf configuration

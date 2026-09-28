@@ -1591,9 +1591,9 @@ public class Configuration {
   }
 
   /**
-   * permitted ssl protocol list (comma separated)
+   * permitted TLS protocol list (comma separated). Default (null) enables TLSv1.3 and TLSv1.2.
    *
-   * @return enabled ssl protocol list
+   * @return enabled TLS protocol list
    */
   public String enabledSslProtocolSuites() {
     return enabledSslProtocolSuites;
@@ -2687,9 +2687,9 @@ public class Configuration {
     }
 
     /**
-     * Set ssl protocol list to user (comma separated)
+     * Set TLS protocol list to use (comma separated). Default enables TLSv1.3 and TLSv1.2.
      *
-     * @param enabledSslProtocolSuites set possible SSL(TLS) protocol to use
+     * @param enabledSslProtocolSuites set possible TLS protocol to use
      * @return this {@link Builder}
      */
     public Builder enabledSslProtocolSuites(String enabledSslProtocolSuites) {

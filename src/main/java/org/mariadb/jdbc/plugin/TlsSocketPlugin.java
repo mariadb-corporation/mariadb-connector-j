@@ -82,28 +82,18 @@ public interface TlsSocketPlugin {
    * Returns a socket layered over an existing socket negotiating the use of SSL over an existing
    * socket.
    *
+   * <p>The peer host is the name the connection was made with (without trailing dot): JSSE uses it
+   * for SNI and, with {@code sslMode=verify-full}, for the standard endpoint identification
+   * (hostname verification) of the server certificate during the handshake.
+   *
    * @param socket existing socket
    * @param sslSocketFactory SSL socket factory
+   * @param peerHost host name of the server, or null when unknown (unix socket, pipe)
    * @return SSL socket
    * @throws IOException if any socket error occurs.
    */
-  default SSLSocket createSocket(Socket socket, SSLSocketFactory sslSocketFactory)
+  default SSLSocket createSocket(Socket socket, SSLSocketFactory sslSocketFactory, String peerHost)
       throws IOException {
-    return (SSLSocket)
-        sslSocketFactory.createSocket(
-            socket,
-            socket.getInetAddress() == null ? null : socket.getInetAddress().getHostAddress(),
-            socket.getPort(),
-            true);
+    return (SSLSocket) sslSocketFactory.createSocket(socket, peerHost, socket.getPort(), true);
   }
-
-  /**
-   * Host name verifier implementation.
-   *
-   * @param host hostname
-   * @param sslSession ssl session
-   * @param serverThreadId current server threadId
-   * @throws SSLException if verification fail
-   */
-  void verify(String host, SSLSession sslSession, long serverThreadId) throws SSLException;
 }

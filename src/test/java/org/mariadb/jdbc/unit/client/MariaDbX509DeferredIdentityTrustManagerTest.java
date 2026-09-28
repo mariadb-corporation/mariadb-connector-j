@@ -79,6 +79,15 @@ class MariaDbX509DeferredIdentityTrustManagerTest {
    */
   private static byte[] handshakeAndReadFingerprint(
       MariaDbX509DeferredIdentityTrustManager clientTm) throws Exception {
+    return handshakeAndReadFingerprint(clientTm, null);
+  }
+
+  /**
+   * @param peerHost when not null, the client socket is created with this peer host and JSSE
+   *     endpoint identification (hostname verification) is enabled, as sslMode=verify-full does
+   */
+  private static byte[] handshakeAndReadFingerprint(
+      MariaDbX509DeferredIdentityTrustManager clientTm, String peerHost) throws Exception {
     KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
     kmf.init(serverKeyStore(), PASSWORD);
     SSLContext serverCtx = SSLContext.getInstance("TLS");
@@ -112,9 +121,23 @@ class MariaDbX509DeferredIdentityTrustManagerTest {
     clientCtx.init(null, new TrustManager[] {clientTm}, null);
 
     try (SSLSocket client =
-        (SSLSocket)
-            clientCtx.getSocketFactory().createSocket(InetAddress.getLoopbackAddress(), port)) {
+        peerHost == null
+            ? (SSLSocket)
+                clientCtx.getSocketFactory().createSocket(InetAddress.getLoopbackAddress(), port)
+            : (SSLSocket)
+                clientCtx
+                    .getSocketFactory()
+                    .createSocket(
+                        new java.net.Socket(InetAddress.getLoopbackAddress(), port),
+                        peerHost,
+                        port,
+                        true)) {
       client.setSoTimeout(15_000);
+      if (peerHost != null) {
+        javax.net.ssl.SSLParameters params = client.getSSLParameters();
+        params.setEndpointIdentificationAlgorithm("HTTPS");
+        client.setSSLParameters(params);
+      }
       client.startHandshake();
       client.getOutputStream().write(1);
     } finally {
@@ -126,6 +149,33 @@ class MariaDbX509DeferredIdentityTrustManagerTest {
       throw new AssertionError("server side failed", serverError.get());
     }
     return clientTm.getFingerprint();
+  }
+
+  @Test
+  void hostnameMismatchRejectedWhenCertificateIsTrusted() throws Exception {
+    // chain validates, so the JSSE endpoint identification verdict is final
+    X509Certificate serverCert = (X509Certificate) serverKeyStore().getCertificate("test");
+    MariaDbX509DeferredIdentityTrustManager tm =
+        new MariaDbX509DeferredIdentityTrustManager(trustManagerTrusting(serverCert));
+    Throwable failure =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            Throwable.class, () -> handshakeAndReadFingerprint(tm, "wrong.host.example"));
+    while (failure.getCause() != null && !(failure instanceof javax.net.ssl.SSLException)) {
+      failure = failure.getCause();
+    }
+    assertNull(tm.getFingerprint(), "no fingerprint must be captured on an identity failure");
+  }
+
+  @Test
+  void hostnameMismatchDeferredForSelfSignedCertificate() throws Exception {
+    // chain does not validate: identity is proven by the fingerprint during authentication, so
+    // the hostname mismatch does not fail the handshake
+    byte[] expected = sha256((X509Certificate) serverKeyStore().getCertificate("test"));
+    byte[] fingerprint =
+        handshakeAndReadFingerprint(
+            new MariaDbX509DeferredIdentityTrustManager(systemTrustManager()),
+            "wrong.host.example");
+    assertArrayEquals(expected, fingerprint);
   }
 
   @Test

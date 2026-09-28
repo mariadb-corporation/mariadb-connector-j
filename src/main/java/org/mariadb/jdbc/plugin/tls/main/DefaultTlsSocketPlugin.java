@@ -18,20 +18,16 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.tls.HostnameVerifier;
 import org.mariadb.jdbc.client.tls.MariaDbX509DeferredIdentityTrustManager;
 import org.mariadb.jdbc.client.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.client.tls.MariaDbX509TrustingManager;
@@ -415,18 +411,6 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     } catch (NoSuchAlgorithmException e) {
       // unreachable, SHA-256 always exists
       return input;
-    }
-  }
-
-  @Override
-  public void verify(String host, SSLSession session, long serverThreadId) throws SSLException {
-    try {
-      Certificate[] certs = session.getPeerCertificates();
-      X509Certificate cert = (X509Certificate) certs[0];
-      HostnameVerifier.verify(host, cert, serverThreadId);
-    } catch (SSLException ex) {
-      logger.debug(ex.getMessage(), ex);
-      throw ex;
     }
   }
 

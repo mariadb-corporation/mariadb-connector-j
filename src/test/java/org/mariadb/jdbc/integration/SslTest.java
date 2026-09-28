@@ -338,6 +338,17 @@ public class SslTest extends Common {
   }
 
   @Test
+  public void defaultSslProtocols() throws SQLException {
+    // TLS 1.3 and 1.2 only, whatever the JSSE defaults
+    Assumptions.assumeTrue(!isMaxscale());
+    try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
+      String version = getSslVersion(con);
+      assertTrue(
+          "TLSv1.3".equals(version) || "TLSv1.2".equals(version), "unexpected version " + version);
+    }
+  }
+
+  @Test
   public void enabledSslProtocolSuites() throws SQLException {
     Assumptions.assumeTrue(!isMaxscale());
     try {
@@ -578,9 +589,9 @@ public class SslTest extends Common {
           () ->
               DriverManager.getConnection(
                   url + "&sslMode=VERIFY_FULL&serverSslCert=" + serverCertPath),
-          // the tail differs depending on whether the CN is consulted, which since CONJ-1327
-          // happens only when the SAN carries no entry of the host type
-          "DNS host \"localhost\" doesn't correspond to");
+          // JSSE endpoint identification (HTTPS algorithm) rejects the certificate during the
+          // handshake: "No name matching localhost found" or "No subject alternative names..."
+          "SSL hostname verification failed");
     }
 
     String urlPath = Path.of(serverCertPath).toUri().toURL().toString();

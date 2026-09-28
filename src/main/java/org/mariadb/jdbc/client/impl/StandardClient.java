@@ -20,6 +20,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -37,7 +38,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -235,15 +236,19 @@ public class StandardClient implements Client, AutoCloseable {
     TrustManager[] trustManagers =
         socketPlugin.getTrustManager(conf, context.getExceptionFactory(), hostAddress);
     SSLSocket sslSocket = createSslSocket(conf, socketPlugin, trustManagers);
-    configureSslSocket(sslSocket, conf);
-
-    handleSslHandshake(sslSocket, trustManagers);
-
-    if (requiresHostnameVerification(sslMode)) {
-      verifyHostname(sslSocket, socketPlugin);
-    }
-
+    configureSslSocket(sslSocket, conf, sslMode);
+    handleSslHandshake(sslSocket, trustManagers, sslMode);
     return sslSocket;
+  }
+
+  /**
+   * Host name the connection was made with, as JSSE expects it (no trailing dot), or null when
+   * connecting through a unix socket or a pipe.
+   */
+  private String peerHost() {
+    if (hostAddress == null || hostAddress.host == null) return null;
+    String host = IPUtility.stripTrailingDot(hostAddress.host);
+    return host.isEmpty() ? null : host;
   }
 
   private void updateThreadIds(InitialHandshakePacket handshake) {
@@ -278,57 +283,65 @@ public class StandardClient implements Client, AutoCloseable {
             socketPlugin.getKeyManager(conf, context.getExceptionFactory()),
             trustManagers,
             context.getExceptionFactory());
-    return socketPlugin.createSocket(socket, sslSocketFactory);
+    return socketPlugin.createSocket(socket, sslSocketFactory, peerHost());
   }
 
-  private void configureSslSocket(SSLSocket sslSocket, Configuration conf) throws SQLException {
+  private void configureSslSocket(SSLSocket sslSocket, Configuration conf, SslMode sslMode)
+      throws SQLException {
     enabledSslProtocolSuites(sslSocket, conf);
     enabledSslCipherSuites(sslSocket, conf);
     sslSocket.setUseClientMode(true);
+
+    String peerHost = peerHost();
+    SSLParameters params = sslSocket.getSSLParameters();
+    // RFC 6066 §3 : SNI carries the hostname without trailing dot, and never an IP literal
+    if (peerHost != null && !IPUtility.isInetAddress(peerHost)) {
+      params.setServerNames(List.of(new SNIHostName(peerHost)));
+    }
+    // verify-full: hostname verification is JSSE's standard endpoint identification, done by the
+    // trust manager during the handshake against the certificate SAN (or CN when there is no SAN)
+    if (sslMode == SslMode.VERIFY_FULL && peerHost != null) {
+      params.setEndpointIdentificationAlgorithm("HTTPS");
+    }
+    sslSocket.setSSLParameters(params);
   }
 
-  private void handleSslHandshake(SSLSocket sslSocket, TrustManager[] trustManagers)
-      throws IOException {
-    // Set SNI hostname
-    // RFC 6066 §3 : SNI carries the hostname without trailing dot, and never an IP literal. The
-    // trailing dot must be removed before the IP check, so that `10.0.0.1.` is recognized as an IP.
-    String sniHost =
-        this.hostAddress == null ? null : IPUtility.stripTrailingDot(this.hostAddress.host);
-    if (sniHost != null && !sniHost.isEmpty() && !IPUtility.isInetAddress(sniHost)) {
-      SSLParameters params = sslSocket.getSSLParameters();
-      SNIHostName serverName = new SNIHostName(sniHost);
-      params.setServerNames(List.of(serverName));
-      sslSocket.setSSLParameters(params);
+  private void handleSslHandshake(
+      SSLSocket sslSocket, TrustManager[] trustManagers, SslMode sslMode)
+      throws IOException, SQLException {
+    try {
+      sslSocket.startHandshake();
+    } catch (SSLHandshakeException e) {
+      if (sslMode == SslMode.VERIFY_FULL && isIdentityFailure(e)) {
+        throw context
+            .getExceptionFactory()
+            .create(
+                "SSL hostname verification failed : "
+                    + e.getMessage()
+                    + "\nThis verification can be disabled using the sslMode to VERIFY_CA "
+                    + "but won't prevent man-in-the-middle attacks anymore",
+                "08006",
+                e);
+      }
+      throw e;
     }
-
-    sslSocket.startHandshake();
     if (trustManagers.length > 0
         && trustManagers[0] instanceof MariaDbX509DeferredIdentityTrustManager manager) {
       certFingerprint = manager.getFingerprint();
     }
   }
 
-  private boolean requiresHostnameVerification(SslMode sslMode) {
-    return sslMode == SslMode.VERIFY_FULL && certFingerprint == null && hostAddress.host != null;
-  }
-
-  private void verifyHostname(SSLSocket sslSocket, TlsSocketPlugin socketPlugin)
-      throws SQLException {
-    try {
-      socketPlugin.verify(
-          IPUtility.stripTrailingDot(hostAddress.host),
-          sslSocket.getSession(),
-          context.getThreadId());
-    } catch (SSLException ex) {
-      throw context
-          .getExceptionFactory()
-          .create(
-              "SSL hostname verification failed : "
-                  + ex.getMessage()
-                  + "\nThis verification can be disabled using the sslMode to VERIFY_CA "
-                  + "but won't prevent man-in-the-middle attacks anymore",
-              "08006");
+  /**
+   * JSSE reports an endpoint identification failure as a CertificateException in the cause chain.
+   */
+  private static boolean isIdentityFailure(SSLHandshakeException e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if (t instanceof CertificateException && t.getMessage() != null) {
+        String msg = t.getMessage();
+        return msg.startsWith("No subject alternative") || msg.startsWith("No name matching");
+      }
     }
+    return false;
   }
 
   private void configureTimeout() throws SQLException {
