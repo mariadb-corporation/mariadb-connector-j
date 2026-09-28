@@ -429,7 +429,7 @@ public class Configuration {
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
     this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
-    this.cacheCodecs = builder.cacheCodecs != null && builder.cacheCodecs;
+    this.cacheCodecs = builder.cacheCodecs == null || builder.cacheCodecs;
     this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
     this.disconnectOnExpiredPasswords =
         builder.disconnectOnExpiredPasswords == null || builder.disconnectOnExpiredPasswords;
@@ -3541,7 +3541,9 @@ public class Configuration {
     }
 
     /**
-     * Permit caching codecs
+     * Permit caching the codec list loaded through ServiceLoader, once per JVM instead of on each
+     * connection. Default true; disable only when codecs are registered dynamically after the first
+     * connection.
      *
      * @param cacheCodecs can codec load be cached
      * @return this {@link Builder}
