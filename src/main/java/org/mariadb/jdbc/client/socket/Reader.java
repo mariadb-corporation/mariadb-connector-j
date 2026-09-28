@@ -6,6 +6,9 @@ package org.mariadb.jdbc.client.socket;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import org.mariadb.jdbc.Configuration;
@@ -20,6 +23,8 @@ import org.mariadb.jdbc.util.log.Loggers;
 /** Packet reader */
 public class Reader {
 
+  private static final VarHandle INT_LE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
   private static final int REUSABLE_BUFFER_LENGTH = 8192;
   private static final int MAX_PACKET_SIZE = 0xffffff;
   private static final Logger logger = Loggers.getLogger(Reader.class);
@@ -368,6 +373,7 @@ public class Reader {
       off += count;
     } while (remaining > 0);
 
-    return (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+    // 3-byte little-endian length, the 4th byte is the sequence
+    return (int) INT_LE.get(header, 0) & 0xffffff;
   }
 }

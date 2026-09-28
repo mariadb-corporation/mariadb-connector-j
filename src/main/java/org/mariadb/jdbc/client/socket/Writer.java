@@ -5,6 +5,9 @@ package org.mariadb.jdbc.client.socket;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.mariadb.jdbc.HostAddress;
@@ -20,6 +23,15 @@ public class Writer {
 
   /** initial buffer size */
   public static final int SMALL_BUFFER_SIZE = 8192;
+
+  // multi-byte integers are written through VarHandle views: one bounds-checked intrinsic access
+  // instead of a shift per byte (the protocol is little-endian)
+  private static final VarHandle SHORT_LE =
+      MethodHandles.byteArrayViewVarHandle(short[].class, ByteOrder.LITTLE_ENDIAN);
+  private static final VarHandle INT_LE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
+  private static final VarHandle LONG_LE =
+      MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
 
   private static final Logger logger = Loggers.getLogger(Writer.class);
   private static final byte QUOTE = (byte) '\'';
@@ -132,12 +144,12 @@ public class Writer {
   public void writeShort(short value) throws IOException {
     if (2 > buf.length - pos) {
       // not enough space remaining
-      writeBytes(new byte[] {(byte) value, (byte) (value >> 8)}, 0, 2);
+      byte[] arr = new byte[2];
+      SHORT_LE.set(arr, 0, value);
+      writeBytes(arr, 0, 2);
       return;
     }
-
-    buf[pos] = (byte) value;
-    buf[pos + 1] = (byte) (value >> 8);
+    SHORT_LE.set(buf, pos, value);
     pos += 2;
   }
 
@@ -151,18 +163,11 @@ public class Writer {
     if (4 > buf.length - pos) {
       // not enough space remaining
       byte[] arr = new byte[4];
-      arr[0] = (byte) value;
-      arr[1] = (byte) (value >> 8);
-      arr[2] = (byte) (value >> 16);
-      arr[3] = (byte) (value >> 24);
+      INT_LE.set(arr, 0, value);
       writeBytes(arr, 0, 4);
       return;
     }
-
-    buf[pos] = (byte) value;
-    buf[pos + 1] = (byte) (value >> 8);
-    buf[pos + 2] = (byte) (value >> 16);
-    buf[pos + 3] = (byte) (value >> 24);
+    INT_LE.set(buf, pos, value);
     pos += 4;
   }
 
@@ -176,26 +181,11 @@ public class Writer {
     if (8 > buf.length - pos) {
       // not enough space remaining
       byte[] arr = new byte[8];
-      arr[0] = (byte) value;
-      arr[1] = (byte) (value >> 8);
-      arr[2] = (byte) (value >> 16);
-      arr[3] = (byte) (value >> 24);
-      arr[4] = (byte) (value >> 32);
-      arr[5] = (byte) (value >> 40);
-      arr[6] = (byte) (value >> 48);
-      arr[7] = (byte) (value >> 56);
+      LONG_LE.set(arr, 0, value);
       writeBytes(arr, 0, 8);
       return;
     }
-
-    buf[pos] = (byte) value;
-    buf[pos + 1] = (byte) (value >> 8);
-    buf[pos + 2] = (byte) (value >> 16);
-    buf[pos + 3] = (byte) (value >> 24);
-    buf[pos + 4] = (byte) (value >> 32);
-    buf[pos + 5] = (byte) (value >> 40);
-    buf[pos + 6] = (byte) (value >> 48);
-    buf[pos + 7] = (byte) (value >> 56);
+    LONG_LE.set(buf, pos, value);
     pos += 8;
   }
 
@@ -282,36 +272,28 @@ public class Writer {
         // not enough space remaining
         byte[] arr = new byte[3];
         arr[0] = (byte) 0xfc;
-        arr[1] = (byte) length;
-        arr[2] = (byte) (length >>> 8);
+        SHORT_LE.set(arr, 1, (short) length);
         writeBytes(arr, 0, 3);
         return;
       }
 
       buf[pos] = (byte) 0xfc;
-      buf[pos + 1] = (byte) length;
-      buf[pos + 2] = (byte) (length >>> 8);
+      SHORT_LE.set(buf, pos + 1, (short) length);
       pos += 3;
       return;
     }
 
     if (length < 0xFFFFFF) {
 
+      // 0xfd then the 3-byte length: exactly one little-endian int
       if (4 > buf.length - pos) {
         // not enough space remaining
         byte[] arr = new byte[4];
-        arr[0] = (byte) 0xfd;
-        arr[1] = (byte) length;
-        arr[2] = (byte) (length >>> 8);
-        arr[3] = (byte) (length >>> 16);
+        INT_LE.set(arr, 0, 0xfd | ((int) length << 8));
         writeBytes(arr, 0, 4);
         return;
       }
-
-      buf[pos] = (byte) 0xfd;
-      buf[pos + 1] = (byte) length;
-      buf[pos + 2] = (byte) (length >>> 8);
-      buf[pos + 3] = (byte) (length >>> 16);
+      INT_LE.set(buf, pos, 0xfd | ((int) length << 8));
       pos += 4;
       return;
     }
@@ -320,27 +302,13 @@ public class Writer {
       // not enough space remaining
       byte[] arr = new byte[9];
       arr[0] = (byte) 0xfe;
-      arr[1] = (byte) length;
-      arr[2] = (byte) (length >>> 8);
-      arr[3] = (byte) (length >>> 16);
-      arr[4] = (byte) (length >>> 24);
-      arr[5] = (byte) (length >>> 32);
-      arr[6] = (byte) (length >>> 40);
-      arr[7] = (byte) (length >>> 48);
-      arr[8] = (byte) (length >>> 56);
+      LONG_LE.set(arr, 1, length);
       writeBytes(arr, 0, 9);
       return;
     }
 
     buf[pos] = (byte) 0xfe;
-    buf[pos + 1] = (byte) length;
-    buf[pos + 2] = (byte) (length >>> 8);
-    buf[pos + 3] = (byte) (length >>> 16);
-    buf[pos + 4] = (byte) (length >>> 24);
-    buf[pos + 5] = (byte) (length >>> 32);
-    buf[pos + 6] = (byte) (length >>> 40);
-    buf[pos + 7] = (byte) (length >>> 48);
-    buf[pos + 8] = (byte) (length >>> 56);
+    LONG_LE.set(buf, pos + 1, length);
     pos += 9;
   }
 
@@ -858,10 +826,8 @@ public class Writer {
    */
   protected void writeSocket(boolean commandEnd) throws IOException {
     if (pos > 4) {
-      buf[0] = (byte) (pos - 4);
-      buf[1] = (byte) ((pos - 4) >>> 8);
-      buf[2] = (byte) ((pos - 4) >>> 16);
-      buf[3] = this.sequence.incrementAndGet();
+      // header: 3-byte little-endian payload length then the sequence byte
+      INT_LE.set(buf, 0, (pos - 4) | ((this.sequence.incrementAndGet() & 0xff) << 24));
       checkMaxAllowedLength(pos - 4);
       out.write(buf, 0, pos);
       if (commandEnd) out.flush();

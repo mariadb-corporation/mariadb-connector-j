@@ -6,6 +6,9 @@ package org.mariadb.jdbc.client.socket.impl;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.util.zip.DeflaterOutputStream;
 import org.mariadb.jdbc.client.util.MutableByte;
 
@@ -15,6 +18,8 @@ import org.mariadb.jdbc.client.util.MutableByte;
  * packet.
  */
 public class CompressOutputStream extends OutputStream {
+  private static final VarHandle INT_LE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
   private final OutputStream out;
   private final MutableByte sequence;
@@ -55,6 +60,16 @@ public class CompressOutputStream extends OutputStream {
    * @throws IOException if an I/O error occurs. In particular, an <code>IOException</code> is
    *     thrown if the output stream is closed.
    */
+  /**
+   * Fill the 7-byte compressed packet header: 3-byte little-endian compressed length, sequence
+   * byte, 3-byte little-endian uncompressed length (0 when not compressed).
+   */
+  private void writeHeader(int compressedLength, int uncompressedLength) {
+    int seq = sequence.incrementAndGet() & 0xff;
+    INT_LE.set(header, 0, compressedLength | (seq << 24));
+    INT_LE.set(header, 3, seq | (uncompressedLength << 8));
+  }
+
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
     if (len + ((longPacketBuffer != null) ? longPacketBuffer.length : 0) < MIN_COMPRESSION_SIZE) {
@@ -63,13 +78,7 @@ public class CompressOutputStream extends OutputStream {
       // *******************************************************************************
 
       if (longPacketBuffer != null) {
-        header[0] = (byte) (len + longPacketBuffer.length);
-        header[1] = (byte) ((len + longPacketBuffer.length) >>> 8);
-        header[2] = 0;
-        header[3] = sequence.incrementAndGet();
-        header[4] = 0;
-        header[5] = 0;
-        header[6] = 0;
+        writeHeader(len + longPacketBuffer.length, 0);
         out.write(header, 0, 7);
         out.write(longPacketBuffer, 0, longPacketBuffer.length);
         out.write(b, off, len);
@@ -77,13 +86,7 @@ public class CompressOutputStream extends OutputStream {
         return;
       }
 
-      header[0] = (byte) len;
-      header[1] = (byte) (len >>> 8);
-      header[2] = 0;
-      header[3] = sequence.incrementAndGet();
-      header[4] = 0;
-      header[5] = 0;
-      header[6] = 0;
+      writeHeader(len, 0);
       out.write(header, 0, 7);
       out.write(b, off, len);
 
@@ -121,13 +124,7 @@ public class CompressOutputStream extends OutputStream {
 
         int compressLen = compressedBytes.length;
 
-        header[0] = (byte) compressLen;
-        header[1] = (byte) (compressLen >>> 8);
-        header[2] = (byte) (compressLen >>> 16);
-        header[3] = sequence.incrementAndGet();
-        header[4] = (byte) sent;
-        header[5] = (byte) (sent >>> 8);
-        header[6] = (byte) (sent >>> 16);
+        writeHeader(compressLen, sent);
 
         out.write(header, 0, 7);
         out.write(compressedBytes, 0, compressLen);
