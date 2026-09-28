@@ -3800,8 +3800,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "0", "0", "10"
           });
 
-      if (connection.getContext().getVersion().isMariaDBServer()
-          && connection.getContext().getVersion().versionGreaterOrEqual(11, 7, 1)) {
+      if (connection.getContext().getVersion().versionGreaterOrEqual(11, 7, 1)) {
         datalist.add(
             new String[] {
               "VECTOR",
@@ -3823,6 +3822,30 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
               "0",
               "10"
             });
+
+        if (connection.getContext().getVersion().versionGreaterOrEqual(12, 3, 1)) {
+          datalist.add(
+              new String[] {
+                "XMLTYPE",
+                String.valueOf(Types.SQLXML),
+                "2147483647",
+                "'",
+                "'",
+                "",
+                "1",
+                "\1",
+                "3",
+                "\0",
+                "\0",
+                "\0",
+                "XMLTYPE",
+                "0",
+                "0",
+                "0",
+                "0",
+                "10"
+              });
+        }
       }
       data = new String[datalist.size()][];
       datalist.sort(Comparator.comparingInt(m -> Integer.parseInt(m[1])));

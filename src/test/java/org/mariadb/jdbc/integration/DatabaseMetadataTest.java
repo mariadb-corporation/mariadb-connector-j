@@ -2214,11 +2214,19 @@ public class DatabaseMetadataTest extends Common {
       }
     }
 
+    if (sharedConn.getContext().getVersion().isMariaDBServer()
+        && sharedConn.getContext().getVersion().versionGreaterOrEqual(12, 3, 1)) {
+      String[] withXml = java.util.Arrays.copyOf(expectedTypes, expectedTypes.length + 1);
+      withXml[expectedTypes.length] = "XMLTYPE";
+      expectedTypes = withXml;
+    }
+
     int i = 0;
     ResultSet rs = sharedConn.getMetaData().getTypeInfo();
     while (rs.next()) {
       assertEquals(expectedTypes[i++], rs.getString(1));
     }
+    assertEquals(expectedTypes.length, i);
   }
 
   @Test

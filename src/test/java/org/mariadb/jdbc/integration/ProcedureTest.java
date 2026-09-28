@@ -363,9 +363,9 @@ public class ProcedureTest extends Common {
         () -> callableStatement.getNClob(2),
         "Data type INTEGER cannot be decoded as Clob");
     Common.assertThrowsContains(
-        SQLFeatureNotSupportedException.class,
+        SQLDataException.class,
         () -> callableStatement.getSQLXML(2),
-        "SQLXML are not supported");
+        "Data type INTEGER cannot be decoded as SQLXML");
     assertEquals("6", callableStatement.getNString(2));
     Common.assertThrowsContains(
         SQLDataException.class,
@@ -475,9 +475,9 @@ public class ProcedureTest extends Common {
         () -> callableStatement.getNClob("t2"),
         "Data type INTEGER cannot be decoded as Clob");
     Common.assertThrowsContains(
-        SQLFeatureNotSupportedException.class,
+        SQLDataException.class,
         () -> callableStatement.getSQLXML("t2"),
-        "SQLXML are not supported");
+        "Data type INTEGER cannot be decoded as SQLXML");
     assertEquals("6", callableStatement.getNString("t2"));
     Common.assertThrowsContains(
         SQLDataException.class,
@@ -1097,14 +1097,8 @@ public class ProcedureTest extends Common {
           SQLFeatureNotSupportedException.class,
           () -> callableStatement.setRowId("t1", null),
           "RowId parameter are not supported");
-      Common.assertThrowsContains(
-          SQLFeatureNotSupportedException.class,
-          () -> callableStatement.setSQLXML(1, null),
-          "SQLXML parameter are not supported");
-      Common.assertThrowsContains(
-          SQLFeatureNotSupportedException.class,
-          () -> callableStatement.setSQLXML("t1", null),
-          "SQLXML parameter are not supported");
+      callableStatement.setSQLXML(1, null);
+      callableStatement.setSQLXML("t1", null);
     }
   }
 

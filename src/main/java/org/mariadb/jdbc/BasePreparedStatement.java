@@ -66,6 +66,7 @@ import org.mariadb.jdbc.plugin.codec.IntCodec;
 import org.mariadb.jdbc.plugin.codec.LongCodec;
 import org.mariadb.jdbc.plugin.codec.ReaderCodec;
 import org.mariadb.jdbc.plugin.codec.ShortCodec;
+import org.mariadb.jdbc.plugin.codec.SqlXmlCodec;
 import org.mariadb.jdbc.plugin.codec.StreamCodec;
 import org.mariadb.jdbc.plugin.codec.StringCodec;
 import org.mariadb.jdbc.plugin.codec.TimeCodec;
@@ -1087,7 +1088,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory().notSupported("SQLXML parameter are not supported");
+    checkIndex(parameterIndex);
+    parameters.set(parameterIndex - 1, new Parameter<>(SqlXmlCodec.INSTANCE, xmlObject));
   }
 
   private ExceptionFactory exceptionFactory() {
@@ -1150,6 +1152,10 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     if (targetSqlType != null) {
       if (trySetArrayType(parameterIndex, obj, targetSqlType)) return;
       checkUnsupportedTypes(targetSqlType);
+      if (targetSqlType == Types.SQLXML && obj instanceof SQLXML xml) {
+        setSQLXML(parameterIndex, xml);
+        return;
+      }
       if (trySetStringOrCharacter(parameterIndex, obj, targetSqlType)) return;
       if (trySetNumber(parameterIndex, obj, targetSqlType)) return;
       if (trySetByteArray(parameterIndex, obj, targetSqlType, scaleOrLength)) return;
@@ -1189,7 +1195,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       case Types.JAVA_OBJECT:
       case Types.REF:
       case Types.ROWID:
-      case Types.SQLXML:
       case Types.STRUCT:
         throw exceptionFactory().notSupported("Type not supported");
     }

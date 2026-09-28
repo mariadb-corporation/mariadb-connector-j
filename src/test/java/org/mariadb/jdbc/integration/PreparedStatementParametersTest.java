@@ -425,10 +425,6 @@ public class PreparedStatementParametersTest extends Common {
           SQLException.class,
           () -> preparedStatement.setRowId(1, null),
           "RowId parameter are not supported");
-      Common.assertThrowsContains(
-          SQLException.class,
-          () -> preparedStatement.setSQLXML(1, null),
-          "SQLXML parameter are not supported");
     }
   }
 

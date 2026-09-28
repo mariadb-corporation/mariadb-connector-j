@@ -911,11 +911,9 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   public void getSQLXML(ResultSet rs) {
     Common.assertThrowsContains(
-        SQLException.class, () -> rs.getSQLXML(1), "Method ResultSet.getSQLXML not supported");
+        SQLException.class, () -> rs.getSQLXML(1), "cannot be decoded as SQLXML");
     Common.assertThrowsContains(
-        SQLException.class,
-        () -> rs.getSQLXML("t1alias"),
-        "Method ResultSet.getSQLXML not supported");
+        SQLException.class, () -> rs.getSQLXML("t1alias"), "cannot be decoded as SQLXML");
   }
 
   @Test

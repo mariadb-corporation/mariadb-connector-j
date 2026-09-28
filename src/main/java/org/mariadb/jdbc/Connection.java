@@ -706,7 +706,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public SQLXML createSQLXML() throws SQLException {
-    throw exceptionFactory.notSupported("SQLXML type is not supported");
+    return new MariaDbSqlXml();
   }
 
   private void checkNotClosed() throws SQLException {

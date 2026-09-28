@@ -8,9 +8,11 @@ import java.sql.Date;
 import java.sql.SQLDataException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.column.UuidColumn;
+import org.mariadb.jdbc.client.column.XmlColumn;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -52,6 +54,11 @@ public interface ColumnDecoder extends Column {
    * @param buf packet
    * @return column
    */
+  /** extended type names (MARIADB_CLIENT_EXTENDED_METADATA) mapped to a dedicated column */
+  byte[] EXT_TYPE_UUID = {'u', 'u', 'i', 'd'};
+
+  byte[] EXT_TYPE_XML = {'x', 'm', 'l'};
+
   static ColumnDecoder decode(ReadableByteBuf buf) {
     // skip first strings
     int[] stringPos = new int[5];
@@ -93,17 +100,19 @@ public interface ColumnDecoder extends Column {
     DataType dataType = DataType.of(buf.readUnsignedByte());
     int flags = buf.readUnsignedShort();
     byte decimals = buf.readByte();
+
     DataType.ColumnConstructor constructor =
-        (extTypeName != null
-                && extTypeName.length == 4
-                && extTypeName[0] == 'u'
-                && extTypeName[1] == 'u'
-                && extTypeName[2] == 'i'
-                && extTypeName[3] == 'd')
-            ? UuidColumn::new
-            : (flags & ColumnFlags.UNSIGNED) == 0
-                ? dataType.getColumnConstructor()
-                : dataType.getUnsignedColumnConstructor();
+        (flags & ColumnFlags.UNSIGNED) == 0
+            ? dataType.getColumnConstructor()
+            : dataType.getUnsignedColumnConstructor();
+
+    if (extTypeName != null) {
+      if (Arrays.equals(extTypeName, EXT_TYPE_UUID)) {
+        constructor = UuidColumn::new;
+      } else if (Arrays.equals(extTypeName, EXT_TYPE_XML)) {
+        constructor = XmlColumn::new;
+      }
+    }
     return constructor.create(
         buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }

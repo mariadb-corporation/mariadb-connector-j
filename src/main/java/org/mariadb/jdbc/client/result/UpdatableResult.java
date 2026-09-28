@@ -860,6 +860,17 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
+  public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
+    checkUpdatable(columnIndex);
+    parameters.set(columnIndex - 1, new Parameter<>(SqlXmlCodec.INSTANCE, xmlObject));
+  }
+
+  @Override
+  public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
+    updateSQLXML(findColumn(columnLabel), xmlObject);
+  }
+
+  @Override
   public void updateClob(String columnLabel, Clob x) throws SQLException {
     updateClob(findColumn(columnLabel), x);
   }

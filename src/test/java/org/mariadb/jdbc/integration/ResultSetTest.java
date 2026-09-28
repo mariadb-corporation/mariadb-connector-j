@@ -121,8 +121,8 @@ public class ResultSetTest extends Common {
     Common.assertThrowsContains(ns, () -> rs.updateArray("t1", null), "Array are not supported");
     Common.assertThrowsContains(ns, () -> rs.updateRowId(1, null), "RowId are not supported");
     Common.assertThrowsContains(ns, () -> rs.updateRowId("t1", null), "RowId are not supported");
-    Common.assertThrowsContains(ns, () -> rs.updateSQLXML(1, null), "SQLXML not supported");
-    Common.assertThrowsContains(ns, () -> rs.updateSQLXML("t1", null), "SQLXML not supported");
+    Common.assertThrowsContains(ns, () -> rs.updateSQLXML(1, null), "CONCUR_READ_ONLY");
+    Common.assertThrowsContains(ns, () -> rs.updateSQLXML("t1", null), "CONCUR_READ_ONLY");
 
     Common.assertThrowsContains(ns, () -> rs.updateNCharacterStream(1, null, 0), NOT_SUPPORTED);
     Common.assertThrowsContains(ns, () -> rs.updateNCharacterStream("t1", null, 0), NOT_SUPPORTED);

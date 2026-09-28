@@ -1213,10 +1213,6 @@ public class UpdateResultSetTest extends Common {
       Common.assertThrowsContains(
           SQLException.class, () -> rs.updateRowId("t1", null), "not supported");
       Common.assertThrowsContains(
-          SQLException.class, () -> rs.updateSQLXML(2, null), "not supported");
-      Common.assertThrowsContains(
-          SQLException.class, () -> rs.updateSQLXML("t1", null), "not supported");
-      Common.assertThrowsContains(
           SQLException.class, rs::deleteRow, "Cannot call deleteRow() when inserting a new row");
       Common.assertThrowsContains(
           SQLException.class, rs::updateRow, "Cannot call updateRow() when inserting a new row");

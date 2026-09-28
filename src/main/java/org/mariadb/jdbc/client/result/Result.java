@@ -39,6 +39,7 @@ import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 import org.mariadb.jdbc.plugin.codec.ClobCodec;
 import org.mariadb.jdbc.plugin.codec.FloatArrayCodec;
 import org.mariadb.jdbc.plugin.codec.ReaderCodec;
+import org.mariadb.jdbc.plugin.codec.SqlXmlCodec;
 import org.mariadb.jdbc.plugin.codec.StreamCodec;
 import org.mariadb.jdbc.plugin.codec.StringCodec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
@@ -1515,22 +1516,30 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public SQLXML getSQLXML(int columnIndex) throws SQLException {
-    throw exceptionFactory.notSupported("Method ResultSet.getSQLXML not supported");
+    checkIndex(columnIndex);
+    fieldLength.set(
+        rowDecoder.setPosition(
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
+      return null;
+    }
+    return rowDecoder.decode(
+        SqlXmlCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
   }
 
   @Override
   public SQLXML getSQLXML(String columnLabel) throws SQLException {
-    throw exceptionFactory.notSupported("Method ResultSet.getSQLXML not supported");
+    return getSQLXML(findColumn(columnLabel));
   }
 
   @Override
   public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory.notSupported("Method ResultSet.updateSQLXML not supported");
+    throw exceptionFactory.notSupported("Not supported when using CONCUR_READ_ONLY concurrency");
   }
 
   @Override
   public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory.notSupported("Method ResultSet.updateSQLXML not supported");
+    throw exceptionFactory.notSupported("Not supported when using CONCUR_READ_ONLY concurrency");
   }
 
   @Override

@@ -2053,7 +2053,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory().notSupported("SQLXML parameter are not supported");
+    setSQLXML(nameToIndex(parameterName), xmlObject);
   }
 
   /**
@@ -2069,7 +2069,9 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
-    throw exceptionFactory().notSupported("SQLXML are not supported");
+    checkNotClosed();
+    checkOutputResult();
+    return outputResult.getSQLXML(idxToOutIdx(parameterIndex));
   }
 
   /**
@@ -2085,7 +2087,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public SQLXML getSQLXML(String parameterName) throws SQLException {
-    throw exceptionFactory().notSupported("SQLXML are not supported");
+    return getSQLXML(nameToIndex(parameterName));
   }
 
   /**
