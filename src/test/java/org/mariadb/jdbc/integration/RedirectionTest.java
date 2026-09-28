@@ -72,6 +72,27 @@ public class RedirectionTest extends Common {
   }
 
   @Test
+  void redirectionWithoutPermitRedirect() throws Exception {
+    Assumptions.assumeTrue(!isMaxscale());
+    Connection connection = createProxyCon(HaMode.NONE, "");
+    Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
+    Statement stmt = connection.createStatement();
+    try {
+      stmt.execute(String.format("set @@session.redirect_url=\"mariadb://%s:%s\"", hostname, port));
+    } catch (SQLException e) {
+      // if server doesn't support redirection
+    }
+    ResultSet rs = stmt.executeQuery("SELECT 1");
+    Assertions.assertTrue(rs.next());
+    Assertions.assertEquals(1, rs.getInt(1));
+
+    // permitRedirect not set and not verify-full: no redirection
+    Assertions.assertEquals("localhost:" + proxy.getLocalPort(), connection.__test_host());
+    connection.close();
+    proxy.stop();
+  }
+
+  @Test
   void connectionRedirection() throws Exception {
     // need maxscale 23.08+
     Assumptions.assumeTrue(getMaxScaleVersion() >= 230800);

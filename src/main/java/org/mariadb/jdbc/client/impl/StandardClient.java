@@ -629,9 +629,8 @@ public class StandardClient implements Client, AutoCloseable {
             }
           }
 
-          if (context.getRedirectUrl() != null
-              && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
-                  || conf.permitRedirect())) redirect(context.getRedirectUrl());
+          if (context.getRedirectUrl() != null && isRedirectPermitted())
+            redirect(context.getRedirectUrl());
 
           break authentication_loop;
 
@@ -677,9 +676,7 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   public void redirect(String redirectUrl) {
-    if (redirectUrl != null
-        && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
-            || conf.permitRedirect())) {
+    if (redirectUrl != null && isRedirectPermitted()) {
       // redirect only if not in a transaction
       if ((this.context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0) {
         this.context.setRedirectUrl(null);
@@ -747,6 +744,12 @@ public class StandardClient implements Client, AutoCloseable {
     } else {
       this.context.setRedirectUrl(null);
     }
+  }
+
+  /** Redirect if permitRedirect is true or, when not set, if sslMode is verify-full. */
+  private boolean isRedirectPermitted() {
+    final Boolean permitRedirect = conf.permitRedirect();
+    return permitRedirect != null ? permitRedirect : conf.sslMode() == SslMode.VERIFY_FULL;
   }
 
   /**
