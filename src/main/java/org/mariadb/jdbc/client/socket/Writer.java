@@ -35,7 +35,6 @@ public class Writer {
 
   private static final Logger logger = Loggers.getLogger(Writer.class);
   private static final byte QUOTE = (byte) '\'';
-  private static final byte DBL_QUOTE = (byte) '"';
   private static final byte ZERO_BYTE = (byte) '\0';
   private static final byte BACKSLASH = (byte) '\\';
   private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
@@ -324,11 +323,17 @@ public class Writer {
     }
   }
 
+  /**
+   * Above this length the JDK UTF-8 encoder (intrinsic, vectorized for Latin-1 strings) is faster
+   * than the char loop even with its intermediate array; below it the allocation dominates.
+   */
+  private static final int JDK_ENCODER_THRESHOLD = 32;
+
   public void writeString(String str) throws IOException {
     int charsLength = str.length();
 
-    // not enough space remaining
-    if (charsLength * 3 >= buf.length - pos) {
+    // long string, or not enough space remaining
+    if (charsLength >= JDK_ENCODER_THRESHOLD || charsLength * 3 >= buf.length - pos) {
       byte[] arr = str.getBytes(StandardCharsets.UTF_8);
       writeBytes(arr, 0, arr.length);
       return;
@@ -403,7 +408,10 @@ public class Writer {
   }
 
   /**
-   * Write string to socket.
+   * Write a string as the content of a single-quoted literal, escaped as the server lexer expects:
+   * with NO_BACKSLASH_ESCAPES only the quote is doubled; otherwise the quote, the backslash (which
+   * would start an escape sequence) and NUL are backslash-escaped. A double quote needs no escaping
+   * inside a single-quoted literal.
    *
    * @param str string
    * @param noBackslashEscapes escape method
@@ -417,6 +425,18 @@ public class Writer {
     if (charsLength * 3 >= buf.length - pos) {
       byte[] arr = str.getBytes(StandardCharsets.UTF_8);
       writeBytesEscaped(arr, arr.length, noBackslashEscapes);
+      return;
+    }
+
+    // Long string with nothing to escape, the usual case: the intrinsic indexOf scans cost a few
+    // nanoseconds, then the JDK encoder (intrinsic, a memcpy for ASCII) replaces the char loop.
+    // Strings that do need escaping keep the combined encode-and-escape loop below: it beats any
+    // "encode, then escape the bytes" variant on non-ASCII text, and only loses on pure ASCII.
+    if (charsLength >= JDK_ENCODER_THRESHOLD
+        && str.indexOf(QUOTE) < 0
+        && (noBackslashEscapes || (str.indexOf(BACKSLASH) < 0 && str.indexOf(ZERO_BYTE) < 0))) {
+      byte[] arr = str.getBytes(StandardCharsets.UTF_8);
+      writeBytes(arr, 0, arr.length);
       return;
     }
 
@@ -444,7 +464,7 @@ public class Writer {
       for (;
           charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
           charsOffset++) {
-        if (currChar == BACKSLASH || currChar == QUOTE || currChar == 0 || currChar == DBL_QUOTE) {
+        if (currChar == BACKSLASH || currChar == QUOTE || currChar == 0) {
           buf[pos++] = BACKSLASH;
         }
         buf[pos++] = (byte) currChar;
@@ -459,10 +479,7 @@ public class Writer {
           if (currChar == QUOTE) {
             buf[pos++] = QUOTE;
           }
-        } else if (currChar == BACKSLASH
-            || currChar == QUOTE
-            || currChar == ZERO_BYTE
-            || currChar == DBL_QUOTE) {
+        } else if (currChar == BACKSLASH || currChar == QUOTE || currChar == ZERO_BYTE) {
           buf[pos++] = BACKSLASH;
         }
         buf[pos++] = (byte) currChar;
@@ -550,10 +567,7 @@ public class Writer {
             }
           } else {
             for (int i = 0; i < len; i++) {
-              if (bytes[i] == QUOTE
-                  || bytes[i] == BACKSLASH
-                  || bytes[i] == DBL_QUOTE
-                  || bytes[i] == ZERO_BYTE) {
+              if (bytes[i] == QUOTE || bytes[i] == BACKSLASH || bytes[i] == ZERO_BYTE) {
                 buf[pos++] = '\\';
                 if (buf.length <= pos) {
                   writeSocket(false);
@@ -580,10 +594,7 @@ public class Writer {
       }
     } else {
       for (int i = 0; i < len; i++) {
-        if (bytes[i] == QUOTE
-            || bytes[i] == BACKSLASH
-            || bytes[i] == DBL_QUOTE
-            || bytes[i] == ZERO_BYTE) {
+        if (bytes[i] == QUOTE || bytes[i] == BACKSLASH || bytes[i] == ZERO_BYTE) {
           buf[pos++] = BACKSLASH; // add escape slash
         }
         buf[pos++] = bytes[i];
