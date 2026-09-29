@@ -105,7 +105,9 @@ public class NamedPipeSocket extends Socket {
           }
 
           @Override
-          public void write(int value) {}
+          public void write(int value) throws IOException {
+            file.write(value);
+          }
         };
   }
 
@@ -129,6 +131,7 @@ public class NamedPipeSocket extends Socket {
     // do nothing
   }
 
+  /** No read timeout on a pipe handle: the socketTimeout option does not apply to named pipes. */
   @Override
   public void setSoTimeout(int timeout) {
     // do nothing

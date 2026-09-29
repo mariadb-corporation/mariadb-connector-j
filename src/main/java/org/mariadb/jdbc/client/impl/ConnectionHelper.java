@@ -16,9 +16,9 @@ import java.util.Arrays;
 import java.util.List;
 import javax.net.SocketFactory;
 import javax.net.ssl.*;
+import jdk.net.ExtendedSocketOptions;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.SocketHelper;
 import org.mariadb.jdbc.client.socket.impl.NamedPipeSocket;
 import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
 import org.mariadb.jdbc.export.SslMode;
@@ -142,7 +142,26 @@ public final class ConnectionHelper {
     Socket socket;
     try {
       socket = createSocket(conf, hostAddress);
-      SocketHelper.setSocketOption(conf, socket);
+      socket.setTcpNoDelay(true);
+      socket.setSoTimeout(conf.socketTimeout());
+      if (conf.tcpKeepAlive()) {
+        socket.setKeepAlive(true);
+      }
+      if (conf.tcpAbortiveClose()) {
+        socket.setSoLinger(true, 0);
+      }
+      if (conf.tcpKeepIdle() > 0) {
+        socket.setOption(ExtendedSocketOptions.TCP_KEEPIDLE, conf.tcpKeepIdle());
+      }
+      if (conf.tcpKeepCount() > 0) {
+        socket.setOption(ExtendedSocketOptions.TCP_KEEPCOUNT, conf.tcpKeepCount());
+      }
+      if (conf.tcpKeepInterval() > 0) {
+        socket.setOption(ExtendedSocketOptions.TCP_KEEPINTERVAL, conf.tcpKeepInterval());
+      }
+      if (conf.localSocketAddress() != null) {
+        socket.bind(new InetSocketAddress(conf.localSocketAddress(), 0));
+      }
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
             hostAddress.pipe == null && hostAddress.localSocket == null
