@@ -12,14 +12,10 @@ import java.net.StandardProtocolFamily;
 import java.net.UnixDomainSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Unix domain socket, built on the JDK unix domain socket support of {@link SocketChannel}. */
 public class UnixDomainSocket extends Socket {
-
-  private static final boolean IS_WINDOWS =
-      System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
 
   private final AtomicBoolean closeLock = new AtomicBoolean();
   private final UnixDomainSocketAddress address;
@@ -35,11 +31,14 @@ public class UnixDomainSocket extends Socket {
    * @throws IOException if any error occurs
    */
   public UnixDomainSocket(String path) throws IOException {
-    if (IS_WINDOWS) {
-      throw new IOException("Unix domain sockets are not supported on Windows");
-    }
     address = UnixDomainSocketAddress.of(path);
-    channel = SocketChannel.open(StandardProtocolFamily.UNIX);
+    try {
+      // the JDK supports AF_UNIX on Linux, macOS and Windows 10 1803+ / Server 2019+, and reports
+      // itself when the platform does not
+      channel = SocketChannel.open(StandardProtocolFamily.UNIX);
+    } catch (UnsupportedOperationException e) {
+      throw new IOException("Unix domain sockets are not supported on this platform", e);
+    }
   }
 
   @Override
