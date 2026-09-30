@@ -758,7 +758,7 @@ public class StandardClient implements Client, AutoCloseable {
    */
   public static String hidePassword(String redirectUrl) {
     if (redirectUrl == null) return null;
-    return redirectUrl.replaceFirst("(://[^/@:]*:)[^/@]*(@)", "$1***$2");
+    return redirectUrl.replaceFirst("(://[^/@:]*:)[^/]*(@)", "$1***$2");
   }
 
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
