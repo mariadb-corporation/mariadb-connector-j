@@ -306,13 +306,14 @@ public class Configuration {
     this.keyStoreType = builder.keyStoreType;
     this.trustStoreType = builder.trustStoreType;
 
-    // SSL Mode configuration
+    // SSL Mode configuration : TLS is enabled by default
     if (this.credentialType != null
         && this.credentialType.mustUseSsl()
-        && (builder.sslMode == null || SslMode.from(builder.sslMode) == SslMode.DISABLE)) {
+        && builder.sslMode != null
+        && SslMode.from(builder.sslMode) == SslMode.DISABLE) {
       this.sslMode = SslMode.VERIFY_FULL;
     } else {
-      this.sslMode = builder.sslMode != null ? SslMode.from(builder.sslMode) : SslMode.DISABLE;
+      this.sslMode = builder.sslMode != null ? SslMode.from(builder.sslMode) : SslMode.VERIFY_FULL;
     }
   }
 
@@ -980,7 +981,16 @@ public class Configuration {
       } catch (IOException e) {
         // Ignore IO exceptions when loading deprecation messages
       }
+    } else if (builder.sslMode == null
+        && (isUnset("useSsl", nonMappedOptions) || isUnset("useSSL", nonMappedOptions))) {
+      // TLS being enabled by default, legacy useSsl=false must still disable it
+      builder.sslMode("disable");
     }
+  }
+
+  private static boolean isUnset(String key, Properties nonMappedOptions) {
+    String value = nonMappedOptions.getProperty(key);
+    return value != null && (value.equals("0") || value.equals("false"));
   }
 
   private static boolean isSet(String key, Properties nonMappedOptions) {
@@ -3126,7 +3136,8 @@ public class Configuration {
     }
 
     /**
-     * Set ssl model
+     * Set ssl model. TLS is enabled by default (verify-full), use "disable" for an unencrypted
+     * connection.
      *
      * @param sslMode ssl requirement
      * @return this {@link Builder}

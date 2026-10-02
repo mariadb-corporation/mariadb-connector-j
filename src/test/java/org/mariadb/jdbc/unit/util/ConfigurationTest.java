@@ -387,11 +387,27 @@ public class ConfigurationTest {
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=verify-ca");
     assertSame(SslMode.VERIFY_CA, conf.sslMode());
 
+    // TLS is enabled by default
     conf = Configuration.parse("jdbc:mariadb://localhost/test");
-    assertSame(SslMode.DISABLE, conf.sslMode());
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
+    assertSame(SslMode.VERIFY_FULL, new Configuration.Builder().build().sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode");
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=disable");
     assertSame(SslMode.DISABLE, conf.sslMode());
+    assertEquals("jdbc:mariadb://localhost/test?sslMode=DISABLE", conf.toString());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=disabled");
+    assertSame(SslMode.DISABLE, conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=false");
+    assertSame(SslMode.DISABLE, conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://address=(host=localhost)(sslMode=disable)/test");
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
+    assertSame(SslMode.DISABLE, conf.addresses().get(0).sslMode);
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=0");
     assertSame(SslMode.DISABLE, conf.sslMode());
@@ -424,6 +440,15 @@ public class ConfigurationTest {
         SslMode.VERIFY_CA,
         Configuration.parse("jdbc:mariadb://localhost/test?useSsl&disableSslHostnameVerification")
             .sslMode());
+    // TLS being enabled by default, legacy option must still permit disabling it
+    assertEquals(
+        SslMode.DISABLE,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSsl=false").sslMode());
+    assertEquals(
+        SslMode.DISABLE, Configuration.parse("jdbc:mariadb://localhost/test?useSSL=0").sslMode());
+    assertEquals(
+        SslMode.TRUST,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSsl=false&sslMode=trust").sslMode());
   }
 
   @Test
@@ -934,7 +959,7 @@ public class ConfigurationTest {
             + "+LBCR0B194YbRn6726vWwUUE05yskVN6gllGSCgZ/G8y98DhjQ==\n"
             + "-----END CERTIFICATE-----",
         jdbc.serverSslCert());
-    assertEquals(SslMode.DISABLE, jdbc.sslMode());
+    assertEquals(SslMode.VERIFY_FULL, jdbc.sslMode());
     assertEquals("pwd2", jdbc.password());
   }
 

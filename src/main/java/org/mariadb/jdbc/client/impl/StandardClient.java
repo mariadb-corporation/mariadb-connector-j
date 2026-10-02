@@ -264,7 +264,10 @@ public class StandardClient implements Client, AutoCloseable {
     if (!context.hasServerCapability(Capabilities.SSL)) {
       throw context
           .getExceptionFactory()
-          .create("Trying to connect with ssl, but ssl not enabled in the server", "08000");
+          .create(
+              "Trying to connect with ssl, but ssl not enabled in the server. TLS is enabled by"
+                  + " default, set sslMode=disable to permit unencrypted connection",
+              "08000");
     }
   }
 
@@ -430,6 +433,7 @@ public class StandardClient implements Client, AutoCloseable {
         authPluginFactory.initialize(credential.password(), handshake.getSeed(), conf, hostAddress);
 
     if (certFingerprint != null
+        && !unixSocketTransport
         && (!authPlugin.isMitMProof()
             || credential.password() == null
             || credential.password().isEmpty())) {
@@ -577,6 +581,7 @@ public class StandardClient implements Client, AutoCloseable {
                   credential.password(), authSwitchPacket.getSeed(), conf, hostAddress);
 
           if (certFingerprint != null
+              && !unixSocketTransport
               && (!authPlugin.isMitMProof()
                   || credential.password() == null
                   || credential.password().isEmpty())) {

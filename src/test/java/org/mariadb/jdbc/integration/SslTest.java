@@ -18,6 +18,7 @@ import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
 
 @DisplayName("SSL tests")
@@ -204,6 +205,37 @@ public class SslTest extends Common {
     assertThrows(
         SQLInvalidAuthorizationSpecException.class,
         () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
+  }
+
+  @Test
+  public void sslEnabledByDefault() throws Exception {
+    Assumptions.assumeTrue(!isMaxscale());
+    // test suite explicitly disables TLS, driver default being TLS enabled
+    assertEquals(SslMode.VERIFY_FULL, Configuration.parse("jdbc:mariadb://localhost/").sslMode());
+    Assumptions.assumeTrue(
+        Configuration.parse(mDefUrl).sslMode() == SslMode.DISABLE, "tests run with TLS required");
+    assertTrue(mDefUrl.contains("sslMode=disable"));
+    String sslVersion = getSslVersion(sharedConn);
+    assertTrue(sslVersion == null || sslVersion.isEmpty());
+
+    // without any ssl option, connection must be encrypted
+    String options = baseOptions.substring(1);
+    if (!isMariaDBServer() || !minVersion(11, 4, 1)) {
+      // no zero-configuration TLS, server certificate is needed
+      String serverCertPath = retrieveCertificatePath();
+      Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
+      options += "&serverSslCert=" + serverCertPath;
+    }
+    try (Connection con = createBasicCon(options, sslPort)) {
+      assertEquals(SslMode.VERIFY_FULL, con.getContext().getConf().sslMode());
+      sslVersion = getSslVersion(con);
+      assertTrue(sslVersion != null && !sslVersion.isEmpty());
+    }
+
+    // REQUIRE SSL user cannot connect when explicitly disabling TLS
+    assertThrows(
+        SQLException.class,
+        () -> createBasicCon(baseOptions.substring(1) + "&sslMode=disable", sslPort));
   }
 
   @Test

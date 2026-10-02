@@ -65,6 +65,10 @@ public class Common {
         defaultOther = "&sslMode=verify-full&serverSslCert=" + cert;
       } else {
         defaultOther = get("DB_OTHER", prop);
+        // driver enables TLS by default, tests run without TLS unless explicitly required
+        if (defaultOther == null || !defaultOther.toLowerCase(Locale.ROOT).contains("sslmode=")) {
+          defaultOther = (defaultOther == null ? "" : defaultOther) + "&sslMode=disable";
+        }
       }
       hostname = get("DB_HOST", prop);
       user = get("DB_USER", prop);
