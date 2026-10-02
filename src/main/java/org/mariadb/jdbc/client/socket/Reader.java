@@ -85,21 +85,15 @@ public class Reader {
     }
 
     // Read content
-    int remaining = lastPacketLength;
-    int off = 0;
-    do {
-      int count = inputStream.read(rawBytes, off, remaining);
-      if (count < 0) {
-        throw new EOFException(
-            "unexpected end of stream, read "
-                + (lastPacketLength - remaining)
-                + " bytes from "
-                + lastPacketLength
-                + " (socket was closed by server)");
-      }
-      remaining -= count;
-      off += count;
-    } while (remaining > 0);
+    int read = inputStream.readNBytes(rawBytes, 0, lastPacketLength);
+    if (read < lastPacketLength) {
+      throw new EOFException(
+          "unexpected end of stream, read "
+              + read
+              + " bytes from "
+              + lastPacketLength
+              + " (socket was closed by server)");
+    }
 
     if (traceEnable) {
       logger.trace(
@@ -285,19 +279,14 @@ public class Reader {
    * @throws IOException if socket error occurs or the socket is closed
    */
   public void readFully(byte[] dest, int off, int length) throws IOException {
-    int remaining = length;
-    while (remaining > 0) {
-      int count = inputStream.read(dest, off, remaining);
-      if (count < 0) {
-        throw new EOFException(
-            "unexpected end of stream, read "
-                + (length - remaining)
-                + " bytes from "
-                + length
-                + " (socket was closed by server)");
-      }
-      remaining -= count;
-      off += count;
+    int read = inputStream.readNBytes(dest, off, length);
+    if (read < length) {
+      throw new EOFException(
+          "unexpected end of stream, read "
+              + read
+              + " bytes from "
+              + length
+              + " (socket was closed by server)");
     }
   }
 
@@ -359,19 +348,11 @@ public class Reader {
   }
 
   private int readHeader() throws IOException {
-    int remaining = 4;
-    int off = 0;
-    do {
-      int count = inputStream.read(header, off, remaining);
-      if (count < 0) {
-        throw new EOFException(
-            "unexpected end of stream, read "
-                + off
-                + " bytes from 4 (socket was closed by server)");
-      }
-      remaining -= count;
-      off += count;
-    } while (remaining > 0);
+    int read = inputStream.readNBytes(header, 0, 4);
+    if (read < 4) {
+      throw new EOFException(
+          "unexpected end of stream, read " + read + " bytes from 4 (socket was closed by server)");
+    }
 
     // 3-byte little-endian length, the 4th byte is the sequence
     return (int) INT_LE.get(header, 0) & 0xffffff;

@@ -134,7 +134,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
             .atZone(tzTime.toZoneId());
 
       case YEAR:
-        int year = Integer.parseInt(buf.readAscii(length.get()));
+        int year = (int) buf.atoull(length.get());
         if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
         TimeZone tzYear = calParam == null ? TimeZone.getDefault() : calParam.getTimeZone();
         return LocalDateTime.of(year, 1, 1, 0, 0).atZone(tzYear.toZoneId());

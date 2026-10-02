@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /** MariaDB Clob implementation */
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
@@ -289,9 +290,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
 
     if (length != that.length) return false;
 
-    for (int i = 0; i < length; i++) {
-      if (data[offset + i] != that.data[that.offset + i]) return false;
-    }
-    return true;
+    return Arrays.equals(
+        data, offset, offset + length, that.data, that.offset, that.offset + that.length);
   }
 }

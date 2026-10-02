@@ -245,7 +245,8 @@ public interface ClientMessage {
           try {
             byte[] fileBuf = new byte[65536];
             int len;
-            while ((len = is.read(fileBuf)) > 0) {
+            // readNBytes fills the chunk even when the stream returns short reads
+            while ((len = is.readNBytes(fileBuf, 0, fileBuf.length)) > 0) {
               writer.writeBytes(fileBuf, 0, len);
               writer.flush();
             }

@@ -141,7 +141,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
       throws SQLDataException {
-    int year = Integer.parseInt(buf.readAscii(length.get()));
+    int year = (int) buf.atoull(length.get());
     if (columnLength <= 2) year += year >= 70 ? 1900 : 2000;
 
     if (calParam == null) {

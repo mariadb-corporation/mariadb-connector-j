@@ -2438,11 +2438,10 @@ public class Configuration {
       return;
     }
 
-    ServiceLoader<Codec> loader =
-        ServiceLoader.load(Codec.class, Configuration.class.getClassLoader());
-    List<Codec<?>> result = new ArrayList<>();
-    loader.iterator().forEachRemaining(result::add);
-    codecs = result.toArray(new Codec<?>[0]);
+    codecs =
+        ServiceLoader.load(Codec.class, Configuration.class.getClassLoader()).stream()
+            .map(ServiceLoader.Provider::get)
+            .toArray(Codec<?>[]::new);
 
     if (cacheCodecs) {
       synchronized (Configuration.class) {

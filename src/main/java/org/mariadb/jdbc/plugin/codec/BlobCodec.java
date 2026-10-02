@@ -3,7 +3,6 @@
 // Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Blob;
@@ -118,19 +117,21 @@ public class BlobCodec implements Codec<Blob> {
     InputStream is = value.getBinaryStream();
     int len;
 
+    boolean noBackslashEscapes =
+        (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0;
+
+    // readNBytes fills the chunk (several reads if the stream returns short reads), so each
+    // escaped write handles a full chunk
     if (maxLength == null) {
-      while ((len = is.read(array)) > 0) {
-        encoder.writeBytesEscaped(
-            array, len, (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
+      while ((len = is.readNBytes(array, 0, array.length)) > 0) {
+        encoder.writeBytesEscaped(array, len, noBackslashEscapes);
       }
     } else {
-      long maxLen = maxLength;
-      while (maxLen > 0 && (len = is.read(array)) > 0) {
-        encoder.writeBytesEscaped(
-            array,
-            Math.min(len, (int) maxLen),
-            (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
-        maxLen -= len;
+      long remaining = maxLength;
+      while (remaining > 0
+          && (len = is.readNBytes(array, 0, (int) Math.min(array.length, remaining))) > 0) {
+        encoder.writeBytesEscaped(array, len, noBackslashEscapes);
+        remaining -= len;
       }
     }
     encoder.writeByte('\'');
@@ -162,11 +163,11 @@ public class BlobCodec implements Codec<Blob> {
       encoder.writeLength(length);
       byte[] array = new byte[4096];
       int len;
-      long remainingLen = length;
-      while ((len = is.read(array)) > 0) {
-        encoder.writeBytes(array, 0, Math.min((int) remainingLen, len));
-        remainingLen -= len;
-        if (remainingLen < 0) break;
+      long remaining = length;
+      while (remaining > 0
+          && (len = is.readNBytes(array, 0, (int) Math.min(array.length, remaining))) > 0) {
+        encoder.writeBytes(array, 0, len);
+        remaining -= len;
       }
 
     } catch (SQLException sqle) {
@@ -182,17 +183,17 @@ public class BlobCodec implements Codec<Blob> {
     byte[] array = new byte[4096];
     InputStream is = value.getBinaryStream();
 
+    int len;
     if (maxLength == null) {
-      int len;
-      while ((len = is.read(array)) > 0) {
+      while ((len = is.readNBytes(array, 0, array.length)) > 0) {
         encoder.writeBytes(array, 0, len);
       }
     } else {
-      long maxLen = maxLength;
-      int len;
-      while (maxLen > 0 && (len = is.read(array)) > 0) {
-        encoder.writeBytes(array, 0, Math.min(len, (int) maxLen));
-        maxLen -= len;
+      long remaining = maxLength;
+      while (remaining > 0
+          && (len = is.readNBytes(array, 0, (int) Math.min(array.length, remaining))) > 0) {
+        encoder.writeBytes(array, 0, len);
+        remaining -= len;
       }
     }
   }
@@ -203,22 +204,9 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   private byte[] encode(InputStream is, Long maxLength) throws IOException {
-    ByteArrayOutputStream bb = new ByteArrayOutputStream();
-    byte[] array = new byte[4096];
-    if (maxLength == null) {
-      int len;
-      while ((len = is.read(array)) > 0) {
-        bb.write(array, 0, len);
-      }
-    } else {
-      long maxLen = maxLength;
-      int len;
-      while (maxLen > 0 && (len = is.read(array)) > 0) {
-        bb.write(array, 0, Math.min(len, (int) maxLen));
-        maxLen -= len;
-      }
-    }
-    return bb.toByteArray();
+    return maxLength == null
+        ? is.readAllBytes()
+        : is.readNBytes((int) Math.max(0, Math.min(maxLength, Integer.MAX_VALUE)));
   }
 
   public int getBinaryEncodeType() {

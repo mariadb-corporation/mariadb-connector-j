@@ -192,12 +192,7 @@ public class MariaDbBlob implements Blob, Serializable {
 
   /** Checks if the pattern matches at the given position. */
   private boolean isPatternMatch(byte[] pattern, int position) {
-    for (int j = 0; j < pattern.length; j++) {
-      if (data[position + j] != pattern[j]) {
-        return false;
-      }
-    }
-    return true;
+    return Arrays.equals(data, position, position + pattern.length, pattern, 0, pattern.length);
   }
 
   /** Validates the input parameters for the search. */
@@ -389,10 +384,8 @@ public class MariaDbBlob implements Blob, Serializable {
 
     if (length != that.length) return false;
 
-    for (int i = 0; i < length; i++) {
-      if (data[offset + i] != that.data[that.offset + i]) return false;
-    }
-    return true;
+    return Arrays.equals(
+        data, offset, offset + length, that.data, that.offset, that.offset + that.length);
   }
 
   @Override

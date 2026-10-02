@@ -76,12 +76,7 @@ public final class SequentialBlob implements Blob {
     int toRead = (int) Math.min(len, length - start);
     byte[] out = new byte[toRead];
     try {
-      int off = 0;
-      while (off < toRead) {
-        int n = stream.read(out, off, toRead - off);
-        if (n < 0) break;
-        off += n;
-      }
+      stream.readNBytes(out, 0, toRead);
     } catch (IOException e) {
       throw new SQLException("Error while reading Blob data", "08000", e);
     }
