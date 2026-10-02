@@ -885,8 +885,8 @@ public class StandardClient implements Client, AutoCloseable {
         && conf.createDatabaseIfNotExist()
         && (hostAddress == null || hostAddress.primary)) {
       String escapedDb = conf.database().replace("`", "``");
-      commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
-      commands.add(String.format("USE `%s`", escapedDb));
+      commands.add("CREATE DATABASE IF NOT EXISTS `" + escapedDb + "`");
+      commands.add("USE `" + escapedDb + "`");
     }
 
     if (conf.initSql() != null && !conf.initSql().isEmpty()) {
@@ -1078,8 +1078,7 @@ public class StandardClient implements Client, AutoCloseable {
       String isolationVariable =
           context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation";
       commands.add(
-          String.format(
-              "@@session.%s='%s'", isolationVariable, conf.transactionIsolation().getValue()));
+          "@@session." + isolationVariable + "='" + conf.transactionIsolation().getValue() + "'");
     }
   }
 
@@ -1089,7 +1088,7 @@ public class StandardClient implements Client, AutoCloseable {
         && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
       String readOnlyVariable =
           context.canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only";
-      commands.add(String.format("@@session.%s=1", readOnlyVariable));
+      commands.add("@@session." + readOnlyVariable + "=1");
     }
   }
 

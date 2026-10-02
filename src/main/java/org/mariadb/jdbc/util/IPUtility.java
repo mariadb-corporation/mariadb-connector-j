@@ -44,31 +44,35 @@ public class IPUtility {
       if (percent != -1) {
         return false;
       }
-      String[] parts = literal.split("\\.", -1);
-      if (parts.length != 4) {
-        return false;
-      }
-      for (String part : parts) {
-        if (part.isEmpty() || part.length() > 3) {
+      // fields are checked in place, without split / substring allocation
+      int parts = 0;
+      int start = 0;
+      int len = literal.length();
+      while (true) {
+        int end = literal.indexOf('.', start);
+        if (end < 0) end = len;
+        int partLen = end - start;
+        if (partLen == 0 || partLen > 3) {
           return false;
         }
         // Disallow leading zeros ("01") to match existing strict parsing behavior.
-        if (part.length() > 1 && part.charAt(0) == '0') {
+        if (partLen > 1 && literal.charAt(start) == '0') {
           return false;
         }
-        int value = 0;
-        for (int i = 0; i < part.length(); i++) {
-          char c = part.charAt(i);
+        for (int i = start; i < end; i++) {
+          char c = literal.charAt(i);
           if (c < '0' || c > '9') {
             return false;
           }
-          value = value * 10 + (c - '0');
         }
-        if (value > 255) {
+        if (Integer.parseInt(literal, start, end, 10) > 255) {
           return false;
         }
+        parts++;
+        if (end == len) break;
+        start = end + 1;
       }
-      return true;
+      return parts == 4;
     }
 
     // IPv6 (optional scope allowed). Delegate numeric parsing to the JDK without DNS.

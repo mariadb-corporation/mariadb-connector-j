@@ -311,6 +311,7 @@ public class Writer {
     pos += 9;
   }
 
+  @SuppressWarnings("deprecation")
   public void writeAscii(String str) throws IOException {
     int len = str.length();
     if (len > buf.length - pos) {
@@ -318,9 +319,10 @@ public class Writer {
       writeBytes(arr, 0, arr.length);
       return;
     }
-    for (int off = 0; off < len; ) {
-      this.buf[this.pos++] = (byte) str.charAt(off++);
-    }
+    // copies the low byte of each char, as the previous char loop did: with compact strings
+    // (java 9) this is a plain array copy for ASCII content
+    str.getBytes(0, len, this.buf, this.pos);
+    this.pos += len;
   }
 
   /**

@@ -289,15 +289,15 @@ public class HostAddress {
 
   @Override
   public String toString() {
-    if (pipe != null) return String.format("address=(pipe=%s)", pipe);
-    if (localSocket != null) return String.format("address=(localSocket=%s)", localSocket);
+    if (pipe != null) return "address=(pipe=" + pipe + ")";
+    if (localSocket != null) return "address=(localSocket=" + localSocket + ")";
     if (sslMode == null && primary != Boolean.FALSE) return port != 3306 ? host + ":" + port : host;
-    return String.format(
-        "address=(host=%s)%s%s%s",
-        host,
-        (port != 3306) ? "(port=" + port + ")" : "",
-        (sslMode != null) ? "(sslMode=" + sslMode.getValue() + ")" : "",
-        ((primary != null) ? ("(type=" + (primary ? "primary)" : "replica)")) : ""));
+    return "address=(host="
+        + host
+        + ")"
+        + ((port != 3306) ? "(port=" + port + ")" : "")
+        + ((sslMode != null) ? "(sslMode=" + sslMode.getValue() + ")" : "")
+        + ((primary != null) ? ("(type=" + (primary ? "primary)" : "replica)")) : "");
   }
 
   @Override

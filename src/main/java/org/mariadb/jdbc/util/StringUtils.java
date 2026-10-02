@@ -38,4 +38,25 @@ public final class StringUtils {
       Integer.parseInt(val, second + 1, end, 10)
     };
   }
+
+  /**
+   * Append a non-negative number, left padded with zeros up to {@code width} digits. Replacement
+   * of {@code String.format("%0<width>d", value)} without format parsing.
+   *
+   * @param sb builder to append to
+   * @param value value (negative values are appended without padding)
+   * @param width minimum number of digits
+   * @return the builder
+   */
+  public static StringBuilder appendZeroPadded(StringBuilder sb, long value, int width) {
+    if (value >= 0) {
+      long limit = 10;
+      for (int digits = 1; digits < width; digits++) {
+        if (value < limit) sb.append('0');
+        if (limit > Long.MAX_VALUE / 10) break;
+        limit *= 10;
+      }
+    }
+    return sb.append(value);
+  }
 }

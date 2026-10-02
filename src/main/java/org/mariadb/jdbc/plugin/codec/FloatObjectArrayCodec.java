@@ -4,7 +4,10 @@
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.lang.reflect.Array;
+import java.nio.ByteOrder;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
@@ -72,16 +75,14 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
   }
 
   static final int BYTES_IN_FLOAT = Float.SIZE / Byte.SIZE;
+  private static final VarHandle INT_LE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
 
   public static byte[] toByteArray(Float[] floatArray) {
     byte[] buf = new byte[floatArray.length * BYTES_IN_FLOAT];
     int pos = 0;
     for (Float f : floatArray) {
-      int value = Float.floatToIntBits(f);
-      buf[pos] = (byte) value;
-      buf[pos + 1] = (byte) (value >> 8);
-      buf[pos + 2] = (byte) (value >> 16);
-      buf[pos + 3] = (byte) (value >> 24);
+      INT_LE.set(buf, pos, Float.floatToIntBits(f));
       pos += 4;
     }
     return buf;
