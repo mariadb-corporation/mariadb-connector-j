@@ -42,6 +42,7 @@ import org.mariadb.jdbc.plugin.codec.ReaderCodec;
 import org.mariadb.jdbc.plugin.codec.SqlXmlCodec;
 import org.mariadb.jdbc.plugin.codec.StreamCodec;
 import org.mariadb.jdbc.plugin.codec.StringCodec;
+import org.mariadb.jdbc.util.CodecLookup;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Result-set common */
@@ -1738,12 +1739,10 @@ public abstract class Result implements ResultSet, Completion {
           rowDecoder.defaultDecode(metadataList, columnIndex - 1, rowBuf, fieldLength, context);
     }
 
-    Configuration conf = context.getConf();
-    for (Codec<?> codec : conf.codecs()) {
-      if (codec.canDecode(column, type)) {
-        return rowDecoder.decode(
-            (Codec<T>) codec, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
-      }
+    Codec<T> codec = CodecLookup.decoder(context.getConf().codecs(), column, type);
+    if (codec != null) {
+      return rowDecoder.decode(
+          codec, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
     }
     rowBuf.skip(fieldLength.get());
     throw new SQLException(

@@ -26,6 +26,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.util.CodecLookup;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.MetaExportedKeys;
 import org.mariadb.jdbc.util.log.Logger;
@@ -2447,6 +2448,7 @@ public class Configuration {
       synchronized (Configuration.class) {
         if (cachedCodecs == null) {
           cachedCodecs = codecs;
+          CodecLookup.register(codecs);
         }
       }
     }

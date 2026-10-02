@@ -71,6 +71,7 @@ import org.mariadb.jdbc.plugin.codec.StreamCodec;
 import org.mariadb.jdbc.plugin.codec.StringCodec;
 import org.mariadb.jdbc.plugin.codec.TimeCodec;
 import org.mariadb.jdbc.plugin.codec.TimestampCodec;
+import org.mariadb.jdbc.util.CodecLookup;
 import org.mariadb.jdbc.util.ParameterList;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
@@ -1365,12 +1366,11 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @SuppressWarnings({"rawtypes", "unchecked"})
   private void trySetWithCodec(int parameterIndex, Object obj, Long scaleOrLength)
       throws SQLException {
-    for (Codec<?> codec : con.getContext().getConf().codecs()) {
-      if (codec.canEncode(obj)) {
-        Parameter p = new Parameter(codec, obj, scaleOrLength);
-        parameters.set(parameterIndex - 1, p);
-        return;
-      }
+    Codec<?> codec = CodecLookup.encoder(con.getContext().getConf().codecs(), obj);
+    if (codec != null) {
+      Parameter p = new Parameter(codec, obj, scaleOrLength);
+      parameters.set(parameterIndex - 1, p);
+      return;
     }
 
     throw new SQLException(String.format("Type %s not supported type", obj.getClass().getName()));

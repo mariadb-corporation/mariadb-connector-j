@@ -22,6 +22,7 @@ import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.array.FloatArray;
 import org.mariadb.jdbc.plugin.codec.*;
+import org.mariadb.jdbc.util.CodecLookup;
 import org.mariadb.jdbc.util.ParameterList;
 
 /** Updatable result implementation */
@@ -1065,12 +1066,11 @@ public class UpdatableResult extends CompleteResult {
       return;
     }
 
-    for (Codec<?> codec : context.getConf().codecs()) {
-      if (codec.canEncode(x)) {
-        Parameter p = new Parameter(codec, x, scaleOrLength);
-        parameters.set(columnIndex - 1, p);
-        return;
-      }
+    Codec<?> codec = CodecLookup.encoder(context.getConf().codecs(), x);
+    if (codec != null) {
+      Parameter p = new Parameter(codec, x, scaleOrLength);
+      parameters.set(columnIndex - 1, p);
+      return;
     }
 
     throw new SQLException(String.format("Type %s not supported type", x.getClass().getName()));
