@@ -113,32 +113,46 @@ public class CompressInputStream extends InputStream {
     // ***************************************************
     // Read header
     // ***************************************************
-    int read = in.readNBytes(header, 0, 7);
-    if (read < 7) {
-      throw new EOFException(
-          "unexpected end of stream, read " + read + " bytes from 7 (socket was closed by server)");
-    }
+    int remaining = 7;
+    int readOffset = 0;
+    do {
+      int count = in.read(header, readOffset, remaining);
+      if (count < 0) {
+        throw new EOFException(
+            "unexpected end of stream, read "
+                + readOffset
+                + " bytes from 7 (socket was closed by server)");
+      }
+      remaining -= count;
+      readOffset += count;
+    } while (remaining > 0);
 
     // 3-byte compressed length, sequence byte, 3-byte uncompressed length
     int compressedPacketLength = (int) INT_LE.get(header, 0) & 0xffffff;
     sequence.set(header[3]);
     int packetLength = (int) INT_LE.get(header, 3) >>> 8;
     boolean compressed = (packetLength != 0);
-    byte[] intermediaryBuf = new byte[compressedPacketLength];
+    remaining = compressedPacketLength;
+    byte[] intermediaryBuf = new byte[remaining];
 
     // ***************************************************
     // Read content
     // ***************************************************
 
-    read = in.readNBytes(intermediaryBuf, 0, compressedPacketLength);
-    if (read < compressedPacketLength) {
-      throw new EOFException(
-          "unexpected end of stream, read "
-              + read
-              + " bytes from "
-              + compressedPacketLength
-              + " (socket was closed by server)");
-    }
+    readOffset = 0;
+    do {
+      int count = in.read(intermediaryBuf, readOffset, remaining);
+      if (count < 0) {
+        throw new EOFException(
+            "unexpected end of stream, read "
+                + ((compressed ? compressedPacketLength : packetLength) - remaining)
+                + " bytes from "
+                + (compressed ? compressedPacketLength : packetLength)
+                + " (socket was closed by server)");
+      }
+      remaining -= count;
+      readOffset += count;
+    } while (remaining > 0);
 
     if (compressed) {
       buf = new byte[packetLength];
