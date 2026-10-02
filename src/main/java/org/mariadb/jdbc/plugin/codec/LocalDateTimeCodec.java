@@ -23,6 +23,7 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.util.StringUtils;
 
 /** LocalDateTime codec */
 public class LocalDateTimeCodec implements Codec<LocalDateTime> {
@@ -288,8 +289,24 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
       throws IOException {
     LocalDateTime val = toConnectionTimeZone(value, cal, context);
     encoder.writeByte('\'');
-    encoder.writeAscii(
-        val.format(val.getNano() != 0 ? TIMESTAMP_FORMAT : TIMESTAMP_FORMAT_NO_FRACTIONAL));
+    int year = val.getYear();
+    if (year >= 1 && year <= 9999) {
+      // same output as TIMESTAMP_FORMAT / TIMESTAMP_FORMAT_NO_FRACTIONAL, without the formatter
+      StringBuilder sb = new StringBuilder(26);
+      StringUtils.appendZeroPadded(sb, year, 4).append('-');
+      StringUtils.appendZeroPadded(sb, val.getMonthValue(), 2).append('-');
+      StringUtils.appendZeroPadded(sb, val.getDayOfMonth(), 2).append(' ');
+      StringUtils.appendZeroPadded(sb, val.getHour(), 2).append(':');
+      StringUtils.appendZeroPadded(sb, val.getMinute(), 2).append(':');
+      StringUtils.appendZeroPadded(sb, val.getSecond(), 2);
+      if (val.getNano() != 0) {
+        StringUtils.appendZeroPadded(sb.append('.'), val.getNano() / 1000, 6);
+      }
+      encoder.writeAscii(sb.toString());
+    } else {
+      encoder.writeAscii(
+          val.format(val.getNano() != 0 ? TIMESTAMP_FORMAT : TIMESTAMP_FORMAT_NO_FRACTIONAL));
+    }
     encoder.writeByte('\'');
   }
 

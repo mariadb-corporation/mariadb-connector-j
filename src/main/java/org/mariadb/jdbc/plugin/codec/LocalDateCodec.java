@@ -300,7 +300,17 @@ public class LocalDateCodec implements Codec<LocalDate> {
   public void encodeText(Writer encoder, Context context, LocalDate val, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
-    encoder.writeAscii(val.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    int year = val.getYear();
+    if (year >= 0 && year <= 9999) {
+      // same output as ISO_LOCAL_DATE, without the formatter
+      StringBuilder sb = new StringBuilder(10);
+      StringUtils.appendZeroPadded(sb, year, 4).append('-');
+      StringUtils.appendZeroPadded(sb, val.getMonthValue(), 2).append('-');
+      StringUtils.appendZeroPadded(sb, val.getDayOfMonth(), 2);
+      encoder.writeAscii(sb.toString());
+    } else {
+      encoder.writeAscii(val.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    }
     encoder.writeByte('\'');
   }
 
