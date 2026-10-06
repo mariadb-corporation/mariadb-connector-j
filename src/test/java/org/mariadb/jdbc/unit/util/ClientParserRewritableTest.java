@@ -111,8 +111,7 @@ public class ClientParserRewritableTest {
     ClientParser parser = ClientParser.rewritableParts(sql, false);
     assertEquals(parser.sql(), sql);
     assertEquals(parser.paramCount(), paramCount);
-    assertArrayEquals(
-        parser.paramPositions().stream().mapToInt(Integer::intValue).toArray(), paramPosition);
+    assertArrayEquals(parser.paramPositions(), paramPosition);
     if (valuesBracketPositions == null) {
       assertNull(parser.valuesBracketPositions());
     } else {

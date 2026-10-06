@@ -9,111 +9,94 @@ import org.mariadb.jdbc.client.Context;
 
 public final class NativeSql {
 
+  /** Characters having a meaning for {@link #parse(String, Context)} outside strings/comments. */
+  private static final boolean[] SPECIAL = new boolean[128];
+
+  static {
+    for (char c : "*/#-\"'`{}".toCharArray()) {
+      SPECIAL[c] = true;
+    }
+  }
+
   public static String parse(String sql, Context context) throws SQLException {
     if (!sql.contains("{")) {
       return sql;
     }
 
-    ClientParser.LexState state = ClientParser.LexState.Normal;
-    char lastChar = '\0';
-    boolean singleQuotes = false;
-    int lastEscapePart = 0;
-
     StringBuilder sb = new StringBuilder();
     char[] query = sql.toCharArray();
     int queryLength = query.length;
+    int lastEscapePart = 0;
     int escapeIdx = 0;
     boolean inEscape = false;
+    // start of the text not yet copied to the result, when not in an escape sequence
+    int copyFrom = 0;
+    // the character before index idx is query[idx - 1] from this index, lookBehindOverride before
+    int lookBehindFrom = 1;
+    char lookBehindOverride = '\0';
+    int idx = 0;
 
-    for (int idx = 0; idx < queryLength; idx++) {
-
+    // characters without any meaning outside strings and comments are skipped in a tight loop
+    while (idx < queryLength) {
       char car = query[idx];
-      if (state == ClientParser.LexState.Escape
-          && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
-        state = ClientParser.LexState.String;
-        if (!inEscape) sb.append(car);
-        lastChar = car;
+      if (car >= 128 || !SPECIAL[car]) {
+        idx++;
         continue;
       }
       switch (car) {
-        case '*':
-          if (state == ClientParser.LexState.Normal && lastChar == '/') {
-            state = ClientParser.LexState.SlashStarComment;
+        case '\'':
+        case '"':
+          // string: skip to the closing quote, a backslash escaping the next character
+          idx++;
+          while (idx < queryLength && query[idx] != car) {
+            if (query[idx] == '\\') idx++;
+            idx++;
+          }
+          break;
+
+        case '`':
+          idx++;
+          while (idx < queryLength && query[idx] != '`') idx++;
+          break;
+
+        case '#':
+          idx++;
+          while (idx < queryLength && query[idx] != '\n') idx++;
+          break;
+
+        case '-':
+          if ((idx >= lookBehindFrom ? query[idx - 1] : lookBehindOverride) == '-') {
+            idx++;
+            while (idx < queryLength && query[idx] != '\n') idx++;
           }
           break;
 
         case '/':
-          if (state == ClientParser.LexState.SlashStarComment && lastChar == '*') {
-            state = ClientParser.LexState.Normal;
-          } else if (state == ClientParser.LexState.Normal && lastChar == '/') {
-            state = ClientParser.LexState.EOLComment;
+          if ((idx >= lookBehindFrom ? query[idx - 1] : lookBehindOverride) == '/') {
+            idx++;
+            while (idx < queryLength && query[idx] != '\n') idx++;
           }
           break;
 
-        case '#':
-          if (state == ClientParser.LexState.Normal) {
-            state = ClientParser.LexState.EOLComment;
+        case '*':
+          if ((idx >= lookBehindFrom ? query[idx - 1] : lookBehindOverride) == '/') {
+            // comment: skip to the first '/' preceded by '*'
+            idx++;
+            while (idx < queryLength && !(query[idx] == '/' && query[idx - 1] == '*')) idx++;
           }
           break;
 
-        case '-':
-          if (state == ClientParser.LexState.Normal && lastChar == '-') {
-            state = ClientParser.LexState.EOLComment;
-          }
-          break;
-
-        case '\n':
-          if (state == ClientParser.LexState.EOLComment) {
-            state = ClientParser.LexState.Normal;
-          }
-          break;
-
-        case '"':
-          if (state == ClientParser.LexState.Normal) {
-            state = ClientParser.LexState.String;
-            singleQuotes = false;
-          } else if (state == ClientParser.LexState.String && !singleQuotes) {
-            state = ClientParser.LexState.Normal;
-          } else if (state == ClientParser.LexState.Escape) {
-            state = ClientParser.LexState.String;
-          }
-          break;
-
-        case '\'':
-          if (state == ClientParser.LexState.Normal) {
-            state = ClientParser.LexState.String;
-            singleQuotes = true;
-          } else if (state == ClientParser.LexState.String && singleQuotes) {
-            state = ClientParser.LexState.Normal;
-          } else if (state == ClientParser.LexState.Escape) {
-            state = ClientParser.LexState.String;
-          }
-          break;
-
-        case '\\':
-          if (state == ClientParser.LexState.String) {
-            state = ClientParser.LexState.Escape;
-          }
-          break;
-        case '`':
-          if (state == ClientParser.LexState.Backtick) {
-            state = ClientParser.LexState.Normal;
-          } else if (state == ClientParser.LexState.Normal) {
-            state = ClientParser.LexState.Backtick;
-          }
-          break;
         case '{':
-          if (state == ClientParser.LexState.Normal) {
-            if (!inEscape) {
-              inEscape = true;
-              lastEscapePart = idx;
-            }
-            escapeIdx++;
+          if (!inEscape) {
+            inEscape = true;
+            lastEscapePart = idx;
+            sb.append(query, copyFrom, idx - copyFrom);
           }
+          escapeIdx++;
           break;
 
         case '}':
-          if (state == ClientParser.LexState.Normal && inEscape) {
+          if (inEscape) {
             escapeIdx--;
 
             if (escapeIdx == 0) {
@@ -121,19 +104,21 @@ public final class NativeSql {
               String escapedSeq = resolveEscapes(str, context);
               sb.append(escapedSeq);
               inEscape = false;
-              continue;
+              copyFrom = idx + 1;
+              // the closing '}' is not seen as the character before the next one
+              lookBehindOverride = idx >= lookBehindFrom ? query[idx - 1] : lookBehindOverride;
+              lookBehindFrom = idx + 2;
             }
           }
           break;
       }
-      if (!inEscape) sb.append(car);
-      lastChar = car;
+      idx++;
     }
     if (inEscape) {
       throw new SQLException(
           "Invalid escape sequence , missing closing '}' character in '" + sql + "'");
     }
-    return sb.toString();
+    return sb.append(query, copyFrom, queryLength - copyFrom).toString();
   }
 
   private static String resolveEscapes(String escaped, Context context) throws SQLException {

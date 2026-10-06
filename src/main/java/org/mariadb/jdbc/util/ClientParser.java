@@ -5,6 +5,7 @@ package org.mariadb.jdbc.util;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -22,13 +23,45 @@ import java.util.List;
 public record ClientParser(
     String sql,
     byte[] query,
-    List<Integer> paramPositions,
+    int[] paramPositions,
     List<Integer> valuesBracketPositions,
     int paramCount,
     boolean isInsert,
     boolean isInsertDuplicate,
     boolean isMultiQuery)
     implements PrepareResult {
+
+  /**
+   * Bytes having a meaning for {@link #parameterParts(String, boolean)} when outside strings and
+   * comments, before / after the INSERT keyword is found.
+   */
+  private static final boolean[] NORMAL_SPECIAL_BEFORE_INSERT = new boolean[256];
+
+  private static final boolean[] NORMAL_SPECIAL_AFTER_INSERT = new boolean[256];
+
+  /**
+   * Bytes having a meaning for {@link #rewritableParts(String, boolean)} when outside strings and
+   * comments. Index : 1 if INSERT is found ('D' then matters, 'I' does not anymore) + 2 if the
+   * VALUES opening bracket is found ('S' then matters, 'V' does not anymore).
+   */
+  private static final boolean[][] REWRITABLE_SPECIAL = new boolean[4][256];
+
+  static {
+    for (char c : new char[] {'*', ';', '#', '-', '"', '\'', '?', '`'}) {
+      NORMAL_SPECIAL_BEFORE_INSERT[c] = true;
+      NORMAL_SPECIAL_AFTER_INSERT[c] = true;
+    }
+    NORMAL_SPECIAL_BEFORE_INSERT['I'] = true;
+    NORMAL_SPECIAL_BEFORE_INSERT['i'] = true;
+    NORMAL_SPECIAL_AFTER_INSERT['D'] = true;
+    NORMAL_SPECIAL_AFTER_INSERT['d'] = true;
+    for (int state = 0; state < 4; state++) {
+      String keywords = ((state & 1) == 0 ? "Ii" : "Dd") + ((state & 2) == 0 ? "Vv" : "Ss");
+      for (char c : ("*;#-\"'?`Ll()" + keywords).toCharArray()) {
+        REWRITABLE_SPECIAL[state][c] = true;
+      }
+    }
+  }
 
   /**
    * For a given <code>queryString</code>, get
@@ -55,164 +88,99 @@ public record ClientParser(
    */
   public static ClientParser parameterParts(String queryString, boolean noBackslashEscapes) {
 
-    List<Integer> paramPositions = new ArrayList<>(20);
-    LexState state = LexState.Normal;
-    byte lastChar = 0x00;
-
-    boolean singleQuotes = false;
+    int[] paramPositions = new int[16];
+    int paramCount = 0;
     boolean isInsert = false;
     boolean isInsertDuplicate = false;
     int multiQueryIdx = -1;
     byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
-    for (int i = 0; i < queryLength; i++) {
 
+    boolean[] special = NORMAL_SPECIAL_BEFORE_INSERT;
+    // the byte before index i is only looked at ("/*", "--") from this index
+    int lookBehindFrom = 1;
+    int i = 0;
+
+    while (i < queryLength) {
       byte car = query[i];
-      if (state == LexState.Escape
-          && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
-        state = LexState.String;
-        lastChar = car;
+      if (!special[car & 0xFF]) {
+        i++;
         continue;
       }
       switch (car) {
-        case '*':
-          if (state == LexState.Normal && lastChar == '/') {
-            state = LexState.SlashStarComment;
+        case '?':
+          if (paramCount == paramPositions.length) {
+            paramPositions = Arrays.copyOf(paramPositions, paramCount * 2);
+          }
+          paramPositions[paramCount++] = i;
+          break;
+
+        case '\'':
+        case '"':
+          // string: skip to the closing quote, a backslash escaping the next byte
+          i++;
+          while (i < queryLength && query[i] != car) {
+            if (query[i] == '\\' && !noBackslashEscapes) i++;
+            i++;
           }
           break;
 
-        case '/':
-          if (state == LexState.SlashStarComment && lastChar == '*') {
-            state = LexState.Normal;
-            lastChar = 0;
-            continue;
-          }
-          break;
-
-        case ';':
-          if (state == LexState.Normal && multiQueryIdx == -1) {
-            multiQueryIdx = i;
-          }
+        case '`':
+          i++;
+          while (i < queryLength && query[i] != '`') i++;
           break;
 
         case '#':
-          if (state == LexState.Normal) {
-            state = LexState.EOLComment;
-          }
+          i++;
+          while (i < queryLength && query[i] != '\n') i++;
           break;
 
         case '-':
-          if (state == LexState.Normal && lastChar == '-') {
+          if (i >= lookBehindFrom && query[i - 1] == '-') {
             // '--' starts a comment only if followed by whitespace or control character
-            // (not in expressions like '2--1')
-            if (i + 1 < queryLength) {
-              byte next = query[i + 1];
-              if (next == ' '
-                  || next == '\t'
-                  || next == '\n'
-                  || next == '\r'
-                  || next == '\f'
-                  || (next >= 0x00 && next <= 0x1F)) {
-                state = LexState.EOLComment;
-              }
-            } else {
-              // '--' at end of query starts a comment
-              state = LexState.EOLComment;
+            // (not in expressions like '2--1'), or at end of query
+            if (i + 1 >= queryLength || (query[i + 1] >= 0x00 && query[i + 1] <= ' ')) {
+              i++;
+              while (i < queryLength && query[i] != '\n') i++;
             }
           }
           break;
 
-        case '\n':
-          if (state == LexState.EOLComment) {
-            state = LexState.Normal;
+        case '*':
+          if (i >= lookBehindFrom && query[i - 1] == '/') {
+            // comment: skip to the first '/' preceded by '*'
+            i++;
+            while (i < queryLength && !(query[i] == '/' && query[i - 1] == '*')) i++;
+            lookBehindFrom = i + 2;
           }
           break;
 
-        case '"':
-          if (state == LexState.Normal) {
-            state = LexState.String;
-            singleQuotes = false;
-          } else if (state == LexState.String && !singleQuotes) {
-            state = LexState.Normal;
-          } else if (state == LexState.Escape) {
-            state = LexState.String;
-          }
-          break;
-
-        case '\'':
-          if (state == LexState.Normal) {
-            state = LexState.String;
-            singleQuotes = true;
-          } else if (state == LexState.String && singleQuotes) {
-            state = LexState.Normal;
-          } else if (state == LexState.Escape) {
-            state = LexState.String;
+        case ';':
+          if (multiQueryIdx == -1) {
+            multiQueryIdx = i;
           }
           break;
 
         case 'I':
         case 'i':
-          if (state == LexState.Normal
-              && !isInsert
-              && i + 6 < queryLength
-              && equalsIgnoreCase(query[i + 1], (byte) 'n')
-              && equalsIgnoreCase(query[i + 2], (byte) 's')
-              && equalsIgnoreCase(query[i + 3], (byte) 'e')
-              && equalsIgnoreCase(query[i + 4], (byte) 'r')
-              && equalsIgnoreCase(query[i + 5], (byte) 't')) {
-            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
-              break;
-            }
-            if ((query[i + 6] & 0xFF) > ' ' && !isDelimiter(query[i + 6])) {
-              break;
-            }
+          if (isKeyword(query, i, INSERT)) {
             i += 5;
+            lookBehindFrom = i + 2;
             isInsert = true;
-          }
-          break;
-        case 'D':
-        case 'd':
-          if (isInsert
-              && state == LexState.Normal
-              && i + 9 < queryLength
-              && equalsIgnoreCase(query[i + 1], (byte) 'u')
-              && equalsIgnoreCase(query[i + 2], (byte) 'p')
-              && equalsIgnoreCase(query[i + 3], (byte) 'l')
-              && equalsIgnoreCase(query[i + 4], (byte) 'i')
-              && equalsIgnoreCase(query[i + 5], (byte) 'c')
-              && equalsIgnoreCase(query[i + 6], (byte) 'a')
-              && equalsIgnoreCase(query[i + 7], (byte) 't')
-              && equalsIgnoreCase(query[i + 8], (byte) 'e')) {
-            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
-              break;
-            }
-            if ((query[i + 9] & 0xFF) > ' ' && !isDelimiter(query[i + 9])) {
-              break;
-            }
-            i += 9;
-            isInsertDuplicate = true;
+            special = NORMAL_SPECIAL_AFTER_INSERT;
           }
           break;
 
-        case '\\':
-          if (state == LexState.String && !noBackslashEscapes) {
-            state = LexState.Escape;
-          }
-          break;
-        case '?':
-          if (state == LexState.Normal) {
-            paramPositions.add(i);
-          }
-          break;
-        case '`':
-          if (state == LexState.Backtick) {
-            state = LexState.Normal;
-          } else if (state == LexState.Normal) {
-            state = LexState.Backtick;
+        case 'D':
+        case 'd':
+          if (isKeyword(query, i, DUPLICATE)) {
+            i += 9;
+            lookBehindFrom = i + 2;
+            isInsertDuplicate = true;
           }
           break;
       }
-      lastChar = car;
+      i++;
     }
 
     // multi contains ";" not finishing statement.
@@ -220,8 +188,8 @@ public record ClientParser(
     if (isMulti) {
       // ensure there is not only empty
       boolean hasAdditionalPart = false;
-      for (int i = multiQueryIdx + 1; i < queryLength; i++) {
-        if (!isWhitespace(query[i])) {
+      for (int j = multiQueryIdx + 1; j < queryLength; j++) {
+        if (!isWhitespace(query[j])) {
           hasAdditionalPart = true;
           break;
         }
@@ -231,9 +199,9 @@ public record ClientParser(
     return new ClientParser(
         queryString,
         query,
-        paramPositions,
+        Arrays.copyOf(paramPositions, paramCount),
         null,
-        paramPositions.size(),
+        paramCount,
         isInsert,
         isInsertDuplicate,
         isMulti);
@@ -254,13 +222,10 @@ public record ClientParser(
    */
   public static ClientParser rewritableParts(String queryString, boolean noBackslashEscapes) {
     boolean reWritablePrepare = true;
-    List<Integer> paramPositions = new ArrayList<>(20);
+    int[] paramPositions = new int[16];
+    int paramCount = 0;
     List<Integer> valuesBracketPositions = new ArrayList<>(2);
 
-    LexState state = LexState.Normal;
-    byte lastChar = 0x00;
-
-    boolean singleQuotes = false;
     boolean isInsert = false;
     boolean isInsertDuplicate = false;
     boolean afterValues = false;
@@ -269,280 +234,158 @@ public record ClientParser(
     int multiQueryIdx = -1;
     byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
-    for (int i = 0; i < queryLength; i++) {
 
+    // the byte before index i is query[i - 1] from this index, lookBehindOverride before
+    int lookBehindFrom = 1;
+    byte lookBehindOverride = 0;
+    int i = 0;
+
+    // bytes without any meaning outside strings and comments are skipped in a tight loop
+    boolean[] special = REWRITABLE_SPECIAL[0];
+    while (true) {
+      while (i < queryLength && !special[query[i] & 0xFF]) i++;
+      if (i >= queryLength) break;
       byte car = query[i];
-      if (state == LexState.Escape
-          && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
-        state = LexState.String;
-        lastChar = car;
-        continue;
-      }
       switch (car) {
-        case '*':
-          if (state == LexState.Normal && lastChar == '/') {
-            state = LexState.SlashStarComment;
+        case '?':
+          if (paramCount == paramPositions.length) {
+            paramPositions = Arrays.copyOf(paramPositions, paramCount * 2);
           }
-          break;
-
-        case '/':
-          if (state == LexState.SlashStarComment && lastChar == '*') {
-            state = LexState.Normal;
-            lastChar = 0;
-            continue;
-          }
-          break;
-
-        case ';':
-          if (state == LexState.Normal && multiQueryIdx == -1) {
-            multiQueryIdx = i;
-          }
-          break;
-
-        case '#':
-          if (state == LexState.Normal) {
-            state = LexState.EOLComment;
-          }
-          break;
-
-        case '-':
-          if (state == LexState.Normal && lastChar == '-') {
-            // '--' starts a comment only if followed by whitespace or control character
-            // (not in expressions like '2--1')
-            if (i + 1 < queryLength) {
-              byte next = query[i + 1];
-              if (next == ' '
-                  || next == '\t'
-                  || next == '\n'
-                  || next == '\r'
-                  || next == '\f'
-                  || (next >= 0x00 && next <= 0x1F)) {
-                state = LexState.EOLComment;
-              }
-            } else {
-              // '--' at end of query starts a comment
-              state = LexState.EOLComment;
-            }
-          }
-          break;
-
-        case '\n':
-          if (state == LexState.EOLComment) {
-            state = LexState.Normal;
-          }
-          break;
-
-        case '"':
-          if (state == LexState.Normal) {
-            state = LexState.String;
-            singleQuotes = false;
-          } else if (state == LexState.String && !singleQuotes) {
-            state = LexState.Normal;
-          } else if (state == LexState.Escape) {
-            state = LexState.String;
+          paramPositions[paramCount++] = i;
+          // have parameter outside values parenthesis
+          if (valuesClosed) {
+            reWritablePrepare = false;
           }
           break;
 
         case '\'':
-          if (state == LexState.Normal) {
-            state = LexState.String;
-            singleQuotes = true;
-          } else if (state == LexState.String && singleQuotes) {
-            state = LexState.Normal;
-          } else if (state == LexState.Escape) {
-            state = LexState.String;
+        case '"':
+          // string: skip to the closing quote, a backslash escaping the next byte
+          i++;
+          while (i < queryLength && query[i] != car) {
+            if (query[i] == '\\' && !noBackslashEscapes) i++;
+            i++;
+          }
+          break;
+
+        case '`':
+          i++;
+          while (i < queryLength && query[i] != '`') i++;
+          break;
+
+        case '#':
+          i++;
+          while (i < queryLength && query[i] != '\n') i++;
+          break;
+
+        case '-':
+          if ((i >= lookBehindFrom ? query[i - 1] : lookBehindOverride) == '-') {
+            // '--' starts a comment only if followed by whitespace or control character
+            // (not in expressions like '2--1'), or at end of query
+            if (i + 1 >= queryLength || (query[i + 1] >= 0x00 && query[i + 1] <= ' ')) {
+              i++;
+              while (i < queryLength && query[i] != '\n') i++;
+            }
+          }
+          break;
+
+        case '*':
+          if ((i >= lookBehindFrom ? query[i - 1] : lookBehindOverride) == '/') {
+            // comment: skip to the first '/' preceded by '*'
+            i++;
+            while (i < queryLength && !(query[i] == '/' && query[i - 1] == '*')) i++;
+            lookBehindFrom = i + 2;
+            lookBehindOverride = 0;
+          }
+          break;
+
+        case ';':
+          if (multiQueryIdx == -1) {
+            multiQueryIdx = i;
           }
           break;
 
         case 'I':
         case 'i':
-          if (state == LexState.Normal
-              && !isInsert
-              && i + 6 < queryLength
-              && equalsIgnoreCase(query[i + 1], (byte) 'n')
-              && equalsIgnoreCase(query[i + 2], (byte) 's')
-              && equalsIgnoreCase(query[i + 3], (byte) 'e')
-              && equalsIgnoreCase(query[i + 4], (byte) 'r')
-              && equalsIgnoreCase(query[i + 5], (byte) 't')) {
-            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
-              break;
-            }
-            if ((query[i + 6] & 0xFF) > ' ' && !isDelimiter(query[i + 6])) {
-              break;
-            }
+          if (!isInsert && isKeyword(query, i, INSERT)) {
             i += 5;
+            lookBehindFrom = i + 2;
+            lookBehindOverride = car;
             isInsert = true;
+            special = REWRITABLE_SPECIAL[valuesBracketPositions.isEmpty() ? 1 : 3];
           }
           break;
         case 'D':
         case 'd':
-          if (isInsert
-              && state == LexState.Normal
-              && i + 9 < queryLength
-              && equalsIgnoreCase(query[i + 1], (byte) 'u')
-              && equalsIgnoreCase(query[i + 2], (byte) 'p')
-              && equalsIgnoreCase(query[i + 3], (byte) 'l')
-              && equalsIgnoreCase(query[i + 4], (byte) 'i')
-              && equalsIgnoreCase(query[i + 5], (byte) 'c')
-              && equalsIgnoreCase(query[i + 6], (byte) 'a')
-              && equalsIgnoreCase(query[i + 7], (byte) 't')
-              && equalsIgnoreCase(query[i + 8], (byte) 'e')) {
-            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
-              break;
-            }
-            if ((query[i + 9] & 0xFF) > ' ' && !isDelimiter(query[i + 9])) {
-              break;
-            }
+          if (isInsert && isKeyword(query, i, DUPLICATE)) {
             i += 9;
+            lookBehindFrom = i + 2;
+            lookBehindOverride = car;
             isInsertDuplicate = true;
           }
           break;
         case 's':
         case 'S':
-          if (state == LexState.Normal
-              && !valuesBracketPositions.isEmpty()
+          // field/table name might contain 'select'
+          if (!valuesBracketPositions.isEmpty()
               && queryLength > i + 7
-              && equalsIgnoreCase(query[i + 1], (byte) 'e')
-              && equalsIgnoreCase(query[i + 2], (byte) 'l')
-              && equalsIgnoreCase(query[i + 3], (byte) 'e')
-              && equalsIgnoreCase(query[i + 4], (byte) 'c')
-              && equalsIgnoreCase(query[i + 5], (byte) 't')) {
-
-            // field/table name might contain 'select'
-            if (i > 0 && ((query[i - 1] & 0xFF) > ' ' && !isDelimiter(query[i - 1]))) {
-              break;
-            }
-            if ((query[i + 6] & 0xFF) > ' ' && !isDelimiter(query[i + 6])) {
-              break;
-            }
-
+              && isKeyword(query, i, SELECT)) {
             // SELECT queries, INSERT FROM SELECT not rewritable
             reWritablePrepare = false;
           }
           break;
         case 'v':
         case 'V':
-          if (state == LexState.Normal
-              && valuesBracketPositions.isEmpty()
-              && (lastChar == ')' || ((lastChar & 0xFF) <= 40))
+          // previous byte must be ')' or a separator
+          if (valuesBracketPositions.isEmpty()
+              && ((i >= lookBehindFrom ? query[i - 1] : lookBehindOverride) & 0xFF) <= ')'
               && queryLength > i + 7
-              && equalsIgnoreCase(query[i + 1], (byte) 'a')
-              && equalsIgnoreCase(query[i + 2], (byte) 'l')
-              && equalsIgnoreCase(query[i + 3], (byte) 'u')
-              && equalsIgnoreCase(query[i + 4], (byte) 'e')
-              && equalsIgnoreCase(query[i + 5], (byte) 's')
-              && (query[i + 6] == '(' || ((query[i + 6] & 0xFF) <= 40))) {
+              && startsWithIgnoreCase(query, i, VALUES)
+              && (query[i + 6] & 0xFF) <= '(') {
             afterValues = true;
             if (query[i + 6] == '(') {
               valuesBracketPositions.add(i + 6);
+              special = REWRITABLE_SPECIAL[isInsert ? 3 : 2];
             }
             i = i + 5;
+            lookBehindFrom = i + 2;
+            lookBehindOverride = car;
           }
           break;
         case 'l':
         case 'L':
-          if (state == LexState.Normal
-              && queryLength > i + 14
-              && equalsIgnoreCase(query[i + 1], (byte) 'a')
-              && equalsIgnoreCase(query[i + 2], (byte) 's')
-              && equalsIgnoreCase(query[i + 3], (byte) 't')
-              && query[i + 4] == '_'
-              && equalsIgnoreCase(query[i + 5], (byte) 'i')
-              && equalsIgnoreCase(query[i + 6], (byte) 'n')
-              && equalsIgnoreCase(query[i + 7], (byte) 's')
-              && equalsIgnoreCase(query[i + 8], (byte) 'e')
-              && equalsIgnoreCase(query[i + 9], (byte) 'r')
-              && equalsIgnoreCase(query[i + 10], (byte) 't')
-              && query[i + 11] == '_'
-              && equalsIgnoreCase(query[i + 12], (byte) 'i')
-              && equalsIgnoreCase(query[i + 13], (byte) 'd')
-              && query[i + 14] == '(') {
+          if (queryLength > i + 14 && isLastInsertIdCall(query, i)) {
             reWritablePrepare = false;
           }
           break;
         case '(':
-          if (state == LexState.Normal) {
-            isInParenthesis++;
-            if (afterValues && valuesBracketPositions.isEmpty()) {
-              valuesBracketPositions.add(i);
-            }
-          }
-          break;
-        case (byte) '\\':
-          if (state == LexState.String && !noBackslashEscapes) {
-            state = LexState.Escape;
+          isInParenthesis++;
+          if (afterValues && valuesBracketPositions.isEmpty()) {
+            valuesBracketPositions.add(i);
+            special = REWRITABLE_SPECIAL[isInsert ? 3 : 2];
           }
           break;
         case ')':
-          if (state == LexState.Normal) {
-            isInParenthesis--;
-            if (afterValues
-                && !valuesClosed
-                && isInParenthesis == 0
-                && valuesBracketPositions.size() == 1) {
-              // This is the closing parenthesis of a VALUES tuple.
-              // Determine if VALUES contains multiple tuples
-              // or if this closes the (single) VALUES tuple list.
-              int j = i + 1;
-              while (j < queryLength) {
-                byte c = query[j];
-                if (isWhitespace(c)) {
-                  j++;
-                  continue;
-                }
-                // skip comments
-                if (c == '#') {
-                  j++;
-                  while (j < queryLength && query[j] != '\n') {
-                    j++;
-                  }
-                  continue;
-                }
-                if (c == '-' && j + 1 < queryLength && query[j + 1] == '-') {
-                  j += 2;
-                  while (j < queryLength && query[j] != '\n') {
-                    j++;
-                  }
-                  continue;
-                }
-                if (c == '/' && j + 1 < queryLength && query[j + 1] == '*') {
-                  j += 2;
-                  while (j + 1 < queryLength && !(query[j] == '*' && query[j + 1] == '/')) {
-                    j++;
-                  }
-                  j = Math.min(j + 2, queryLength);
-                  continue;
-                }
-                break;
-              }
+          isInParenthesis--;
+          if (afterValues
+              && !valuesClosed
+              && isInParenthesis == 0
+              && valuesBracketPositions.size() == 1) {
+            // This is the closing parenthesis of a VALUES tuple.
+            // Determine if VALUES contains multiple tuples
+            // or if this closes the (single) VALUES tuple list.
+            int j = skipBlanksAndComments(query, i + 1);
 
-              if (j < queryLength && query[j] == ',') {
-                // VALUES contains multiple tuples. Keep parsing until the last tuple closes.
-              } else {
-                valuesBracketPositions.add(i);
-                valuesClosed = true;
-              }
+            if (j < queryLength && query[j] == ',') {
+              // VALUES contains multiple tuples. Keep parsing until the last tuple closes.
+            } else {
+              valuesBracketPositions.add(i);
+              valuesClosed = true;
             }
-          }
-          break;
-        case (byte) '?':
-          if (state == LexState.Normal) {
-            paramPositions.add(i);
-            // have parameter outside values parenthesis
-            if (valuesClosed) {
-              reWritablePrepare = false;
-            }
-          }
-          break;
-        case (byte) '`':
-          if (state == LexState.Backtick) {
-            state = LexState.Normal;
-          } else if (state == LexState.Normal) {
-            state = LexState.Backtick;
           }
           break;
       }
-      lastChar = car;
+      i++;
     }
 
     // multi contains ";" not finishing statement.
@@ -550,9 +393,8 @@ public record ClientParser(
     if (isMulti) {
       // ensure there is not only empty
       boolean hasAdditionalPart = false;
-      for (int i = multiQueryIdx + 1; i < queryLength; i++) {
-        byte car = query[i];
-        if (car != (byte) ' ' && car != (byte) '\n' && car != (byte) '\r' && car != (byte) '\t') {
+      for (int j = multiQueryIdx + 1; j < queryLength; j++) {
+        if (!isWhitespace(query[j])) {
           hasAdditionalPart = true;
           break;
         }
@@ -567,12 +409,98 @@ public record ClientParser(
     return new ClientParser(
         queryString,
         query,
-        paramPositions,
+        Arrays.copyOf(paramPositions, paramCount),
         valuesBracketPositions,
-        paramPositions.size(),
+        paramCount,
         isInsert,
         isInsertDuplicate,
         isMulti);
+  }
+
+  private static final byte[] INSERT = {'i', 'n', 's', 'e', 'r', 't'};
+  private static final byte[] DUPLICATE = {'d', 'u', 'p', 'l', 'i', 'c', 'a', 't', 'e'};
+  private static final byte[] SELECT = {'s', 'e', 'l', 'e', 'c', 't'};
+  private static final byte[] VALUES = {'v', 'a', 'l', 'u', 'e', 's'};
+
+  /**
+   * Indicate if the query has, at index pos, the given keyword (any case) followed by at least
+   * one byte.
+   */
+  private static boolean startsWithIgnoreCase(byte[] query, int pos, byte[] lowerKeyword) {
+    if (pos + lowerKeyword.length >= query.length) return false;
+    // first byte is already known to match
+    for (int k = 1; k < lowerKeyword.length; k++) {
+      if (!equalsIgnoreCase(query[pos + k], lowerKeyword[k])) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Indicate if the query has, at index pos, the given keyword (any case), not being part of a
+   * longer name : it must be preceded (but at query start) and followed by a blank or a delimiter.
+   */
+  private static boolean isKeyword(byte[] query, int pos, byte[] lowerKeyword) {
+    if (!startsWithIgnoreCase(query, pos, lowerKeyword)) return false;
+    if (pos > 0 && ((query[pos - 1] & 0xFF) > ' ' && !isDelimiter(query[pos - 1]))) {
+      return false;
+    }
+    byte next = query[pos + lowerKeyword.length];
+    return (next & 0xFF) <= ' ' || isDelimiter(next);
+  }
+
+  /** Indicate if the query has "last_insert_id(" (any case) at index pos. */
+  private static boolean isLastInsertIdCall(byte[] query, int i) {
+    return equalsIgnoreCase(query[i + 1], (byte) 'a')
+        && equalsIgnoreCase(query[i + 2], (byte) 's')
+        && equalsIgnoreCase(query[i + 3], (byte) 't')
+        && query[i + 4] == '_'
+        && equalsIgnoreCase(query[i + 5], (byte) 'i')
+        && equalsIgnoreCase(query[i + 6], (byte) 'n')
+        && equalsIgnoreCase(query[i + 7], (byte) 's')
+        && equalsIgnoreCase(query[i + 8], (byte) 'e')
+        && equalsIgnoreCase(query[i + 9], (byte) 'r')
+        && equalsIgnoreCase(query[i + 10], (byte) 't')
+        && query[i + 11] == '_'
+        && equalsIgnoreCase(query[i + 12], (byte) 'i')
+        && equalsIgnoreCase(query[i + 13], (byte) 'd')
+        && query[i + 14] == '(';
+  }
+
+  /** Index of the first byte, from index j, that is neither a blank nor in a comment. */
+  private static int skipBlanksAndComments(byte[] query, int j) {
+    int queryLength = query.length;
+    while (j < queryLength) {
+      byte c = query[j];
+      if (isWhitespace(c)) {
+        j++;
+        continue;
+      }
+      // skip comments
+      if (c == '#') {
+        j++;
+        while (j < queryLength && query[j] != '\n') {
+          j++;
+        }
+        continue;
+      }
+      if (c == '-' && j + 1 < queryLength && query[j + 1] == '-') {
+        j += 2;
+        while (j < queryLength && query[j] != '\n') {
+          j++;
+        }
+        continue;
+      }
+      if (c == '/' && j + 1 < queryLength && query[j + 1] == '*') {
+        j += 2;
+        while (j + 1 < queryLength && !(query[j] == '*' && query[j + 1] == '/')) {
+          j++;
+        }
+        j = Math.min(j + 2, queryLength);
+        continue;
+      }
+      break;
+    }
+    return j;
   }
 
   /** Fast check if byte is a delimiter character: ();><=-+, Avoids String.indexOf() overhead */
@@ -592,14 +520,5 @@ public record ClientParser(
    */
   private static boolean equalsIgnoreCase(byte b, byte lower) {
     return (b | 0x20) == lower;
-  }
-
-  enum LexState {
-    Normal, /* inside query */
-    String, /* inside string */
-    SlashStarComment, /* inside slash-star comment */
-    Escape, /* found backslash */
-    EOLComment, /* # comment, or // comment, or -- comment */
-    Backtick /* found backtick */
   }
 }

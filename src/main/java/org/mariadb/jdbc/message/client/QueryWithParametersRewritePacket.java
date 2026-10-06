@@ -69,7 +69,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
     Parameters parameters = paramIterator.next();
 
     int rewritePacketNo = 0;
-    int tailStart = parser.paramPositions().get(parser.paramCount() - 1) + 1;
+    int tailStart = parser.paramPositions()[parser.paramCount() - 1] + 1;
     int endingPartLen = parser.query().length - tailStart;
 
     // Implementation After writing a bunch of parameter to buffer is marked. then : - when writing
@@ -93,7 +93,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
       }
 
       for (int i = 0; i < parser.paramCount(); i++) {
-        paramPos = parser.paramPositions().get(i);
+        paramPos = parser.paramPositions()[i];
         writer.writeBytes(parser.query(), pos, paramPos - pos);
         pos = paramPos + 1;
         parameters.get(i).encodeText(writer, context);
@@ -126,7 +126,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
           }
           if (i > 0) {
             parameterLength +=
-                parser.paramPositions().get(i) - (parser.paramPositions().get(i - 1) + 1);
+                parser.paramPositions()[i] - (parser.paramPositions()[i - 1] + 1);
           }
           parameterLength += paramSize;
         }
@@ -142,8 +142,8 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
         writer.writeByte((byte) ',');
 
         pos = parser.valuesBracketPositions().get(0);
-        for (int i = 0; i < parser.paramPositions().size(); i++) {
-          paramPos = parser.paramPositions().get(i);
+        for (int i = 0; i < parser.paramPositions().length; i++) {
+          paramPos = parser.paramPositions()[i];
           writer.writeBytes(parser.query(), pos, paramPos - pos);
           pos = paramPos + 1;
           parameters.get(i).encodeText(writer, context);

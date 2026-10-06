@@ -45,7 +45,7 @@ public class ClientParserTest {
     int pos = 0;
     int paramPos = parser.query().length;
     for (int i = 0; i < parser.paramCount(); i++) {
-      paramPos = parser.paramPositions().get(i);
+      paramPos = parser.paramPositions()[i];
       assertEquals(expected[i], new String(parser.query(), pos, paramPos - pos));
       pos = paramPos + 1;
     }
@@ -58,7 +58,7 @@ public class ClientParserTest {
     pos = 0;
     paramPos = parser.query().length;
     for (int i = 0; i < parser.paramCount(); i++) {
-      paramPos = parser.paramPositions().get(i);
+      paramPos = parser.paramPositions()[i];
       assertEquals(expectedNoBackSlash[i], new String(parser.query(), pos, paramPos - pos));
       pos = paramPos + 1;
     }
@@ -77,7 +77,7 @@ public class ClientParserTest {
     int pos = 0;
     int paramPos = parser.query().length;
     for (int i = 0; i < parser.paramCount(); i++) {
-      paramPos = parser.paramPositions().get(i);
+      paramPos = parser.paramPositions()[i];
       sb.append(new String(parser.query(), pos, paramPos - pos, StandardCharsets.UTF_8))
           .append("\n");
       pos = paramPos + 1;

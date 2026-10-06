@@ -19,8 +19,8 @@ public class ClientPreparedStatementParsingTest extends Common {
     assertEquals(paramNumber, parser.paramCount());
     int pos = 0;
     int paramPos;
-    for (int i = 0; i < parser.paramPositions().size(); i++) {
-      paramPos = parser.paramPositions().get(i);
+    for (int i = 0; i < parser.paramPositions().length; i++) {
+      paramPos = parser.paramPositions()[i];
       assertEquals(partsMulti[i], new String(parser.query(), pos, paramPos - pos));
       pos = paramPos + 1;
     }
