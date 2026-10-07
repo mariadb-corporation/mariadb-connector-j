@@ -941,7 +941,8 @@ public class StandardClient implements Client, AutoCloseable {
               "HY000",
               sqlException);
         }
-        throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
+        throw exceptionFactory.create(
+            "Initialization command fail: " + sqlException.getMessage(), "08000", sqlException);
       }
 
       if (conf.returnMultiValuesGeneratedIds()) {
@@ -1014,20 +1015,22 @@ public class StandardClient implements Client, AutoCloseable {
     if (!isSessionTrackingSupported(context)) {
       return;
     }
-
-    StringBuilder concatValues =
-        new StringBuilder(",")
+    StringBuilder tracked =
+        new StringBuilder(
+                "autocommit,character_set_client,character_set_connection,character_set_results,"
+                    + "time_zone,")
             .append(
                 context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
-
     if (conf.returnMultiValuesGeneratedIds()) {
-      concatValues.append(",auto_increment_increment");
+      tracked.append(",auto_increment_increment");
     }
-
-    commands.add(
-        "session_track_system_variables = CONCAT(@@global.session_track_system_variables,'"
-            + concatValues
-            + "')");
+    if (context.getVersion().isMariaDBServer()
+        && context.getVersion().versionGreaterOrEqual(11, 3, 0)) {
+      tracked.append(",redirect_url");
+    }
+    commands.add("session_track_system_variables='" + tracked + "'");
+    // the current database is kept from the server's schema change reports (USE ...)
+    commands.add("session_track_schema=1");
   }
 
   private boolean isSessionTrackingSupported(Context context) {

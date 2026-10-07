@@ -31,6 +31,8 @@ public class OkPacket implements Completion {
 
   static final byte[] CHARACTER_SET_CLIENT =
       "character_set_client".getBytes(StandardCharsets.UTF_8);
+  static final byte[] CHARACTER_SET_RESULTS =
+      "character_set_results".getBytes(StandardCharsets.UTF_8);
   static final byte[] CONNECTION_ID = "connection_id".getBytes(StandardCharsets.UTF_8);
   static final byte[] THREAD_CONNECTED = "threads_Connected".getBytes(StandardCharsets.UTF_8);
   static final byte[] AUTO_INCREMENT_INCREMENT =
@@ -84,7 +86,10 @@ public class OkPacket implements Completion {
                         valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
 
                   if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
-                    context.setCharset(new String(valueBytes, 0, lenSv));
+                    context.setCharset(valueBytes == null ? null : new String(valueBytes, 0, lenSv));
+                  } else if (Arrays.equals(CHARACTER_SET_RESULTS, variableBytes)) {
+                    context.setCharsetResults(
+                        valueBytes == null ? null : new String(valueBytes, 0, lenSv));
                   } else if (Arrays.equals(CONNECTION_ID, variableBytes)) {
                     context.setThreadId(Long.parseLong(new String(valueBytes, 0, lenSv)));
                   } else if (Arrays.equals(THREAD_CONNECTED, variableBytes)) {
@@ -175,7 +180,10 @@ public class OkPacket implements Completion {
                         valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
 
                   if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
-                    context.setCharset(new String(valueBytes, 0, lenSv));
+                    context.setCharset(valueBytes == null ? null : new String(valueBytes, 0, lenSv));
+                  } else if (Arrays.equals(CHARACTER_SET_RESULTS, variableBytes)) {
+                    context.setCharsetResults(
+                        valueBytes == null ? null : new String(valueBytes, 0, lenSv));
                   } else if (Arrays.equals(CONNECTION_ID, variableBytes)) {
                     context.setThreadId(Long.parseLong(new String(valueBytes, 0, lenSv)));
                   } else if (Arrays.equals(THREAD_CONNECTED, variableBytes)) {
