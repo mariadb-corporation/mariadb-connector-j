@@ -5,15 +5,19 @@ package org.mariadb.jdbc.client.impl;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.net.SocketFactory;
 import javax.net.ssl.*;
 import jdk.net.ExtendedSocketOptions;
@@ -129,8 +133,12 @@ public final class ConnectionHelper {
     }
   }
 
+  static final ConcurrentMap<String, InetAddress> LAST_SUCCESSFUL_ADDRESS =
+      new ConcurrentHashMap<>();
+
   /**
-   * Connect socket
+   * Connect socket. When the host name resolves to several addresses (typically an IPv4 and an IPv6
+   * address), each address is tried in turn until one connects, within the connectTimeout budget.
    *
    * @param conf configuration
    * @param hostAddress host to connect
@@ -139,7 +147,96 @@ public final class ConnectionHelper {
    */
   public static Socket connectSocket(final Configuration conf, final HostAddress hostAddress)
       throws SQLException {
-    Socket socket;
+    if (hostAddress.pipe != null || hostAddress.localSocket != null) {
+      return connectSocket(conf, hostAddress, null, conf.connectTimeout());
+    }
+    InetAddress[] addresses;
+    try {
+      addresses = InetAddress.getAllByName(hostAddress.host);
+    } catch (UnknownHostException e) {
+      throw new SQLNonTransientConnectionException(
+          String.format("Socket fail to connect to %s. %s", hostAddress, e.getMessage()),
+          "08000",
+          e);
+    }
+    // the address that last connected is tried first, the others keep their resolution order
+    InetAddress preferred =
+        addresses.length > 1 ? LAST_SUCCESSFUL_ADDRESS.get(hostAddress.host) : null;
+    if (preferred != null) {
+      for (int i = 1; i < addresses.length; i++) {
+        if (preferred.equals(addresses[i])) {
+          InetAddress[] ordered = addresses.clone();
+          System.arraycopy(addresses, 0, ordered, 1, i);
+          ordered[0] = addresses[i];
+          addresses = ordered;
+          break;
+        }
+      }
+    }
+    return connectSocket(conf, hostAddress, addresses);
+  }
+
+  /**
+   * Try each address in turn until one connects. The connectTimeout budget is shared between the
+   * attempts: each one gets the remaining budget divided by the number of addresses left, and the
+   * time an attempt did not use is carried over to the next ones, so the whole loop stays within
+   * connectTimeout. Any connection failure, a refused or unroutable address as well as a timeout,
+   * moves on to the next address.
+   *
+   * @param conf configuration
+   * @param hostAddress host to connect
+   * @param addresses resolved addresses of the host, in the order to try them
+   * @return socket connected to the first address that accepted the connection
+   * @throws SQLException the failure of the last attempt, earlier failures as suppressed exceptions
+   */
+  static Socket connectSocket(Configuration conf, HostAddress hostAddress, InetAddress[] addresses)
+      throws SQLException {
+    if (addresses.length == 0) {
+      throw new SQLNonTransientConnectionException(
+          String.format("Socket fail to connect to %s. No address", hostAddress), "08000");
+    }
+    int connectTimeout = conf.connectTimeout();
+    long deadlineNs = System.nanoTime() + connectTimeout * 1_000_000L;
+    SQLException lastException = null;
+    for (int i = 0; i < addresses.length; i++) {
+      long remainingMs = (deadlineNs - System.nanoTime()) / 1_000_000L;
+      if (i > 0 && connectTimeout > 0 && remainingMs <= 0) break;
+      int timeout = attemptTimeout(connectTimeout, remainingMs, addresses.length - i);
+      try {
+        Socket socket = connectSocket(conf, hostAddress, addresses[i], timeout);
+        if (addresses.length > 1) LAST_SUCCESSFUL_ADDRESS.put(hostAddress.host, addresses[i]);
+        return socket;
+      } catch (SQLNonTransientConnectionException | SQLTimeoutException e) {
+        if (lastException != null) e.addSuppressed(lastException);
+        lastException = e;
+      }
+    }
+    throw lastException;
+  }
+
+  /**
+   * Timeout of one connection attempt: the remaining budget, divided equally between the addresses
+   * still to try.
+   *
+   * @param connectTimeout configured connectTimeout in milliseconds, zero meaning no timeout
+   * @param remainingMs budget left, in milliseconds
+   * @param remainingAddresses number of addresses still to try, this one included
+   * @return attempt timeout in milliseconds, zero meaning no timeout
+   */
+  static int attemptTimeout(int connectTimeout, long remainingMs, int remainingAddresses) {
+    if (connectTimeout <= 0) return 0;
+    long perAttempt = (remainingMs + remainingAddresses - 1) / remainingAddresses;
+    return (int) Math.max(1, Math.min(perAttempt, connectTimeout));
+  }
+
+  private static Socket connectSocket(
+      Configuration conf, HostAddress hostAddress, InetAddress address, int timeout)
+      throws SQLException {
+    String target =
+        address == null
+            ? hostAddress.toString()
+            : hostAddress + " [" + address.getHostAddress() + "]";
+    Socket socket = null;
     try {
       socket = createSocket(conf, hostAddress);
       socket.setTcpNoDelay(true);
@@ -164,25 +261,34 @@ public final class ConnectionHelper {
       }
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
-            hostAddress.pipe == null && hostAddress.localSocket == null
-                ? new InetSocketAddress(hostAddress.host, hostAddress.port)
-                : null;
-        socket.connect(sockAddr, conf.connectTimeout());
+            address == null ? null : new InetSocketAddress(address, hostAddress.port);
+        socket.connect(sockAddr, timeout);
       }
       return socket;
 
     } catch (SocketTimeoutException ste) {
+      closeQuietly(socket);
       throw new SQLTimeoutException(
-          String.format("Socket timeout when connecting to %s. %s", hostAddress, ste.getMessage()),
+          String.format("Socket timeout when connecting to %s. %s", target, ste.getMessage()),
           "08000",
           ste);
 
     } catch (IOException ioe) {
-
+      closeQuietly(socket);
       throw new SQLNonTransientConnectionException(
-          String.format("Socket fail to connect to %s. %s", hostAddress, ioe.getMessage()),
+          String.format("Socket fail to connect to %s. %s", target, ioe.getMessage()),
           "08000",
           ioe);
+    }
+  }
+
+  private static void closeQuietly(Socket socket) {
+    if (socket != null) {
+      try {
+        socket.close();
+      } catch (IOException ignore) {
+        // a socket that failed to connect: nothing left to release
+      }
     }
   }
 
