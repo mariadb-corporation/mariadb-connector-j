@@ -86,7 +86,8 @@ public class OkPacket implements Completion {
                         valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
 
                   if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
-                    context.setCharset(valueBytes == null ? null : new String(valueBytes, 0, lenSv));
+                    context.setCharset(
+                        valueBytes == null ? null : new String(valueBytes, 0, lenSv));
                   } else if (Arrays.equals(CHARACTER_SET_RESULTS, variableBytes)) {
                     context.setCharsetResults(
                         valueBytes == null ? null : new String(valueBytes, 0, lenSv));
@@ -180,7 +181,8 @@ public class OkPacket implements Completion {
                         valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
 
                   if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
-                    context.setCharset(valueBytes == null ? null : new String(valueBytes, 0, lenSv));
+                    context.setCharset(
+                        valueBytes == null ? null : new String(valueBytes, 0, lenSv));
                   } else if (Arrays.equals(CHARACTER_SET_RESULTS, variableBytes)) {
                     context.setCharsetResults(
                         valueBytes == null ? null : new String(valueBytes, 0, lenSv));

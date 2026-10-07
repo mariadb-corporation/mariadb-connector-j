@@ -1012,7 +1012,7 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   private void addSessionTrackingCommand(Context context, List<String> commands) {
-    if (!isSessionTrackingSupported(context)) {
+    if (!context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       return;
     }
     StringBuilder tracked =
@@ -1031,13 +1031,6 @@ public class StandardClient implements Client, AutoCloseable {
     commands.add("session_track_system_variables='" + tracked + "'");
     // the current database is kept from the server's schema change reports (USE ...)
     commands.add("session_track_schema=1");
-  }
-
-  private boolean isSessionTrackingSupported(Context context) {
-    return context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
-        && ((context.getVersion().isMariaDBServer()
-                && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
-            || context.getVersion().versionGreaterOrEqual(5, 7, 0));
   }
 
   private void addTimeZoneCommand(Context context, List<String> commands) {
