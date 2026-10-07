@@ -49,6 +49,9 @@ public class OkPacket implements Completion {
                   case "character_set_client":
                     context.setCharset(valueSv);
                     break;
+                  case "character_set_results":
+                    context.setCharsetResults(valueSv);
+                    break;
                   case "connection_id":
                     context.setThreadId(Long.parseLong(valueSv));
                     break;
