@@ -773,7 +773,8 @@ public class StandardClient implements Client, AutoCloseable {
               "HY000",
               sqlException);
         }
-        throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
+        throw exceptionFactory.create(
+            "Initialization command fail: " + sqlException.getMessage(), "08000", sqlException);
       }
 
       if (conf.returnMultiValuesGeneratedIds()) {
@@ -823,14 +824,21 @@ public class StandardClient implements Client, AutoCloseable {
         && ((context.getVersion().isMariaDBServer()
                 && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
             || context.getVersion().versionGreaterOrEqual(5, 7, 0))) {
-      String concatValues =
-          "," + (context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
-      if (conf.returnMultiValuesGeneratedIds()) concatValues += ",auto_increment_increment";
-      sessionCommands.add(
-          "session_track_system_variables ="
-              + " CONCAT(@@global.session_track_system_variables,'"
-              + concatValues
-              + "')");
+      // explicit list, independent of the server's global value: the variables the driver relies
+      // on (UTF-8 invariants, transaction isolation, redirection, generated ids), plus the server's
+      // default ones (autocommit, character_set_connection, time_zone) which proxies may rely on
+      String tracked =
+          "autocommit,character_set_client,character_set_connection,character_set_results,"
+              + "time_zone,"
+              + (context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
+      if (conf.returnMultiValuesGeneratedIds()) tracked += ",auto_increment_increment";
+      if (context.getVersion().isMariaDBServer()
+          && context.getVersion().versionGreaterOrEqual(11, 3, 0)) {
+        tracked += ",redirect_url";
+      }
+      sessionCommands.add("session_track_system_variables='" + tracked + "'");
+      // the current database is kept from the server's schema change reports (USE ...)
+      sessionCommands.add("session_track_schema=1");
     }
 
     // add configured session variable if configured
