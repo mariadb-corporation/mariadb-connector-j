@@ -155,7 +155,12 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
       case 253:
         return readUnsignedMedium();
       case 254:
-        return (int) readLong();
+        long val = readLong();
+        if (val < 0 || val > Integer.MAX_VALUE) {
+          throw new IllegalArgumentException(
+              "invalid length-encoded value: " + Long.toUnsignedString(val));
+        }
+        return (int) val;
       default:
         return type;
     }
@@ -182,7 +187,12 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
       case 253:
         return readUnsignedMedium();
       case 254:
-        return (int) readLong();
+        long val = readLong();
+        if (val < 0 || val > Integer.MAX_VALUE) {
+          throw new IllegalArgumentException(
+              "invalid length-encoded value: " + Long.toUnsignedString(val));
+        }
+        return (int) val;
       default:
         return type;
     }
