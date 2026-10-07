@@ -450,9 +450,7 @@ public class StandardClient implements Client, AutoCloseable {
           "autocommit=" + ((conf.autocommit() == null || conf.autocommit()) ? "1" : "0"));
     }
 
-    if ((context.getVersion().isMariaDBServer()
-            && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
-        || context.getVersion().versionGreaterOrEqual(5, 7, 0)) {
+    if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       // explicit list, independent of the server's global value: the variables the driver relies
       // on (UTF-8 invariants, generated ids), plus the server's default ones (autocommit,
       // character_set_connection, time_zone) which proxies may rely on
