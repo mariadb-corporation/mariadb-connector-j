@@ -211,10 +211,6 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.BULK_UNIT_RESULTS;
     }
 
-    if (getBooleanProperty(configuration, "disableSessionTracking", false)) {
-      capabilities &= ~Capabilities.CLIENT_SESSION_TRACK;
-    }
-
     if (shouldEnableMetadataCache(configuration)) {
       capabilities |= Capabilities.CACHE_METADATA;
     }
