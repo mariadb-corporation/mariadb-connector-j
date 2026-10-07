@@ -31,6 +31,8 @@ public class OkPacket implements Completion {
 
   static final byte[] CHARACTER_SET_CLIENT =
       "character_set_client".getBytes(StandardCharsets.UTF_8);
+  static final byte[] CHARACTER_SET_RESULTS =
+      "character_set_results".getBytes(StandardCharsets.UTF_8);
   static final byte[] CONNECTION_ID = "connection_id".getBytes(StandardCharsets.UTF_8);
   static final byte[] THREAD_CONNECTED = "threads_Connected".getBytes(StandardCharsets.UTF_8);
   static final byte[] AUTO_INCREMENT_INCREMENT =
@@ -83,6 +85,8 @@ public class OkPacket implements Completion {
 
     if (is(buf, namePos, nameLen, CHARACTER_SET_CLIENT)) {
       context.setCharset(buf.readString(len));
+    } else if (is(buf, namePos, nameLen, CHARACTER_SET_RESULTS)) {
+      context.setCharsetResults(buf.readString(len));
     } else if (is(buf, namePos, nameLen, CONNECTION_ID)) {
       context.setThreadId(buf.atoll(len));
     } else if (is(buf, namePos, nameLen, THREAD_CONNECTED)) {

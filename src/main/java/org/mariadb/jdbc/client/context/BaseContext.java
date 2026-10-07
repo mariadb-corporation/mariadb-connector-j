@@ -264,18 +264,27 @@ public class BaseContext implements Context {
   }
 
   public void setCharset(String charset) throws SQLNonTransientConnectionException {
+    rejectNonUtf8("character set", charset);
+    this.charset = charset;
+  }
+
+  public void setCharsetResults(String charset) throws SQLNonTransientConnectionException {
+    if (!charset.isEmpty()) {
+      rejectNonUtf8("character_set_results", charset);
+    }
+  }
+
+  private void rejectNonUtf8(String what, String charset)
+      throws SQLNonTransientConnectionException {
     if (initialized && charset != null && !charset.startsWith("utf8")) {
-      // Drop the connection so subsequent operations can't run against a session whose
-      // character_set_client is now out of sync with the driver's UTF-8 assumption.
       connectionCloser.run();
       throw new SQLNonTransientConnectionException(
           String.format(
-              "Connection character set was changed to '%s'. Only utf8 / utf8mb3 / utf8mb4 are"
-                  + " supported. The connection has been closed.",
-              charset),
+              "Connection %s was changed to '%s'. Only utf8 / utf8mb3 / utf8mb4 are supported."
+                  + " The connection has been closed.",
+              what, charset),
           "08000");
     }
-    this.charset = charset;
   }
 
   public void setInitialized() {
