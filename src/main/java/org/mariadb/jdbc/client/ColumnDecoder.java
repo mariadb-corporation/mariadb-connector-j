@@ -71,18 +71,28 @@ public interface ColumnDecoder extends Column {
 
       ReadableByteBuf subPacket = buf.readLengthBuffer();
       while (subPacket.readableBytes() > 0) {
-        switch (subPacket.readByte()) {
-          case 0:
-            extTypeName = subPacket.readBytes(subPacket.readIntLengthEncodedNotNull());
-            break;
-          case 1:
-            extTypeFormat = subPacket.readBytes(subPacket.readIntLengthEncodedNotNull());
-            break;
-          default: // skip data
-            int skipLen = subPacket.readIntLengthEncodedNotNull();
-            subPacket.checkLength(skipLen);
-            subPacket.skip(skipLen);
-            break;
+        byte flag = subPacket.readByte();
+        int len = subPacket.readIntLengthEncodedNotNull();
+        // the entry length is server-declared: it must fit in the sub-packet before being read
+        if (subPacket.readableBytes() >= len) {
+          switch (flag) {
+            case 0:
+              extTypeName = subPacket.readBytes(len);
+              break;
+            case 1:
+              extTypeFormat = subPacket.readBytes(len);
+              break;
+            default: // skip data
+              subPacket.skip(len);
+              break;
+          }
+        } else {
+          throw new IllegalArgumentException(
+              "invalid length-encoded value: declared "
+                  + len
+                  + " bytes, "
+                  + subPacket.readableBytes()
+                  + " remaining");
         }
       }
     }

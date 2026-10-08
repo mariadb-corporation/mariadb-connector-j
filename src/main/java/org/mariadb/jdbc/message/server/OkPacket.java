@@ -62,79 +62,12 @@ public class OkPacket implements Completion {
     context.setWarning(buf.readUnsignedShort());
 
     if (buf.readableBytes() > 0) {
-      buf.skip(buf.readIntLengthEncodedNotNull()); // skip info
-      if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
-        while (buf.readableBytes() > 0) {
-          ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
-          while (sessionStateBuf.readableBytes() > 0) {
-            switch (sessionStateBuf.readByte()) {
-              case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-                ReadableByteBuf tmpBufsv;
-                do {
-                  tmpBufsv = sessionStateBuf.readLengthBuffer();
-                  // lengths are server-declared: readBytes validates them before allocating
-                  int len = tmpBufsv.readIntLengthEncodedNotNull();
-                  byte[] variableBytes = tmpBufsv.readBytes(len);
-
-                  Integer lenSv = tmpBufsv.readLength();
-                  byte[] valueBytes = lenSv == null ? null : tmpBufsv.readBytes(lenSv);
-
-                  if (logger.isDebugEnabled())
-                    logger.debug(
-                        "System variable change:  {} = {}",
-                        new String(variableBytes, 0, len),
-                        valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
-
-                  if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
-                    context.setCharset(
-                        valueBytes == null ? null : new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(CHARACTER_SET_RESULTS, variableBytes)) {
-                    context.setCharsetResults(
-                        valueBytes == null ? null : new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(CONNECTION_ID, variableBytes)) {
-                    context.setThreadId(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(THREAD_CONNECTED, variableBytes)) {
-                    context.setTreadsConnected(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(AUTO_INCREMENT_INCREMENT, variableBytes)) {
-                    context.setAutoIncrement(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(MAXSCALE, variableBytes)) {
-                    context.setMaxscaleVersion(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(REDIRECT_URL, variableBytes)) {
-                    if (lenSv != null && lenSv > 0)
-                      context.setRedirectUrl(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(TX_ISOLATION, variableBytes)
-                      || Arrays.equals(TRANSACTION_ISOLATION, variableBytes)) {
-                    if (Arrays.equals(REPEATABLE_READ, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_REPEATABLE_READ);
-                    } else if (Arrays.equals(READ_UNCOMMITTED, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
-                    } else if (Arrays.equals(READ_COMMITTED, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_READ_COMMITTED);
-                    } else if (Arrays.equals(SERIALIZABLE, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_SERIALIZABLE);
-                    } else context.setTransactionIsolationLevel(null);
-                  }
-                } while (tmpBufsv.readableBytes() > 0);
-                break;
-
-              case StateChange.SESSION_TRACK_SCHEMA:
-                sessionStateBuf.readIntLengthEncodedNotNull();
-                Integer dbLen = sessionStateBuf.readLength();
-                String database =
-                    dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
-                context.setDatabase(database);
-                logger.debug("Database change: is '{}'", database);
-                break;
-
-              default:
-                sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
-                break;
-            }
-          }
+      int infoLen = buf.readIntLengthEncodedNotNull();
+      // the info length is server-declared: past the packet, nothing after it can be trusted
+      if (infoLen <= buf.readableBytes()) {
+        buf.skip(infoLen);
+        if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
+          parseSessionState(buf, context);
         }
       }
     }
@@ -143,7 +76,7 @@ public class OkPacket implements Completion {
   }
 
   /**
-   * Parser
+   * Parser, keeping the info field
    *
    * @param buf packet buffer
    * @param context connection context
@@ -155,85 +88,103 @@ public class OkPacket implements Completion {
     long lastInsertId = buf.readLongLengthEncodedNotNull();
     context.setServerStatus(buf.readUnsignedShort());
     context.setWarning(buf.readUnsignedShort());
-    byte[] info;
+    byte[] info = new byte[0];
     if (buf.readableBytes() > 0) {
-      info = buf.readBytes(buf.readIntLengthEncodedNotNull());
-      if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
-        while (buf.readableBytes() > 0) {
-          ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
-          while (sessionStateBuf.readableBytes() > 0) {
-            switch (sessionStateBuf.readByte()) {
-              case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-                ReadableByteBuf tmpBufsv;
-                do {
-                  tmpBufsv = sessionStateBuf.readLengthBuffer();
-                  // lengths are server-declared: readBytes validates them before allocating
-                  int len = tmpBufsv.readIntLengthEncodedNotNull();
-                  byte[] variableBytes = tmpBufsv.readBytes(len);
-
-                  Integer lenSv = tmpBufsv.readLength();
-                  byte[] valueBytes = lenSv == null ? null : tmpBufsv.readBytes(lenSv);
-
-                  if (logger.isDebugEnabled())
-                    logger.debug(
-                        "System variable change:  {} = {}",
-                        new String(variableBytes, 0, len),
-                        valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
-
-                  if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
-                    context.setCharset(
-                        valueBytes == null ? null : new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(CHARACTER_SET_RESULTS, variableBytes)) {
-                    context.setCharsetResults(
-                        valueBytes == null ? null : new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(CONNECTION_ID, variableBytes)) {
-                    context.setThreadId(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(THREAD_CONNECTED, variableBytes)) {
-                    context.setTreadsConnected(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(AUTO_INCREMENT_INCREMENT, variableBytes)) {
-                    context.setAutoIncrement(Long.parseLong(new String(valueBytes, 0, lenSv)));
-                  } else if (Arrays.equals(MAXSCALE, variableBytes)) {
-                    context.setMaxscaleVersion(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(REDIRECT_URL, variableBytes)) {
-                    if (lenSv != null && lenSv > 0)
-                      context.setRedirectUrl(new String(valueBytes, 0, lenSv));
-                  } else if (Arrays.equals(TX_ISOLATION, variableBytes)
-                      || Arrays.equals(TRANSACTION_ISOLATION, variableBytes)) {
-                    if (Arrays.equals(REPEATABLE_READ, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_REPEATABLE_READ);
-                    } else if (Arrays.equals(READ_UNCOMMITTED, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
-                    } else if (Arrays.equals(READ_COMMITTED, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_READ_COMMITTED);
-                    } else if (Arrays.equals(SERIALIZABLE, valueBytes)) {
-                      context.setTransactionIsolationLevel(
-                          java.sql.Connection.TRANSACTION_SERIALIZABLE);
-                    } else context.setTransactionIsolationLevel(null);
-                  }
-                } while (tmpBufsv.readableBytes() > 0);
-                break;
-
-              case StateChange.SESSION_TRACK_SCHEMA:
-                sessionStateBuf.readIntLengthEncodedNotNull();
-                Integer dbLen = sessionStateBuf.readLength();
-                String database =
-                    dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
-                context.setDatabase(database);
-                logger.debug("Database change: is '{}'", database);
-                break;
-
-              default:
-                sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
-                break;
-            }
-          }
+      int infoLen = buf.readIntLengthEncodedNotNull();
+      // the info length is server-declared: it must fit in the packet before being allocated
+      if (infoLen <= buf.readableBytes()) {
+        info = buf.readBytes(infoLen);
+        if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
+          parseSessionState(buf, context);
         }
       }
-    } else info = new byte[0];
+    }
     return new OkPacket(affectedRows, lastInsertId, info);
+  }
+
+  /**
+   * Apply the session-state blocks following the info field. Lengths inside the blocks are
+   * server-declared: a malformed entry means nothing after it can be trusted, so the rest of the
+   * session state is ignored rather than read past its block.
+   *
+   * @param buf packet buffer, positioned after the info field
+   * @param context connection context
+   */
+  private static void parseSessionState(ReadableByteBuf buf, Context context) throws SQLException {
+    while (buf.readableBytes() > 0) {
+      ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
+      while (sessionStateBuf.readableBytes() > 0) {
+        switch (sessionStateBuf.readByte()) {
+          case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
+            ReadableByteBuf tmpBufsv;
+            do {
+              tmpBufsv = sessionStateBuf.readLengthBuffer();
+              int len = tmpBufsv.readIntLengthEncodedNotNull();
+              if (len > tmpBufsv.readableBytes()) return;
+              byte[] variableBytes = tmpBufsv.readBytes(len);
+
+              Integer lenSv = tmpBufsv.readLength();
+              if (lenSv != null && lenSv > tmpBufsv.readableBytes()) return;
+              byte[] valueBytes = lenSv == null ? null : tmpBufsv.readBytes(lenSv);
+
+              if (logger.isDebugEnabled())
+                logger.debug(
+                    "System variable change:  {} = {}",
+                    new String(variableBytes, 0, len),
+                    valueBytes == null ? "null" : new String(valueBytes, 0, lenSv));
+
+              if (Arrays.equals(CHARACTER_SET_CLIENT, variableBytes)) {
+                context.setCharset(valueBytes == null ? null : new String(valueBytes, 0, lenSv));
+              } else if (Arrays.equals(CHARACTER_SET_RESULTS, variableBytes)) {
+                context.setCharsetResults(
+                    valueBytes == null ? null : new String(valueBytes, 0, lenSv));
+              } else if (Arrays.equals(CONNECTION_ID, variableBytes)) {
+                context.setThreadId(Long.parseLong(new String(valueBytes, 0, lenSv)));
+              } else if (Arrays.equals(THREAD_CONNECTED, variableBytes)) {
+                context.setTreadsConnected(Long.parseLong(new String(valueBytes, 0, lenSv)));
+              } else if (Arrays.equals(AUTO_INCREMENT_INCREMENT, variableBytes)) {
+                context.setAutoIncrement(Long.parseLong(new String(valueBytes, 0, lenSv)));
+              } else if (Arrays.equals(MAXSCALE, variableBytes)) {
+                context.setMaxscaleVersion(new String(valueBytes, 0, lenSv));
+              } else if (Arrays.equals(REDIRECT_URL, variableBytes)) {
+                if (lenSv != null && lenSv > 0)
+                  context.setRedirectUrl(new String(valueBytes, 0, lenSv));
+              } else if (Arrays.equals(TX_ISOLATION, variableBytes)
+                  || Arrays.equals(TRANSACTION_ISOLATION, variableBytes)) {
+                if (Arrays.equals(REPEATABLE_READ, valueBytes)) {
+                  context.setTransactionIsolationLevel(
+                      java.sql.Connection.TRANSACTION_REPEATABLE_READ);
+                } else if (Arrays.equals(READ_UNCOMMITTED, valueBytes)) {
+                  context.setTransactionIsolationLevel(
+                      java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
+                } else if (Arrays.equals(READ_COMMITTED, valueBytes)) {
+                  context.setTransactionIsolationLevel(
+                      java.sql.Connection.TRANSACTION_READ_COMMITTED);
+                } else if (Arrays.equals(SERIALIZABLE, valueBytes)) {
+                  context.setTransactionIsolationLevel(
+                      java.sql.Connection.TRANSACTION_SERIALIZABLE);
+                } else context.setTransactionIsolationLevel(null);
+              }
+            } while (tmpBufsv.readableBytes() > 0);
+            break;
+
+          case StateChange.SESSION_TRACK_SCHEMA:
+            sessionStateBuf.readIntLengthEncodedNotNull();
+            Integer dbLen = sessionStateBuf.readLength();
+            if (dbLen != null && dbLen > sessionStateBuf.readableBytes()) return;
+            String database =
+                dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
+            context.setDatabase(database);
+            logger.debug("Database change: is '{}'", database);
+            break;
+
+          default:
+            // skip the entry within the state block, not from the enclosing packet
+            sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
+            break;
+        }
+      }
+    }
   }
 
   /**
