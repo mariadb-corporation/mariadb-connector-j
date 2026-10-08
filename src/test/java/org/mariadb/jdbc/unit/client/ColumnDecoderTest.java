@@ -61,4 +61,20 @@ public class ColumnDecoderTest {
     // must fail with a bounds error, not OutOfMemoryError from a 2 GB allocation
     assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf));
   }
+
+  @Test
+  public void negativeExtendedSkipLengthRejectedInsteadOfLooping() {
+    // same column, extended info: 10-byte sub-packet holding an unknown type 2 and a length whose
+    // low 32 bits are 0xFFFFFFF6 (-10 once narrowed). Unchecked, skip(-10) rewinds the sub-packet
+    // by exactly the bytes the iteration consumed, and the loop never ends.
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " 0A 02 FE F6 FF FF FF 00 00 00 00"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(
+        java.time.Duration.ofSeconds(5),
+        () -> assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf)));
+  }
 }
