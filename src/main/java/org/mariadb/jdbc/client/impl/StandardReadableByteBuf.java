@@ -288,6 +288,14 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   public StandardReadableByteBuf readLengthBuffer() {
     int len = this.readIntLengthEncodedNotNull();
+    if (len < 0 || len > limit - pos) {
+      throw new IllegalArgumentException(
+          "invalid length-encoded value: declared "
+              + len
+              + " bytes, "
+              + (limit - pos)
+              + " remaining in packet");
+    }
 
     StandardReadableByteBuf b = new StandardReadableByteBuf(buf, pos + len);
     b.pos = pos;

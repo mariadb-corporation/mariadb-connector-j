@@ -182,21 +182,34 @@ public class TextRowDecoder implements RowDecoder {
     }
 
     byte len = rowBuf.buf[rowBuf.pos++];
+    int fieldLength;
     switch (len) {
       case (byte) 251:
         return NULL_LENGTH;
       case (byte) 252:
-        return rowBuf.readUnsignedShort();
+        fieldLength = rowBuf.readUnsignedShort();
+        break;
       case (byte) 253:
-        return rowBuf.readUnsignedMedium();
+        fieldLength = rowBuf.readUnsignedMedium();
+        break;
       case (byte) 254:
-        long fieldLength = rowBuf.readLong();
-        if (fieldLength < 0 || fieldLength > Integer.MAX_VALUE) {
-          throw new SQLException("Invalid length-encoded field length " + fieldLength);
+        long longLength = rowBuf.readLong();
+        if (longLength < 0 || longLength > Integer.MAX_VALUE) {
+          throw new SQLException("Invalid length-encoded field length " + longLength);
         }
-        return (int) fieldLength;
+        fieldLength = (int) longLength;
+        break;
       default:
-        return len & 0xff;
+        fieldLength = len & 0xff;
     }
+    if (fieldLength > rowBuf.readableBytes()) {
+      throw new SQLException(
+          "Invalid length-encoded field length "
+              + fieldLength
+              + ": exceeds the "
+              + rowBuf.readableBytes()
+              + " bytes remaining in row packet");
+    }
+    return fieldLength;
   }
 }

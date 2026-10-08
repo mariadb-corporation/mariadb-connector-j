@@ -32,7 +32,9 @@ public interface ColumnDecoder extends Column {
     stringPos[3] = buf.skipIdentifier(); // column alias pos
     stringPos[4] = buf.skipIdentifier(); // column pos
     buf.skipIdentifier();
-
+    if (buf.readableBytes() <= 11) {
+      throw new IllegalArgumentException("wrong column definition encoding");
+    }
     buf.skip(); // skip length always 0x0c
     short charset = buf.readShort();
     int length = buf.readInt();
@@ -62,7 +64,9 @@ public interface ColumnDecoder extends Column {
     stringPos[3] = buf.skipIdentifier(); // column alias pos
     stringPos[4] = buf.skipIdentifier(); // column pos
     buf.skipIdentifier();
-
+    if (buf.readableBytes() <= 12) {
+      throw new IllegalArgumentException("wrong column definition encoding");
+    }
     String extTypeName = null;
     String extTypeFormat = null;
     // fast skipping extended info (usually not set)
@@ -72,16 +76,27 @@ public interface ColumnDecoder extends Column {
 
       ReadableByteBuf subPacket = buf.readLengthBuffer();
       while (subPacket.readableBytes() > 0) {
-        switch (subPacket.readByte()) {
-          case 0:
-            extTypeName = subPacket.readAscii(subPacket.readLength());
-            break;
-          case 1:
-            extTypeFormat = subPacket.readAscii(subPacket.readLength());
-            break;
-          default: // skip data
-            subPacket.skip(subPacket.readLength());
-            break;
+        byte flag = subPacket.readByte();
+        int len = subPacket.readIntLengthEncodedNotNull();
+        if (subPacket.readableBytes() >= len) {
+          switch (flag) {
+            case 0:
+              extTypeName = subPacket.readAscii(len);
+              break;
+            case 1:
+              extTypeFormat = subPacket.readAscii(len);
+              break;
+            default: // skip data
+              subPacket.skip(len);
+              break;
+          }
+        } else {
+          throw new IllegalArgumentException(
+              "invalid length-encoded value: declared "
+                  + len
+                  + " bytes, "
+                  + subPacket.readableBytes()
+                  + " remaining");
         }
       }
     }
