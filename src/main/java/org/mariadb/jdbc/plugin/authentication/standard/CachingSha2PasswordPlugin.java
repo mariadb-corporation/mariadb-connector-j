@@ -191,12 +191,22 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
       default:
         // fast authentication result
-        byte[] authResult = new byte[buf.readIntLengthEncodedNotNull()];
-        buf.readBytes(authResult);
-        switch (authResult[0]) {
-          case 3:
+
+        // mysql change the protocol with https://github.com/mysql/mysql-server/commit/2a8ce5e5c606,
+        // so the expected response can be either 0x03, 0x04, 0x0103 or, 0x0104.
+        // The result is a single byte: never size an allocation from a server-declared length.
+        int authResult = 0;
+
+        if (buf.getByte() == 0x01) buf.skip();
+
+        if (buf.readableBytes() == 1) {
+          authResult = buf.readByte();
+        }
+
+        switch (authResult) {
+          case 0x03:
             return in.readReusablePacket();
-          case 4:
+          case 0x04:
             if (conf.sslMode() != SslMode.DISABLE) {
               // send clear password
 
@@ -236,7 +246,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
                   default:
                     // AuthMoreData packet
-                    buf.skip();
+                    if (buf.getByte(0) == (byte) 0x01) {
+                      buf.skip();
+                    }
                     byte[] authMoreData = new byte[buf.readableBytes()];
                     buf.readBytes(authMoreData);
                     publicKey = generatePublicKey(authMoreData);
