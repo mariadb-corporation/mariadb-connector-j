@@ -3,7 +3,6 @@
 // Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.unit.client;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -35,42 +34,6 @@ public class ReadableByteBufTest {
     assertEquals(Integer.MAX_VALUE, buf(HUGE_LEN).readLength());
     assertNull(buf(new byte[] {(byte) 251}).readLength());
     assertEquals(5, buf(new byte[] {5}).readLength());
-  }
-
-  @Test
-  public void readBytesRejectsLengthBeyondPacket() {
-    ReadableByteBuf b = buf(new byte[] {1, 2, 3});
-    assertThrows(IllegalArgumentException.class, () -> b.readBytes(4));
-    assertThrows(IllegalArgumentException.class, () -> b.readBytes(Integer.MAX_VALUE));
-    assertThrows(IllegalArgumentException.class, () -> b.readBytes(-1));
-    assertThrows(IllegalArgumentException.class, () -> b.readBytes(new byte[4]));
-    // nothing consumed by the failed reads
-    assertEquals(3, b.readableBytes());
-    assertArrayEquals(new byte[] {1, 2}, b.readBytes(2));
-    assertArrayEquals(new byte[] {3}, b.readBytes(1));
-    assertArrayEquals(new byte[0], b.readBytes(0));
-    assertThrows(IllegalArgumentException.class, () -> b.readBytes(1));
-  }
-
-  @Test
-  public void readBytesHonoursLimitNotBackingArray() {
-    // reusable read buffer: backing array larger than the packet
-    ReadableByteBuf b = new ReadableByteBuf(new byte[] {1, 2, 3, 4, 5, 6}, 3);
-    assertThrows(IllegalArgumentException.class, () -> b.readBytes(4));
-    assertThrows(IllegalArgumentException.class, () -> b.readBytes(new byte[4]));
-    assertArrayEquals(new byte[] {1, 2, 3}, b.readBytes(3));
-  }
-
-  @Test
-  public void readStringAndBlobRejectLengthBeyondPacket() {
-    byte[] arr = "abc".getBytes();
-    assertThrows(IllegalArgumentException.class, () -> buf(arr).readString(4));
-    assertThrows(IllegalArgumentException.class, () -> buf(arr).readAscii(4));
-    assertThrows(IllegalArgumentException.class, () -> buf(arr).readBlob(4));
-    assertThrows(IllegalArgumentException.class, () -> buf(arr).readString(-1));
-    assertEquals("abc", buf(arr).readString(3));
-    assertEquals("ab", buf(arr).readAscii(2));
-    assertEquals(3, buf(arr).readBlob(3).length());
   }
 
   @Test

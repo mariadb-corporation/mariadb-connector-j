@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.column.UuidColumn;
 import org.mariadb.jdbc.unit.type.GeometryTest;
 
 public class ColumnDecoderTest {
@@ -46,6 +47,19 @@ public class ColumnDecoderTest {
     assertEquals("test", columnDecoder.getColumnName());
     assertEquals("test", columnDecoder.getColumnAlias());
     assertEquals("db", columnDecoder.getCatalog());
+  }
+
+  @Test
+  public void validExtendedTypeNameFillingTheSubPacket() {
+    // 6-byte sub-packet: type 0, length 4, "uuid". The entry's data ends exactly where the
+    // sub-packet ends, which is how a server sends it: it must be accepted.
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " 06 00 04 75 75 69 64"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    assertTrue(ColumnDecoder.decode(readBuf) instanceof UuidColumn);
   }
 
   @Test

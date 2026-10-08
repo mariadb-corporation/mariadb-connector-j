@@ -106,7 +106,6 @@ public final class ReadableByteBuf {
   }
 
   public MariaDbBlob readBlob(int length) {
-    checkLength(length);
     pos += length;
     return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
   }
@@ -325,21 +324,19 @@ public final class ReadableByteBuf {
   }
 
   public void readBytes(byte[] dst) {
-    checkLength(dst.length);
     System.arraycopy(buf, pos, dst, 0, dst.length);
     pos += dst.length;
   }
 
   /**
-   * Read {@code length} bytes into a new array, validating the length against the remaining bytes
-   * before allocating.
+   * Read {@code length} bytes into a new array. The length is not checked here: a caller passing a
+   * server-declared length must first check it against {@link #readableBytes()}, as the column
+   * metadata and OK packet parsers do, so that no allocation is sized from an unchecked value.
    *
-   * @param length server-declared number of bytes to read
+   * @param length number of bytes to read
    * @return the bytes read
-   * @throws IllegalArgumentException if the length is negative or exceeds the readable bytes
    */
   public byte[] readBytes(int length) {
-    checkLength(length);
     byte[] dst = new byte[length];
     System.arraycopy(buf, pos, dst, 0, length);
     pos += length;
@@ -368,13 +365,11 @@ public final class ReadableByteBuf {
   }
 
   public String readString(int length) {
-    checkLength(length);
     pos += length;
     return new String(buf, pos - length, length, StandardCharsets.UTF_8);
   }
 
   public String readAscii(int length) {
-    checkLength(length);
     pos += length;
     return new String(buf, pos - length, length, StandardCharsets.US_ASCII);
   }

@@ -59,12 +59,13 @@ public class OkPacket implements Completion {
    *
    * @param buf entry buffer, positioned on the length-encoded variable name
    * @param context connection context
+   * @return false if the entry declares a length beyond its buffer, nothing applied
    */
-  private static void applySystemVariable(ReadableByteBuf buf, Context context)
+  private static boolean applySystemVariable(ReadableByteBuf buf, Context context)
       throws SQLException {
-    // lengths are server-declared: validate them before using them
+    // lengths are server-declared: a length past the entry means it is malformed
     int nameLen = buf.readIntLengthEncodedNotNull();
-    buf.checkLength(nameLen);
+    if (nameLen > buf.readableBytes()) return false;
     int namePos = buf.pos();
     buf.skip(nameLen);
     Integer valueLen = buf.readLength();
@@ -72,10 +73,10 @@ public class OkPacket implements Completion {
       if (logger.isDebugEnabled()) {
         logger.debug("System variable change:  {} = null", new String(buf.buf(), namePos, nameLen));
       }
-      return;
+      return true;
     }
     int len = valueLen;
-    buf.checkLength(len);
+    if (len > buf.readableBytes()) return false;
     if (logger.isDebugEnabled()) {
       logger.debug(
           "System variable change:  {} = {}",
@@ -117,6 +118,47 @@ public class OkPacket implements Completion {
     } else {
       buf.skip(len);
     }
+    return true;
+  }
+
+  /**
+   * Apply the session-state blocks following the info field. Lengths inside the blocks are
+   * server-declared: a malformed entry means nothing after it can be trusted, so the rest of the
+   * session state is ignored rather than read past its block.
+   *
+   * @param buf packet buffer, positioned after the info field
+   * @param context connection context
+   */
+  private static void parseSessionState(ReadableByteBuf buf, Context context) throws SQLException {
+    while (buf.readableBytes() > 0) {
+      ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
+      while (sessionStateBuf.readableBytes() > 0) {
+        switch (sessionStateBuf.readByte()) {
+          case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
+            ReadableByteBuf tmpBufsv;
+            do {
+              tmpBufsv = sessionStateBuf.readLengthBuffer();
+              if (!applySystemVariable(tmpBufsv, context)) return;
+            } while (tmpBufsv.readableBytes() > 0);
+            break;
+
+          case StateChange.SESSION_TRACK_SCHEMA:
+            sessionStateBuf.readIntLengthEncodedNotNull();
+            Integer dbLen = sessionStateBuf.readLength();
+            if (dbLen != null && dbLen > sessionStateBuf.readableBytes()) return;
+            String database =
+                dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
+            context.setDatabase(database);
+            logger.debug("Database change: is '{}'", database);
+            break;
+
+          default:
+            // skip the entry within the state block, not from the enclosing packet
+            sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
+            break;
+        }
+      }
+    }
   }
 
   /**
@@ -133,34 +175,12 @@ public class OkPacket implements Completion {
     context.setWarning(buf.readUnsignedShort());
 
     if (buf.readableBytes() > 0) {
-      buf.skip(buf.readIntLengthEncodedNotNull()); // skip info
-      if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
-        while (buf.readableBytes() > 0) {
-          ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
-          while (sessionStateBuf.readableBytes() > 0) {
-            switch (sessionStateBuf.readByte()) {
-              case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-                ReadableByteBuf tmpBufsv;
-                do {
-                  tmpBufsv = sessionStateBuf.readLengthBuffer();
-                  applySystemVariable(tmpBufsv, context);
-                } while (tmpBufsv.readableBytes() > 0);
-                break;
-
-              case StateChange.SESSION_TRACK_SCHEMA:
-                sessionStateBuf.readIntLengthEncodedNotNull();
-                Integer dbLen = sessionStateBuf.readLength();
-                String database =
-                    dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
-                context.setDatabase(database);
-                logger.debug("Database change: is '{}'", database);
-                break;
-
-              default:
-                sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
-                break;
-            }
-          }
+      int infoLen = buf.readIntLengthEncodedNotNull();
+      // the info length is server-declared: past the packet, nothing after it can be trusted
+      if (infoLen <= buf.readableBytes()) {
+        buf.skip(infoLen);
+        if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
+          parseSessionState(buf, context);
         }
       }
     }
@@ -181,39 +201,17 @@ public class OkPacket implements Completion {
     long lastInsertId = buf.readLongLengthEncodedNotNull();
     context.setServerStatus(buf.readUnsignedShort());
     context.setWarning(buf.readUnsignedShort());
-    byte[] info;
+    byte[] info = new byte[0];
     if (buf.readableBytes() > 0) {
-      info = buf.readBytes(buf.readIntLengthEncodedNotNull());
-      if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
-        while (buf.readableBytes() > 0) {
-          ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
-          while (sessionStateBuf.readableBytes() > 0) {
-            switch (sessionStateBuf.readByte()) {
-              case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-                ReadableByteBuf tmpBufsv;
-                do {
-                  tmpBufsv = sessionStateBuf.readLengthBuffer();
-                  applySystemVariable(tmpBufsv, context);
-                } while (tmpBufsv.readableBytes() > 0);
-                break;
-
-              case StateChange.SESSION_TRACK_SCHEMA:
-                sessionStateBuf.readIntLengthEncodedNotNull();
-                Integer dbLen = sessionStateBuf.readLength();
-                String database =
-                    dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
-                context.setDatabase(database);
-                logger.debug("Database change: is '{}'", database);
-                break;
-
-              default:
-                sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
-                break;
-            }
-          }
+      int infoLen = buf.readIntLengthEncodedNotNull();
+      // the info length is server-declared: it must fit in the packet before being allocated
+      if (infoLen <= buf.readableBytes()) {
+        info = buf.readBytes(infoLen);
+        if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
+          parseSessionState(buf, context);
         }
       }
-    } else info = new byte[0];
+    }
     return new OkPacket(affectedRows, lastInsertId, info);
   }
 

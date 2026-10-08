@@ -122,28 +122,25 @@ public class OkPacketTest {
   }
 
   @Test
-  public void hugeSessionVariableLengthRejectedBeforeAllocation() throws Exception {
-    // must fail with a bounds error, not OutOfMemoryError from a 2 GB allocation
+  public void hugeSessionVariableLengthIgnoredWithoutAllocation() throws Exception {
+    // a 2 GB variable name length with no bytes behind it: the state block is ignored, nothing is
+    // allocated and nothing is reported to the context
     byte[] packet = okPacketWithHugeVariableNameLength();
-    Assertions.assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            OkPacket.parse(new ReadableByteBuf(packet, packet.length), context(new DbRecorder())));
-    Assertions.assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            OkPacket.parseWithInfo(
-                new ReadableByteBuf(packet, packet.length), context(new DbRecorder())));
+    DbRecorder rec = new DbRecorder();
+    OkPacket.parse(new ReadableByteBuf(packet, packet.length), context(rec));
+    Assertions.assertNull(rec.database);
+    OkPacket.parseWithInfo(new ReadableByteBuf(packet, packet.length), context(rec));
+    Assertions.assertNull(rec.database);
   }
 
   @Test
-  public void hugeInfoLengthRejectedBeforeAllocation() {
+  public void hugeInfoLengthIgnoredWithoutAllocation() throws Exception {
     // ok header, affected rows, last insert id, status, warnings, then info declaring 0x7FFFFFFF
     byte[] packet = {0, 0, 0, 2, 0, 0, 0, (byte) 254, -1, -1, -1, 127, 0, 0, 0, 0};
-    Assertions.assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            OkPacket.parseWithInfo(
-                new ReadableByteBuf(packet, packet.length), context(new DbRecorder())));
+    OkPacket ok =
+        OkPacket.parseWithInfo(
+            new ReadableByteBuf(packet, packet.length), context(new DbRecorder()));
+    Assertions.assertEquals(0, ok.getInfo().length);
+    OkPacket.parse(new ReadableByteBuf(packet, packet.length), context(new DbRecorder()));
   }
 }
