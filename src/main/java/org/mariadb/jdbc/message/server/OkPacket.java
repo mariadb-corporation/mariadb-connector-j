@@ -41,8 +41,11 @@ public class OkPacket implements Completion {
               ReadableByteBuf tmpBufsv;
               do {
                 tmpBufsv = sessionStateBuf.readLengthBuffer();
-                String variableSv = tmpBufsv.readString(tmpBufsv.readIntLengthEncodedNotNull());
+                int varLen = tmpBufsv.readIntLengthEncodedNotNull();
+                if (varLen > tmpBufsv.readableBytes()) return;
+                String variableSv = tmpBufsv.readString(varLen);
                 Integer lenSv = tmpBufsv.readLength();
+                if (lenSv != null && lenSv > tmpBufsv.readableBytes()) return;
                 String valueSv = lenSv == null ? null : tmpBufsv.readString(lenSv);
                 logger.debug("System variable change:  {} = {}", variableSv, valueSv);
                 switch (variableSv) {
@@ -67,6 +70,7 @@ public class OkPacket implements Completion {
             case StateChange.SESSION_TRACK_SCHEMA:
               sessionStateBuf.readIntLengthEncodedNotNull();
               Integer dbLen = sessionStateBuf.readLength();
+              if (dbLen != null && dbLen > sessionStateBuf.readableBytes()) return;
               String database =
                   dbLen == null || dbLen == 0 ? null : sessionStateBuf.readString(dbLen);
               context.setDatabase(database);
@@ -74,7 +78,8 @@ public class OkPacket implements Completion {
               break;
 
             default:
-              buf.skip(buf.readIntLengthEncodedNotNull());
+              // skip the entry within the state block, not from the enclosing packet
+              sessionStateBuf.skip(sessionStateBuf.readIntLengthEncodedNotNull());
               break;
           }
         }

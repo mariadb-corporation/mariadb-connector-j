@@ -41,6 +41,28 @@ public class ReadableByteBufTest {
   }
 
   @Test
+  public void readLengthBufferRejectsLengthBeyondPacket() {
+    // declares a 5-byte sub-packet but only 2 bytes follow
+    ReadableByteBuf b = buf(new byte[] {5, 1, 2});
+    assertThrows(IllegalArgumentException.class, b::readLengthBuffer);
+
+    byte[] huge = new byte[HUGE_LEN.length + 2];
+    System.arraycopy(HUGE_LEN, 0, huge, 0, HUGE_LEN.length);
+    assertThrows(IllegalArgumentException.class, () -> buf(huge).readLengthBuffer());
+
+    // the sub-packet is bounded by the parent's limit, not by the backing array
+    ReadableByteBuf reusable = new StandardReadableByteBuf(new byte[] {3, 1, 2, 3, 9, 9}, 3);
+    assertThrows(IllegalArgumentException.class, reusable::readLengthBuffer);
+
+    ReadableByteBuf ok = buf(new byte[] {2, 7, 8, 9});
+    ReadableByteBuf sub = ok.readLengthBuffer();
+    assertEquals(2, sub.readableBytes());
+    assertEquals(7, sub.readByte());
+    assertEquals(8, sub.readByte());
+    assertEquals(1, ok.readableBytes());
+  }
+
+  @Test
   public void readIntLengthEncodedNotNullRejectsValuesNotFittingInt() {
     assertThrows(IllegalArgumentException.class, () -> buf(NEG_LEN).readIntLengthEncodedNotNull());
     assertThrows(
