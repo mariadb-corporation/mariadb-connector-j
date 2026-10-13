@@ -192,7 +192,8 @@ public class MariaDbBlob implements Blob, Serializable {
 
   /** Checks if the pattern matches at the given position. */
   private boolean isPatternMatch(byte[] pattern, int position) {
-    // plain loop: mismatch is usually on the first byte, where a ranged Arrays.equals call is slower
+    // plain loop: mismatch is usually on the first byte, where a ranged Arrays.equals call is
+    // slower
     for (int j = 0; j < pattern.length; j++) {
       if (data[position + j] != pattern[j]) {
         return false;

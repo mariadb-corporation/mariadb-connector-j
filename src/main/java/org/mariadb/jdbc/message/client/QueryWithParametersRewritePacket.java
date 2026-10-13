@@ -125,8 +125,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
             break;
           }
           if (i > 0) {
-            parameterLength +=
-                parser.paramPositions()[i] - (parser.paramPositions()[i - 1] + 1);
+            parameterLength += parser.paramPositions()[i] - (parser.paramPositions()[i - 1] + 1);
           }
           parameterLength += paramSize;
         }

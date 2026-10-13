@@ -40,8 +40,8 @@ public final class StringUtils {
   }
 
   /**
-   * Append a non-negative number, left padded with zeros up to {@code width} digits. Replacement
-   * of {@code String.format("%0<width>d", value)} without format parsing.
+   * Append a non-negative number, left padded with zeros up to {@code width} digits. Replacement of
+   * {@code String.format("%0<width>d", value)} without format parsing.
    *
    * @param sb builder to append to
    * @param value value (negative values are appended without padding)

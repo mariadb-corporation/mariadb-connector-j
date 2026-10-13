@@ -14,8 +14,8 @@ import org.mariadb.jdbc.plugin.Codec;
  * value: resolved codecs are remembered in static tables.
  *
  * <p>A decoder is remembered by requested java type, column {@link DataType} and column binary
- * flag: this is all the driver codecs look at in {@code canDecode} (the binary flag being needed
- * to tell text from binary columns sharing a data type, i.e. TEXT / BLOB or VARCHAR / VARBINARY).
+ * flag: this is all the driver codecs look at in {@code canDecode} (the binary flag being needed to
+ * tell text from binary columns sharing a data type, i.e. TEXT / BLOB or VARCHAR / VARBINARY).
  *
  * <p>The tables are only used for the codec list shared by all connections (option {@code
  * cacheCodecs}, the default), and only if that list contains the driver codecs alone: a custom

@@ -17,7 +17,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;

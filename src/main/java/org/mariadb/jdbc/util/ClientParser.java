@@ -423,8 +423,8 @@ public record ClientParser(
   private static final byte[] VALUES = {'v', 'a', 'l', 'u', 'e', 's'};
 
   /**
-   * Indicate if the query has, at index pos, the given keyword (any case) followed by at least
-   * one byte.
+   * Indicate if the query has, at index pos, the given keyword (any case) followed by at least one
+   * byte.
    */
   private static boolean startsWithIgnoreCase(byte[] query, int pos, byte[] lowerKeyword) {
     if (pos + lowerKeyword.length >= query.length) return false;
