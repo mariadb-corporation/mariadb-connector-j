@@ -430,7 +430,7 @@ public class Configuration {
     this.permitRedirect = builder.permitRedirect;
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
-    this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
+    this.permitNoResults = builder.permitNoResults != null && builder.permitNoResults;
     this.cacheCodecs = builder.cacheCodecs == null || builder.cacheCodecs;
     this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
     this.disconnectOnExpiredPasswords =
@@ -2126,11 +2126,12 @@ public class Configuration {
   }
 
   /**
-   * Indicate if Statement/PreparedStatement.executeQuery for command that produce no result will
-   * return an exception or just an empty result-set
+   * Indicate if Statement/PreparedStatement.executeQuery for a command that produces no result set
+   * returns an empty result set instead of throwing an exception.
    *
-   * <p>When enabled, command not returning no data will end returning an empty result-set When
-   * disabled, command not returning no data will end throwing an exception
+   * <p>Disabled by default since 4.0.0 (CONJ-1306): as the JDBC specification requires,
+   * executeQuery throws an SQLException when the command returns no result set. When enabled, such
+   * a command returns an empty result set, which was the default behavior of earlier versions.
    *
    * @return permitNoResults
    */
@@ -3539,12 +3540,12 @@ public class Configuration {
     }
 
     /**
-     * Indicate if Statement/PreparedStatement.executeQuery for command that produce no result will
-     * return an exception or just an empty result-set When enabled, command not returning no data
-     * will end returning an empty result-set When disabled, command not returning no data will end
-     * throwing an exception
+     * Indicate if Statement/PreparedStatement.executeQuery for a command that produces no result
+     * set returns an empty result set instead of throwing an exception. Disabled by default since
+     * 4.0.0 (CONJ-1306): executeQuery then throws an SQLException, as the JDBC specification
+     * requires. Enable it to restore the former behavior of returning an empty result set.
      *
-     * @param permitNoResults force reuse of same connection
+     * @param permitNoResults return an empty result set instead of throwing
      * @return this {@link Builder}
      */
     public Builder permitNoResults(Boolean permitNoResults) {

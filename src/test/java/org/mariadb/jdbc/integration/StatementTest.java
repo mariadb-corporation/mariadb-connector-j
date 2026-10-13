@@ -98,6 +98,31 @@ public class StatementTest extends Common {
 
   @Test
   public void ensureJdbcErrorWhenNoResultset() throws SQLException {
+    // CONJ-1306: the JDBC behavior is the default, permitNoResults=true restores the empty result
+    try (Statement stmt = sharedConn.createStatement()) {
+      assertThrowsContains(
+          SQLException.class,
+          () -> stmt.executeQuery("DO 1"),
+          "Statement.executeQuery() command does NOT return a result-set as expected");
+      assertThrowsContains(
+          SQLException.class,
+          () -> stmt.executeQuery("SET @conj1306 = 1"),
+          "Statement.executeQuery() command does NOT return a result-set as expected");
+    }
+    try (PreparedStatement ps = sharedConn.prepareStatement("DO ?")) {
+      ps.setInt(1, 1);
+      assertThrowsContains(
+          SQLException.class,
+          ps::executeQuery,
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
+    }
+    try (PreparedStatement ps = sharedConnBinary.prepareStatement("DO ?")) {
+      ps.setInt(1, 1);
+      assertThrowsContains(
+          SQLException.class,
+          ps::executeQuery,
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
+    }
     try (Connection con = createCon("&permitNoResults=false")) {
       Statement stmt = con.createStatement();
       stmt.execute("DO 1");

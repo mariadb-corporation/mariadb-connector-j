@@ -52,10 +52,13 @@ public class ProcedureTest extends Common {
       cstmt.setLong(1, 44L);
       cstmt.execute();
       assertEquals(88, cstmt.getLong(1));
-      ResultSet rs = cstmt.executeQuery();
-      assertFalse(rs.next());
+      // CONJ-1306: by default executeQuery throws when the call produces no result set
+      Common.assertThrowsContains(
+          SQLException.class,
+          () -> cstmt.executeQuery(),
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
     }
-    try (Connection con = createCon("&permitNoResults=false")) {
+    try (Connection con = createCon("&permitNoResults=true")) {
       try (CallableStatement cstmt = con.prepareCall("{ CALL multiply_by_2(?) }")) {
         cstmt.setLong(1, 42L);
         cstmt.registerOutParameter(1, Types.NUMERIC);
@@ -64,10 +67,8 @@ public class ProcedureTest extends Common {
         cstmt.setLong(1, 43L);
         cstmt.executeUpdate();
         assertEquals(86, cstmt.getLong(1));
-        Common.assertThrowsContains(
-            SQLException.class,
-            () -> cstmt.executeQuery(),
-            "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
+        ResultSet rs = cstmt.executeQuery();
+        assertFalse(rs.next());
       }
     }
   }
