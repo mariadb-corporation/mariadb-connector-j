@@ -6,6 +6,10 @@
  *   - MariaDB plc as SBOM author, supplier and manufacturer
  *   - random serial number (the plugin derives a stable UUID from the GAV, so two builds of the
  *     same version would share it, defeating per-document uniqueness)
+ *   - creation timestamp when the plugin left it out: Maven 3.10 / 4 set
+ *     project.build.outputTimestamp by default (MNG-8258, Reproducible Builds), and the plugin
+ *     then drops the timestamp and flags the document as reproducible. The SBOM is not
+ *     reproducible by design (random serial), so the flag is removed too
  *   - SHA-256 of the built jar and the package_name property on the root component
  *   - the ed25519 ref10 code vendored under org.mariadb.jdbc.plugin.authentication.standard.ed25519
  *   - supplier for dependencies whose POM has no <organization>, and SPDX ids where the POM only
@@ -57,6 +61,11 @@ def bom = new JsonSlurper().parse(bomFile, 'UTF-8')
 def root = bom.metadata.component
 
 bom.serialNumber = "urn:uuid:${UUID.randomUUID()}".toString()
+if (!bom.metadata.timestamp) {
+  bom.metadata.timestamp = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString()
+}
+// explicit key access: on a Map, '.properties' resolves to Groovy's object property view (Groovy 5+)
+bom.metadata['properties'] = (bom.metadata['properties'] ?: []).findAll { it.name != 'cdx:reproducible' }
 bom.metadata.authors = [[name: 'MariaDB plc']]
 bom.metadata.supplier = mariadb()
 bom.metadata.manufacturer = mariadb()

@@ -1022,20 +1022,30 @@ public class StandardClient implements Client, AutoCloseable {
     if (!context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       return;
     }
-    StringBuilder tracked =
-        new StringBuilder(
-                "autocommit,character_set_client,character_set_connection,character_set_results,"
-                    + "time_zone,")
-            .append(
-                context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
+    List<String> tracked = new ArrayList<>(8);
+    tracked.add("autocommit");
+    tracked.add("character_set_client");
+    tracked.add("character_set_connection");
+    tracked.add("character_set_results");
+    tracked.add("time_zone");
+    tracked.add(context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
     if (conf.returnMultiValuesGeneratedIds()) {
-      tracked.append(",auto_increment_increment");
+      tracked.add("auto_increment_increment");
     }
     if (context.getVersion().isMariaDBServer()
         && context.getVersion().versionGreaterOrEqual(11, 3, 0)) {
-      tracked.append(",redirect_url");
+      tracked.add("redirect_url");
     }
-    commands.add("session_track_system_variables='" + tracked + "'");
+
+    // The driver sets its own list: anything else only produces notifications it ignores. The
+    // one exception is last_gtid, which MaxScale causal_reads adds at backend connection start
+    // (MXS-4746) and which must survive; it is kept when the session already tracks it, or
+    // tracks everything ('*'). The current value is normalized because MySQL keeps it as typed.
+    commands.add(
+        "session_track_system_variables=CONCAT('"
+            + String.join(",", tracked)
+            + "',IF(LOCATE('*',@@session_track_system_variables)>0 OR FIND_IN_SET('last_gtid',"
+            + "LOWER(REPLACE(@@session_track_system_variables,' ','')))>0,',last_gtid',''))");
     // the current database is kept from the server's schema change reports (USE ...)
     commands.add("session_track_schema=1");
   }
