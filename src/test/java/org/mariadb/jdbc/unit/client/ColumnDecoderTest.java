@@ -77,6 +77,32 @@ public class ColumnDecoderTest {
   }
 
   @Test
+  public void reportedPacketHugeEntryLengthRejectedBeforeAllocation() {
+    // CONJ-1382: 38-byte column definition whose extended type name declares 0x7FFFFFF0 bytes.
+    // The value fits an int, so only the bound against the sub-packet prevents a 2 GiB allocation
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " 0A 00 FE F0 FF FF 7F 00 00 00 00"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    assertEquals(38, def.length);
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf));
+  }
+
+  @Test
+  public void hugeExtendedSubPacketLengthRejected() {
+    // the sub-packet itself declares 0x7FFFFFF0 bytes while 2 follow: bounded by the packet
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " FE F0 FF FF 7F 00 00 00 00 00 04"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf));
+  }
+
+  @Test
   public void negativeExtendedSkipLengthRejectedInsteadOfLooping() {
     // same column, extended info: 10-byte sub-packet holding an unknown type 2 and a length whose
     // low 32 bits are 0xFFFFFFF6 (-10 once narrowed). Unchecked, skip(-10) rewinds the sub-packet
