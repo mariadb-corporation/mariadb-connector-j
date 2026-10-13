@@ -131,6 +131,48 @@ public class SessionTrackingTest extends Common {
     }
   }
 
+  /**
+   * The driver sets its own tracked list, dropping what else was configured, except last_gtid:
+   * MaxScale causal_reads adds it at backend connection start (MXS-4746) and it must survive.
+   */
+  @Test
+  public void keepsLastGtidOnly() throws SQLException {
+    String initial = getGlobal("session_track_system_variables");
+    try {
+      // the spacing and case are kept as typed by MySQL and must still be recognized
+      for (String global : new String[] {"'last_gtid'", "'Autocommit , Last_Gtid, sql_mode'"}) {
+        setGlobal("session_track_system_variables", global);
+        try (Connection con = createCon()) {
+          String tracked = trackedVariables(con);
+          for (String var :
+              new String[] {
+                "last_gtid", "autocommit", "character_set_client", "character_set_results"
+              }) {
+            assertTrue(tracked.contains("," + var + ","), var + " not in " + tracked);
+          }
+          assertFalse(tracked.contains(",sql_mode,"), "sql_mode kept in " + tracked);
+          assertCharsetGuards(con, "global " + global);
+        }
+      }
+      setGlobal("session_track_system_variables", "'sql_mode'");
+      try (Connection con = createCon()) {
+        String tracked = trackedVariables(con);
+        assertFalse(tracked.contains(",sql_mode,"), "sql_mode kept in " + tracked);
+        assertFalse(tracked.contains(",last_gtid,"), "last_gtid added in " + tracked);
+      }
+    } finally {
+      setGlobal("session_track_system_variables", "'" + initial + "'");
+    }
+  }
+
+  private static String trackedVariables(Connection con) throws SQLException {
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables")) {
+      assertTrue(rs.next());
+      return "," + rs.getString(1).toLowerCase() + ",";
+    }
+  }
+
   /** The current database must follow USE even when schema tracking is disabled globally. */
   @Test
   public void schemaTrackingForced() throws SQLException {
