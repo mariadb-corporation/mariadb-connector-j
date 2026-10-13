@@ -63,6 +63,8 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
     this.prepareResult = null;
   }
 
+  private boolean parameterCountMismatch;
+
   @Override
   public int encode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
@@ -177,14 +179,44 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
               .setPrepareResult(previousCached != null ? previousCached : prepare);
         }
         this.prepareResult = previousCached != null ? previousCached : prepare;
-        return this.prepareResult;
+      } else {
+        PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);
+        if (stmt != null) {
+          ((BasePreparedStatement) stmt).setPrepareResult(prepareResult);
+        }
+        this.prepareResult = prepareResult;
       }
-      PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);
-      if (stmt != null) {
-        ((BasePreparedStatement) stmt).setPrepareResult(prepareResult);
+      parameterCountMismatch = parameters.size() != this.prepareResult.getParameters().length;
+      return this.prepareResult;
+    } else if (parameterCountMismatch) {
+      try {
+        RedoableWithPrepareClientMessage.super.readPacket(
+            stmt,
+            0,
+            maxRows,
+            resultSetConcurrency,
+            resultSetType,
+            closeOnCompletion,
+            reader,
+            writer,
+            context,
+            exceptionFactory,
+            lock,
+            traceEnable,
+            message,
+            redirectFct);
+      } catch (SQLException e) {
+        // the server rejected or misread the execution: the mismatch is the error to report
       }
-      this.prepareResult = prepareResult;
-      return prepareResult;
+      throw exceptionFactory
+          .withSql(this.description())
+          .create(
+              "Parameter count mismatch: "
+                  + parameters.size()
+                  + " parameter(s) set, but the statement has "
+                  + this.prepareResult.getParameters().length
+                  + " parameter marker(s)",
+              "07001");
     } else {
       return RedoableWithPrepareClientMessage.super.readPacket(
           stmt,

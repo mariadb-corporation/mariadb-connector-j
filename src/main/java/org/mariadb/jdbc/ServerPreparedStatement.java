@@ -503,7 +503,18 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    */
   protected void validParameters() throws SQLException {
     if (prepareResult != null) {
-      for (int i = 0; i < prepareResult.getParameters().length; i++) {
+      int expected = prepareResult.getParameters().length;
+      if (parameters.size() > expected) {
+        throw exceptionFactory()
+            .create(
+                "Parameter count mismatch: "
+                    + parameters.size()
+                    + " parameter(s) set, but the statement has "
+                    + expected
+                    + " parameter marker(s)",
+                "07001");
+      }
+      for (int i = 0; i < expected; i++) {
         if (!parameters.containsKey(i)) {
           throw exceptionFactory()
               .create("Parameter at position " + (i + 1) + " is not set", "07004");
