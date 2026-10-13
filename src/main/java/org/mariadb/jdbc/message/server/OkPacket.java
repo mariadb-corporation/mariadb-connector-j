@@ -16,7 +16,9 @@ import org.mariadb.jdbc.util.log.Loggers;
 
 /** Ok packet parser see https://mariadb.com/kb/en/ok_packet/ */
 public class OkPacket implements Completion {
-  private static final OkPacket BASIC_OK = new OkPacket(0, 0, null);
+  /** OK packet with no affected row, no insert id and no info */
+  public static final OkPacket BASIC_OK = new OkPacket(0, 0, null);
+
   private static final Logger logger = Loggers.getLogger(OkPacket.class);
 
   private final long affectedRows;
