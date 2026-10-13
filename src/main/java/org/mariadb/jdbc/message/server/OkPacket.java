@@ -32,7 +32,9 @@ public class OkPacket implements Completion {
     context.setWarning(buf.readUnsignedShort());
 
     if (buf.readableBytes() > 0 && context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
-      buf.skip(buf.readIntLengthEncodedNotNull()); // skip info
+      int infoLen = buf.readIntLengthEncodedNotNull();
+      if (infoLen > buf.readableBytes()) return;
+      buf.skip(infoLen);
       while (buf.readableBytes() > 0) {
         ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
         while (sessionStateBuf.readableBytes() > 0) {

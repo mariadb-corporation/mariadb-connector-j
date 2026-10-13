@@ -88,6 +88,17 @@ public class OkPacketTest {
   }
 
   @Test
+  public void hugeInfoLengthIgnoredWithoutReadingPastThePacket() throws Exception {
+    // CONJ-1382: ok header, affected rows, last insert id, status, warnings, then info declaring
+    // 0x7FFFFFFF bytes with none behind it: the packet ends there, nothing is read or reported
+    byte[] packet = {0, 0, 0, 0, 0x40, 0, 0, (byte) 254, -1, -1, -1, 127, 0, 0, 0, 0};
+    Recorder rec = new Recorder();
+    new OkPacket(new StandardReadableByteBuf(packet, packet.length), context(rec));
+    assertNull(rec.database);
+    assertNull(rec.autoIncrement);
+  }
+
+  @Test
   public void systemVariableChangeApplied() throws Exception {
     Recorder rec = new Recorder();
     new OkPacket(
