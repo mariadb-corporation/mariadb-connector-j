@@ -460,7 +460,15 @@ public class StandardClient implements Client, AutoCloseable {
       if (conf.returnMultiValuesGeneratedIds()) {
         tracked += ",auto_increment_increment";
       }
-      sessionCommands.add("session_track_system_variables='" + tracked + "'");
+      // last_gtid is the one foreign variable kept: MaxScale causal_reads adds it at backend
+      // connection start (MXS-4746) and it must survive. It is appended when the session already
+      // tracks it, or tracks everything ('*'). The current value is normalized because MySQL
+      // keeps it as typed; anything else only produces notifications the driver ignores.
+      sessionCommands.add(
+          "session_track_system_variables=CONCAT('"
+              + tracked
+              + "',IF(LOCATE('*',@@session_track_system_variables)>0 OR FIND_IN_SET('last_gtid',"
+              + "LOWER(REPLACE(@@session_track_system_variables,' ','')))>0,',last_gtid',''))");
       // the current database is kept from the server's schema change reports (USE ...)
       sessionCommands.add("session_track_schema=1");
     }
