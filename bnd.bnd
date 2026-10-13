@@ -15,4 +15,3 @@ Import-Package: \
     javax.security.auth.x500;resolution:=optional,\
     software.amazon.awssdk.*;resolution:=optional
 
--fixupmessages: "Classes found in the wrong directory:";is:=ignore

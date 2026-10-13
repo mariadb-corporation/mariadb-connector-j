@@ -176,6 +176,14 @@
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
+                <executions>
+                    <!-- The jar is built before the tests run, so that surefire tests the jar itself
+                         (module descriptor, manifest headers written by bnd) rather than target/classes -->
+                    <execution>
+                        <id>default-jar</id>
+                        <phase>process-test-classes</phase>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
@@ -265,6 +273,9 @@
                 <configuration>
                     <!-- tests run on the class path, not as a module patch -->
                     <useModulePath>false</useModulePath>
+                    <!-- tests load the driver from the built jar (see maven-jar-plugin), not from
+                         target/classes: what is tested is what gets published -->
+                    <classesDirectory>${project.build.directory}/${project.build.finalName}.jar</classesDirectory>
                     <!-- junit-pioneer @SetEnvironmentVariable needs java.base opened -->
                     <argLine>@{argLine} --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                     <systemPropertyVariables>
