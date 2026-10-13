@@ -64,6 +64,11 @@ public class Writer {
   private int mark = -1;
   private boolean bufContainDataAfterMark = false;
 
+  /** consecutive commands that left a grown buffer more than half empty */
+  private static final int RELEASE_AFTER_COMMANDS = 16;
+
+  private int halfEmptyCommands;
+
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
    *
@@ -688,13 +693,7 @@ public class Writer {
    */
   public void flush() throws IOException {
     writeSocket(true);
-
-    // if buf is big, and last query doesn't use at least half of it, resize buf to default
-    // value
-    if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
-      buf = new byte[SMALL_BUFFER_SIZE];
-    }
-
+    releaseUnusedBuffer();
     pos = 4;
     cmdLength = 0;
     mark = -1;
@@ -702,16 +701,28 @@ public class Writer {
 
   public void flushPipeline() throws IOException {
     writeSocket(false);
-
-    // if buf is big, and last query doesn't use at least half of it, resize buf to default
-    // value
-    if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
-      buf = new byte[SMALL_BUFFER_SIZE];
-    }
-
+    releaseUnusedBuffer();
     pos = 4;
     cmdLength = 0;
     mark = -1;
+  }
+
+  /**
+   * A grown buffer goes back to the default size once it has been left half empty by several
+   * commands in a row. Releasing it after a single command made every bulk insert or large query of
+   * a steady workload grow it again (128Kb allocated and zeroed per command).
+   */
+  private void releaseUnusedBuffer() {
+    if (buf.length > SMALL_BUFFER_SIZE) {
+      if (cmdLength * 2 < buf.length) {
+        if (++halfEmptyCommands >= RELEASE_AFTER_COMMANDS) {
+          buf = new byte[SMALL_BUFFER_SIZE];
+          halfEmptyCommands = 0;
+        }
+      } else {
+        halfEmptyCommands = 0;
+      }
+    }
   }
 
   /**
