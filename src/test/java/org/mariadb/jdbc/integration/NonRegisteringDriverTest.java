@@ -67,7 +67,7 @@ public class NonRegisteringDriverTest extends Common {
   @Test
   public void basicInfo() {
     Driver driver = newDriver();
-    assertEquals(3, driver.getMajorVersion());
+    assertEquals(4, driver.getMajorVersion());
     assertTrue(driver.getMinorVersion() > -1);
     assertTrue(driver.jdbcCompliant());
     assertThrows(SQLFeatureNotSupportedException.class, driver::getParentLogger);

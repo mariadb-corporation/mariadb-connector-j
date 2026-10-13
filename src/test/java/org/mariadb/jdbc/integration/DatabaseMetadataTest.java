@@ -2748,7 +2748,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(meta.nullsAreSortedAtEnd());
     assertEquals(isMariaDBServer() ? "MariaDB" : "MySQL", meta.getDatabaseProductName());
     assertEquals("MariaDB Connector/J", meta.getDriverName());
-    assertTrue(meta.getDriverVersion().startsWith("3."));
+    assertTrue(meta.getDriverVersion().startsWith("4."));
     assertTrue(meta.getDriverMajorVersion() >= 0);
     assertTrue(meta.getDriverMinorVersion() >= 0);
     assertFalse(meta.usesLocalFiles());
