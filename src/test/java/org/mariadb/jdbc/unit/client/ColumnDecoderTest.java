@@ -49,6 +49,22 @@ public class ColumnDecoderTest {
   }
 
   @Test
+  public void reportedPacketHugeEntryLengthRejectedBeforeAllocation() {
+    // CONJ-1382: 38-byte column definition whose extended type name declares 0x7FFFFFF0 bytes.
+    // The value fits an int, so only the bound against the sub-packet prevents a 2 GiB allocation
+    StandardReadableByteBuf buf = packet("0A 00 FE F0 FF FF 7F 00 00 00 00");
+    assertEquals(38, buf.readableBytes());
+    assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(buf));
+  }
+
+  @Test
+  public void hugeExtendedSubPacketLengthRejected() {
+    // the sub-packet itself declares 0x7FFFFFF0 bytes while 2 follow: bounded by the packet
+    StandardReadableByteBuf buf = packet("FE F0 FF FF 7F 00 00 00 00 00 04");
+    assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(buf));
+  }
+
+  @Test
   public void negativeExtendedSkipLengthRejectedInsteadOfLooping() {
     // 10-byte sub-packet holding an unknown type 2 and a length whose low 32 bits are 0xFFFFFFF6
     // (-10 once narrowed). Unchecked, skip(-10) rewinds the sub-packet by exactly the bytes the
