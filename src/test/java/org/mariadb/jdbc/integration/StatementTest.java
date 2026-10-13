@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -94,6 +95,26 @@ public class StatementTest extends Common {
     }
 
     stmt.execute("DROP TABLE key_test");
+  }
+
+  @Test
+  public void getMoreResultsWithoutResults() throws SQLException {
+    // before any execution and after a failed one, there are no more results: false, no exception
+    try (Statement stmt = sharedConn.createStatement()) {
+      assertFalse(stmt.getMoreResults());
+      assertFalse(stmt.getMoreResults(Statement.KEEP_CURRENT_RESULT));
+      assertNull(stmt.getResultSet());
+      assertEquals(-1, stmt.getUpdateCount());
+
+      assertThrows(SQLException.class, () -> stmt.execute("WRONG QUERY"));
+      assertFalse(stmt.getMoreResults());
+      assertNull(stmt.getResultSet());
+      assertEquals(-1, stmt.getUpdateCount());
+
+      assertTrue(stmt.execute("SELECT 1"));
+      assertFalse(stmt.getMoreResults());
+      assertFalse(stmt.getMoreResults());
+    }
   }
 
   @Test
