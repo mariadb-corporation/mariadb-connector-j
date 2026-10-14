@@ -214,7 +214,7 @@
     "allDeclaredMethods": true
   },
   {
-    "condition": { "typeReachable": "software.amazon.awssdk.auth.credentials.AwsBasicCredentials" },
+    "condition": { "typeReachable": "software.amazon.awssdk.services.rds.RdsUtilities" },
     "name": "org.mariadb.jdbc.plugin.credential.aws.AwsIamCredentialPlugin",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   }
