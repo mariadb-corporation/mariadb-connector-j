@@ -206,7 +206,6 @@ public class NonRegisteringDriver implements java.sql.Driver {
    * @param val string value to enquote
    * @return enquoted string value
    */
-  // @Override when not supporting java 8
   public static String enquoteLiteral(String val) {
     return enquoteLiteral(val, false);
   }

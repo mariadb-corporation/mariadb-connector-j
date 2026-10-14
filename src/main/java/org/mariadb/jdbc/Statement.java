@@ -1663,7 +1663,7 @@ public class Statement implements java.sql.Statement {
    * @param val string value to enquote
    * @return enquoted string value
    */
-  // @Override when not supporting java 8
+  @Override
   public String enquoteLiteral(String val) {
     return NonRegisteringDriver.enquoteLiteral(val, noBackslashEscapes());
   }
@@ -1681,7 +1681,7 @@ public class Statement implements java.sql.Statement {
    * @see <a href="https://mariadb.com/kb/en/library/identifier-names/">mariadb identifier name</a>
    * @throws SQLException if containing u0000 character
    */
-  // @Override when not supporting java 8
+  @Override
   public String enquoteIdentifier(String identifier, boolean alwaysQuote) throws SQLException {
     return NonRegisteringDriver.enquoteIdentifier(identifier, alwaysQuote);
   }
@@ -1696,7 +1696,7 @@ public class Statement implements java.sql.Statement {
    * @param val value to enquote
    * @return enquoted String value
    */
-  // @Override when not supporting java 8
+  @Override
   public String enquoteNCharLiteral(String val) {
     // don't use  N prefix, that is forcing utf8mb3
     return NonRegisteringDriver.enquoteLiteral(val, noBackslashEscapes());

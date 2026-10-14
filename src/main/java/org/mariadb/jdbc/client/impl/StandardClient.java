@@ -12,7 +12,6 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -706,55 +705,50 @@ public class StandardClient implements Client, AutoCloseable {
                   + " 'mariadb/mysql://[<user>[:<password>]@]<host>[:<port>]/[<db>[?<opt1>=<value1>[&<opt2>=<value2>]]]'");
           return;
         }
+        String redirectHost =
+            matcher.group(7) != null
+                ? URLDecoder.decode(matcher.group(7), StandardCharsets.UTF_8)
+                : matcher.group(6);
+        int redirectPort = matcher.group(9) != null ? Integer.parseInt(matcher.group(9)) : 3306;
+
+        if (this.getHostAddress() != null
+            && redirectHost.equals(this.getHostAddress().host)
+            && redirectPort == this.getHostAddress().port) {
+          // redirection to the same host, skip loop redirection
+          return;
+        }
+
+        // actually only options accepted are user and password
+        // there might be additional possible options in the future
+        String redirectUser = matcher.group(3);
+        String redirectPwd = matcher.group(5);
+        Configuration.Builder redirectConfBuilder =
+            this.context.getConf().toBuilder()
+                .addresses(HostAddress.from(redirectHost, redirectPort, true));
+        if (redirectUser != null) redirectConfBuilder.user(redirectUser);
+        if (redirectPwd != null) redirectConfBuilder.password(redirectPwd);
         try {
-          String redirectHost =
-              matcher.group(7) != null
-                  ? URLDecoder.decode(matcher.group(7), "utf8")
-                  : matcher.group(6);
-          int redirectPort = matcher.group(9) != null ? Integer.parseInt(matcher.group(9)) : 3306;
+          Configuration redirectConf = redirectConfBuilder.build();
+          HostAddress redirectHostAddress = redirectConf.addresses().get(0);
 
-          if (this.getHostAddress() != null
-              && redirectHost.equals(this.getHostAddress().host)
-              && redirectPort == this.getHostAddress().port) {
-            // redirection to the same host, skip loop redirection
-            return;
-          }
+          StandardClient redirectClient =
+              new StandardClient(redirectConf, redirectHostAddress, lock, false);
 
-          // actually only options accepted are user and password
-          // there might be additional possible options in the future
-          String redirectUser = matcher.group(3);
-          String redirectPwd = matcher.group(5);
-          Configuration.Builder redirectConfBuilder =
-              this.context.getConf().toBuilder()
-                  .addresses(HostAddress.from(redirectHost, redirectPort, true));
-          if (redirectUser != null) redirectConfBuilder.user(redirectUser);
-          if (redirectPwd != null) redirectConfBuilder.password(redirectPwd);
-          try {
-            Configuration redirectConf = redirectConfBuilder.build();
-            HostAddress redirectHostAddress = redirectConf.addresses().get(0);
+          // properly close current connection
+          this.close();
+          logger.info("redirecting connection " + hostAddress + " to " + hidePassword(redirectUrl));
+          // affect redirection to current client
+          this.closed = false;
+          this.socket = redirectClient.socket;
+          this.unixSocketTransport = redirectClient.unixSocketTransport;
+          this.conf = redirectConf;
+          this.hostAddress = redirectHostAddress;
+          this.context = redirectClient.context;
+          this.writer = redirectClient.writer;
+          this.reader = redirectClient.reader;
 
-            StandardClient redirectClient =
-                new StandardClient(redirectConf, redirectHostAddress, lock, false);
-
-            // properly close current connection
-            this.close();
-            logger.info(
-                "redirecting connection " + hostAddress + " to " + hidePassword(redirectUrl));
-            // affect redirection to current client
-            this.closed = false;
-            this.socket = redirectClient.socket;
-            this.unixSocketTransport = redirectClient.unixSocketTransport;
-            this.conf = redirectConf;
-            this.hostAddress = redirectHostAddress;
-            this.context = redirectClient.context;
-            this.writer = redirectClient.writer;
-            this.reader = redirectClient.reader;
-
-          } catch (SQLException e) {
-            logger.error("fail to redirect to '" + hidePassword(redirectUrl) + "'");
-          }
-        } catch (UnsupportedEncodingException ee) {
-          // eat, still supporting java 8
+        } catch (SQLException e) {
+          logger.error("fail to redirect to '" + hidePassword(redirectUrl) + "'");
         }
       } else {
         this.context.setRedirectUrl(redirectUrl);

@@ -1702,7 +1702,7 @@ public class Configuration {
   }
 
   /**
-   * socket tcp keep idle (java 11+ only)
+   * socket tcp keep idle
    *
    * @return socket tcp keep idle
    */
@@ -1711,7 +1711,7 @@ public class Configuration {
   }
 
   /**
-   * socket tcp keep count (java 11+ only)
+   * socket tcp keep count
    *
    * @return socket tcp keep count
    */
@@ -1720,7 +1720,7 @@ public class Configuration {
   }
 
   /**
-   * socket tcp keep interval (java 11+ only)
+   * socket tcp keep interval
    *
    * @return socket tcp keep interval
    */
@@ -2933,7 +2933,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate TCP keep-idle value (for java 11+ only).
+     * Indicate TCP keep-idle value.
      *
      * @param tcpKeepIdle value
      * @return this {@link Builder}
@@ -2944,7 +2944,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate TCP keep-count value (for java 11+ only).
+     * Indicate TCP keep-count value.
      *
      * @param tcpKeepCount value
      * @return this {@link Builder}
@@ -2955,7 +2955,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate TCP keep-interval value (for java 11+ only).
+     * Indicate TCP keep-interval value.
      *
      * @param tcpKeepInterval value
      * @return this {@link Builder}
