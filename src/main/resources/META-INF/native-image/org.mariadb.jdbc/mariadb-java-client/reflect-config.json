@@ -212,10 +212,5 @@
     "condition": { "typeReachable": "org.slf4j.LoggerFactory" },
     "name": "org.slf4j.LoggerFactory",
     "allDeclaredMethods": true
-  },
-  {
-    "condition": { "typeReachable": "software.amazon.awssdk.services.rds.RdsUtilities" },
-    "name": "org.mariadb.jdbc.plugin.credential.aws.AwsIamCredentialPlugin",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
   }
 ]

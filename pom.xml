@@ -78,13 +78,6 @@
                 <scope>import</scope>
             </dependency>
 
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>bom</artifactId>
-                <version>2.55.3</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
         </dependencies>
 
     </dependencyManagement>
@@ -170,7 +163,7 @@
                         <manifestEntries>
                             <Export-Package>org.mariadb.jdbc</Export-Package>
                             <Import-Package>
-                                javax.naming,javax.naming.ldap,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,org.ietf.jgss;resolution:=optional,javax.security.auth.login;resolution:=optional,javax.security.auth.x500;resolution:=optional,javax.crypto;resolution:=optional,software.amazon.awssdk.*;resolution:=optional,org.slf4j;resolution:=optional
+                                javax.naming,javax.naming.ldap,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,org.ietf.jgss;resolution:=optional,javax.security.auth.login;resolution:=optional,javax.security.auth.x500;resolution:=optional,javax.crypto;resolution:=optional,org.slf4j;resolution:=optional
                             </Import-Package>
                         </manifestEntries>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -382,12 +375,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>2.0.19</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>rds</artifactId>
             <optional>true</optional>
         </dependency>
 

@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.unit.plugin;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -20,12 +21,14 @@ import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.tls.MariaDbX509DeferredIdentityTrustManager;
 import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.integration.util.CertCredentialPlugin;
 import org.mariadb.jdbc.plugin.tls.main.DefaultTlsSocketPlugin;
 
 class DefaultTlsSocketPluginTest {
@@ -175,6 +178,61 @@ class DefaultTlsSocketPluginTest {
         firstTrustManager(plugin, conf),
         firstTrustManager(plugin, conf),
         "disabled cache must rebuild the trust manager on each call");
+  }
+
+  @Test
+  void credentialPluginCertificateIsTrusted() throws Exception {
+    // A credential plugin vouching for a certificate authority (CertCredentialPlugin, like AWS-IAM
+    // with the RDS roots) makes it trusted without serverSslCert, next to the system trust store,
+    // and the chain validates normally (no deferred identity).
+    X509Certificate ca =
+        (X509Certificate)
+            CertificateFactory.getInstance("X.509")
+                .generateCertificate(
+                    new ByteArrayInputStream(
+                        CertCredentialPlugin.PEM.getBytes(StandardCharsets.UTF_8)));
+    DefaultTlsSocketPlugin plugin = new DefaultTlsSocketPlugin();
+
+    Configuration conf =
+        Configuration.parse(
+            "jdbc:mariadb://localhost:3306/test?sslMode=verify_full&credentialType=CERTTEST");
+    TrustManager tm = firstTrustManager(plugin, conf);
+    assertFalse(tm instanceof MariaDbX509DeferredIdentityTrustManager);
+    X509Certificate[] issuers = ((X509TrustManager) tm).getAcceptedIssuers();
+    assertTrue(java.util.Arrays.asList(issuers).contains(ca), "plugin certificate must be trusted");
+    assertTrue(issuers.length > 1, "system trust store must stay trusted next to the plugin's");
+    assertSame(
+        tm, firstTrustManager(plugin, conf), "same configuration must reuse the cached base");
+
+    // without the system trust store fallback, only the plugin's certificate is trusted
+    Configuration alone =
+        Configuration.parse(
+            "jdbc:mariadb://localhost:3306/test?sslMode=verify_full&credentialType=CERTTEST&fallbackToSystemTrustStore=false");
+    issuers = ((X509TrustManager) firstTrustManager(plugin, alone)).getAcceptedIssuers();
+    assertEquals(1, issuers.length);
+    assertEquals(ca, issuers[0]);
+  }
+
+  @Test
+  void serverSslCertOverridesCredentialPluginCertificate(@TempDir Path tmp) throws Exception {
+    Path cert = tmp.resolve("ca.pem");
+    Files.write(cert, PEM.getBytes(StandardCharsets.UTF_8));
+    X509Certificate pluginCa =
+        (X509Certificate)
+            CertificateFactory.getInstance("X.509")
+                .generateCertificate(
+                    new ByteArrayInputStream(
+                        CertCredentialPlugin.PEM.getBytes(StandardCharsets.UTF_8)));
+
+    Configuration conf =
+        Configuration.parse(
+            "jdbc:mariadb://localhost:3306/test?sslMode=verify_full&credentialType=CERTTEST&serverSslCert="
+                + cert);
+    X509Certificate[] issuers =
+        ((X509TrustManager) firstTrustManager(new DefaultTlsSocketPlugin(), conf))
+            .getAcceptedIssuers();
+    assertEquals(1, issuers.length, "an explicit serverSslCert is the only trusted authority");
+    assertFalse(java.util.Arrays.asList(issuers).contains(pluginCa));
   }
 
   @Test

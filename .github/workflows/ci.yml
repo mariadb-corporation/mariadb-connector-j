@@ -147,13 +147,32 @@ jobs:
 
   # Single check with a stable name for the branch ruleset (matrix job names vary). Runs even
   # when a dependency failed so the check is reported as failed rather than skipped.
+  aws-plugin:
+    name: AWS-IAM credential plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          cache: maven
+          distribution: 'temurin'
+      - name: Install the connector
+        run: mvn -B -q install -DskipTests -Dgpg.skip -Dmaven.javadoc.skip=true
+      - name: Build and test the plugin
+        run: mvn -B -f aws/pom.xml spotless:check verify
+      - name: Check the bundled RDS root certificates against the published bundle
+        run: |
+          aws/scripts/rds-ca-bundle.sh check \
+            || echo "::warning file=aws/src/main/resources/org/mariadb/jdbc/plugin/credential/aws/rds-global-bundle.pem::out of date, run aws/scripts/rds-ca-bundle.sh"
+
   ci-result:
     name: Run CI Tests
-    needs: [ci, infer, sbom]
+    needs: [ci, infer, sbom, aws-plugin]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check job results
         run: |
-          echo "ci: ${{ needs.ci.result }}, infer: ${{ needs.infer.result }}, sbom: ${{ needs.sbom.result }}"
-          [[ "${{ needs.ci.result }}" == "success" && "${{ needs.infer.result }}" == "success" && "${{ needs.sbom.result }}" == "success" ]]
+          echo "ci: ${{ needs.ci.result }}, infer: ${{ needs.infer.result }}, sbom: ${{ needs.sbom.result }}, aws-plugin: ${{ needs.aws-plugin.result }}"
+          [[ "${{ needs.ci.result }}" == "success" && "${{ needs.infer.result }}" == "success" && "${{ needs.sbom.result }}" == "success" && "${{ needs.aws-plugin.result }}" == "success" ]]

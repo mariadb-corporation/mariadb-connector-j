@@ -24,6 +24,13 @@ import org.mariadb.jdbc.plugin.CredentialPlugin;
  * (environment variable / system properties, files, ...) or using connection string options :
  * accessKeyId, secretKey, region.
  *
+ * <p>TLS is mandatory. The RDS root certificate authorities are bundled, so that the default
+ * sslMode=verify-full works without configuration; serverSslCert or trustStore override them.
+ *
+ * <p>With the connection string option roleArn, the token is signed with the temporary credentials
+ * of that IAM role, assumed through STS with the credentials above; roleSessionName (default
+ * mariadb-connector-j) and externalId are optional.
+ *
  * @see <a
  *     href="https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/DefaultCredentialsProvider.html">DefaultCredentialsProvider</a>
  * @see <a
@@ -48,17 +55,20 @@ public class AwsIamCredentialPlugin implements CredentialPlugin {
     return true;
   }
 
+  /**
+   * The RDS root certificate authorities (global bundle) shipped with the plugin, so that the
+   * default sslMode=verify-full works without configuration. serverSslCert and trustStore override
+   * them; the system trust store stays trusted next to them (RDS Proxy endpoints use publicly
+   * issued certificates).
+   */
+  @Override
+  public String defaultServerSslCert() {
+    return AwsIamCredentialPlugin.class.getResource("rds-global-bundle.pem").toExternalForm();
+  }
+
   @Override
   public CredentialPlugin initialize(Configuration conf, String userName, HostAddress hostAddress)
       throws SQLException {
-    try {
-      Class.forName("software.amazon.awssdk.services.rds.RdsUtilities");
-    } catch (ClassNotFoundException ex) {
-      throw new SQLException(
-          "Identity plugin 'AWS-IAM' is used without having AWS SDK in "
-              + "classpath. "
-              + "Please add 'software.amazon.awssdk:rds' to classpath");
-    }
     this.generator = new AwsCredentialGenerator(conf.nonMappedOptions(), conf.user(), hostAddress);
     this.key = new KeyCache(conf, conf.user(), hostAddress);
     return this;

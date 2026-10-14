@@ -29,6 +29,11 @@ public final class CredentialPluginLoader {
       return implClass;
     }
     throw new IllegalArgumentException(
-        "No identity plugin registered with the type \"" + type + "\".");
+        "No identity plugin registered with the type \""
+            + type
+            + "\"."
+            + ("AWS-IAM".equals(type)
+                ? " The AWS-IAM plugin is provided by the mariadb-java-client-aws artifact."
+                : ""));
   }
 }

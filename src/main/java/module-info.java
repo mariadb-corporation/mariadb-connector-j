@@ -6,9 +6,6 @@ module org.mariadb.jdbc {
   requires transitive java.naming;
   requires transitive java.security.jgss;
   requires transitive jdk.net;
-  requires static software.amazon.awssdk.services.rds;
-  requires static software.amazon.awssdk.regions;
-  requires static software.amazon.awssdk.auth;
   requires static org.slf4j;
 
   exports org.mariadb.jdbc;
@@ -24,7 +21,6 @@ module org.mariadb.jdbc {
   exports org.mariadb.jdbc.plugin.codec;
   exports org.mariadb.jdbc.plugin.authentication.standard;
   exports org.mariadb.jdbc.plugin.authentication.addon;
-  exports org.mariadb.jdbc.plugin.credential.aws;
   exports org.mariadb.jdbc.plugin.credential.env;
   exports org.mariadb.jdbc.plugin.credential.system;
   exports org.mariadb.jdbc.plugin.tls.main;
@@ -81,7 +77,6 @@ module org.mariadb.jdbc {
       TimestampCodec,
       ZonedDateTimeCodec;
   provides org.mariadb.jdbc.plugin.CredentialPlugin with
-      org.mariadb.jdbc.plugin.credential.aws.AwsIamCredentialPlugin,
       org.mariadb.jdbc.plugin.credential.env.EnvCredentialPlugin,
       org.mariadb.jdbc.plugin.credential.system.PropertiesCredentialPlugin;
   provides org.mariadb.jdbc.plugin.TlsSocketPlugin with

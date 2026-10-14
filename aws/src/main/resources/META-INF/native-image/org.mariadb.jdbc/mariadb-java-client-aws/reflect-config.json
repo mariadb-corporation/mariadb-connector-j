@@ -1,0 +1,6 @@
+[
+  {
+    "name": "org.mariadb.jdbc.plugin.credential.aws.AwsIamCredentialPlugin",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  }
+]

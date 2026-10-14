@@ -27,6 +27,19 @@ public interface CredentialPlugin extends Supplier<Credential> {
   }
 
   /**
+   * Server certificate authorities the plugin vouches for, used when the connection sets neither
+   * serverSslCert nor trustStore. Same forms as the serverSslCert option: a URL, a file path or an
+   * inline PEM. Unless fallbackToSystemTrustStore is disabled, the system trust store stays trusted
+   * next to them. An IAM plugin can for instance bundle the certificate authorities of the managed
+   * database service, so that sslMode=verify-full works without configuration.
+   *
+   * @return certificate authorities, or null when the plugin provides none
+   */
+  default String defaultServerSslCert() {
+    return null;
+  }
+
+  /**
    * Indicate authentication plugin type to use for authentication
    *
    * @return plugin type to use for authentication, or null for default

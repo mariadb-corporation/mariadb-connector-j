@@ -164,8 +164,15 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       return new CachedTrust(new MariaDbX509TrustingManager(), false);
     }
 
+    // the certificate to trust: the serverSslCert option, else the one the credential plugin
+    // vouches for (e.g. AWS-IAM bundles the RDS root certificate authorities)
+    String serverSslCert = conf.serverSslCert();
+    if (serverSslCert == null && conf.trustStore() == null && conf.credentialPlugin() != null) {
+      serverSslCert = conf.credentialPlugin().defaultServerSslCert();
+    }
+
     // if certificate is provided, load it.
-    if (conf.serverSslCert() != null || conf.trustStore() != null) {
+    if (serverSslCert != null || conf.trustStore() != null) {
       KeyStore ks;
       try {
         ks =
@@ -218,7 +225,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               generalSecurityEx);
         }
       } else {
-        try (InputStream inStream = getInputStreamFromPath(conf.serverSslCert())) {
+        try (InputStream inStream = getInputStreamFromPath(serverSslCert)) {
           // generate a keyStore from the provided cert
 
           // Note: KeyStore requires it be loaded even if you don't load anything into it
@@ -228,6 +235,20 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
           Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
           for (Certificate ca : caList) {
             ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+          }
+          if (conf.serverSslCert() == null && conf.fallbackToSystemTrustStore()) {
+            // the plugin's authorities add to the system trust store rather than replace it: the
+            // same service may also sit behind a proxy with a publicly issued certificate
+            TrustManagerFactory tmf =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init((KeyStore) null);
+            for (TrustManager tm : tmf.getTrustManagers()) {
+              if (tm instanceof X509TrustManager manager) {
+                for (Certificate ca : manager.getAcceptedIssuers()) {
+                  ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+                }
+              }
+            }
           }
 
         } catch (IOException ioEx) {
@@ -344,6 +365,11 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     sb.append(sslMode == SslMode.TRUST ? "TRUST" : "VERIFY").append('\n');
     appendFile(sb, conf.serverSslCert());
     appendFile(sb, conf.trustStore());
+    if (conf.serverSslCert() == null
+        && conf.trustStore() == null
+        && conf.credentialPlugin() != null) {
+      appendFile(sb, conf.credentialPlugin().defaultServerSslCert());
+    }
     appendValue(sb, conf.trustStorePassword());
     appendValue(sb, conf.trustStoreType());
     sb.append(conf.fallbackToSystemTrustStore()).append('\n');
