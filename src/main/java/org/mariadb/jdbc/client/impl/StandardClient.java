@@ -172,7 +172,7 @@ public class StandardClient implements Client, AutoCloseable {
 
   private void setupConnection(boolean skipPostCommands) throws SQLException, IOException {
     OutputStream out = socket.getOutputStream();
-    InputStream in = new BufferedInputStream(socket.getInputStream(), 16384);
+    InputStream in = socket.getInputStream();
     assignStream(out, in, conf, null);
     configureTimeout();
 
@@ -183,7 +183,7 @@ public class StandardClient implements Client, AutoCloseable {
     if (sslSocket != null) {
       this.socket = sslSocket;
       out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
-      in = new BufferedInputStream(sslSocket.getInputStream(), 16384);
+      in = sslSocket.getInputStream();
       assignStream(out, in, conf, handshake.getThreadId());
     }
 
@@ -211,7 +211,7 @@ public class StandardClient implements Client, AutoCloseable {
     if ((clientCapabilities & Capabilities.COMPRESS) != 0) {
       assignStream(
           new CompressOutputStream(out, compressionSequence),
-          new CompressInputStream(in, compressionSequence),
+          new CompressInputStream(new BufferedInputStream(in, 16384), compressionSequence),
           conf,
           threadId);
     }
