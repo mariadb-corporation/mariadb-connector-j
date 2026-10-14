@@ -214,9 +214,13 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
             return in.readReusablePacket();
           case 0x04:
             SslMode sslMode = hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
-            if (sslMode != SslMode.DISABLE) {
+            // the server expects the password in clear on a transport it considers secure: TLS,
+            // a unix socket or a named pipe. Asking it for the RSA key there is answered with an
+            // "Access denied" (CONJ-1372)
+            boolean sslActive = sslMode != SslMode.DISABLE;
+            if (sslActive || conf.localSocket() != null || conf.pipe() != null) {
               // send a clear password
-              if (sslMode != SslMode.TRUST && sslFingerPrintValidation) {
+              if (sslActive && sslMode != SslMode.TRUST && sslFingerPrintValidation) {
                 throw new SQLException(
                     "Driver cannot send password in clear when using SSL when certificates are not"
                         + " explicitly passed on configuration.",
