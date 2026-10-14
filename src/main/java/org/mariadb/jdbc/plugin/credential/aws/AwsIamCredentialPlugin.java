@@ -52,7 +52,9 @@ public class AwsIamCredentialPlugin implements CredentialPlugin {
   public CredentialPlugin initialize(Configuration conf, String userName, HostAddress hostAddress)
       throws SQLException {
     try {
-      Class.forName("software.amazon.awssdk.auth.credentials.AwsBasicCredentials");
+      // the class the token generator needs: it comes from software.amazon.awssdk:rds, whereas
+      // the credential classes come from software.amazon.awssdk:auth, which may be present alone
+      Class.forName("software.amazon.awssdk.services.rds.RdsUtilities");
     } catch (ClassNotFoundException ex) {
       throw new SQLException(
           "Identity plugin 'AWS-IAM' is used without having AWS SDK in "
