@@ -224,7 +224,8 @@ public class StandardClient implements Client, AutoCloseable {
     Configuration conf = context.getConf();
     SslMode sslMode = determineSslMode(conf);
 
-    if (sslMode == SslMode.DISABLE) {
+    if (sslMode == SslMode.DISABLE
+        || (sslMode == SslMode.ALLOW && !context.hasServerCapability(SSL))) {
       return null;
     }
 
@@ -302,7 +303,7 @@ public class StandardClient implements Client, AutoCloseable {
     }
     // verify-full: hostname verification is JSSE's standard endpoint identification, done by the
     // trust manager during the handshake against the certificate SAN (or CN when there is no SAN)
-    if (sslMode == SslMode.VERIFY_FULL && peerHost != null) {
+    if ((sslMode == SslMode.VERIFY_FULL || sslMode == SslMode.ALLOW) && peerHost != null) {
       params.setEndpointIdentificationAlgorithm("HTTPS");
     }
     sslSocket.setSSLParameters(params);
@@ -314,7 +315,7 @@ public class StandardClient implements Client, AutoCloseable {
     try {
       sslSocket.startHandshake();
     } catch (SSLHandshakeException e) {
-      if (sslMode == SslMode.VERIFY_FULL && isIdentityFailure(e)) {
+      if ((sslMode == SslMode.VERIFY_FULL || sslMode == SslMode.ALLOW) && isIdentityFailure(e)) {
         throw context
             .getExceptionFactory()
             .create(
@@ -643,8 +644,8 @@ public class StandardClient implements Client, AutoCloseable {
           }
 
           if (context.getRedirectUrl() != null
-              && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
-                  || conf.permitRedirect())) redirect(context.getRedirectUrl());
+              && ((conf.permitRedirect() == null && redirectByDefault()) || conf.permitRedirect()))
+            redirect(context.getRedirectUrl());
 
           break authentication_loop;
 
@@ -689,10 +690,15 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /** Without permitRedirect, redirection is followed only on a fully verified TLS connection. */
+  private boolean redirectByDefault() {
+    return conf.sslMode() == SslMode.VERIFY_FULL
+        || (conf.sslMode() == SslMode.ALLOW && context.hasClientCapability(SSL));
+  }
+
   public void redirect(String redirectUrl) {
     if (redirectUrl != null
-        && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
-            || conf.permitRedirect())) {
+        && ((conf.permitRedirect() == null && redirectByDefault()) || conf.permitRedirect())) {
       // redirect only if not in a transaction
       if ((this.context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0) {
         this.context.setRedirectUrl(null);

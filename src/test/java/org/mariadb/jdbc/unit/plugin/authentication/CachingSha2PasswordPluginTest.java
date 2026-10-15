@@ -8,12 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -52,6 +54,21 @@ public class CachingSha2PasswordPluginTest {
     return packets;
   }
 
+  /** A connection context on which no TLS was negotiated: no client capability at all. */
+  private static Context plainContext() {
+    return (Context)
+        Proxy.newProxyInstance(
+            Context.class.getClassLoader(),
+            new Class<?>[] {Context.class},
+            (proxy, method, args) -> {
+              Class<?> rt = method.getReturnType();
+              if (rt == boolean.class) return false;
+              if (rt == int.class) return 0;
+              if (rt == long.class) return 0L;
+              return null;
+            });
+  }
+
   /**
    * Run the plugin against a server requiring full authentication, then answering {@code
    * finalPacket} to whatever the client sent.
@@ -70,7 +87,7 @@ public class CachingSha2PasswordPluginTest {
 
     CachingSha2PasswordPlugin plugin =
         new CachingSha2PasswordPlugin(PASSWORD, SEED, conf, conf.addresses().get(0));
-    ReadableByteBuf result = plugin.process(writer, reader, null, false);
+    ReadableByteBuf result = plugin.process(writer, reader, plainContext(), false);
     assertEquals(finalPacket[0], result.getByte());
 
     List<byte[]> packets = payloads(clientStream.toByteArray());

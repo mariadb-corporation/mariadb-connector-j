@@ -208,6 +208,24 @@ public class SslTest extends Common {
   }
 
   @Test
+  public void allowModeUsesTlsWhenAnnounced() throws Exception {
+    Assumptions.assumeTrue(!isMaxscale());
+    // CONJ-1386: against a server that announces TLS, sslMode=allow is verify-full
+    String options = baseOptions.substring(1) + "&sslMode=allow";
+    if (!isMariaDBServer() || !minVersion(11, 4, 1)) {
+      // no zero-configuration TLS, server certificate is needed
+      String serverCertPath = retrieveCertificatePath();
+      Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
+      options += "&serverSslCert=" + serverCertPath;
+    }
+    try (Connection con = createBasicCon(options, sslPort)) {
+      assertEquals(SslMode.ALLOW, con.getContext().getConf().sslMode());
+      String sslVersion = getSslVersion(con);
+      assertTrue(sslVersion != null && !sslVersion.isEmpty(), "connection must be encrypted");
+    }
+  }
+
+  @Test
   public void sslEnabledByDefault() throws Exception {
     Assumptions.assumeTrue(!isMaxscale());
     // test suite explicitly disables TLS, driver default being TLS enabled

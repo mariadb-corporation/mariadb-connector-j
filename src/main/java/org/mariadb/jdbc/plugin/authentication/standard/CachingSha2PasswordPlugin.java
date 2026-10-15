@@ -26,6 +26,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 /** Mysql caching sha2 password plugin */
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
@@ -217,7 +218,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
             // the server expects the password in clear on a transport it considers secure: TLS,
             // a unix socket or a named pipe. Asking it for the RSA key there is answered with an
             // "Access denied" (CONJ-1372)
-            boolean sslActive = sslMode != SslMode.DISABLE;
+            boolean sslActive = context.hasClientCapability(Capabilities.SSL);
             if (sslActive || conf.localSocket() != null || conf.pipe() != null) {
               // send a clear password
               if (sslActive && sslMode != SslMode.TRUST && sslFingerPrintValidation) {

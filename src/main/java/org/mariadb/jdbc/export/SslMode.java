@@ -15,7 +15,15 @@ public enum SslMode {
   VERIFY_CA("verify-ca", new String[] {"VERIFY_CA"}),
 
   /** Standard SSL use: Encryption, certificate validation and hostname validation */
-  VERIFY_FULL("verify-full", new String[] {"VERIFY_IDENTITY", "1", "true"});
+  VERIFY_FULL("verify-full", new String[] {"VERIFY_IDENTITY", "1", "true"}),
+
+  /**
+   * VERIFY_FULL when the server announces TLS, no encryption otherwise. For a mix of servers with
+   * and without TLS behind one connection string: the choice is made from the capability flags the
+   * server sends in clear, so an active attacker can downgrade the connection; a migration mode, to
+   * be replaced by VERIFY_FULL once every server has TLS.
+   */
+  ALLOW("allow", new String[] {});
 
   private final String value;
   private final String[] aliases;

@@ -210,7 +210,7 @@ public class Sha256AuthenticationTest extends Common {
       // full authentication, then fast authentication. No RSA exchange is involved on a socket,
       // so allowPublicKeyRetrieval is not needed; without the fix the driver takes the RSA path
       for (int i = 0; i < 2; i++) {
-        try (Connection con = (Connection) DriverManager.getConnection(url)) {
+        try (Connection con = DriverManager.getConnection(url)) {
           ResultSet res = con.createStatement().executeQuery("SELECT CURRENT_USER()");
           assertTrue(res.next());
           assertTrue(res.getString(1).startsWith(user + "@"), res.getString(1));
