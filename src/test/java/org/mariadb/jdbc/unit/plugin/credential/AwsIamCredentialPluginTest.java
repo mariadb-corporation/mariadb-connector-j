@@ -6,6 +6,7 @@ package org.mariadb.jdbc.unit.plugin.credential;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -41,7 +42,11 @@ public class AwsIamCredentialPluginTest {
             try (InputStream in =
                 getParent().getResourceAsStream(name.replace('.', '/') + ".class")) {
               if (in == null) throw new ClassNotFoundException(name);
-              byte[] b = in.readAllBytes();
+              ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+              byte[] buf = new byte[8192];
+              int read;
+              while ((read = in.read(buf)) != -1) bytes.write(buf, 0, read);
+              byte[] b = bytes.toByteArray();
               c = defineClass(name, b, 0, b.length);
             } catch (IOException e) {
               throw new ClassNotFoundException(name, e);
