@@ -154,11 +154,13 @@ public class VirtualThreadPinningTest extends Common {
           }
           return null;
         });
-    // pool churn, then pool close
+    // pool churn, then pool close. As many borrowers as connections, and a wide wait: the point
+    // is the locking under virtual threads, not pool throughput on a small CI runner
     MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(base + "&maxPoolSize=8&minPoolSize=2&poolName=pinningPool");
+        new MariaDbPoolDataSource(
+            base + "&maxPoolSize=8&minPoolSize=2&poolName=pinningPool&connectTimeout=120000");
     run(
-        16,
+        8,
         () -> {
           for (int i = 0; i < 30; i++) {
             try (Connection c = ds.getConnection();

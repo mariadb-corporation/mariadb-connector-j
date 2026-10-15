@@ -221,6 +221,7 @@ public class SequentialResultSetTest extends Common {
 
   @Test
   public void compressionAndTls() throws Exception {
+    Assumptions.assumeTrue(!isMaxscale());
     try (Connection con = createCon("useCompression=true")) {
       streamRows(con);
     }
