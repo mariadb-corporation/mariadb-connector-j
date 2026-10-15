@@ -292,13 +292,10 @@ public class StandardClient implements Client, AutoCloseable {
   private void handleSslHandshake(SSLSocket sslSocket, TrustManager[] trustManagers)
       throws IOException {
     // Set SNI hostname
-    // RFC 6066 §3 : SNI carries the hostname without trailing dot, and never an IP literal. The
-    // trailing dot must be removed before the IP check, so that `10.0.0.1.` is recognized as an IP.
-    String sniHost =
-        this.hostAddress == null ? null : IPUtility.stripTrailingDot(this.hostAddress.host);
-    if (sniHost != null && !sniHost.isEmpty() && !IPUtility.isInetAddress(sniHost)) {
+    SNIHostName serverName =
+        IPUtility.toSniHostname(this.hostAddress == null ? null : this.hostAddress.host);
+    if (serverName != null) {
       SSLParameters params = sslSocket.getSSLParameters();
-      SNIHostName serverName = new SNIHostName(sniHost);
       params.setServerNames(Collections.singletonList(serverName));
       sslSocket.setSSLParameters(params);
     }
