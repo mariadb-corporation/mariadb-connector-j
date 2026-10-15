@@ -1,5 +1,23 @@
 # Change Log
 
+## [3.4.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.5) (Oct 2026)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.4...3.4.5)
+
+##### Bugs Fixed
+
+* CONJ-1383 Connection init rebuilds session_track_system_variables from @@global, discarding the session-level
+	last_gtid set by MaxScale (report by Sawan Patel)
+* CONJ-1379 Set an explicit session tracking list and guard character_set_results like character_set_client (report by fg0x0)
+* CONJ-1381 Bound server-declared lengths by the packet before allocating and reading from them (report by fg0x0)
+* CONJ-1380 Rogue server can crash the client during caching_sha2_password authentication (report by shadow043)
+* CONJ-1338 Validate length-encoded integers fit a non-negative int before use as a length (report by fg0x0)
+* CONJ-1357 XA recover() must not trust server-supplied gtrid_length/bqual_length (report by fg0x0)
+* CONJ-1349 DatabaseMetaData.getBestRowIdentifier() returns primary key columns in an undefined order
+* CONJ-1279 metadata table name addition for 12.1
+* CONJ-1252 GSSAPI error when exchanges from server starts with 0x01 byte
+
+
 ## [3.4.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.4) (Jul 2026)
 
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.3...3.4.4)
