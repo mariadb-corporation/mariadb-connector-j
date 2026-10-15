@@ -629,7 +629,10 @@ public class SequentialResultSetTest extends Common {
       assertFalse(rs instanceof SequentialResult);
       assertTrue(rs.next());
       assertEquals("id", rs.getString("COLUMN_NAME"));
-      assertEquals("seqLob", rs.getString("TABLE_NAME"));
+      // the server stores the name lowercased when lower_case_table_names=1 (Windows default)
+      assertEquals(
+          con.getMetaData().storesLowerCaseIdentifiers() ? "seqlob" : "seqLob",
+          rs.getString("TABLE_NAME"));
       assertEquals("id", rs.getString(4));
       // connection internal queries still work
       con.setCatalog(con.getCatalog());

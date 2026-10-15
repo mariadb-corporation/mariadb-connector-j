@@ -23,7 +23,10 @@ public class GssapiAuthenticationTest extends Common {
     stmt.execute("CREATE USER " + System.getProperty("user.name") + " IDENTIFIED VIA gssapi");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO " + System.getProperty("user.name"));
 
-    String gssapiUrl = String.format("jdbc:mariadb://%s:%s/%s", hostname, port, database);
+    String gssapiUrl =
+        String.format(
+            "jdbc:mariadb://%s:%s/%s?%s",
+            hostname, port, database, defaultOther.replaceFirst("^&", ""));
     try (Connection con = DriverManager.getConnection(gssapiUrl)) {
       con.createStatement().execute("SELECT 1");
     }
