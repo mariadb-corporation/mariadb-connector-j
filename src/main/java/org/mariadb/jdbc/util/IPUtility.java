@@ -6,6 +6,7 @@ package org.mariadb.jdbc.util;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import javax.net.ssl.SNIHostName;
 
 public class IPUtility {
   /*
@@ -98,5 +99,25 @@ public class IPUtility {
       end--;
     }
     return end == host.length() ? host : host.substring(0, end);
+  }
+
+  /**
+   * SNI hostname of a host (RFC 6066 section 3), or null for an IP literal or a name that isn't a
+   * valid DNS hostname.
+   *
+   * @param host hostname, may be null
+   * @return SNI hostname, or null when the host can't be sent as SNI
+   */
+  public static SNIHostName toSniHostname(String host) {
+    String sniHost = stripTrailingDot(host);
+    if (sniHost == null || sniHost.isEmpty() || isInetAddress(sniHost)) {
+      return null;
+    }
+    try {
+      return new SNIHostName(sniHost);
+    } catch (IllegalArgumentException e) {
+      // not a valid DNS hostname (an underscore, for example): no SNI, as JSSE does
+      return null;
+    }
   }
 }
