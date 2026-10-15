@@ -390,7 +390,7 @@ public class SequentialResultSetTest extends Common {
         byte[] head = new byte[1000];
         assertEquals(1000, is.readNBytes(head, 0, 1000));
         assertArrayEquals(Arrays.copyOfRange(BLOB1, 0, 1000), head);
-        try (Statement other = (Statement) con.createStatement()) {
+        try (Statement other = con.createStatement()) {
           ResultSet rs2 = other.executeQuery("SELECT 'other'");
           assertTrue(rs2.next());
           assertEquals("other", rs2.getString(1));
@@ -405,7 +405,7 @@ public class SequentialResultSetTest extends Common {
         assertTrue(rs.next());
         assertFalse(rs.next());
         // after end, another statement while result not closed
-        try (Statement other = (Statement) con.createStatement()) {
+        try (Statement other = con.createStatement()) {
           ResultSet rs2 = other.executeQuery("SELECT 'other'");
           assertTrue(rs2.next());
         }
@@ -436,7 +436,7 @@ public class SequentialResultSetTest extends Common {
       assertEquals(1000, is.readNBytes(new byte[1000], 0, 1000));
       stmt.close();
       assertThrowsContains(IOException.class, is::read, "not readable anymore");
-      try (Statement other = (Statement) con.createStatement()) {
+      try (Statement other = con.createStatement()) {
         ResultSet rs3 = other.executeQuery("SELECT 2");
         assertTrue(rs3.next());
         assertEquals(2, rs3.getInt(1));
@@ -507,9 +507,7 @@ public class SequentialResultSetTest extends Common {
     }
     // sequential access needs a forward-only read-only statement: ignored otherwise
     try (Statement st =
-        (Statement)
-            sharedConn.createStatement(
-                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
       st.setFetchSize(Integer.MIN_VALUE);
       ResultSet rs = st.executeQuery("SELECT id FROM seqLob ORDER BY id");
       assertFalse(rs instanceof SequentialResult);
@@ -517,8 +515,7 @@ public class SequentialResultSetTest extends Common {
       assertEquals(4, rs.getInt(1));
     }
     try (Statement st =
-        (Statement)
-            sharedConn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        sharedConn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       st.setFetchSize(Integer.MIN_VALUE);
       ResultSet rs = st.executeQuery("SELECT id FROM seqLob ORDER BY id");
       assertFalse(rs instanceof SequentialResult);
@@ -550,7 +547,7 @@ public class SequentialResultSetTest extends Common {
         // ... or loaded in memory by another command (whose own status then replaces it)
         rs = stmt.executeQuery("SELECT CAST('a' AS SIGNED), b FROM seqLob ORDER BY id");
         assertTrue(rs.next());
-        try (Statement other = (Statement) con.createStatement()) {
+        try (Statement other = con.createStatement()) {
           assertTrue(other.executeQuery("SELECT 1").next());
         }
         assertNull(stmt.getWarnings());
@@ -601,20 +598,18 @@ public class SequentialResultSetTest extends Common {
   @Test
   public void defaultFetchSizeOption() throws Exception {
     try (Connection con = createCon("defaultFetchSize=" + Integer.MIN_VALUE)) {
-      try (Statement stmt = (Statement) con.createStatement()) {
+      try (Statement stmt = con.createStatement()) {
         assertEquals(Integer.MIN_VALUE, stmt.getFetchSize());
         ResultSet rs = stmt.executeQuery("SELECT * FROM seqLob ORDER BY id");
         assertInstanceOf(SequentialResult.class, rs);
         checkRows(rs);
       }
       try (Statement stmt =
-          (Statement)
-              con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+          con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
         assertInstanceOf(SequentialResult.class, stmt.executeQuery("SELECT 1"));
       }
       try (Statement stmt =
-          (Statement)
-              con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+          con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
         ResultSet rs = stmt.executeQuery("SELECT 1");
         assertFalse(rs instanceof SequentialResult);
       }
@@ -653,7 +648,7 @@ public class SequentialResultSetTest extends Common {
   private void allTypes(Connection con) throws Exception {
     // compare each getter with a standard result-set, reading columns in order
     try (Statement stmt = sequentialStmt(con);
-        Statement stmt2 = (Statement) con.createStatement()) {
+        Statement stmt2 = con.createStatement()) {
       ResultSet rs = stmt.executeQuery("SELECT * FROM seqTypes");
       ResultSet expected = stmt2.executeQuery("SELECT * FROM seqTypes");
       for (int row = 0; row < 2; row++) {
@@ -801,7 +796,7 @@ public class SequentialResultSetTest extends Common {
         assertTrue(rs.next());
         is = rs.getBinaryStream(2);
         assertEquals(1000, is.readNBytes(new byte[1000], 0, 1000));
-        try (Statement other = (Statement) con.createStatement()) {
+        try (Statement other = con.createStatement()) {
           assertTrue(other.executeQuery("SELECT 1").next());
         }
         total = 1000;

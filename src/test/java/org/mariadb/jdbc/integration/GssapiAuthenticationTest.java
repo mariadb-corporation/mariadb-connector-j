@@ -12,6 +12,11 @@ public class GssapiAuthenticationTest extends Common {
   @Test
   public void nativePassword() throws Exception {
     Assumptions.assumeTrue(isWindows() && isMariaDBServer());
+    // the server announces the Kerberos mechanism by default: the OS user needs a Kerberos
+    // credential, which only a domain-joined host has (SSPI otherwise reports "No credentials
+    // are available in the security package")
+    Assumptions.assumeTrue(
+        System.getenv("USERDNSDOMAIN") != null, "Kerberos SSO needs a domain-joined Windows host");
     Statement stmt = sharedConn.createStatement();
     try {
       stmt.execute("INSTALL SONAME 'auth_gssapi'");

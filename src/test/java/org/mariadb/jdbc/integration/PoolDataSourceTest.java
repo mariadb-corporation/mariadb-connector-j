@@ -97,10 +97,11 @@ public class PoolDataSourceTest extends Common {
       assertSame(
           loader, ds.getClass().getClassLoader(), "pool datasource must be the isolated one");
 
-      // closing shuts the pool down, so its threads and JMX MBean do not outlive the loader
-      try (Closeable ignored = (Closeable) ds;
-          Connection con = ds.getConnection()) {
+      try (Connection con = ds.getConnection()) {
         assertFalse(con.isClosed());
+      } finally {
+        // closing shuts the pool down, so its threads and JMX MBean do not outlive the loader
+        ((Closeable) ds).close();
       }
     }
   }
