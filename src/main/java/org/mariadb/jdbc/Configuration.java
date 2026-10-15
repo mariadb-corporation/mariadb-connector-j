@@ -307,7 +307,9 @@ public class Configuration {
     // SSL Mode configuration
     if (this.credentialType != null
         && this.credentialType.mustUseSsl()
-        && (builder.sslMode == null || SslMode.from(builder.sslMode) == SslMode.DISABLE)) {
+        && (builder.sslMode == null
+            || SslMode.from(builder.sslMode) == SslMode.DISABLE
+            || SslMode.from(builder.sslMode) == SslMode.ALLOW)) {
       this.sslMode = SslMode.VERIFY_FULL;
     } else {
       this.sslMode = builder.sslMode != null ? SslMode.from(builder.sslMode) : SslMode.DISABLE;

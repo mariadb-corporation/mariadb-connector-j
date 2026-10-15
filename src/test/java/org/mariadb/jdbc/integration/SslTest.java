@@ -18,6 +18,7 @@ import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
 
 @DisplayName("SSL tests")
@@ -151,6 +152,24 @@ public class SslTest extends Common {
     }
     try (Connection con = createCon("sslMode=trust&useReadAheadInput=false", sslPort)) {
       assertNotNull(getSslVersion(con));
+    }
+  }
+
+  @Test
+  public void allowModeUsesTlsWhenAnnounced() throws Exception {
+    Assumptions.assumeTrue(!isMaxscale());
+    // CONJ-1386: against a server that announces TLS, sslMode=allow is verify-full
+    String options = baseOptions + "&sslMode=allow";
+    if (!isMariaDBServer() || !minVersion(11, 4, 1)) {
+      // no zero-configuration TLS, server certificate is needed
+      String serverCertPath = retrieveCertificatePath();
+      Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
+      options += "&serverSslCert=" + serverCertPath;
+    }
+    try (Connection con = createCon(options, sslPort)) {
+      assertEquals(SslMode.ALLOW, con.getContext().getConf().sslMode());
+      String sslVersion = getSslVersion(con);
+      assertTrue(sslVersion != null && !sslVersion.isEmpty(), "connection must be encrypted");
     }
   }
 
