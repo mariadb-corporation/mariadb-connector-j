@@ -1,5 +1,40 @@
 # Change Log
 
+## [3.5.11](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.11) (Oct 2026)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.10...3.5.11)
+
+#### Key Enhancements
+
+* CONJ-1386 - New sslMode=allow: verify-full when the server announces TLS, unencrypted otherwise, for a mix of
+	servers with and without TLS behind one connection string
+* CONJ-1353 - Generate a CycloneDX 1.6 SBOM meeting the CISA 2026 minimum elements
+* CONJ-1356 - parsec authentication without BouncyCastle on Java 8/11 and without provider-dependent key derivation
+* CONJ-1355 - Add NonRegisteringDriver so that DataSources and pools never register the driver in DriverManager, which pinned the class loader (report by mario-schwede-hivemq)
+* CONJ-1348 - Reassembling packets larger than 16 MB copied the accumulated content once per fragment
+
+#### Issues Resolved
+
+* CONJ-1383 - Connection init rebuilds session_track_system_variables from @@global, discarding the session-level
+	last_gtid set by MaxScale (report by Sawan Patel)
+* CONJ-1379 - Set an explicit session tracking list and guard character_set_results like character_set_client
+	(report by fg0x0)
+* CONJ-1381 - Bound server-declared lengths by the packet before allocating and reading from them (report by fg0x0)
+* CONJ-1357 - XA recover() must not trust server-supplied gtrid_length/bqual_length (report by fg0x0)
+* CONJ-1374 - Redirect URL password partially logged when containing '@' (report by @manus-pi)
+* CONJ-1372 - caching_sha2_password full authentication fails over a Unix socket when SSL is disabled (report by 工藤航)
+* CONJ-1360 - Incorrect dependency check in AwsIamCredentialPlugin (report by Dheeraj Nalluri)
+* CONJ-1358 - Client-side query timeout thread cannot be stopped and outlives an idle driver
+* CONJ-1352 - Batched statements fail when a trigger produces a result set (report by Christopher Schultz)
+* CONJ-1351 - Reading an invalid DATE value might throw unchecked exceptions instead of SQLException
+* CONJ-1346 - Log-and-throw antipattern: server errors and hostname verification failures logged at DEBUG instead of
+	WARN/INFO (report by Alexander Schwartz)
+* CONJ-1345 - DatabaseMetaData#getURL() exposes database password since Connector/J 3.5.10 (report by Klaas)
+* CONJ-1344 - DatabaseMetaData imported/exported keys ignore lower_case_table_names when using SHOW CREATE TABLE
+	(report by plantegg ren)
+* CONJ-1343 - DatabaseMetaData.getSQLKeywords() includes eight pairs of concatenated words (report by Adam Rauch)
+* CONJ-1349 - DatabaseMetaData.getBestRowIdentifier() returns primary key columns in an undefined order
+
+
 ## [3.5.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.10) (Jul 2026)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.9...3.5.10)
 
