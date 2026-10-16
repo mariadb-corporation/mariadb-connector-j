@@ -11,7 +11,7 @@
     -->
     <groupId>org.mariadb.jdbc</groupId>
     <artifactId>mariadb-java-client-aws</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
     <packaging>jar</packaging>
 
     <name>mariadb-java-client-aws</name>
@@ -33,7 +33,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
-        <mariadb.version>4.0.0-SNAPSHOT</mariadb.version>
+        <mariadb.version>4.0.0</mariadb.version>
         <awssdk.version>2.55.3</awssdk.version>
         <junit.version>6.1.3</junit.version>
         <spotless.version>3.10.2</spotless.version>

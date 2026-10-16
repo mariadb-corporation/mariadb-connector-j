@@ -1,5 +1,127 @@
 # Change Log
 
+## [4.0.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/4.0.0) (Oct 2026)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.11...4.0.0)
+
+4.0.0 includes every fix of 3.5.11, listed below.
+
+#### Major Changes
+
+* CONJ-1361 - Java 17 is the minimum runtime, Java 8 and 11 are no longer supported (the 3.5 branch remains available for Java 8)
+* CONJ-1321 - TLS enabled by default: sslMode now defaults to verify-full
+* CONJ-1384 - AWS IAM authentication moves to the separate artifact mariadb-java-client-aws, the connector no longer
+	depends on the AWS SDK; the plugin gains STS assume role support (CONJ-877, report by Adrian Samatan) and ships
+	the RDS root certificates so that the default sslMode validates an RDS endpoint without configuration
+* CONJ-1306 - PreparedStatement.executeQuery() rejects statements that return no result set, as the JDBC
+	specification requires; the permitNoResults option restores the former behavior (report by Christopher Schultz)
+* CONJ-651 - Stream LOB columns from the socket instead of loading them in memory (report by Ilya Zhavoronkov)
+
+#### Key Enhancements
+
+* CONJ-1386 - New sslMode=allow: verify-full when the server announces TLS, unencrypted otherwise, for a mix of
+	servers with and without TLS behind one connection string
+* CONJ-1347 - setSavepoint() throws in auto-commit mode instead of silently succeeding
+* CONJ-1262 - cachedCodecs option now defaults to true
+* CONJ-1370 - JNA dependency removed, Unix domain sockets use the JDK implementation
+* CONJ-1371 - useReadAheadInput option and ReadAheadBufferedStream removed
+* CONJ-1366 - First-class module-info.java (module org.mariadb.jdbc)
+* CONJ-1367 - Virtual threads: no carrier pinning in driver locks, verified by a JFR-based test
+* CONJ-1354 - GSSAPI authentication uses the native GSS-API where available
+* CONJ-1308 - Support MariaDB 12.3 XML data type
+* CONJ-1220 - Unix domain sockets on Windows, for SSH tunnels (report by DAIKOZ)
+* CONJ-1378 - Try every IP address a hostname resolves to when opening the socket
+* CONJ-1369 - Performance work on the Java 17 code base: packet reader and writer buffers, readNBytes, ranged
+	Arrays.equals, no String.format on data paths
+* CONJ-1365 - Performance: VarHandle little-endian access in packet buffers
+* CONJ-1373 - Performance: JDK UTF-8 encoder for long strings in Writer.writeString / writeStringEscaped
+* CONJ-1375 - Performance: cache codec resolution for getObject(index, Class) and setObject
+* CONJ-1377 - Performance: faster client-side query parsing in ClientParser and NativeSql
+* CONJ-1368 - Build and test tooling: tests run against the built jar, GraalVM metadata refreshed, CI matrix on
+	Java 17, 21 and 25
+
+#### Issues Resolved
+
+* CONJ-1383 - Connection init rebuilds session_track_system_variables from @@global, discarding the session-level
+	last_gtid set by MaxScale (report by Sawan Patel)
+* CONJ-1379 - Set an explicit session tracking list and guard character_set_results like character_set_client
+	(report by fg0x0)
+* CONJ-1381 - Bound server-declared lengths by the packet before allocating and reading from them (report by fg0x0)
+* CONJ-1374 - Redirect URL password partially logged when containing '@'
+* CONJ-1372 - caching_sha2_password full authentication fails over a Unix socket when SSL is disabled (report by
+	工藤航)
+* CONJ-1360 - Incorrect dependency check in AwsIamCredentialPlugin (report by Dheeraj Nalluri)
+* CONJ-1344 - DatabaseMetaData imported/exported keys ignore lower_case_table_names when using SHOW CREATE TABLE
+	(report by plantegg ren)
+
+
+## [3.5.11](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.11) (Oct 2026)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.10...3.5.11)
+
+#### Key Enhancements
+
+* CONJ-1353 - Generate a CycloneDX 1.6 SBOM meeting the CISA 2026 minimum elements
+* CONJ-1356 - parsec authentication without BouncyCastle on Java 8/11 and without provider-dependent key derivation
+* CONJ-1355 - Add NonRegisteringDriver so that DataSources and pools never register the driver in DriverManager, which pinned the class loader (report by mario-schwede-hivemq)
+* CONJ-1348 - Reassembling packets larger than 16 MB copied the accumulated content once per fragment
+
+#### Issues Resolved
+
+* CONJ-1383 - Connection init rebuilds session_track_system_variables from @@global, discarding the session-level
+	last_gtid set by MaxScale (report by Sawan Patel)
+* CONJ-1379 - Set an explicit session tracking list and guard character_set_results like character_set_client
+	(report by fg0x0)
+* CONJ-1381 - Bound server-declared lengths by the packet before allocating and reading from them (report by fg0x0)
+* CONJ-1357 - XA recover() must not trust server-supplied gtrid_length/bqual_length (report by fg0x0)
+* CONJ-1374 - Redirect URL password partially logged when containing '@' (report by @manus-pi)
+* CONJ-1372 - caching_sha2_password full authentication fails over a Unix socket when SSL is disabled (report by 工藤航)
+* CONJ-1360 - Incorrect dependency check in AwsIamCredentialPlugin (report by Dheeraj Nalluri)
+* CONJ-1358 - Client-side query timeout thread cannot be stopped and outlives an idle driver
+* CONJ-1352 - Batched statements fail when a trigger produces a result set (report by Christopher Schultz)
+* CONJ-1351 - Reading an invalid DATE value might throw unchecked exceptions instead of SQLException
+* CONJ-1346 - Log-and-throw antipattern: server errors and hostname verification failures logged at DEBUG instead of
+	WARN/INFO (report by Alexander Schwartz)
+* CONJ-1345 - DatabaseMetaData#getURL() exposes database password since Connector/J 3.5.10 (report by Klaas)
+* CONJ-1344 - DatabaseMetaData imported/exported keys ignore lower_case_table_names when using SHOW CREATE TABLE
+	(report by plantegg ren)
+* CONJ-1343 - DatabaseMetaData.getSQLKeywords() includes eight pairs of concatenated words (report by Adam Rauch)
+* CONJ-1349 - DatabaseMetaData.getBestRowIdentifier() returns primary key columns in an undefined order
+
+
+## [3.4.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.4.5) (Oct 2026)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.4.4...3.4.5)
+
+##### Bugs Fixed
+
+* CONJ-1383 Connection init rebuilds session_track_system_variables from @@global, discarding the session-level
+	last_gtid set by MaxScale (report by Sawan Patel)
+* CONJ-1379 Set an explicit session tracking list and guard character_set_results like character_set_client (report by fg0x0)
+* CONJ-1381 Bound server-declared lengths by the packet before allocating and reading from them (report by fg0x0)
+* CONJ-1380 Rogue server can crash the client during caching_sha2_password authentication (report by shadow043)
+* CONJ-1338 Validate length-encoded integers fit a non-negative int before use as a length (report by fg0x0)
+* CONJ-1357 XA recover() must not trust server-supplied gtrid_length/bqual_length (report by fg0x0)
+* CONJ-1349 DatabaseMetaData.getBestRowIdentifier() returns primary key columns in an undefined order
+* CONJ-1279 metadata table name addition for 12.1
+* CONJ-1252 GSSAPI error when exchanges from server starts with 0x01 byte
+
+
+## [3.3.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.7) (Oct 2026)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.6...3.3.7)
+
+##### Bugs Fixed
+
+* CONJ-1383 Connection init rebuilds session_track_system_variables from @@global, discarding the session-level
+	last_gtid set by MaxScale (report by Sawan Patel)
+* CONJ-1379 Set an explicit session tracking list and guard character_set_results like character_set_client (report by fg0x0)
+* CONJ-1382 Bound server-declared lengths by the packet before allocating (report by fg0x0)
+* CONJ-1381 Bound server-declared lengths by the packet before reading from them (report by fg0x0)
+* CONJ-1380 Rogue server can crash the client during caching_sha2_password authentication (report by shadow043)
+* CONJ-1338 Validate length-encoded integers fit a non-negative int before use as a length (report by fg0x0)
+* CONJ-1357 XA recover() must not trust server-supplied gtrid_length/bqual_length (report by fg0x0)
+* CONJ-1349 DatabaseMetaData.getBestRowIdentifier() returns primary key columns in an undefined order
+
+
 ## [3.5.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.10) (Jul 2026)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.5.9...3.5.10)
 
