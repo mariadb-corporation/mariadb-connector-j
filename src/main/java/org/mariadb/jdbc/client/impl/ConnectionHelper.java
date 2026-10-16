@@ -1,25 +1,30 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.impl;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLTimeoutException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.net.SocketFactory;
 import javax.net.ssl.*;
+import jdk.net.ExtendedSocketOptions;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.SocketHelper;
-import org.mariadb.jdbc.client.socket.impl.SocketHandlerFunction;
-import org.mariadb.jdbc.client.socket.impl.SocketUtility;
+import org.mariadb.jdbc.client.socket.impl.NamedPipeSocket;
+import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
@@ -28,18 +33,6 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 
 /** Connection creation helper class */
 public final class ConnectionHelper {
-
-  private static final SocketHandlerFunction socketHandler;
-
-  static {
-    SocketHandlerFunction init;
-    try {
-      init = SocketUtility.getSocketHandler();
-    } catch (Throwable t) {
-      init = ConnectionHelper::standardSocket;
-    }
-    socketHandler = init;
-  }
 
   /**
    * Create socket accordingly to options.
@@ -52,7 +45,13 @@ public final class ConnectionHelper {
    */
   public static Socket createSocket(Configuration conf, HostAddress hostAddress)
       throws IOException, SQLException {
-    return socketHandler.apply(conf, hostAddress);
+    if (hostAddress.pipe != null) {
+      return new NamedPipeSocket(hostAddress.host, hostAddress.pipe);
+    }
+    if (hostAddress.localSocket != null) {
+      return new UnixDomainSocket(hostAddress.localSocket);
+    }
+    return standardSocket(conf, hostAddress);
   }
 
   /**
@@ -82,8 +81,8 @@ public final class ConnectionHelper {
         }
         Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
         socketFactory = constructor.newInstance();
-        if (socketFactory instanceof ConfigurableSocketFactory) {
-          ((ConfigurableSocketFactory) socketFactory).setConfiguration(conf, hostAddress.host);
+        if (socketFactory instanceof ConfigurableSocketFactory factory) {
+          factory.setConfiguration(conf, hostAddress.host);
         }
         return socketFactory.createSocket();
       } catch (Exception exp) {
@@ -134,8 +133,12 @@ public final class ConnectionHelper {
     }
   }
 
+  static final ConcurrentMap<String, InetAddress> LAST_SUCCESSFUL_ADDRESS =
+      new ConcurrentHashMap<>();
+
   /**
-   * Connect socket
+   * Connect socket. When the host name resolves to several addresses (typically an IPv4 and an IPv6
+   * address), each address is tried in turn until one connects, within the connectTimeout budget.
    *
    * @param conf configuration
    * @param hostAddress host to connect
@@ -144,31 +147,148 @@ public final class ConnectionHelper {
    */
   public static Socket connectSocket(final Configuration conf, final HostAddress hostAddress)
       throws SQLException {
-    Socket socket;
+    if (hostAddress.pipe != null || hostAddress.localSocket != null) {
+      return connectSocket(conf, hostAddress, null, conf.connectTimeout());
+    }
+    InetAddress[] addresses;
+    try {
+      addresses = InetAddress.getAllByName(hostAddress.host);
+    } catch (UnknownHostException e) {
+      throw new SQLNonTransientConnectionException(
+          String.format("Socket fail to connect to %s. %s", hostAddress, e.getMessage()),
+          "08000",
+          e);
+    }
+    // the address that last connected is tried first, the others keep their resolution order
+    InetAddress preferred =
+        addresses.length > 1 ? LAST_SUCCESSFUL_ADDRESS.get(hostAddress.host) : null;
+    if (preferred != null) {
+      for (int i = 1; i < addresses.length; i++) {
+        if (preferred.equals(addresses[i])) {
+          InetAddress[] ordered = addresses.clone();
+          System.arraycopy(addresses, 0, ordered, 1, i);
+          ordered[0] = addresses[i];
+          addresses = ordered;
+          break;
+        }
+      }
+    }
+    return connectSocket(conf, hostAddress, addresses);
+  }
+
+  /**
+   * Try each address in turn until one connects. The connectTimeout budget is shared between the
+   * attempts: each one gets the remaining budget divided by the number of addresses left, and the
+   * time an attempt did not use is carried over to the next ones, so the whole loop stays within
+   * connectTimeout. Any connection failure, a refused or unroutable address as well as a timeout,
+   * moves on to the next address.
+   *
+   * @param conf configuration
+   * @param hostAddress host to connect
+   * @param addresses resolved addresses of the host, in the order to try them
+   * @return socket connected to the first address that accepted the connection
+   * @throws SQLException the failure of the last attempt, earlier failures as suppressed exceptions
+   */
+  static Socket connectSocket(Configuration conf, HostAddress hostAddress, InetAddress[] addresses)
+      throws SQLException {
+    if (addresses.length == 0) {
+      throw new SQLNonTransientConnectionException(
+          String.format("Socket fail to connect to %s. No address", hostAddress), "08000");
+    }
+    int connectTimeout = conf.connectTimeout();
+    long deadlineNs = System.nanoTime() + connectTimeout * 1_000_000L;
+    SQLException lastException = null;
+    for (int i = 0; i < addresses.length; i++) {
+      long remainingMs = (deadlineNs - System.nanoTime()) / 1_000_000L;
+      if (i > 0 && connectTimeout > 0 && remainingMs <= 0) break;
+      int timeout = attemptTimeout(connectTimeout, remainingMs, addresses.length - i);
+      try {
+        Socket socket = connectSocket(conf, hostAddress, addresses[i], timeout);
+        if (addresses.length > 1) LAST_SUCCESSFUL_ADDRESS.put(hostAddress.host, addresses[i]);
+        return socket;
+      } catch (SQLNonTransientConnectionException | SQLTimeoutException e) {
+        if (lastException != null) e.addSuppressed(lastException);
+        lastException = e;
+      }
+    }
+    throw lastException;
+  }
+
+  /**
+   * Timeout of one connection attempt: the remaining budget, divided equally between the addresses
+   * still to try.
+   *
+   * @param connectTimeout configured connectTimeout in milliseconds, zero meaning no timeout
+   * @param remainingMs budget left, in milliseconds
+   * @param remainingAddresses number of addresses still to try, this one included
+   * @return attempt timeout in milliseconds, zero meaning no timeout
+   */
+  static int attemptTimeout(int connectTimeout, long remainingMs, int remainingAddresses) {
+    if (connectTimeout <= 0) return 0;
+    long perAttempt = (remainingMs + remainingAddresses - 1) / remainingAddresses;
+    return (int) Math.max(1, Math.min(perAttempt, connectTimeout));
+  }
+
+  private static Socket connectSocket(
+      Configuration conf, HostAddress hostAddress, InetAddress address, int timeout)
+      throws SQLException {
+    String target =
+        address == null
+            ? hostAddress.toString()
+            : hostAddress + " [" + address.getHostAddress() + "]";
+    Socket socket = null;
     try {
       socket = createSocket(conf, hostAddress);
-      SocketHelper.setSocketOption(conf, socket);
+      socket.setTcpNoDelay(true);
+      socket.setSoTimeout(conf.socketTimeout());
+      if (conf.tcpKeepAlive()) {
+        socket.setKeepAlive(true);
+      }
+      if (conf.tcpAbortiveClose()) {
+        socket.setSoLinger(true, 0);
+      }
+      if (conf.tcpKeepIdle() > 0) {
+        socket.setOption(ExtendedSocketOptions.TCP_KEEPIDLE, conf.tcpKeepIdle());
+      }
+      if (conf.tcpKeepCount() > 0) {
+        socket.setOption(ExtendedSocketOptions.TCP_KEEPCOUNT, conf.tcpKeepCount());
+      }
+      if (conf.tcpKeepInterval() > 0) {
+        socket.setOption(ExtendedSocketOptions.TCP_KEEPINTERVAL, conf.tcpKeepInterval());
+      }
+      if (conf.localSocketAddress() != null) {
+        socket.bind(new InetSocketAddress(conf.localSocketAddress(), 0));
+      }
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
-            hostAddress.pipe == null && hostAddress.localSocket == null
-                ? new InetSocketAddress(hostAddress.host, hostAddress.port)
-                : null;
-        socket.connect(sockAddr, conf.connectTimeout());
+            address == null ? null : new InetSocketAddress(address, hostAddress.port);
+        socket.connect(sockAddr, timeout);
       }
       return socket;
 
     } catch (SocketTimeoutException ste) {
+      closeQuietly(socket);
       throw new SQLTimeoutException(
-          String.format("Socket timeout when connecting to %s. %s", hostAddress, ste.getMessage()),
+          String.format("Socket timeout when connecting to %s. %s", target, ste.getMessage()),
           "08000",
           ste);
 
     } catch (IOException ioe) {
-
+      closeQuietly(socket);
       throw new SQLNonTransientConnectionException(
-          String.format("Socket fail to connect to %s. %s", hostAddress, ioe.getMessage()),
+          String.format("Socket fail to connect to %s. %s", target, ioe.getMessage()),
           "08000",
           ioe);
+    }
+  }
+
+  private static void closeQuietly(Socket socket) {
+    if (socket != null) {
+      try {
+        socket.close();
+      } catch (IOException ignore) {
+        // a socket that failed to connect: nothing left to release
+      }
     }
   }
 
@@ -209,10 +329,6 @@ public final class ConnectionHelper {
   private static long applyOptionalCapabilities(long capabilities, Configuration configuration) {
     if (getBooleanProperty(configuration, "enableBulkUnitResult", true)) {
       capabilities |= Capabilities.BULK_UNIT_RESULTS;
-    }
-
-    if (getBooleanProperty(configuration, "disableSessionTracking", false)) {
-      capabilities &= ~Capabilities.CLIENT_SESSION_TRACK;
     }
 
     if (shouldEnableMetadataCache(configuration)) {
@@ -317,19 +433,28 @@ public final class ConnectionHelper {
     return new Credential(configuration.user(), configuration.password());
   }
 
+  /** Protocols enabled by default: TLS 1.3 and 1.2 are always available with Java 17+. */
+  static final String[] DEFAULT_TLS_PROTOCOLS = {"TLSv1.3", "TLSv1.2"};
+
   /**
-   * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to
-   * "TLSv1,TLSv1.1". MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled
-   * with openSSL (default). MySQL's community versions &ge; 5.7.10 is compiled with yaSSL, so max
-   * TLS is TLSv1.1.
+   * Set the TLS protocols enabled on the socket: the values of the enabledSslProtocolSuites option
+   * when set, else TLSv1.3 and TLSv1.2, whatever the JSSE defaults of the running JVM. MariaDB
+   * 10.2+ and MySQL 5.7.28+ (OpenSSL builds) negotiate at least TLSv1.2.
    *
    * @param sslSocket current sslSocket
+   * @param conf configuration
    * @throws SQLException if protocol isn't a supported protocol
    */
   static void enabledSslProtocolSuites(SSLSocket sslSocket, Configuration conf)
       throws SQLException {
-    if (conf.enabledSslProtocolSuites() != null) {
-      List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
+    List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
+    if (conf.enabledSslProtocolSuites() == null) {
+      List<String> protocols = new ArrayList<>(DEFAULT_TLS_PROTOCOLS.length);
+      for (String protocol : DEFAULT_TLS_PROTOCOLS) {
+        if (possibleProtocols.contains(protocol)) protocols.add(protocol);
+      }
+      sslSocket.setEnabledProtocols(protocols.toArray(new String[0]));
+    } else {
       String[] protocols = conf.enabledSslProtocolSuites().split("[,;\\s]+");
       for (String protocol : protocols) {
         if (!possibleProtocols.contains(protocol)) {
@@ -345,7 +470,9 @@ public final class ConnectionHelper {
   }
 
   /**
-   * Set ssl socket cipher according to options.
+   * Set the cipher suites enabled on the socket when the enabledSslCipherSuites option is set. By
+   * default the JSSE cipher suites of the running JVM are used, which for TLS 1.3 and 1.2 are all
+   * AEAD or otherwise current suites.
    *
    * @param sslSocket current ssl socket
    * @param conf configuration

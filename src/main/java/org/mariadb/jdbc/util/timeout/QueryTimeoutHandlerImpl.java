@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.util.timeout;
 
 import java.util.concurrent.*;
@@ -10,32 +10,29 @@ import org.mariadb.jdbc.client.util.SchedulerProvider;
 
 public class QueryTimeoutHandlerImpl implements QueryTimeoutHandler {
   private Future<?> timerTaskFuture;
-  private ScheduledExecutorService timeoutScheduler;
   private Connection conn;
-  private ClosableLock lock;
 
   public QueryTimeoutHandler create(int queryTimeout) {
     assert (timerTaskFuture == null);
     if (queryTimeout > 0) {
-      if (timeoutScheduler == null) timeoutScheduler = SchedulerProvider.getTimeoutScheduler(lock);
       timerTaskFuture =
-          timeoutScheduler.schedule(
-              () -> {
-                try {
-                  conn.cancelCurrentQuery();
-                } catch (Throwable e) {
-                  // eat
-                }
-              },
-              queryTimeout,
-              TimeUnit.SECONDS);
+          SchedulerProvider.getTimeoutScheduler()
+              .schedule(
+                  () -> {
+                    try {
+                      conn.cancelCurrentQuery();
+                    } catch (Throwable e) {
+                      // eat
+                    }
+                  },
+                  queryTimeout,
+                  TimeUnit.SECONDS);
     }
     return this;
   }
 
   public QueryTimeoutHandlerImpl(Connection conn, ClosableLock lock) {
     this.conn = conn;
-    this.lock = lock;
   }
 
   @Override

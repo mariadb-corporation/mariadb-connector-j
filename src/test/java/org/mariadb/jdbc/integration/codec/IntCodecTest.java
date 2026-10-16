@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -941,11 +941,9 @@ public class IntCodecTest extends CommonCodecTest {
 
   private void getSQLXML(ResultSet rs) {
     Common.assertThrowsContains(
-        SQLException.class, () -> rs.getSQLXML(1), "Method ResultSet.getSQLXML not supported");
+        SQLException.class, () -> rs.getSQLXML(1), "cannot be decoded as SQLXML");
     Common.assertThrowsContains(
-        SQLException.class,
-        () -> rs.getSQLXML("t1alias"),
-        "Method ResultSet.getSQLXML not supported");
+        SQLException.class, () -> rs.getSQLXML("t1alias"), "cannot be decoded as SQLXML");
   }
 
   @Test

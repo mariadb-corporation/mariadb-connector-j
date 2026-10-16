@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mariadb.jdbc.Connection;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.plugin.Codec;
@@ -96,7 +98,52 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void getMoreResultsWithoutResults() throws SQLException {
+    // before any execution and after a failed one, there are no more results: false, no exception
+    try (Statement stmt = sharedConn.createStatement()) {
+      assertFalse(stmt.getMoreResults());
+      assertFalse(stmt.getMoreResults(Statement.KEEP_CURRENT_RESULT));
+      assertNull(stmt.getResultSet());
+      assertEquals(-1, stmt.getUpdateCount());
+
+      assertThrows(SQLException.class, () -> stmt.execute("WRONG QUERY"));
+      assertFalse(stmt.getMoreResults());
+      assertNull(stmt.getResultSet());
+      assertEquals(-1, stmt.getUpdateCount());
+
+      assertTrue(stmt.execute("SELECT 1"));
+      assertFalse(stmt.getMoreResults());
+      assertFalse(stmt.getMoreResults());
+    }
+  }
+
+  @Test
   public void ensureJdbcErrorWhenNoResultset() throws SQLException {
+    // CONJ-1306: the JDBC behavior is the default, permitNoResults=true restores the empty result
+    try (Statement stmt = sharedConn.createStatement()) {
+      assertThrowsContains(
+          SQLException.class,
+          () -> stmt.executeQuery("DO 1"),
+          "Statement.executeQuery() command does NOT return a result-set as expected");
+      assertThrowsContains(
+          SQLException.class,
+          () -> stmt.executeQuery("SET @conj1306 = 1"),
+          "Statement.executeQuery() command does NOT return a result-set as expected");
+    }
+    try (PreparedStatement ps = sharedConn.prepareStatement("DO ?")) {
+      ps.setInt(1, 1);
+      assertThrowsContains(
+          SQLException.class,
+          ps::executeQuery,
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
+    }
+    try (PreparedStatement ps = sharedConnBinary.prepareStatement("DO ?")) {
+      ps.setInt(1, 1);
+      assertThrowsContains(
+          SQLException.class,
+          ps::executeQuery,
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
+    }
     try (Connection con = createCon("&permitNoResults=false")) {
       Statement stmt = con.createStatement();
       stmt.execute("DO 1");
@@ -1262,11 +1309,11 @@ public class StatementTest extends Common {
 
   @Test
   public void statementIdentifier() throws SQLException {
-    assertTrue(org.mariadb.jdbc.Driver.isSimpleIdentifier("good_$one"));
-    assertTrue(org.mariadb.jdbc.Driver.isSimpleIdentifier("anotherçone"));
-    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier("another'çone"));
-    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier(null));
-    assertFalse(org.mariadb.jdbc.Driver.isSimpleIdentifier(""));
+    assertTrue(NonRegisteringDriver.isSimpleIdentifier("good_$one"));
+    assertTrue(NonRegisteringDriver.isSimpleIdentifier("anotherçone"));
+    assertFalse(NonRegisteringDriver.isSimpleIdentifier("another'çone"));
+    assertFalse(NonRegisteringDriver.isSimpleIdentifier(null));
+    assertFalse(NonRegisteringDriver.isSimpleIdentifier(""));
   }
 
   @ParameterizedTest(name = "{0} - enquote identifier validation")

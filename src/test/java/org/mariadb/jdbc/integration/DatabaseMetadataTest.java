@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
+import java.util.Locale;
+import java.util.Properties;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Statement;
 
@@ -35,6 +37,10 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists cross1");
     stmt.execute("drop table if exists get_index_info");
     stmt.execute("drop table if exists text_types_text");
+    stmt.execute("DROP TABLE IF EXISTS CONJ1344_CHILD");
+    stmt.execute("DROP TABLE IF EXISTS CONJ1344_PARENT");
+    stmt.execute("DROP DATABASE IF EXISTS CONJ1344_DB");
+    stmt.execute("DROP TABLE IF EXISTS CONJ1344_XPARENT");
   }
 
   @BeforeAll
@@ -2208,11 +2214,19 @@ public class DatabaseMetadataTest extends Common {
       }
     }
 
+    if (sharedConn.getContext().getVersion().isMariaDBServer()
+        && sharedConn.getContext().getVersion().versionGreaterOrEqual(12, 3, 1)) {
+      String[] withXml = java.util.Arrays.copyOf(expectedTypes, expectedTypes.length + 1);
+      withXml[expectedTypes.length] = "XMLTYPE";
+      expectedTypes = withXml;
+    }
+
     int i = 0;
     ResultSet rs = sharedConn.getMetaData().getTypeInfo();
     while (rs.next()) {
       assertEquals(expectedTypes[i++], rs.getString(1));
     }
+    assertEquals(expectedTypes.length, i);
   }
 
   @Test
@@ -2734,7 +2748,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(meta.nullsAreSortedAtEnd());
     assertEquals(isMariaDBServer() ? "MariaDB" : "MySQL", meta.getDatabaseProductName());
     assertEquals("MariaDB Connector/J", meta.getDriverName());
-    assertTrue(meta.getDriverVersion().startsWith("3."));
+    assertTrue(meta.getDriverVersion().startsWith("4."));
     assertTrue(meta.getDriverMajorVersion() >= 0);
     assertTrue(meta.getDriverMinorVersion() >= 0);
     assertFalse(meta.usesLocalFiles());
@@ -2744,7 +2758,20 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(meta.storesLowerCaseIdentifiers(), meta.storesLowerCaseQuotedIdentifiers());
     assertEquals(meta.storesMixedCaseIdentifiers(), meta.storesMixedCaseQuotedIdentifiers());
     assertEquals("`", meta.getIdentifierQuoteString());
-    assertNotNull(meta.getSQLKeywords());
+    // CONJ-1343: each keyword must be a single well-formed word, without duplicates
+    String[] keywords = meta.getSQLKeywords().split(",");
+    java.util.Set<String> keywordSet = new java.util.HashSet<>();
+    for (String keyword : keywords) {
+      assertTrue(keyword.matches("[A-Z][A-Z0-9_]*"), "malformed keyword: " + keyword);
+      assertTrue(keywordSet.add(keyword), "duplicated keyword: " + keyword);
+    }
+    for (String keyword :
+        new String[] {
+          "ENCLOSED", "ESCAPED", "EXCEPT", "EXISTS", "FROM", "FULLTEXT", "INTERSECT", "INTERVAL",
+          "OFFSET", "ON", "REAL", "RECURSIVE", "ROW_NUMBER", "ROWS", "WINDOW", "WITH"
+        }) {
+      assertTrue(keywordSet.contains(keyword), "missing keyword: " + keyword);
+    }
     assertNotNull(meta.getNumericFunctions());
     assertNotNull(meta.getStringFunctions());
     assertNotNull(meta.getSystemFunctions());
@@ -3103,6 +3130,308 @@ public class DatabaseMetadataTest extends Common {
     } finally {
       stmt.execute("DROP DATABASE dbTmpFct1");
       stmt.execute("DROP DATABASE dbTmpFct2");
+    }
+  }
+
+  @Test
+  public void getUrlDoesNotExposeCredentials() throws SQLException {
+    // CONJ-1345: frameworks log DatabaseMetaData#getURL(). Credentials supplied outside the url
+    // (DriverManager properties, as connection pools do) must be redacted from it, exactly like
+    // credentials that are part of the url.
+    Statement stmt = sharedConn.createStatement();
+    try {
+      stmt.execute("DROP USER metaUrlUser" + getHostSuffix());
+    } catch (SQLException e) {
+      // eat
+    }
+    boolean useOldNotation =
+        (!isMariaDBServer() || !minVersion(10, 2, 0))
+            && (isMariaDBServer() || !minVersion(8, 0, 0));
+    stmt.execute("CREATE USER metaUrlUser" + getHostSuffix() + " IDENTIFIED BY 'metaUrlPwd!42'");
+    if (useOldNotation) {
+      stmt.execute(
+          "GRANT SELECT ON *.* TO metaUrlUser"
+              + getHostSuffix()
+              + " IDENTIFIED BY 'metaUrlPwd!42'");
+    } else {
+      stmt.execute("GRANT SELECT ON *.* TO metaUrlUser" + getHostSuffix());
+    }
+    stmt.execute("FLUSH PRIVILEGES");
+
+    // same url as the shared connection, minus credentials
+    StringBuilder url = new StringBuilder(mDefUrl.substring(0, mDefUrl.indexOf("?")));
+    char sep = '?';
+    for (String param : mDefUrl.substring(mDefUrl.indexOf("?") + 1).split("&")) {
+      if (!param.isEmpty() && !param.startsWith("user=") && !param.startsWith("password=")) {
+        url.append(sep).append(param);
+        sep = '&';
+      }
+    }
+    Properties props = new Properties();
+    props.setProperty("user", "metaUrlUser");
+    props.setProperty("password", "metaUrlPwd!42");
+    try (Connection con = DriverManager.getConnection(url.toString(), props)) {
+      String metaUrl = con.getMetaData().getURL();
+      assertTrue(metaUrl.startsWith("jdbc:mariadb://"), metaUrl);
+      assertTrue(metaUrl.contains("user=metaUrlUser"), metaUrl);
+      assertTrue(metaUrl.contains("password=***"), metaUrl);
+      assertFalse(metaUrl.contains("metaUrlPwd!42"), metaUrl);
+    } finally {
+      stmt.execute("DROP USER metaUrlUser" + getHostSuffix());
+    }
+  }
+
+  @Test
+  public void importedExportedKeysIdentifierCase() throws SQLException {
+    // CONJ-1344: SHOW CREATE TABLE based implementations must behave like information_schema
+    // ones: return table names as stored by the server (lowercased when lower_case_table_names=1),
+    // and match the table parameter following the server case sensitivity.
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS CONJ1344_CHILD");
+    stmt.execute("DROP TABLE IF EXISTS CONJ1344_PARENT");
+    stmt.execute("CREATE TABLE CONJ1344_PARENT (TBL_ID bigint PRIMARY KEY)");
+    stmt.execute(
+        "CREATE TABLE CONJ1344_CHILD (TBL_ID bigint NOT NULL, PKEY_NAME varchar(128) NOT NULL,"
+            + " PRIMARY KEY (TBL_ID, PKEY_NAME), CONSTRAINT CONJ1344_FK1 FOREIGN KEY (TBL_ID)"
+            + " REFERENCES CONJ1344_PARENT (TBL_ID))");
+
+    DatabaseMetaData meta = sharedConn.getMetaData();
+    ResultSet rs = meta.getTables(sharedConn.getCatalog(), null, "CONJ1344_PARENT", null);
+    assertTrue(rs.next());
+    String storedParent = rs.getString("TABLE_NAME");
+    rs = meta.getTables(sharedConn.getCatalog(), null, "CONJ1344_CHILD", null);
+    assertTrue(rs.next());
+    String storedChild = rs.getString("TABLE_NAME");
+    String storedDb = rs.getString("TABLE_CAT");
+    boolean caseInsensitive = !meta.supportsMixedCaseIdentifiers();
+    boolean storesMixedCase = meta.storesMixedCaseIdentifiers();
+
+    // lower_case_table_names only concerns table and database names: column, index and
+    // constraint names must keep the declared case, whatever the server setting
+    rs = meta.getColumns(sharedConn.getCatalog(), null, "CONJ1344_CHILD", "%");
+    assertTrue(rs.next());
+    assertEquals(storedChild, rs.getString("TABLE_NAME"));
+    assertEquals("TBL_ID", rs.getString("COLUMN_NAME"));
+    assertTrue(rs.next());
+    assertEquals("PKEY_NAME", rs.getString("COLUMN_NAME"));
+    assertFalse(rs.next());
+
+    rs = meta.getColumns(sharedConn.getCatalog(), null, "CONJ1344_CHILD", "TBL_ID");
+    assertTrue(rs.next());
+    assertEquals("TBL_ID", rs.getString("COLUMN_NAME"));
+    assertFalse(rs.next());
+
+    rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "CONJ1344_CHILD");
+    assertTrue(rs.next());
+    assertEquals(storedChild, rs.getString("TABLE_NAME"));
+    assertEquals("PKEY_NAME", rs.getString("COLUMN_NAME"));
+    assertTrue(rs.next());
+    assertEquals("TBL_ID", rs.getString("COLUMN_NAME"));
+    assertEquals("PRIMARY", rs.getString("PK_NAME"));
+    assertFalse(rs.next());
+
+    rs = meta.getIndexInfo(sharedConn.getCatalog(), null, "CONJ1344_CHILD", true, false);
+    assertTrue(rs.next());
+    assertEquals(storedChild, rs.getString("TABLE_NAME"));
+    assertEquals("TBL_ID", rs.getString("COLUMN_NAME"));
+    assertTrue(rs.next());
+    assertEquals("PKEY_NAME", rs.getString("COLUMN_NAME"));
+
+    rs =
+        meta.getBestRowIdentifier(
+            sharedConn.getCatalog(),
+            null,
+            "CONJ1344_CHILD",
+            DatabaseMetaData.bestRowSession,
+            false);
+    assertTrue(rs.next());
+    assertEquals("TBL_ID", rs.getString("COLUMN_NAME"));
+    assertTrue(rs.next());
+    assertEquals("PKEY_NAME", rs.getString("COLUMN_NAME"));
+    assertFalse(rs.next());
+
+    for (String option :
+        new String[] {
+          null,
+          "getImportedKeysUsingIs=true&metaExportedKeys=UseInformationSchema",
+          "metaExportedKeys=UseShowCreate"
+        }) {
+      try (Connection con = option == null ? createCon() : createCon(option)) {
+        DatabaseMetaData md = con.getMetaData();
+        String catalog = con.getCatalog();
+
+        for (String cat : new String[] {catalog, null}) {
+          rs = md.getImportedKeys(cat, null, "CONJ1344_CHILD");
+          assertTrue(rs.next(), option);
+          assertEquals(storedDb, rs.getString("PKTABLE_CAT"), option);
+          assertEquals(storedParent, rs.getString("PKTABLE_NAME"), option);
+          assertEquals("TBL_ID", rs.getString("PKCOLUMN_NAME"), option);
+          assertEquals(storedDb, rs.getString("FKTABLE_CAT"), option);
+          assertEquals(storedChild, rs.getString("FKTABLE_NAME"), option);
+          assertEquals("TBL_ID", rs.getString("FKCOLUMN_NAME"), option);
+          assertEquals("CONJ1344_FK1", rs.getString("FK_NAME"), option);
+          assertFalse(rs.next(), option);
+
+          rs = md.getExportedKeys(cat, null, "CONJ1344_PARENT");
+          assertTrue(rs.next(), option);
+          assertEquals(storedDb, rs.getString("PKTABLE_CAT"), option);
+          assertEquals(storedParent, rs.getString("PKTABLE_NAME"), option);
+          assertEquals(storedDb, rs.getString("FKTABLE_CAT"), option);
+          assertEquals(storedChild, rs.getString("FKTABLE_NAME"), option);
+          assertEquals("TBL_ID", rs.getString("FKCOLUMN_NAME"), option);
+          assertEquals("CONJ1344_FK1", rs.getString("FK_NAME"), option);
+          assertFalse(rs.next(), option);
+        }
+
+        if (caseInsensitive) {
+          // lower_case_table_names != 0: the server accepts any case for table and database
+          // names, so must metadata, and returned names are the stored ones
+          String otherCaseCat = catalog.toUpperCase(Locale.ROOT);
+          rs = md.getImportedKeys(otherCaseCat, null, "conj1344_child");
+          assertTrue(rs.next(), option);
+          assertIdentifier(storedDb, rs.getString("PKTABLE_CAT"), storesMixedCase, option);
+          assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), storesMixedCase, option);
+          assertIdentifier(storedChild, rs.getString("FKTABLE_NAME"), storesMixedCase, option);
+          assertFalse(rs.next(), option);
+
+          rs = md.getExportedKeys(otherCaseCat, null, "conj1344_parent");
+          assertTrue(rs.next(), option);
+          assertIdentifier(storedDb, rs.getString("PKTABLE_CAT"), storesMixedCase, option);
+          assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), storesMixedCase, option);
+          assertIdentifier(storedChild, rs.getString("FKTABLE_NAME"), storesMixedCase, option);
+          assertFalse(rs.next(), option);
+        }
+      }
+    }
+  }
+
+  @Test
+  public void importedExportedKeysUppercaseDatabase() throws SQLException {
+    // CONJ-1344: database names follow lower_case_table_names exactly like table names. Tables
+    // live in an uppercase database, one of them referencing a table of the current database so
+    // that the qualified `db`.`table` REFERENCES form is covered too.
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP DATABASE IF EXISTS CONJ1344_DB");
+    stmt.execute("DROP TABLE IF EXISTS CONJ1344_XPARENT");
+    stmt.execute("CREATE DATABASE CONJ1344_DB");
+    try {
+      stmt.execute("CREATE TABLE CONJ1344_XPARENT (TBL_ID bigint PRIMARY KEY)");
+      stmt.execute("CREATE TABLE CONJ1344_DB.PARENT_UP (TBL_ID bigint PRIMARY KEY)");
+      stmt.execute(
+          "CREATE TABLE CONJ1344_DB.CHILD_UP (TBL_ID bigint NOT NULL, PKEY_NAME varchar(128) NOT"
+              + " NULL, PRIMARY KEY (TBL_ID, PKEY_NAME), CONSTRAINT CHILD_UP_FK1 FOREIGN KEY"
+              + " (TBL_ID) REFERENCES CONJ1344_DB.PARENT_UP (TBL_ID))");
+      stmt.execute(
+          "CREATE TABLE CONJ1344_DB.XCHILD_UP (TBL_ID bigint NOT NULL PRIMARY KEY, CONSTRAINT"
+              + " XCHILD_UP_FK1 FOREIGN KEY (TBL_ID) REFERENCES "
+              + sharedConn.getCatalog()
+              + ".CONJ1344_XPARENT (TBL_ID))");
+
+      DatabaseMetaData meta = sharedConn.getMetaData();
+      ResultSet rs = meta.getTables("CONJ1344_DB", null, "CHILD_UP", null);
+      assertTrue(rs.next());
+      String storedDb = rs.getString("TABLE_CAT");
+      String storedChild = rs.getString("TABLE_NAME");
+      rs = meta.getTables("CONJ1344_DB", null, "PARENT_UP", null);
+      assertTrue(rs.next());
+      String storedParent = rs.getString("TABLE_NAME");
+      rs = meta.getTables("CONJ1344_DB", null, "XCHILD_UP", null);
+      assertTrue(rs.next());
+      String storedXChild = rs.getString("TABLE_NAME");
+      rs = meta.getTables(sharedConn.getCatalog(), null, "CONJ1344_XPARENT", null);
+      assertTrue(rs.next());
+      String storedCurrentDb = rs.getString("TABLE_CAT");
+      String storedXParent = rs.getString("TABLE_NAME");
+      boolean caseInsensitive = !meta.supportsMixedCaseIdentifiers();
+      boolean storesMixedCase = meta.storesMixedCaseIdentifiers();
+      // with lower_case_table_names=1 the server stores the database lowercased; with 0 and 2
+      // (macOS default) it is stored as declared
+      assertEquals(meta.storesLowerCaseIdentifiers() ? "conj1344_db" : "CONJ1344_DB", storedDb);
+
+      String[] catalogs =
+          caseInsensitive
+              ? new String[] {"CONJ1344_DB", "conj1344_db"}
+              : new String[] {"CONJ1344_DB"};
+      for (String option :
+          new String[] {
+            null,
+            "getImportedKeysUsingIs=true&metaExportedKeys=UseInformationSchema",
+            "metaExportedKeys=UseShowCreate"
+          }) {
+        try (Connection con = option == null ? createCon() : createCon(option)) {
+          DatabaseMetaData md = con.getMetaData();
+          for (String cat : catalogs) {
+            String ctx = option + " catalog=" + cat;
+
+            // with lower_case_table_names=2 the database name is echoed as given by the caller
+            boolean otherCase = storesMixedCase && !cat.equals(storedDb);
+
+            // same database reference
+            rs = md.getImportedKeys(cat, null, "CHILD_UP");
+            assertTrue(rs.next(), ctx);
+            assertIdentifier(storedDb, rs.getString("PKTABLE_CAT"), otherCase, ctx);
+            assertEquals(storedParent, rs.getString("PKTABLE_NAME"), ctx);
+            assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), otherCase, ctx);
+            assertEquals(storedChild, rs.getString("FKTABLE_NAME"), ctx);
+            assertEquals("CHILD_UP_FK1", rs.getString("FK_NAME"), ctx);
+            assertFalse(rs.next(), ctx);
+
+            rs = md.getExportedKeys(cat, null, "PARENT_UP");
+            assertTrue(rs.next(), ctx);
+            assertIdentifier(storedDb, rs.getString("PKTABLE_CAT"), otherCase, ctx);
+            assertEquals(storedParent, rs.getString("PKTABLE_NAME"), ctx);
+            assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), otherCase, ctx);
+            assertEquals(storedChild, rs.getString("FKTABLE_NAME"), ctx);
+            assertEquals("CHILD_UP_FK1", rs.getString("FK_NAME"), ctx);
+            assertFalse(rs.next(), ctx);
+
+            // cross database reference: FK table in the uppercase database, PK table in current one
+            rs = md.getImportedKeys(cat, null, "XCHILD_UP");
+            assertTrue(rs.next(), ctx);
+            assertEquals(storedCurrentDb, rs.getString("PKTABLE_CAT"), ctx);
+            assertEquals(storedXParent, rs.getString("PKTABLE_NAME"), ctx);
+            assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), otherCase, ctx);
+            assertEquals(storedXChild, rs.getString("FKTABLE_NAME"), ctx);
+            assertEquals("XCHILD_UP_FK1", rs.getString("FK_NAME"), ctx);
+            assertFalse(rs.next(), ctx);
+          }
+
+          rs = md.getExportedKeys(con.getCatalog(), null, "CONJ1344_XPARENT");
+          assertTrue(rs.next(), option);
+          assertEquals(storedCurrentDb, rs.getString("PKTABLE_CAT"), option);
+          assertEquals(storedXParent, rs.getString("PKTABLE_NAME"), option);
+          assertEquals(storedDb, rs.getString("FKTABLE_CAT"), option);
+          assertEquals(storedXChild, rs.getString("FKTABLE_NAME"), option);
+          assertEquals("XCHILD_UP_FK1", rs.getString("FK_NAME"), option);
+          assertFalse(rs.next(), option);
+
+          if (caseInsensitive) {
+            rs = md.getImportedKeys("conj1344_db", null, "xchild_up");
+            assertTrue(rs.next(), option);
+            assertEquals(storedCurrentDb, rs.getString("PKTABLE_CAT"), option);
+            assertIdentifier(storedDb, rs.getString("FKTABLE_CAT"), storesMixedCase, option);
+            assertIdentifier(storedXChild, rs.getString("FKTABLE_NAME"), storesMixedCase, option);
+            assertFalse(rs.next(), option);
+          }
+        }
+      }
+    } finally {
+      stmt.execute("DROP DATABASE IF EXISTS CONJ1344_DB");
+      stmt.execute("DROP TABLE IF EXISTS CONJ1344_XPARENT");
+    }
+  }
+
+  /**
+   * Compare a table or database identifier returned by metadata with its stored name. With
+   * lower_case_table_names=2 (names stored as declared, matched in lowercase) SHOW CREATE TABLE
+   * based methods echo the caller case, so only a case-insensitive comparison is possible.
+   */
+  private static void assertIdentifier(
+      String expected, String actual, boolean ignoreCase, String message) {
+    if (ignoreCase) {
+      assertEquals(expected.toLowerCase(Locale.ROOT), actual.toLowerCase(Locale.ROOT), message);
+    } else {
+      assertEquals(expected, actual, message);
     }
   }
 }

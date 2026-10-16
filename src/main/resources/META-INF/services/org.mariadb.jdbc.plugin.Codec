@@ -35,3 +35,4 @@ org.mariadb.jdbc.plugin.codec.UuidCodec
 org.mariadb.jdbc.plugin.codec.ZonedDateTimeCodec
 org.mariadb.jdbc.plugin.codec.FloatArrayCodec
 org.mariadb.jdbc.plugin.codec.FloatObjectArrayCodec
+org.mariadb.jdbc.plugin.codec.SqlXmlCodec

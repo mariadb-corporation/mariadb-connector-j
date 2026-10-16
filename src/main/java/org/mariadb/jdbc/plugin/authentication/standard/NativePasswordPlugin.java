@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
@@ -116,7 +116,7 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
   public byte[] hash(Credential credential) {
     try {
       final MessageDigest messageDigestSHA1 = MessageDigest.getInstance("SHA-1");
-      byte[] bytePwd = credential.getPassword().getBytes(StandardCharsets.UTF_8);
+      byte[] bytePwd = credential.password().getBytes(StandardCharsets.UTF_8);
       final byte[] stage1 = messageDigestSHA1.digest(bytePwd);
       messageDigestSHA1.reset();
       final byte[] stage2 = messageDigestSHA1.digest(stage1);

@@ -147,8 +147,8 @@ public class Common {
         try (Connection conn =
             DriverManager.getConnection(
                 String.format(
-                    "jdbc:mariadb://%s:%s/%s?user=%s&password=%s",
-                    host, port, database, username, password))) {
+                    "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&sslMode=disable%s",
+                    host, port, database, username, password, other))) {
           Statement stmt = conn.createStatement();
           try {
             stmt.executeQuery("INSTALL SONAME 'ha_blackhole'");

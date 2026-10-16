@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,8 +32,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.DatabaseMetaData;
-import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
@@ -65,6 +65,10 @@ public class Common {
         defaultOther = "&sslMode=verify-full&serverSslCert=" + cert;
       } else {
         defaultOther = get("DB_OTHER", prop);
+        // driver enables TLS by default, tests run without TLS unless explicitly required
+        if (defaultOther == null || !defaultOther.toLowerCase(Locale.ROOT).contains("sslmode=")) {
+          defaultOther = (defaultOther == null ? "" : defaultOther) + "&sslMode=disable";
+        }
       }
       hostname = get("DB_HOST", prop);
       user = get("DB_USER", prop);
@@ -145,6 +149,21 @@ public class Common {
 
   public static boolean isMariaDBServer() {
     return sharedConn.getContext().getVersion().isMariaDBServer();
+  }
+
+  /**
+   * Whether the server is MariaDB Enterprise Server, from the CI matrix (DB_TYPE) or the version
+   * string (e.g. 11.4.4-3-MariaDB-enterprise). Enterprise enforces a password policy that refuses
+   * passwords community accepts.
+   */
+  public static boolean isEnterprise() {
+    return "enterprise".equals(System.getenv("DB_TYPE"))
+        || sharedConn
+            .getContext()
+            .getVersion()
+            .getVersion()
+            .toLowerCase(Locale.ROOT)
+            .contains("enterprise");
   }
 
   public static boolean hasCapability(long capability) {
@@ -245,9 +264,9 @@ public class Common {
         newAddresses.add(host.withPort(sslPort));
       }
       builder.addresses(newAddresses);
-      return Driver.connect(builder.build());
+      return NonRegisteringDriver.connect(builder.build());
     }
-    return Driver.connect(conf);
+    return NonRegisteringDriver.connect(conf);
   }
 
   public static Connection createBasicCon(String option, Integer sslPort) throws SQLException {
@@ -260,9 +279,9 @@ public class Common {
         newAddresses.add(host.withPort(sslPort));
       }
       builder.addresses(newAddresses);
-      return Driver.connect(builder.build());
+      return NonRegisteringDriver.connect(builder.build());
     }
-    return Driver.connect(conf);
+    return NonRegisteringDriver.connect(conf);
   }
 
   public static int getMaxAllowedPacket() throws SQLException {
@@ -316,24 +335,6 @@ public class Common {
       return "@'localhost'";
     }
     return "@'%'";
-  }
-
-  public int getJavaVersion() {
-    String version = System.getProperty("java.version");
-    if (version.startsWith("1.")) {
-      version = version.substring(2, 3);
-    } else {
-      int dot = version.indexOf(".");
-      if (dot != -1) {
-        version = version.substring(0, dot);
-      } else {
-        dot = version.indexOf("-");
-        if (dot != -1) {
-          version = version.substring(0, dot);
-        }
-      }
-    }
-    return Integer.parseInt(version);
   }
 
   public static int getMaxScaleVersion() throws SQLException {

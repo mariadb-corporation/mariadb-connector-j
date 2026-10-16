@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.io.IOException;
@@ -26,6 +26,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.util.CodecLookup;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.MetaExportedKeys;
 import org.mariadb.jdbc.util.log.Logger;
@@ -71,7 +72,7 @@ public class Configuration {
   private static final Set<String> SENSITIVE_FIELDS;
   private static final String CATALOG_TERM = "CATALOG";
   private static final String SCHEMA_TERM = "SCHEMA";
-  private static Codec<?>[] cachedCodecs = null;
+  private static volatile Codec<?>[] cachedCodecs = null;
 
   static {
     EXCLUDED_FIELDS = new HashSet<>();
@@ -155,7 +156,6 @@ public class Configuration {
   private boolean tcpAbortiveClose;
   private String localSocketAddress;
   private int socketTimeout;
-  private boolean useReadAheadInput;
   private String tlsSocketType;
 
   // SSL
@@ -172,6 +172,7 @@ public class Configuration {
   private String enabledSslProtocolSuites;
   private boolean fallbackToSystemKeyStore;
   private boolean fallbackToSystemTrustStore;
+  private boolean deferCertificateValidation;
   // protocol
   private boolean allowMultiQueries;
   private boolean allowLocalInfile;
@@ -295,6 +296,8 @@ public class Configuration {
         builder.fallbackToSystemKeyStore == null || builder.fallbackToSystemKeyStore;
     this.fallbackToSystemTrustStore =
         builder.fallbackToSystemTrustStore == null || builder.fallbackToSystemTrustStore;
+    this.deferCertificateValidation =
+        builder.deferCertificateValidation == null || builder.deferCertificateValidation;
     this.serverSslCert = builder.serverSslCert;
     this.keyStore = builder.keyStore;
     this.trustStore = builder.trustStore;
@@ -304,13 +307,15 @@ public class Configuration {
     this.keyStoreType = builder.keyStoreType;
     this.trustStoreType = builder.trustStoreType;
 
-    // SSL Mode configuration
+    // SSL Mode configuration : TLS is enabled by default
     if (this.credentialType != null
         && this.credentialType.mustUseSsl()
-        && (builder.sslMode == null || SslMode.from(builder.sslMode) == SslMode.DISABLE)) {
+        && builder.sslMode != null
+        && (SslMode.from(builder.sslMode) == SslMode.DISABLE
+            || SslMode.from(builder.sslMode) == SslMode.ALLOW)) {
       this.sslMode = SslMode.VERIFY_FULL;
     } else {
-      this.sslMode = builder.sslMode != null ? SslMode.from(builder.sslMode) : SslMode.DISABLE;
+      this.sslMode = builder.sslMode != null ? SslMode.from(builder.sslMode) : SslMode.VERIFY_FULL;
     }
   }
 
@@ -332,7 +337,6 @@ public class Configuration {
     this.tcpAbortiveClose = builder.tcpAbortiveClose != null && builder.tcpAbortiveClose;
     this.localSocketAddress = builder.localSocketAddress;
     this.socketTimeout = builder.socketTimeout != null ? builder.socketTimeout : 0;
-    this.useReadAheadInput = builder.useReadAheadInput != null && builder.useReadAheadInput;
     this.tlsSocketType = builder.tlsSocketType;
     this.useCompression = builder.useCompression != null && builder.useCompression;
   }
@@ -427,8 +431,8 @@ public class Configuration {
     this.permitRedirect = builder.permitRedirect;
     this.pinGlobalTxToPhysicalConnection =
         builder.pinGlobalTxToPhysicalConnection != null && builder.pinGlobalTxToPhysicalConnection;
-    this.permitNoResults = builder.permitNoResults == null || builder.permitNoResults;
-    this.cacheCodecs = builder.cacheCodecs != null && builder.cacheCodecs;
+    this.permitNoResults = builder.permitNoResults != null && builder.permitNoResults;
+    this.cacheCodecs = builder.cacheCodecs == null || builder.cacheCodecs;
     this.blankTableNameMeta = builder.blankTableNameMeta != null && builder.blankTableNameMeta;
     this.disconnectOnExpiredPasswords =
         builder.disconnectOnExpiredPasswords == null || builder.disconnectOnExpiredPasswords;
@@ -558,7 +562,9 @@ public class Configuration {
       for (Field field : fields) {
         if (field.getType().equals(int.class)) {
           int val = field.getInt(this);
-          if (val < 0) {
+          // defaultFetchSize Integer.MIN_VALUE means sequential access
+          if (val < 0
+              && !(val == Integer.MIN_VALUE && "defaultFetchSize".equals(field.getName()))) {
             throw new IllegalArgumentException(
                 String.format("Value for %s must be >= 1 (value is %s)", field.getName(), val));
           }
@@ -626,7 +632,6 @@ public class Configuration {
             .tcpAbortiveClose(this.tcpAbortiveClose)
             .localSocketAddress(this.localSocketAddress)
             .socketTimeout(this.socketTimeout)
-            .useReadAheadInput(this.useReadAheadInput)
             .tlsSocketType(this.tlsSocketType)
             .sslMode(this.sslMode.name())
             .serverSslCert(this.serverSslCert)
@@ -641,6 +646,7 @@ public class Configuration {
             .enabledSslProtocolSuites(this.enabledSslProtocolSuites)
             .fallbackToSystemKeyStore(this.fallbackToSystemKeyStore)
             .fallbackToSystemTrustStore(this.fallbackToSystemTrustStore)
+            .deferCertificateValidation(this.deferCertificateValidation)
             .allowMultiQueries(this.allowMultiQueries)
             .allowLocalInfile(this.allowLocalInfile)
             .rewriteBatchedStatements(this.rewriteBatchedStatements)
@@ -958,7 +964,9 @@ public class Configuration {
     if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
       Properties deprecatedDesc = new Properties();
       try (InputStream inputStream =
-          Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
+          NonRegisteringDriver.class
+              .getClassLoader()
+              .getResourceAsStream("deprecated.properties")) {
         deprecatedDesc.load(inputStream);
         logger.warn(deprecatedDesc.getProperty("useSsl"));
 
@@ -975,7 +983,16 @@ public class Configuration {
       } catch (IOException e) {
         // Ignore IO exceptions when loading deprecation messages
       }
+    } else if (builder.sslMode == null
+        && (isUnset("useSsl", nonMappedOptions) || isUnset("useSSL", nonMappedOptions))) {
+      // TLS being enabled by default, legacy useSsl=false must still disable it
+      builder.sslMode("disable");
     }
+  }
+
+  private static boolean isUnset(String key, Properties nonMappedOptions) {
+    String value = nonMappedOptions.getProperty(key);
+    return value != null && (value.equals("0") || value.equals("false"));
   }
 
   private static boolean isSet(String key, Properties nonMappedOptions) {
@@ -1286,7 +1303,7 @@ public class Configuration {
         }
 
         Object value = field.get(conf);
-        if (value == null || (value instanceof Properties && ((Properties) value).isEmpty())) {
+        if (value == null || (value instanceof Properties properties && properties.isEmpty())) {
           continue;
         }
 
@@ -1586,9 +1603,9 @@ public class Configuration {
   }
 
   /**
-   * permitted ssl protocol list (comma separated)
+   * permitted TLS protocol list (comma separated). Default (null) enables TLSv1.3 and TLSv1.2.
    *
-   * @return enabled ssl protocol list
+   * @return enabled TLS protocol list
    */
   public String enabledSslProtocolSuites() {
     return enabledSslProtocolSuites;
@@ -1619,6 +1636,19 @@ public class Configuration {
   }
 
   /**
+   * When the server certificate cannot be validated against the system trust store (self-signed or
+   * unknown issuer), indicate if the connector may defer server identity validation to
+   * authentication, where the certificate fingerprint is verified together with the password
+   * (MariaDB 11.4+, MitM-proof authentication plugin). When false, such a certificate is rejected
+   * at the TLS handshake.
+   *
+   * @return true if identity validation can be deferred to authentication
+   */
+  public boolean deferCertificateValidation() {
+    return deferCertificateValidation;
+  }
+
+  /**
    * Socket factory class name
    *
    * @return socket factory
@@ -1634,17 +1664,6 @@ public class Configuration {
    */
   public int connectTimeout() {
     return connectTimeout;
-  }
-
-  /**
-   * Set connect timeout
-   *
-   * @param connectTimeout timeout value
-   * @return current configuration
-   */
-  public Configuration connectTimeout(int connectTimeout) {
-    this.connectTimeout = connectTimeout;
-    return this;
   }
 
   /**
@@ -1684,7 +1703,7 @@ public class Configuration {
   }
 
   /**
-   * socket tcp keep idle (java 11+ only)
+   * socket tcp keep idle
    *
    * @return socket tcp keep idle
    */
@@ -1693,7 +1712,7 @@ public class Configuration {
   }
 
   /**
-   * socket tcp keep count (java 11+ only)
+   * socket tcp keep count
    *
    * @return socket tcp keep count
    */
@@ -1702,7 +1721,7 @@ public class Configuration {
   }
 
   /**
-   * socket tcp keep interval (java 11+ only)
+   * socket tcp keep interval
    *
    * @return socket tcp keep interval
    */
@@ -2108,11 +2127,12 @@ public class Configuration {
   }
 
   /**
-   * Indicate if Statement/PreparedStatement.executeQuery for command that produce no result will
-   * return an exception or just an empty result-set
+   * Indicate if Statement/PreparedStatement.executeQuery for a command that produces no result set
+   * returns an empty result set instead of throwing an exception.
    *
-   * <p>When enabled, command not returning no data will end returning an empty result-set When
-   * disabled, command not returning no data will end throwing an exception
+   * <p>Disabled by default since 4.0.0 (CONJ-1306): as the JDBC specification requires,
+   * executeQuery throws an SQLException when the command returns no result set. When enabled, such
+   * a command returns an empty result set, which was the default behavior of earlier versions.
    *
    * @return permitNoResults
    */
@@ -2320,15 +2340,6 @@ public class Configuration {
   }
 
   /**
-   * Read all data from socket in advance
-   *
-   * @return use read ahead buffer implementation
-   */
-  public boolean useReadAheadInput() {
-    return useReadAheadInput;
-  }
-
-  /**
    * Cache prepared statement result.
    *
    * @return cache prepare results
@@ -2430,16 +2441,16 @@ public class Configuration {
       return;
     }
 
-    ServiceLoader<Codec> loader =
-        ServiceLoader.load(Codec.class, Configuration.class.getClassLoader());
-    List<Codec<?>> result = new ArrayList<>();
-    loader.iterator().forEachRemaining(result::add);
-    codecs = result.toArray(new Codec<?>[0]);
+    codecs =
+        ServiceLoader.load(Codec.class, Configuration.class.getClassLoader()).stream()
+            .map(ServiceLoader.Provider::get)
+            .toArray(Codec<?>[]::new);
 
     if (cacheCodecs) {
       synchronized (Configuration.class) {
         if (cachedCodecs == null) {
           cachedCodecs = codecs;
+          CodecLookup.register(codecs);
         }
       }
     }
@@ -2506,7 +2517,6 @@ public class Configuration {
     private Boolean tcpAbortiveClose;
     private String localSocketAddress;
     private Integer socketTimeout;
-    private Boolean useReadAheadInput;
     private String tlsSocketType;
 
     // SSL
@@ -2523,6 +2533,7 @@ public class Configuration {
     private String enabledSslProtocolSuites;
     private Boolean fallbackToSystemKeyStore;
     private Boolean fallbackToSystemTrustStore;
+    private Boolean deferCertificateValidation;
     // protocol
     private Boolean allowMultiQueries;
     private Boolean allowLocalInfile;
@@ -2689,9 +2700,9 @@ public class Configuration {
     }
 
     /**
-     * Set ssl protocol list to user (comma separated)
+     * Set TLS protocol list to use (comma separated). Default enables TLSv1.3 and TLSv1.2.
      *
-     * @param enabledSslProtocolSuites set possible SSL(TLS) protocol to use
+     * @param enabledSslProtocolSuites set possible TLS protocol to use
      * @return this {@link Builder}
      */
     public Builder enabledSslProtocolSuites(String enabledSslProtocolSuites) {
@@ -2718,6 +2729,20 @@ public class Configuration {
      */
     public Builder fallbackToSystemTrustStore(Boolean fallbackToSystemTrustStore) {
       this.fallbackToSystemTrustStore = fallbackToSystemTrustStore;
+      return this;
+    }
+
+    /**
+     * When the server certificate cannot be validated against the system trust store, indicate if
+     * server identity validation may be deferred to authentication (certificate fingerprint
+     * verified with the password). Default true. When false, such a certificate is rejected at the
+     * TLS handshake.
+     *
+     * @param deferCertificateValidation permit deferred identity validation
+     * @return this {@link Builder}
+     */
+    public Builder deferCertificateValidation(Boolean deferCertificateValidation) {
+      this.deferCertificateValidation = deferCertificateValidation;
       return this;
     }
 
@@ -2909,7 +2934,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate TCP keep-idle value (for java 11+ only).
+     * Indicate TCP keep-idle value.
      *
      * @param tcpKeepIdle value
      * @return this {@link Builder}
@@ -2920,7 +2945,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate TCP keep-count value (for java 11+ only).
+     * Indicate TCP keep-count value.
      *
      * @param tcpKeepCount value
      * @return this {@link Builder}
@@ -2931,7 +2956,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate TCP keep-interval value (for java 11+ only).
+     * Indicate TCP keep-interval value.
      *
      * @param tcpKeepInterval value
      * @return this {@link Builder}
@@ -3114,7 +3139,8 @@ public class Configuration {
     }
 
     /**
-     * Set ssl model
+     * Set ssl model. TLS is enabled by default (verify-full), use "disable" for an unencrypted
+     * connection.
      *
      * @param sslMode ssl requirement
      * @return this {@link Builder}
@@ -3515,12 +3541,12 @@ public class Configuration {
     }
 
     /**
-     * Indicate if Statement/PreparedStatement.executeQuery for command that produce no result will
-     * return an exception or just an empty result-set When enabled, command not returning no data
-     * will end returning an empty result-set When disabled, command not returning no data will end
-     * throwing an exception
+     * Indicate if Statement/PreparedStatement.executeQuery for a command that produces no result
+     * set returns an empty result set instead of throwing an exception. Disabled by default since
+     * 4.0.0 (CONJ-1306): executeQuery then throws an SQLException, as the JDBC specification
+     * requires. Enable it to restore the former behavior of returning an empty result set.
      *
-     * @param permitNoResults force reuse of same connection
+     * @param permitNoResults return an empty result set instead of throwing
      * @return this {@link Builder}
      */
     public Builder permitNoResults(Boolean permitNoResults) {
@@ -3529,7 +3555,9 @@ public class Configuration {
     }
 
     /**
-     * Permit caching codecs
+     * Permit caching the codec list loaded through ServiceLoader, once per JVM instead of on each
+     * connection. Default true; disable only when codecs are registered dynamically after the first
+     * connection.
      *
      * @param cacheCodecs can codec load be cached
      * @return this {@link Builder}
@@ -3579,7 +3607,9 @@ public class Configuration {
     /**
      * Set default fetch size
      *
-     * @param defaultFetchSize default fetch size
+     * @param defaultFetchSize default fetch size. Integer.MIN_VALUE means sequential access: rows
+     *     are read from the socket one column at a time, LOB columns being streamed without being
+     *     loaded in memory, and columns must be read in increasing index order
      * @return this {@link Builder}
      */
     public Builder defaultFetchSize(Integer defaultFetchSize) {
@@ -3774,17 +3804,6 @@ public class Configuration {
      */
     public Builder allowPublicKeyRetrieval(Boolean allowPublicKeyRetrieval) {
       this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
-      return this;
-    }
-
-    /**
-     * Cache all socket available information.
-     *
-     * @param useReadAheadInput cache available socket data when reading socket.
-     * @return this {@link Builder}
-     */
-    public Builder useReadAheadInput(Boolean useReadAheadInput) {
-      this.useReadAheadInput = useReadAheadInput;
       return this;
     }
 

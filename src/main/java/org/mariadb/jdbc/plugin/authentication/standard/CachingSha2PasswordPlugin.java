@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -26,6 +26,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 /** Mysql caching sha2 password plugin */
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
@@ -88,7 +89,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile) throws SQLException {
     byte[] keyBytes;
     try {
-      keyBytes = Files.readAllBytes(Paths.get(serverRsaPublicKeyFile));
+      keyBytes = Files.readAllBytes(Path.of(serverRsaPublicKeyFile));
     } catch (IOException ex) {
       throw new SQLException(
           "Could not read server RSA public key from file : "
@@ -214,9 +215,13 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
             return in.readReusablePacket();
           case 0x04:
             SslMode sslMode = hostAddress.sslMode == null ? conf.sslMode() : hostAddress.sslMode;
-            if (sslMode != SslMode.DISABLE) {
+            // the server expects the password in clear on a transport it considers secure: TLS,
+            // a unix socket or a named pipe. Asking it for the RSA key there is answered with an
+            // "Access denied" (CONJ-1372)
+            boolean sslActive = context.hasClientCapability(Capabilities.SSL);
+            if (sslActive || conf.localSocket() != null || conf.pipe() != null) {
               // send a clear password
-              if (sslMode != SslMode.TRUST && sslFingerPrintValidation) {
+              if (sslActive && sslMode != SslMode.TRUST && sslFingerPrintValidation) {
                 throw new SQLException(
                     "Driver cannot send password in clear when using SSL when certificates are not"
                         + " explicitly passed on configuration.",

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,6 +29,19 @@ public class DataSourceTest extends Common {
     ds2.setPassword(System.getenv("someP@ssword"));
     ds2.setUser("ttt");
     assertThrows(SQLException.class, ds2::getConnection);
+  }
+
+  @Test
+  public void doesNotRegisterDriver() throws Exception {
+    // a datasource connects through NonRegisteringDriver, never through Driver
+    try (DriverRejectingLoader loader = new DriverRejectingLoader()) {
+      DataSource ds = loader.dataSource(MariaDbDataSource.class, mDefUrl);
+      assertSame(loader, ds.getClass().getClassLoader(), "datasource must be the isolated one");
+
+      try (Connection con = ds.getConnection()) {
+        assertFalse(con.isClosed());
+      }
+    }
   }
 
   @Test

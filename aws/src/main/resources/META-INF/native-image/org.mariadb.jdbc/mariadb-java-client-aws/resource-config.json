@@ -1,0 +1,9 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\Qorg/mariadb/jdbc/plugin/credential/aws/rds-global-bundle.pem\\E"
+      }
+    ]
+  }
+}

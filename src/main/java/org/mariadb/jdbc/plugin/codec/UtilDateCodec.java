@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
@@ -60,8 +60,8 @@ public class UtilDateCodec implements Codec<java.util.Date> {
    * @return microseconds
    */
   protected static int getMicroseconds(java.util.Date val) {
-    if (val instanceof Timestamp) {
-      return ((Timestamp) val).getNanos() / 1000;
+    if (val instanceof Timestamp timestamp) {
+      return timestamp.getNanos() / 1000;
     }
     return (int) ((val.getTime() % 1000) * 1000);
   }

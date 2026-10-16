@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -179,7 +179,11 @@ public class FailoverTest extends Common {
             HaMode.SEQUENTIAL,
             "&useServerPrepStmts=" + binary + "&transactionReplay=" + transactionReplay)) {
       stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 250);
+      // only a safety net: the proxy closes the socket, so the failure is detected at once. The
+      // bound must leave room for the COMMIT after replay, which on CI runners with a slow disk
+      // (MySQL: binlog + redo fsync) can exceed a few hundred milliseconds, and a timeout on a
+      // COMMIT cannot be recovered from
+      con.setNetworkTimeout(Runnable::run, 2000);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate(

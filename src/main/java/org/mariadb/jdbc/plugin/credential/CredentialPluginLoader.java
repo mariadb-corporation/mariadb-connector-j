@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.credential;
 
-import java.util.ServiceLoader;
-import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
+import org.mariadb.jdbc.util.ServiceProviders;
 
 /**
  * Provider to handle plugin authentication. This can allow library users to override our default
  * Authentication provider.
  */
 public final class CredentialPluginLoader {
+  private static final ServiceProviders<CredentialPlugin> PROVIDERS =
+      new ServiceProviders<>(CredentialPlugin.class, NonRegisteringDriver.class.getClassLoader());
 
   /**
    * Get current Identity plugin according to option `identityType`.
@@ -22,15 +24,16 @@ public final class CredentialPluginLoader {
   public static CredentialPlugin get(String type) {
     if (type == null) return null;
 
-    ServiceLoader<CredentialPlugin> loader =
-        ServiceLoader.load(CredentialPlugin.class, Driver.class.getClassLoader());
-
-    for (CredentialPlugin implClass : loader) {
-      if (type.equals(implClass.type())) {
-        return implClass;
-      }
+    CredentialPlugin implClass = PROVIDERS.get(type, CredentialPlugin::type);
+    if (implClass != null) {
+      return implClass;
     }
     throw new IllegalArgumentException(
-        "No identity plugin registered with the type \"" + type + "\".");
+        "No identity plugin registered with the type \""
+            + type
+            + "\"."
+            + ("AWS-IAM".equals(type)
+                ? " The AWS-IAM plugin is provided by the mariadb-java-client-aws artifact."
+                : ""));
   }
 }

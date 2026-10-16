@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,6 +12,7 @@ import java.sql.*;
 import java.util.Locale;
 import java.util.Properties;
 import org.junit.jupiter.api.*;
+import org.mariadb.jdbc.NonRegisteringDriver;
 
 public class UnixsocketTest extends Common {
 
@@ -71,7 +72,7 @@ public class UnixsocketTest extends Common {
 
     String url = mDefUrl + "&localSocket=/tmp/not_valid_socket&localSocketAddress=localhost";
 
-    java.sql.Driver driver = new org.mariadb.jdbc.Driver();
+    java.sql.Driver driver = new NonRegisteringDriver();
 
     Runtime rt = Runtime.getRuntime();
     // System.out.println("netstat-apnx | grep " + ProcessHandle.current().pid());
@@ -118,16 +119,5 @@ public class UnixsocketTest extends Common {
               + " but ending with "
               + finalLines);
     }
-  }
-
-  @Test
-  public void unixSocketErrorOnWindows() throws IOException {
-    Assumptions.assumeTrue(isWindows());
-    String url = mDefUrl + "&localSocket=/tmp/not_valid_socket&localSocketAddress=localhost";
-    java.sql.Driver driver = new org.mariadb.jdbc.Driver();
-    assertThrowsContains(
-        SQLNonTransientConnectionException.class,
-        () -> driver.connect(url, new Properties()),
-        "Unix domain sockets are not supported on Windows");
   }
 }

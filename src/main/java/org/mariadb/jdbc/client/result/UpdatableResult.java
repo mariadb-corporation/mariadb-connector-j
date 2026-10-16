@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.result;
 
 import java.io.IOException;
@@ -22,6 +22,7 @@ import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.array.FloatArray;
 import org.mariadb.jdbc.plugin.codec.*;
+import org.mariadb.jdbc.util.CodecLookup;
 import org.mariadb.jdbc.util.ParameterList;
 
 /** Updatable result implementation */
@@ -139,7 +140,7 @@ public class UpdatableResult extends CompleteResult {
     ResultSet rs =
         statement
             .getConnection()
-            .createStatement()
+            .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)
             .executeQuery(
                 "SHOW COLUMNS FROM " + quoteIdentifier(database) + "." + quoteIdentifier(table));
     List<String> primaryColumns = new ArrayList<>();
@@ -860,6 +861,17 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
+  public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
+    checkUpdatable(columnIndex);
+    parameters.set(columnIndex - 1, new Parameter<>(SqlXmlCodec.INSTANCE, xmlObject));
+  }
+
+  @Override
+  public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
+    updateSQLXML(findColumn(columnLabel), xmlObject);
+  }
+
+  @Override
   public void updateClob(String columnLabel, Clob x) throws SQLException {
     updateClob(findColumn(columnLabel), x);
   }
@@ -1054,12 +1066,11 @@ public class UpdatableResult extends CompleteResult {
       return;
     }
 
-    for (Codec<?> codec : context.getConf().codecs()) {
-      if (codec.canEncode(x)) {
-        Parameter p = new Parameter(codec, x, scaleOrLength);
-        parameters.set(columnIndex - 1, p);
-        return;
-      }
+    Codec<?> codec = CodecLookup.encoder(context.getConf().codecs(), x);
+    if (codec != null) {
+      Parameter p = new Parameter(codec, x, scaleOrLength);
+      parameters.set(columnIndex - 1, p);
+      return;
     }
 
     throw new SQLException(String.format("Type %s not supported type", x.getClass().getName()));

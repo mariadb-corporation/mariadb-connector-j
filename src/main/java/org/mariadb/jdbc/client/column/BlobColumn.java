@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.column;
 
 import java.math.RoundingMode;
@@ -143,9 +143,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
       final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
     if (isBinary()) {
-      byte[] bytes = new byte[length.get()];
-      buf.readBytes(bytes);
-      return bytes;
+      return buf.readBytes(length.get());
     }
     return buf.readString(length.get());
   }

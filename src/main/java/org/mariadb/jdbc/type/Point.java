@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.type;
 
 import java.util.Objects;
@@ -49,7 +49,8 @@ public class Point implements Geometry {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || !(o instanceof Point)) return false;
-    return toString().equals(o.toString());
+    Point other = (Point) o;
+    return Double.compare(x, other.x) == 0 && Double.compare(y, other.y) == 0;
   }
 
   @Override

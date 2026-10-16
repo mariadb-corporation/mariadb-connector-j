@@ -141,6 +141,10 @@
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
   {
+    "name": "org.mariadb.jdbc.plugin.codec.SqlXmlCodec",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
     "name": "org.mariadb.jdbc.plugin.codec.StringCodec",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
   },
@@ -208,15 +212,5 @@
     "condition": { "typeReachable": "org.slf4j.LoggerFactory" },
     "name": "org.slf4j.LoggerFactory",
     "allDeclaredMethods": true
-  },
-  {
-    "condition": { "typeReachable": "waffle.windows.auth.impl.WindowsAuthProviderImpl" },
-    "name": "waffle.windows.auth.impl.WindowsAuthProviderImpl",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
-  },
-  {
-    "condition": { "typeReachable": "software.amazon.awssdk.auth.credentials.AwsBasicCredentials" },
-    "name": "org.mariadb.jdbc.plugin.credential.aws.AwsIamCredentialPlugin",
-    "methods": [{ "name": "<init>", "parameterTypes": [] }]
   }
 ]

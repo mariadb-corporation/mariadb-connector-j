@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -410,21 +410,6 @@ public class ConnectionTest extends Common {
   }
 
   @Test
-  public void databaseNoStateChange() throws SQLException {
-    try (Connection connection = createCon("&disableSessionTracking=true")) {
-      assertEquals(database, connection.getCatalog());
-
-      try (Statement stmt = connection.createStatement()) {
-        stmt.execute("drop database if exists _test_db");
-        stmt.execute("create database _test_db");
-        stmt.execute("USE _test_db");
-        assertEquals("_test_db", connection.getCatalog());
-        stmt.execute("drop database _test_db");
-      }
-    }
-  }
-
-  @Test
   public void catalog() throws SQLException {
     Assumptions.assumeTrue(
         (isMariaDBServer() && minVersion(10, 2, 0)) || (!isMariaDBServer() && minVersion(5, 7, 0)));
@@ -462,7 +447,7 @@ public class ConnectionTest extends Common {
     assertTrue(sharedConn.createBlob() instanceof Blob);
     assertTrue(sharedConn.createClob() instanceof Clob);
     assertTrue(sharedConn.createNClob() instanceof NClob);
-    assertThrows(SQLException.class, () -> sharedConn.createSQLXML());
+    assertTrue(sharedConn.createSQLXML() instanceof SQLXML);
     assertNull(sharedConn.createArrayOf("", null));
     assertThrows(SQLException.class, () -> sharedConn.createArrayOf("string", "ddd"));
     assertThrows(SQLException.class, () -> sharedConn.createStruct("", null));
@@ -712,10 +697,40 @@ public class ConnectionTest extends Common {
   @Test
   public void savepointNotExistingTest() throws SQLException {
     try (Connection con = createCon()) {
-      Savepoint sp = con.setSavepoint("savepoint1");
+      Statement stmt = con.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10))");
       con.setAutoCommit(false);
-      con.commit();
+      stmt.executeUpdate("INSERT INTO spt values('hej1')");
+      Savepoint sp = con.setSavepoint("savepoint1");
+      con.commit(); // savepoint no longer exists
       assertThrows(SQLSyntaxErrorException.class, () -> con.rollback(sp));
+      con.rollback();
+    }
+  }
+
+  @Test
+  public void savepointAutoCommit() throws SQLException {
+    // CONJ-1347: savepoints are meaningless in auto-commit mode, JDBC requires an exception
+    try (Connection con = createCon()) {
+      assertTrue(con.getAutoCommit());
+      Common.assertThrowsContains(
+          SQLException.class, con::setSavepoint, "Cannot set a savepoint when the connection");
+      Common.assertThrowsContains(
+          SQLException.class,
+          () -> con.setSavepoint("sp1"),
+          "Cannot set a savepoint when the connection is in auto-commit mode");
+      con.setAutoCommit(false);
+      Savepoint sp = con.setSavepoint("sp1");
+      con.setAutoCommit(true);
+      Common.assertThrowsContains(
+          SQLException.class,
+          () -> con.rollback(sp),
+          "Cannot rollback to a savepoint when the connection is in auto-commit mode");
+      // back in a transaction, savepoints work again
+      con.setAutoCommit(false);
+      Savepoint sp2 = con.setSavepoint();
+      con.rollback(sp2);
+      con.rollback();
     }
   }
 
@@ -849,7 +864,67 @@ public class ConnectionTest extends Common {
       // must have succeeded
       connection.getCatalog();
     }
+    // the server does verify the signature
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@orD"),
+        "Access denied");
     stmt.execute("drop user verificationEd25519AuthPlugin" + getHostSuffix());
+
+    if (minVersion(10, 4, 0)) {
+      // empty password (null authentication data) and non-ASCII password (signed over the UTF-8
+      // bytes, as the server does)
+      stmt.execute("drop user IF EXISTS verifEd25519Empty" + getHostSuffix());
+      stmt.execute("drop user IF EXISTS verifEd25519Utf8" + getHostSuffix());
+      stmt.execute(
+          "CREATE USER verifEd25519Utf8"
+              + getHostSuffix()
+              + " IDENTIFIED VIA ed25519 USING PASSWORD('Pässw0rd€!')");
+      stmt.execute("GRANT SELECT on `" + database + "`.* to verifEd25519Utf8" + getHostSuffix());
+      if (createEmptyPasswordUser(stmt, "verifEd25519Empty", "ed25519")) {
+        try (Connection connection = createCon("user=verifEd25519Empty&password=")) {
+          connection.getCatalog();
+        }
+      }
+      try (Connection connection = createCon("user=verifEd25519Utf8&password=Pässw0rd€!")) {
+        connection.getCatalog();
+      }
+      stmt.execute("drop user IF EXISTS verifEd25519Empty" + getHostSuffix());
+      stmt.execute("drop user verifEd25519Utf8" + getHostSuffix());
+    }
+  }
+
+  /**
+   * Create an account with an empty password for the given authentication plugin, and tell whether
+   * a client can authenticate as it. It cannot when a password policy plugin refuses the empty
+   * password (simple_password_check on enterprise servers, ER_NOT_VALID_PASSWORD), or when the
+   * server stores an empty authentication string for {@code PASSWORD('')} (up to 11.4 at least;
+   * 11.8 stores the key of the empty password).
+   */
+  private boolean createEmptyPasswordUser(Statement stmt, String user, String plugin)
+      throws SQLException {
+    if (isEnterprise()) return false;
+    try {
+      stmt.execute(
+          "CREATE USER "
+              + user
+              + getHostSuffix()
+              + " IDENTIFIED VIA "
+              + plugin
+              + " USING PASSWORD('')");
+    } catch (SQLException e) {
+      if (e.getErrorCode() == 1819) return false;
+      throw e;
+    }
+    stmt.execute("GRANT SELECT on `" + database + "`.* to " + user + getHostSuffix());
+    try (ResultSet rs =
+        stmt.executeQuery(
+            "SELECT authentication_string FROM mysql.user WHERE user='" + user + "'")) {
+      return rs.next() && rs.getString(1) != null && !rs.getString(1).isEmpty();
+    } catch (SQLException e) {
+      // no SELECT privilege on mysql.user: cannot tell, do not assert
+      return false;
+    }
   }
 
   @Test
@@ -876,21 +951,16 @@ public class ConnectionTest extends Common {
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec" + getHostSuffix());
     stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsec2" + getHostSuffix());
 
-    int majorVersion = getJavaVersion();
-    if (majorVersion < 15) {
-      // before java 15, Ed25519 is not supported
-      // assuming, that BouncyCastle is not on test classpath
-      assertThrowsContains(
-          SQLException.class,
-          () -> createCon("user=verifParsec&password=heyPassw-!*20oRd"),
-          "Parsec authentication not available. Either use Java 15+ or add BouncyCastle"
-              + " dependency");
-    } else {
-      try (Connection connection = createCon("user=verifParsec&password=heyPassw-!*20oRd")) {
-        // must have succeeded
-        connection.getCatalog();
-      }
+    // signing is done by the driver's own Ed25519 code: no Java 15+ or BouncyCastle requirement
+    try (Connection connection = createCon("user=verifParsec&password=heyPassw-!*20oRd")) {
+      // must have succeeded
+      connection.getCatalog();
     }
+    // the server does verify the signature
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("user=verifParsec&password=heyPassw-!*20oRe"),
+        "Access denied");
 
     assertThrowsContains(
         SQLException.class,
@@ -898,6 +968,30 @@ public class ConnectionTest extends Common {
         "Client restrict authentication plugin to a limited set");
     stmt.execute("drop user verifParsec" + getHostSuffix());
     stmt.execute("drop user verifParsec2" + getHostSuffix());
+
+    // empty password (null authentication data) and non-ASCII password (PBKDF2 over the UTF-8
+    // bytes, as the server does)
+    stmt.execute("drop user IF EXISTS verifParsecEmpty" + getHostSuffix());
+    stmt.execute("drop user IF EXISTS verifParsecUtf8" + getHostSuffix());
+    stmt.execute(
+        "CREATE USER verifParsecUtf8"
+            + getHostSuffix()
+            + " IDENTIFIED VIA parsec USING PASSWORD('Pässw0rd€!')");
+    stmt.execute("GRANT SELECT on `" + database + "`.* to verifParsecUtf8" + getHostSuffix());
+    if (createEmptyPasswordUser(stmt, "verifParsecEmpty", "parsec")) {
+      try (Connection connection = createCon("user=verifParsecEmpty&password=")) {
+        connection.getCatalog();
+      }
+    }
+    try (Connection connection = createCon("user=verifParsecUtf8&password=Pässw0rd€!")) {
+      connection.getCatalog();
+    }
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("user=verifParsecUtf8&password=Passw0rd€!"),
+        "Access denied");
+    stmt.execute("drop user IF EXISTS verifParsecEmpty" + getHostSuffix());
+    stmt.execute("drop user verifParsecUtf8" + getHostSuffix());
   }
 
   @Test
@@ -957,18 +1051,6 @@ public class ConnectionTest extends Common {
         "Client restrict authentication plugin to a limited set of authentication");
 
     stmt.execute("drop user " + pamUser + getHostSuffix());
-  }
-
-  @Test
-  public void testNoUseReadAheadInputConnection() throws Exception {
-    try (Connection connection = createCon("useReadAheadInput=false")) {
-      // must have succeeded
-      Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10");
-      int i = 0;
-      while (rs.next()) i++;
-      assertTrue(i > 0);
-    }
   }
 
   @Test

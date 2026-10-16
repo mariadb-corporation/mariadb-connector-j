@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.io.InputStream;
@@ -65,7 +65,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         Statement.RETURN_GENERATED_KEYS,
         resultSetType,
         resultSetConcurrency,
-        defaultFetchSize);
+        Math.max(0, defaultFetchSize));
     this.databaseName = databaseName;
     this.procedureName = procedureName;
   }
@@ -76,6 +76,22 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * @return indicate if is a function
    */
   public abstract boolean isFunction();
+
+  /**
+   * Sequential access (fetch size Integer.MIN_VALUE) is not available on callable statements, since
+   * all results must be read to retrieve output parameters.
+   *
+   * @param rows the number of rows to fetch
+   * @throws SQLException if rows is negative
+   */
+  @Override
+  public void setFetchSize(int rows) throws SQLException {
+    if (rows < 0) {
+      throw exceptionFactory().create("invalid fetch size");
+    }
+    super.setFetchSize(rows);
+  }
+
 
   /**
    * Output result without output parameters
@@ -2038,7 +2054,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory().notSupported("SQLXML parameter are not supported");
+    setSQLXML(nameToIndex(parameterName), xmlObject);
   }
 
   /**
@@ -2054,7 +2070,9 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
-    throw exceptionFactory().notSupported("SQLXML are not supported");
+    checkNotClosed();
+    checkOutputResult();
+    return outputResult.getSQLXML(idxToOutIdx(parameterIndex));
   }
 
   /**
@@ -2070,7 +2088,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public SQLXML getSQLXML(String parameterName) throws SQLException {
-    throw exceptionFactory().notSupported("SQLXML are not supported");
+    return getSQLXML(nameToIndex(parameterName));
   }
 
   /**
@@ -2193,7 +2211,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public Reader getCharacterStream(String parameterName) throws SQLException {
-    return getNCharacterStream(nameToIndex(parameterName));
+    return getCharacterStream(nameToIndex(parameterName));
   }
 
   /**

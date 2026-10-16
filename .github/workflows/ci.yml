@@ -32,10 +32,10 @@ jobs:
         name: build matrix
         uses: mariadb-corporation/connector-ci-build-matrix@main
         with:
-          additional-matrix: '[{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 8},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 11},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": "25"}]'
+          additional-matrix: '[{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": 17},{"name": "MariaDB 11.4", "os": "ubuntu-latest", "db-type": "community", "db-tag": "11.4", "java": "25"}]'
 
   ci:
-    name: ${{ matrix.name }}${{ ((matrix.java == '8' && matrix.db-tag == '11.4')) && matrix.db-type != 'enterprise' && matrix.db-type != 'dev' && ' (local)' || '' }}${{ matrix.java != null && matrix.java != '' && matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
+    name: ${{ matrix.name }}${{ matrix.java != null && matrix.java != '' && matrix.java != 21 && format(' - java {0}', matrix.java) || '' }}
     needs: setup
     timeout-minutes: 50
     strategy:
@@ -70,7 +70,7 @@ jobs:
           distribution: ${{ (matrix.java && matrix.java > 17) && 'oracle' || 'temurin' }}
 
       - name: Run Tests
-        run: mvn clean test ${{ matrix.java == '8' && '-P java8' || '' }} ${{ matrix.java == '11' && '-P java11' || '' }}
+        run: mvn clean test
         env:
           LOCAL_DB: ${{ steps.setup-env.outputs.database-type }}
           DB_TYPE: ${{ matrix.db-type }}
@@ -108,12 +108,10 @@ jobs:
             | sudo tar -C /opt -xJ
           echo "/opt/infer-linux-x86_64-v${INFER_VERSION}/bin" >> "$GITHUB_PATH"
 
-      # -P default: Infer activates its own '-P infer-capture', which disables
-      # the activeByDefault profile carrying JNA and the multi-release compiler
-      # config; re-activate it explicitly. RacerD false positives are filtered
-      # via .inferconfig. --fail-on-issue exits non-zero if anything is reported.
+      # RacerD false positives are filtered via .inferconfig. --fail-on-issue exits
+      # non-zero if anything is reported.
       - name: Run Infer
-        run: infer run --fail-on-issue -- mvn clean compile -P default
+        run: infer run --fail-on-issue -- mvn clean compile
 
       - name: Upload Infer report
         if: failure()
@@ -123,15 +121,58 @@ jobs:
           path: infer-out/report.txt
           if-no-files-found: ignore
 
+  # Same generation and validation as release-sbom.yml, so an SBOM that no longer passes (new
+  # dependency without supplier or SPDX license, plugin regression) is caught before a release.
+  sbom:
+    name: SBOM generation and validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          cache: maven
+          distribution: 'temurin'
+
+      - name: Generate and validate SBOM
+        run: .github/sbom/generate.sh
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: target/*.cdx.json
+
   # Single check with a stable name for the branch ruleset (matrix job names vary). Runs even
   # when a dependency failed so the check is reported as failed rather than skipped.
+  aws-plugin:
+    name: AWS-IAM credential plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          cache: maven
+          distribution: 'temurin'
+      - name: Install the connector
+        run: mvn -B -q install -DskipTests -Dgpg.skip -Dmaven.javadoc.skip=true
+      - name: Build and test the plugin
+        run: mvn -B -f aws/pom.xml spotless:check verify
+      - name: Check the bundled RDS root certificates against the published bundle
+        run: |
+          aws/scripts/rds-ca-bundle.sh check \
+            || echo "::warning file=aws/src/main/resources/org/mariadb/jdbc/plugin/credential/aws/rds-global-bundle.pem::out of date, run aws/scripts/rds-ca-bundle.sh"
+
   ci-result:
     name: Run CI Tests
-    needs: [ci, infer]
+    needs: [ci, infer, sbom, aws-plugin]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check job results
         run: |
-          echo "ci: ${{ needs.ci.result }}, infer: ${{ needs.infer.result }}"
-          [[ "${{ needs.ci.result }}" == "success" && "${{ needs.infer.result }}" == "success" ]]
+          echo "ci: ${{ needs.ci.result }}, infer: ${{ needs.infer.result }}, sbom: ${{ needs.sbom.result }}, aws-plugin: ${{ needs.aws-plugin.result }}"
+          [[ "${{ needs.ci.result }}" == "success" && "${{ needs.infer.result }}" == "success" && "${{ needs.sbom.result }}" == "success" && "${{ needs.aws-plugin.result }}" == "success" ]]

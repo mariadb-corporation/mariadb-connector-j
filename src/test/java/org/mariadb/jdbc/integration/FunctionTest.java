@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -149,6 +149,60 @@ public class FunctionTest extends Common {
           () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
           "wrong parameter index");
     }
+  }
+
+  @Test
+  public void functionRepeatedExecution() throws SQLException {
+    functionRepeatedExecution(sharedConn);
+    functionRepeatedExecution(sharedConnBinary);
+  }
+
+  private void functionRepeatedExecution(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("DROP FUNCTION IF EXISTS repeat_function");
+    stmt.execute("DROP FUNCTION IF EXISTS repeat_no_arg_function");
+    stmt.execute(
+        "CREATE FUNCTION repeat_function (t1 INT) RETURNS INT DETERMINISTIC RETURN t1 * 2;");
+    stmt.execute("CREATE FUNCTION repeat_no_arg_function () RETURNS INT DETERMINISTIC RETURN 42;");
+    try (CallableStatement cs = con.prepareCall("{? = call repeat_function(?)}")) {
+      cs.registerOutParameter(1, JDBCType.INTEGER);
+      cs.setInt(2, 3);
+      // parameters stay in force: the call can be executed again without setting them anew
+      for (int i = 0; i < 3; i++) {
+        assertFalse(cs.execute());
+        assertEquals(6, cs.getInt(1));
+        assertNull(cs.getResultSet());
+        assertEquals(0, cs.getUpdateCount());
+      }
+      assertEquals(0, cs.executeUpdate());
+      assertEquals(6, cs.getInt(1));
+      cs.setInt(2, 4);
+      assertEquals(0, cs.executeLargeUpdate());
+      assertEquals(8, cs.getInt(1));
+      // a function call produces no result set
+      assertThrowsContains(SQLException.class, cs::executeQuery, "does NOT return a result-set");
+      assertEquals(8, cs.getInt(1));
+      assertEquals(
+          "FunctionStatement{sql:'SELECT repeat_function(?)', parameters:[<OUT>null,4]}",
+          cs.toString());
+    }
+    try (CallableStatement cs = con.prepareCall("{? = call repeat_no_arg_function()}")) {
+      for (int i = 0; i < 3; i++) {
+        assertFalse(cs.execute());
+        assertEquals(42, cs.getInt(1));
+      }
+      assertEquals(0, cs.executeUpdate());
+      assertEquals(42, cs.getInt(1));
+    }
+    try (Connection permissive = createCon("&permitNoResults=true");
+        CallableStatement cs = permissive.prepareCall("{? = call repeat_function(?)}")) {
+      cs.setInt(2, 5);
+      ResultSet rs = cs.executeQuery();
+      assertFalse(rs.next());
+      assertEquals(10, cs.getInt(1));
+    }
+    stmt.execute("DROP FUNCTION IF EXISTS repeat_function");
+    stmt.execute("DROP FUNCTION IF EXISTS repeat_no_arg_function");
   }
 
   @Test

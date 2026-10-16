@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.message.server;
 
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.message.ServerMessage;
-import org.mariadb.jdbc.message.server.util.ServerVersionUtility;
+import org.mariadb.jdbc.util.Version;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
 /**
@@ -53,7 +53,7 @@ public final class InitialHandshakePacket implements ServerMessage {
     this.defaultCollation = defaultCollation;
     this.serverStatus = serverStatus;
     this.authenticationPluginType = authenticationPluginType;
-    this.version = new ServerVersionUtility(serverVersion, mariaDBServer);
+    this.version = new Version(serverVersion, mariaDBServer);
   }
 
   /**

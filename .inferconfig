@@ -1,3 +1,4 @@
 {
-  "racerd": false
+  "racerd": false,
+  "java-version": 17
 }

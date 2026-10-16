@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.tls;
 
 import java.sql.SQLException;
-import java.util.ServiceLoader;
-import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.tls.main.DefaultTlsSocketPlugin;
+import org.mariadb.jdbc.util.ServiceProviders;
 
 /** TLS plugin loader */
 public final class TlsSocketPluginLoader {
+  private static final ServiceProviders<TlsSocketPlugin> PROVIDERS =
+      new ServiceProviders<>(TlsSocketPlugin.class, NonRegisteringDriver.class.getClassLoader());
 
   /**
    * Get authentication plugin from type String. Customs authentication plugin can be added
@@ -23,13 +25,9 @@ public final class TlsSocketPluginLoader {
   public static TlsSocketPlugin get(String type) throws SQLException {
     if (type == null) return new DefaultTlsSocketPlugin();
 
-    ServiceLoader<TlsSocketPlugin> loader =
-        ServiceLoader.load(TlsSocketPlugin.class, Driver.class.getClassLoader());
-
-    for (TlsSocketPlugin implClass : loader) {
-      if (type.equals(implClass.type())) {
-        return implClass;
-      }
+    TlsSocketPlugin implClass = PROVIDERS.get(type, TlsSocketPlugin::type);
+    if (implClass != null) {
+      return implClass;
     }
     throw new SQLException(
         "Client has not found any TLS factory plugin with name '" + type + "'.", "08004", 1251);

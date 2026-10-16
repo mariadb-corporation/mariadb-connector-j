@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
@@ -18,6 +18,7 @@ import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
 
 @DisplayName("SSL tests")
@@ -149,9 +150,6 @@ public class SslTest extends Common {
     try (Connection con = createCon("sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    try (Connection con = createCon("sslMode=trust&useReadAheadInput=false", sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
   }
 
   @Test
@@ -167,7 +165,7 @@ public class SslTest extends Common {
   }
 
   @Test
-  public void mandatoryEphemeralSsl() throws SQLException {
+  public void mandatoryEphemeralSsl() throws Exception {
     Assumptions.assumeTrue(!isMaxscale());
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 4, 1));
     try (Connection con = createCon(baseOptions + "&sslMode=verify-ca", sslPort)) {
@@ -179,10 +177,83 @@ public class SslTest extends Common {
     try (Connection con = createCon(baseOptions + "&sslMode=verify-full", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
+    // deferred validation disabled: the ephemeral certificate is rejected at the handshake
+    for (String mode : new String[] {"verify-ca", "verify-full"}) {
+      try {
+        createCon(baseOptions + "&sslMode=" + mode + "&deferCertificateValidation=false", sslPort);
+        fail("must have thrown error");
+      } catch (SQLException e) {
+        assertTrue(
+            e.getMessage().contains("unable to find valid certification")
+                || e.getMessage().contains("PKIX"),
+            e.getMessage());
+      }
+    }
+    String serverCertPath = retrieveCertificatePath();
+    if (serverCertPath != null) {
+      // a validated certificate does not need deferring
+      try (Connection con =
+          createCon(
+              baseOptions
+                  + "&sslMode=verify-ca&deferCertificateValidation=false&serverSslCert="
+                  + serverCertPath,
+              sslPort)) {
+        assertNotNull(getSslVersion(con));
+      }
+    }
     assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
     assertThrows(
         SQLInvalidAuthorizationSpecException.class,
         () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
+  }
+
+  @Test
+  public void allowModeUsesTlsWhenAnnounced() throws Exception {
+    Assumptions.assumeTrue(!isMaxscale());
+    // CONJ-1386: against a server that announces TLS, sslMode=allow is verify-full
+    String options = baseOptions.substring(1) + "&sslMode=allow";
+    if (!isMariaDBServer() || !minVersion(11, 4, 1)) {
+      // no zero-configuration TLS, server certificate is needed
+      String serverCertPath = retrieveCertificatePath();
+      Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
+      options += "&serverSslCert=" + serverCertPath;
+    }
+    try (Connection con = createBasicCon(options, sslPort)) {
+      assertEquals(SslMode.ALLOW, con.getContext().getConf().sslMode());
+      String sslVersion = getSslVersion(con);
+      assertTrue(sslVersion != null && !sslVersion.isEmpty(), "connection must be encrypted");
+    }
+  }
+
+  @Test
+  public void sslEnabledByDefault() throws Exception {
+    Assumptions.assumeTrue(!isMaxscale());
+    // test suite explicitly disables TLS, driver default being TLS enabled
+    assertEquals(SslMode.VERIFY_FULL, Configuration.parse("jdbc:mariadb://localhost/").sslMode());
+    Assumptions.assumeTrue(
+        Configuration.parse(mDefUrl).sslMode() == SslMode.DISABLE, "tests run with TLS required");
+    assertTrue(mDefUrl.contains("sslMode=disable"));
+    String sslVersion = getSslVersion(sharedConn);
+    assertTrue(sslVersion == null || sslVersion.isEmpty());
+
+    // without any ssl option, connection must be encrypted
+    String options = baseOptions.substring(1);
+    if (!isMariaDBServer() || !minVersion(11, 4, 1)) {
+      // no zero-configuration TLS, server certificate is needed
+      String serverCertPath = retrieveCertificatePath();
+      Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
+      options += "&serverSslCert=" + serverCertPath;
+    }
+    try (Connection con = createBasicCon(options, sslPort)) {
+      assertEquals(SslMode.VERIFY_FULL, con.getContext().getConf().sslMode());
+      sslVersion = getSslVersion(con);
+      assertTrue(sslVersion != null && !sslVersion.isEmpty());
+    }
+
+    // REQUIRE SSL user cannot connect when explicitly disabling TLS
+    assertThrows(
+        SQLException.class,
+        () -> createBasicCon(baseOptions.substring(1) + "&sslMode=disable", sslPort));
   }
 
   @Test
@@ -250,7 +321,7 @@ public class SslTest extends Common {
   @Test
   public void mandatoryEphemeralSslParsec() throws SQLException {
     Assumptions.assumeTrue(!isMaxscale());
-    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 6, 1) && getJavaVersion() >= 15);
+    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 6, 1));
 
     Statement stmt = sharedConn.createStatement();
     try {
@@ -313,6 +384,17 @@ public class SslTest extends Common {
     try (Connection con = (Connection) DriverManager.getConnection(url)) {
       assertNotNull(getSslVersion(con));
       Assertions.assertEquals("address=(localSocket=" + path + ")", con.__test_host());
+    }
+  }
+
+  @Test
+  public void defaultSslProtocols() throws SQLException {
+    // TLS 1.3 and 1.2 only, whatever the JSSE defaults
+    Assumptions.assumeTrue(!isMaxscale());
+    try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
+      String version = getSslVersion(con);
+      assertTrue(
+          "TLSv1.3".equals(version) || "TLSv1.2".equals(version), "unexpected version " + version);
     }
   }
 
@@ -557,12 +639,12 @@ public class SslTest extends Common {
           () ->
               DriverManager.getConnection(
                   url + "&sslMode=VERIFY_FULL&serverSslCert=" + serverCertPath),
-          // the tail differs depending on whether the CN is consulted, which since CONJ-1327
-          // happens only when the SAN carries no entry of the host type
-          "DNS host \"localhost\" doesn't correspond to");
+          // JSSE endpoint identification (HTTPS algorithm) rejects the certificate during the
+          // handshake: "No name matching localhost found" or "No subject alternative names..."
+          "SSL hostname verification failed");
     }
 
-    String urlPath = Paths.get(serverCertPath).toUri().toURL().toString();
+    String urlPath = Path.of(serverCertPath).toUri().toURL().toString();
     // file certificate path, like  file:/path/certificate.crt
     try (Connection con =
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + urlPath, sslPort)) {

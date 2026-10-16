@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -425,10 +425,6 @@ public class PreparedStatementParametersTest extends Common {
           SQLException.class,
           () -> preparedStatement.setRowId(1, null),
           "RowId parameter are not supported");
-      Common.assertThrowsContains(
-          SQLException.class,
-          () -> preparedStatement.setSQLXML(1, null),
-          "SQLXML parameter are not supported");
     }
   }
 

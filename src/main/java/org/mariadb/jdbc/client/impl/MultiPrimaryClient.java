@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.impl;
 
 import java.sql.*;
@@ -114,7 +114,7 @@ public class MultiPrimaryClient implements Client {
     while (retriesLeft > 0) {
       Optional<HostAddress> host =
           conf.haMode().getAvailableHost(conf.addresses(), denyList, !readOnly);
-      if (!host.isPresent()) {
+      if (host.isEmpty()) {
         break;
       }
 
@@ -135,7 +135,7 @@ public class MultiPrimaryClient implements Client {
 
     while (retriesLeft > 0) {
       Optional<HostAddress> host = findHostWithLowestDenyTimeout(readOnly);
-      if (!host.isPresent()) {
+      if (host.isEmpty()) {
         retriesLeft--;
         continue;
       }
@@ -445,7 +445,7 @@ public class MultiPrimaryClient implements Client {
       HostAddress hostAddress = currentClient.getHostAddress();
       Client oldClient = reConnect();
 
-      if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
+      if (message instanceof QueryPacket packet && packet.isCommit()) {
         throw new SQLTransientConnectionException(
             String.format(
                 "Driver has reconnect connection after a communications failure with %s during a"
@@ -456,8 +456,8 @@ public class MultiPrimaryClient implements Client {
 
       replayIfPossible(oldClient, canRedo);
 
-      if (message instanceof RedoableWithPrepareClientMessage) {
-        ((RedoableWithPrepareClientMessage) message).rePrepare(currentClient);
+      if (message instanceof RedoableWithPrepareClientMessage clientMessage) {
+        clientMessage.rePrepare(currentClient);
       }
       return currentClient.execute(
           message,

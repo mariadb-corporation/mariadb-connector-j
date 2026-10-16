@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.socket.impl;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 import org.mariadb.jdbc.client.util.MutableByte;
@@ -15,6 +18,8 @@ import org.mariadb.jdbc.client.util.MutableByte;
  * using a 7 byte header to identify is packet is compressed or not.
  */
 public class CompressInputStream extends InputStream {
+  private static final VarHandle INT_LE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
   private final InputStream in;
   private final MutableByte sequence;
 
@@ -99,7 +104,7 @@ public class CompressInputStream extends InputStream {
       System.arraycopy(buf, pos, b, off + totalReads, copyLength);
       pos += copyLength;
       totalReads += copyLength;
-    } while (totalReads < len && super.available() > 0);
+    } while (totalReads < len && available() > 0);
 
     return totalReads;
   }
@@ -122,10 +127,10 @@ public class CompressInputStream extends InputStream {
       readOffset += count;
     } while (remaining > 0);
 
-    int compressedPacketLength =
-        (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+    // 3-byte compressed length, sequence byte, 3-byte uncompressed length
+    int compressedPacketLength = (int) INT_LE.get(header, 0) & 0xffffff;
     sequence.set(header[3]);
-    int packetLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
+    int packetLength = (int) INT_LE.get(header, 3) >>> 8;
     boolean compressed = (packetLength != 0);
     remaining = compressedPacketLength;
     byte[] intermediaryBuf = new byte[remaining];
@@ -328,13 +333,14 @@ public class CompressInputStream extends InputStream {
    * end of the stream has been reached, the value <code>-1</code> is returned. This method blocks
    * until input data is available, the end of the stream is detected, or an exception is thrown.
    *
-   * <p>A subclass must provide an implementation of this method.
-   *
    * @return the next byte of data, or <code>-1</code> if the end of the stream is reached.
    * @throws IOException if an I/O error occurs.
    */
   @Override
   public int read() throws IOException {
-    throw new IOException("NOT IMPLEMENTED !");
+    if (pos >= end) {
+      retrieveBuffer();
+    }
+    return buf[pos++] & 0xff;
   }
 }

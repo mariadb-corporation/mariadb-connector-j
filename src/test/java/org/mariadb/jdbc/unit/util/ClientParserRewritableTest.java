@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.unit.util;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -69,9 +69,16 @@ public class ClientParserRewritableTest {
     assertTrue(checkRewritable("INSERT INTO TABLE VALUES ('\\\\test', ?) -- EOL ", 25, 37));
   }
 
+  @Test
+  public void utf8IdentifierTouchingValuesIsNotMistakenForBoundary() {
+    // "é" is 2 UTF-8 bytes (0xC3 0xA9); "TABLEé" is one identifier with no ASCII boundary before
+    // VALUES, so this must not be recognized as a rewritable INSERT ... VALUES (...) statement.
+    assertFalse(checkRewritable("INSERT INTO TABLEéVALUES (?)", 0, 0));
+  }
+
   private boolean checkRewritable(String query, int pos1, int pos2) {
     List<Integer> valuesBracketPositions =
-        ClientParser.rewritableParts(query, true).getValuesBracketPositions();
+        ClientParser.rewritableParts(query, true).valuesBracketPositions();
     if (valuesBracketPositions == null) {
       return false;
     } else if (valuesBracketPositions.size() == 2) {
@@ -102,15 +109,14 @@ public class ClientParserRewritableTest {
   public void rewritableParser(
       String sql, int paramCount, int[] paramPosition, int[] valuesBracketPositions) {
     ClientParser parser = ClientParser.rewritableParts(sql, false);
-    assertEquals(parser.getSql(), sql);
-    assertEquals(parser.getParamCount(), paramCount);
-    assertArrayEquals(
-        parser.getParamPositions().stream().mapToInt(Integer::intValue).toArray(), paramPosition);
+    assertEquals(parser.sql(), sql);
+    assertEquals(parser.paramCount(), paramCount);
+    assertArrayEquals(parser.paramPositions(), paramPosition);
     if (valuesBracketPositions == null) {
-      assertNull(parser.getValuesBracketPositions());
+      assertNull(parser.valuesBracketPositions());
     } else {
       assertArrayEquals(
-          parser.getValuesBracketPositions().stream().mapToInt(Integer::intValue).toArray(),
+          parser.valuesBracketPositions().stream().mapToInt(Integer::intValue).toArray(),
           valuesBracketPositions);
     }
   }

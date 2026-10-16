@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.sql.*;
 import java.util.HashSet;
@@ -18,12 +19,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionPoolDataSource;
+import javax.sql.DataSource;
 import javax.sql.PooledConnection;
 import javax.sql.XAConnection;
 import org.junit.jupiter.api.AfterAll;
@@ -58,6 +59,30 @@ public class PoolDataSourceTest extends Common {
             + " varchar(20))");
     stmt.execute("FLUSH TABLES");
     stmt.execute("FLUSH PRIVILEGES");
+
+    if (isMaxscale()) {
+      // MaxScale authenticates from its own copy of the accounts, reloaded at most once per
+      // users_refresh_time (30s) when an unknown user shows up: wait until the new user is known
+      String url =
+          mDefUrl
+              .replaceAll("user=[^&]*", "user=poolUser")
+              .replaceAll("password=[^&]*", "password=!Passw0rd3Works");
+      if (!url.contains("password=")) url += "&password=!Passw0rd3Works";
+      long deadline = System.currentTimeMillis() + 45_000;
+      while (true) {
+        try (Connection con = DriverManager.getConnection(url + "&allowPublicKeyRetrieval")) {
+          break;
+        } catch (SQLInvalidAuthorizationSpecException e) {
+          if (System.currentTimeMillis() > deadline) throw e;
+          try {
+            Thread.sleep(2_000);
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw e;
+          }
+        }
+      }
+    }
   }
 
   @AfterAll
@@ -83,6 +108,25 @@ public class PoolDataSourceTest extends Common {
       return -1;
     } catch (SQLException e) {
       return -1;
+    }
+  }
+
+  @Test
+  public void doesNotRegisterDriver() throws Exception {
+    // same guarantee as DataSourceTest, over the other connection path : Pool
+    try (DriverRejectingLoader loader = new DriverRejectingLoader()) {
+      DataSource ds =
+          loader.dataSource(
+              MariaDbPoolDataSource.class, mDefUrl + "&maxPoolSize=1&poolName=isolatedPool");
+      assertSame(
+          loader, ds.getClass().getClassLoader(), "pool datasource must be the isolated one");
+
+      try (Connection con = ds.getConnection()) {
+        assertFalse(con.isClosed());
+      } finally {
+        // closing shuts the pool down, so its threads and JMX MBean do not outlive the loader
+        ((Closeable) ds).close();
+      }
     }
   }
 
@@ -673,6 +717,7 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void poolWithUser() throws SQLException {
+
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
             mDefUrl + "&maxPoolSize=1&poolName=myPool&allowPublicKeyRetrieval")) {
@@ -780,7 +825,7 @@ public class PoolDataSourceTest extends Common {
     xac.close();
   }
 
-  @Timeout(value = 5, unit = TimeUnit.SECONDS)
+  @Timeout(value = 30, unit = TimeUnit.SECONDS)
   @Test
   public void testConcurrentCreationForDifferentHosts() throws Exception {
     CountDownLatch ready = new CountDownLatch(5);
@@ -797,11 +842,13 @@ public class PoolDataSourceTest extends Common {
                             ready.countDown();
                             start.await();
                             MariaDbPoolDataSource ds = new MariaDbPoolDataSource();
+                            // distinct unreachable endpoints: a closed local port fails at once,
+                            // where an unknown host name waits for the resolver (slow on CI)
                             ds.setUrl(
-                                "jdbc:mariadb://myhost" + hostIndex + ":5500/db?someOption=val");
+                                "jdbc:mariadb://localhost:550" + hostIndex + "/db?someOption=val");
                             return ds;
                           }))
-              .collect(Collectors.toList());
+              .toList();
 
       ready.await();
       start.countDown();

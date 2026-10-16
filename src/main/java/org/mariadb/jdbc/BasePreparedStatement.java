@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.BULK_UNIT_RESULTS;
@@ -31,7 +31,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
@@ -67,10 +66,12 @@ import org.mariadb.jdbc.plugin.codec.IntCodec;
 import org.mariadb.jdbc.plugin.codec.LongCodec;
 import org.mariadb.jdbc.plugin.codec.ReaderCodec;
 import org.mariadb.jdbc.plugin.codec.ShortCodec;
+import org.mariadb.jdbc.plugin.codec.SqlXmlCodec;
 import org.mariadb.jdbc.plugin.codec.StreamCodec;
 import org.mariadb.jdbc.plugin.codec.StringCodec;
 import org.mariadb.jdbc.plugin.codec.TimeCodec;
 import org.mariadb.jdbc.plugin.codec.TimestampCodec;
+import org.mariadb.jdbc.util.CodecLookup;
 import org.mariadb.jdbc.util.ParameterList;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 import org.mariadb.jdbc.util.timeout.QueryTimeoutHandler;
@@ -1088,7 +1089,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory().notSupported("SQLXML parameter are not supported");
+    checkIndex(parameterIndex);
+    parameters.set(parameterIndex - 1, new Parameter<>(SqlXmlCodec.INSTANCE, xmlObject));
   }
 
   private ExceptionFactory exceptionFactory() {
@@ -1151,6 +1153,10 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     if (targetSqlType != null) {
       if (trySetArrayType(parameterIndex, obj, targetSqlType)) return;
       checkUnsupportedTypes(targetSqlType);
+      if (targetSqlType == Types.SQLXML && obj instanceof SQLXML xml) {
+        setSQLXML(parameterIndex, xml);
+        return;
+      }
       if (trySetStringOrCharacter(parameterIndex, obj, targetSqlType)) return;
       if (trySetNumber(parameterIndex, obj, targetSqlType)) return;
       if (trySetByteArray(parameterIndex, obj, targetSqlType, scaleOrLength)) return;
@@ -1164,19 +1170,19 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       throws SQLException {
     if (targetSqlType != Types.ARRAY) return false;
 
-    if (obj instanceof float[]) {
-      parameters.set(parameterIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) obj));
+    if (obj instanceof float[] floats) {
+      parameters.set(parameterIndex - 1, new Parameter<>(FloatArrayCodec.INSTANCE, floats));
       return true;
     }
-    if (obj instanceof Float[]) {
+    if (obj instanceof Float[] floatObjects) {
       parameters.set(
-          parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, (Float[]) obj));
+          parameterIndex - 1, new Parameter<>(FloatObjectArrayCodec.INSTANCE, floatObjects));
       return true;
     }
-    if (obj instanceof FloatArray) {
+    if (obj instanceof FloatArray array) {
       parameters.set(
           parameterIndex - 1,
-          new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) ((FloatArray) obj).getArray()));
+          new Parameter<>(FloatArrayCodec.INSTANCE, (float[]) array.getArray()));
       return true;
     }
 
@@ -1190,7 +1196,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       case Types.JAVA_OBJECT:
       case Types.REF:
       case Types.ROWID:
-      case Types.SQLXML:
       case Types.STRUCT:
         throw exceptionFactory().notSupported("Type not supported");
     }
@@ -1207,7 +1212,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
                   "Cannot convert a %s to a Blob", obj instanceof String ? "string" : "character"));
     }
 
-    String str = obj instanceof String ? (String) obj : ((Character) obj).toString();
+    String str = obj instanceof String s ? s : ((Character) obj).toString();
     return handleStringConversion(parameterIndex, str, targetSqlType);
   }
 
@@ -1320,8 +1325,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   private void handleNumericType(int parameterIndex, Object obj, Number bd) throws SQLException {
-    if (obj instanceof BigDecimal) {
-      setBigDecimal(parameterIndex, (BigDecimal) obj);
+    if (obj instanceof BigDecimal decimal) {
+      setBigDecimal(parameterIndex, decimal);
     } else if (obj instanceof Double || obj instanceof Float) {
       setDouble(parameterIndex, bd.doubleValue());
     } else {
@@ -1361,12 +1366,11 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @SuppressWarnings({"rawtypes", "unchecked"})
   private void trySetWithCodec(int parameterIndex, Object obj, Long scaleOrLength)
       throws SQLException {
-    for (Codec<?> codec : con.getContext().getConf().codecs()) {
-      if (codec.canEncode(obj)) {
-        Parameter p = new Parameter(codec, obj, scaleOrLength);
-        parameters.set(parameterIndex - 1, p);
-        return;
-      }
+    Codec<?> codec = CodecLookup.encoder(con.getContext().getConf().codecs(), obj);
+    if (codec != null) {
+      Parameter p = new Parameter(codec, obj, scaleOrLength);
+      parameters.set(parameterIndex - 1, p);
+      return;
     }
 
     throw new SQLException(String.format("Type %s not supported type", obj.getClass().getName()));
@@ -1761,20 +1765,15 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   private int[] handleBulkUnitResults(int[] updates) throws SQLException {
-    int updateIdx = 0;
     Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
 
-    for (Completion completion : results) {
-      if (!(completion instanceof CompleteResult)) {
-        continue;
+    if (bulkUnitResultsMatchBatch(updates.length)) {
+      int updateIdx = 0;
+      for (Completion completion : results) {
+        if (isValidBulkResult(completion)) {
+          updateIdx = processBulkResult(updates, updateIdx, (CompleteResult) completion);
+        }
       }
-
-      CompleteResult completeResult = (CompleteResult) completion;
-      if (!completeResult.isBulkResult()) {
-        continue;
-      }
-
-      updateIdx = processBulkResult(updates, updateIdx, completeResult);
     }
 
     currResult = results.remove(0);
@@ -1782,24 +1781,44 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   private long[] handleLongBulkUnitResults(long[] updates) throws SQLException {
-    int updateIdx = 0;
     Arrays.fill(updates, Statement.SUCCESS_NO_INFO);
 
-    for (Completion completion : results) {
-      if (!(completion instanceof CompleteResult)) {
-        continue;
+    if (bulkUnitResultsMatchBatch(updates.length)) {
+      int updateIdx = 0;
+      for (Completion completion : results) {
+        if (isValidBulkResult(completion)) {
+          updateIdx = processLongBulkResult(updates, updateIdx, (CompleteResult) completion);
+        }
       }
-
-      CompleteResult completeResult = (CompleteResult) completion;
-      if (!completeResult.isBulkResult()) {
-        continue;
-      }
-
-      updateIdx = processLongBulkResult(updates, updateIdx, completeResult);
     }
 
     currResult = results.remove(0);
     return updates;
+  }
+
+  /**
+   * Whether the bulk unit results can be mapped one-to-one on the batch entries. The server sends
+   * one row per completed statement rather than one per batch entry: DML run by a trigger on the
+   * target table adds a row (Id 0, its own affected rows) before the row of the entry that fired it
+   * (CONJ-1352). Such rows cannot be attributed to entries, so the update counts are then left to
+   * SUCCESS_NO_INFO instead of being read out of the wrong rows.
+   *
+   * @param batchSize number of batch entries
+   * @return true if there is exactly one unit result row per batch entry
+   * @throws SQLException if a result cannot be read
+   */
+  private boolean bulkUnitResultsMatchBatch(int batchSize) throws SQLException {
+    int rows = 0;
+    for (Completion completion : results) {
+      if (isValidBulkResult(completion)) {
+        CompleteResult unitaryResults = (CompleteResult) completion;
+        unitaryResults.beforeFirst();
+        while (unitaryResults.next()) {
+          rows++;
+        }
+      }
+    }
+    return rows == batchSize;
   }
 
   private int processBulkResult(int[] updates, int updateIdx, Result unitaryResults)
@@ -2001,8 +2020,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
     } catch (SQLException bue) {
       results = null;
-      throw exceptionFactory()
-          .createBatchUpdate(Collections.emptyList(), batchParameters.size(), bue);
+      throw exceptionFactory().createBatchUpdate(List.of(), batchParameters.size(), bue);
     }
   }
 
@@ -2041,7 +2059,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   private List<String[]> extractInsertIds() throws SQLException {
     if (currResult == null) {
-      return Collections.emptyList();
+      return List.of();
     }
 
     List<String[]> insertIds = new ArrayList<>(results.size() + 1); // results + currResult
@@ -2066,7 +2084,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   private boolean isValidBulkResult(Completion completion) {
-    return completion instanceof CompleteResult && ((CompleteResult) completion).isBulkResult();
+    return completion instanceof CompleteResult cr && cr.isBulkResult();
   }
 
   private void processUnitaryResults(CompleteResult unitaryResults, List<String[]> insertIds)
@@ -2084,7 +2102,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     // String values
     String autoGeneratedId = unitaryResults.getString(1);
     // a row that has not generated any auto-increment value (explicit value given) is reported
-    // with an id of 0, and has no generated key to return
+    // with an id of 0, and has no generated key to return; so are the rows the server adds for DML
+    // run by triggers (CONJ-1352), unless the trigger inserts into an auto-increment table
     if (autoGeneratedId != null && !"0".equals(autoGeneratedId)) {
       insertIds.add(new String[] {autoGeneratedId});
     }

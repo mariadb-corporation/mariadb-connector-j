@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.impl;
 
 import static org.mariadb.jdbc.client.impl.ConnectionHelper.enabledSslCipherSuites;
@@ -12,7 +12,6 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -20,6 +19,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -29,7 +29,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
@@ -38,7 +37,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -53,12 +52,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.BaseContext;
 import org.mariadb.jdbc.client.context.RedoContext;
 import org.mariadb.jdbc.client.result.Result;
-import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.CompressInputStream;
 import org.mariadb.jdbc.client.socket.impl.CompressOutputStream;
-import org.mariadb.jdbc.client.socket.impl.ReadAheadBufferedStream;
 import org.mariadb.jdbc.client.socket.impl.UnixDomainSocket;
 import org.mariadb.jdbc.client.tls.MariaDbX509DeferredIdentityTrustManager;
 import org.mariadb.jdbc.client.util.ClosableLock;
@@ -108,7 +105,12 @@ public class StandardClient implements Client, AutoCloseable {
           "(mariadb|mysql):\\/\\/(([^/@:]+)?(:([^/]+))?@)?(([^/:]+)(:([0-9]+))?)(\\/([^?]+)(\\?(.*))?)?$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
+  /** connection socket: the TLS socket once TLS is negotiated, the transport socket before */
   private Socket socket;
+
+  /** whether the transport is a unix domain socket (a MitM-proof connection method) */
+  private boolean unixSocketTransport;
+
   private final MutableByte sequence = new MutableByte();
   private final MutableByte compressionSequence = new MutableByte();
   private final ClosableLock lock;
@@ -155,6 +157,7 @@ public class StandardClient implements Client, AutoCloseable {
     this.disablePipeline = conf.disablePipeline();
     this.socketTimeout = conf.socketTimeout();
     this.socket = ConnectionHelper.connectSocket(conf, hostAddress);
+    this.unixSocketTransport = socket instanceof UnixDomainSocket;
     try {
       setupConnection(skipPostCommands);
     } catch (SQLException e) {
@@ -168,10 +171,7 @@ public class StandardClient implements Client, AutoCloseable {
 
   private void setupConnection(boolean skipPostCommands) throws SQLException, IOException {
     OutputStream out = socket.getOutputStream();
-    InputStream in =
-        conf.useReadAheadInput()
-            ? new ReadAheadBufferedStream(socket.getInputStream())
-            : new BufferedInputStream(socket.getInputStream(), 16384);
+    InputStream in = socket.getInputStream();
     assignStream(out, in, conf, null);
     configureTimeout();
 
@@ -180,11 +180,9 @@ public class StandardClient implements Client, AutoCloseable {
 
     SSLSocket sslSocket = handleSSLConnection(handshake, clientCapabilities);
     if (sslSocket != null) {
+      this.socket = sslSocket;
       out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
-      in =
-          conf.useReadAheadInput()
-              ? new ReadAheadBufferedStream(sslSocket.getInputStream())
-              : new BufferedInputStream(sslSocket.getInputStream(), 16384);
+      in = sslSocket.getInputStream();
       assignStream(out, in, conf, handshake.getThreadId());
     }
 
@@ -212,7 +210,7 @@ public class StandardClient implements Client, AutoCloseable {
     if ((clientCapabilities & Capabilities.COMPRESS) != 0) {
       assignStream(
           new CompressOutputStream(out, compressionSequence),
-          new CompressInputStream(in, compressionSequence),
+          new CompressInputStream(new BufferedInputStream(in, 16384), compressionSequence),
           conf,
           threadId);
     }
@@ -226,7 +224,8 @@ public class StandardClient implements Client, AutoCloseable {
     Configuration conf = context.getConf();
     SslMode sslMode = determineSslMode(conf);
 
-    if (sslMode == SslMode.DISABLE) {
+    if (sslMode == SslMode.DISABLE
+        || (sslMode == SslMode.ALLOW && !context.hasServerCapability(SSL))) {
       return null;
     }
 
@@ -237,15 +236,19 @@ public class StandardClient implements Client, AutoCloseable {
     TrustManager[] trustManagers =
         socketPlugin.getTrustManager(conf, context.getExceptionFactory(), hostAddress);
     SSLSocket sslSocket = createSslSocket(conf, socketPlugin, trustManagers);
-    configureSslSocket(sslSocket, conf);
-
-    handleSslHandshake(sslSocket, trustManagers);
-
-    if (requiresHostnameVerification(sslMode)) {
-      verifyHostname(sslSocket, socketPlugin);
-    }
-
+    configureSslSocket(sslSocket, conf, sslMode);
+    handleSslHandshake(sslSocket, trustManagers, sslMode);
     return sslSocket;
+  }
+
+  /**
+   * Host name the connection was made with, as JSSE expects it (no trailing dot), or null when
+   * connecting through a unix socket or a pipe.
+   */
+  private String peerHost() {
+    if (hostAddress == null || hostAddress.host == null) return null;
+    String host = IPUtility.stripTrailingDot(hostAddress.host);
+    return host.isEmpty() ? null : host;
   }
 
   private void updateThreadIds(InitialHandshakePacket handshake) {
@@ -261,7 +264,10 @@ public class StandardClient implements Client, AutoCloseable {
     if (!context.hasServerCapability(Capabilities.SSL)) {
       throw context
           .getExceptionFactory()
-          .create("Trying to connect with ssl, but ssl not enabled in the server", "08000");
+          .create(
+              "Trying to connect with ssl, but ssl not enabled in the server. TLS is enabled by"
+                  + " default, set sslMode=disable to permit unencrypted connection",
+              "08000");
     }
   }
 
@@ -280,58 +286,65 @@ public class StandardClient implements Client, AutoCloseable {
             socketPlugin.getKeyManager(conf, context.getExceptionFactory()),
             trustManagers,
             context.getExceptionFactory());
-    return socketPlugin.createSocket(socket, sslSocketFactory);
+    return socketPlugin.createSocket(socket, sslSocketFactory, peerHost());
   }
 
-  private void configureSslSocket(SSLSocket sslSocket, Configuration conf) throws SQLException {
+  private void configureSslSocket(SSLSocket sslSocket, Configuration conf, SslMode sslMode)
+      throws SQLException {
     enabledSslProtocolSuites(sslSocket, conf);
     enabledSslCipherSuites(sslSocket, conf);
     sslSocket.setUseClientMode(true);
-  }
 
-  private void handleSslHandshake(SSLSocket sslSocket, TrustManager[] trustManagers)
-      throws IOException {
-    // Set SNI hostname
-    // RFC 6066 §3 : SNI carries the hostname without trailing dot, and never an IP literal. The
-    // trailing dot must be removed before the IP check, so that `10.0.0.1.` is recognized as an IP.
-    String sniHost =
-        this.hostAddress == null ? null : IPUtility.stripTrailingDot(this.hostAddress.host);
-    if (sniHost != null && !sniHost.isEmpty() && !IPUtility.isInetAddress(sniHost)) {
-      SSLParameters params = sslSocket.getSSLParameters();
-      SNIHostName serverName = new SNIHostName(sniHost);
-      params.setServerNames(Collections.singletonList(serverName));
-      sslSocket.setSSLParameters(params);
+    String peerHost = peerHost();
+    SSLParameters params = sslSocket.getSSLParameters();
+    // RFC 6066 §3 : SNI carries the hostname without trailing dot, and never an IP literal
+    if (peerHost != null && !IPUtility.isInetAddress(peerHost)) {
+      params.setServerNames(List.of(new SNIHostName(peerHost)));
     }
-
-    sslSocket.startHandshake();
-    if (trustManagers.length > 0
-        && trustManagers[0] instanceof MariaDbX509DeferredIdentityTrustManager) {
-      certFingerprint =
-          ((MariaDbX509DeferredIdentityTrustManager) trustManagers[0]).getFingerprint();
+    // verify-full: hostname verification is JSSE's standard endpoint identification, done by the
+    // trust manager during the handshake against the certificate SAN (or CN when there is no SAN)
+    if ((sslMode == SslMode.VERIFY_FULL || sslMode == SslMode.ALLOW) && peerHost != null) {
+      params.setEndpointIdentificationAlgorithm("HTTPS");
     }
+    sslSocket.setSSLParameters(params);
   }
 
-  private boolean requiresHostnameVerification(SslMode sslMode) {
-    return sslMode == SslMode.VERIFY_FULL && certFingerprint == null && hostAddress.host != null;
-  }
-
-  private void verifyHostname(SSLSocket sslSocket, TlsSocketPlugin socketPlugin)
-      throws SQLException {
+  private void handleSslHandshake(
+      SSLSocket sslSocket, TrustManager[] trustManagers, SslMode sslMode)
+      throws IOException, SQLException {
     try {
-      socketPlugin.verify(
-          IPUtility.stripTrailingDot(hostAddress.host),
-          sslSocket.getSession(),
-          context.getThreadId());
-    } catch (SSLException ex) {
-      throw context
-          .getExceptionFactory()
-          .create(
-              "SSL hostname verification failed : "
-                  + ex.getMessage()
-                  + "\nThis verification can be disabled using the sslMode to VERIFY_CA "
-                  + "but won't prevent man-in-the-middle attacks anymore",
-              "08006");
+      sslSocket.startHandshake();
+    } catch (SSLHandshakeException e) {
+      if ((sslMode == SslMode.VERIFY_FULL || sslMode == SslMode.ALLOW) && isIdentityFailure(e)) {
+        throw context
+            .getExceptionFactory()
+            .create(
+                "SSL hostname verification failed : "
+                    + e.getMessage()
+                    + "\nThis verification can be disabled using the sslMode to VERIFY_CA "
+                    + "but won't prevent man-in-the-middle attacks anymore",
+                "08006",
+                e);
+      }
+      throw e;
     }
+    if (trustManagers.length > 0
+        && trustManagers[0] instanceof MariaDbX509DeferredIdentityTrustManager manager) {
+      certFingerprint = manager.getFingerprint();
+    }
+  }
+
+  /**
+   * JSSE reports an endpoint identification failure as a CertificateException in the cause chain.
+   */
+  private static boolean isIdentityFailure(SSLHandshakeException e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if (t instanceof CertificateException && t.getMessage() != null) {
+        String msg = t.getMessage();
+        return msg.startsWith("No subject alternative") || msg.startsWith("No name matching");
+      }
+    }
+    return false;
   }
 
   private void configureTimeout() throws SQLException {
@@ -417,13 +430,13 @@ public class StandardClient implements Client, AutoCloseable {
     }
 
     authPlugin =
-        authPluginFactory.initialize(
-            credential.getPassword(), handshake.getSeed(), conf, hostAddress);
+        authPluginFactory.initialize(credential.password(), handshake.getSeed(), conf, hostAddress);
 
     if (certFingerprint != null
+        && !unixSocketTransport
         && (!authPlugin.isMitMProof()
-            || credential.getPassword() == null
-            || credential.getPassword().isEmpty())) {
+            || credential.password() == null
+            || credential.password().isEmpty())) {
       throw context
           .getExceptionFactory()
           .create(
@@ -565,12 +578,13 @@ public class StandardClient implements Client, AutoCloseable {
           }
           authPlugin =
               authPluginFactory.initialize(
-                  credential.getPassword(), authSwitchPacket.getSeed(), conf, hostAddress);
+                  credential.password(), authSwitchPacket.getSeed(), conf, hostAddress);
 
           if (certFingerprint != null
+              && !unixSocketTransport
               && (!authPlugin.isMitMProof()
-                  || credential.getPassword() == null
-                  || credential.getPassword().isEmpty())) {
+                  || credential.password() == null
+                  || credential.password().isEmpty())) {
             throw context
                 .getExceptionFactory()
                 .create(
@@ -609,10 +623,10 @@ public class StandardClient implements Client, AutoCloseable {
             // * connection method is MitM-proof (e.g. unix socket)
             // * auth plugin is MitM-proof and check SHA2(user's hashed password, scramble,
             // certificate fingerprint)
-            if (this.socket instanceof UnixDomainSocket) break authentication_loop;
+            if (unixSocketTransport) break authentication_loop;
             if (!authPlugin.isMitMProof()
-                || credential.getPassword() == null
-                || credential.getPassword().isEmpty()
+                || credential.password() == null
+                || credential.password().isEmpty()
                 || !validateFingerPrint(
                     authPlugin,
                     okPacket.getInfo(),
@@ -630,8 +644,8 @@ public class StandardClient implements Client, AutoCloseable {
           }
 
           if (context.getRedirectUrl() != null
-              && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
-                  || conf.permitRedirect())) redirect(context.getRedirectUrl());
+              && ((conf.permitRedirect() == null && redirectByDefault()) || conf.permitRedirect()))
+            redirect(context.getRedirectUrl());
 
           break authentication_loop;
 
@@ -676,10 +690,15 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /** Without permitRedirect, redirection is followed only on a fully verified TLS connection. */
+  private boolean redirectByDefault() {
+    return conf.sslMode() == SslMode.VERIFY_FULL
+        || (conf.sslMode() == SslMode.ALLOW && context.hasClientCapability(SSL));
+  }
+
   public void redirect(String redirectUrl) {
     if (redirectUrl != null
-        && ((conf.permitRedirect() == null && conf.sslMode() == SslMode.VERIFY_FULL)
-            || conf.permitRedirect())) {
+        && ((conf.permitRedirect() == null && redirectByDefault()) || conf.permitRedirect())) {
       // redirect only if not in a transaction
       if ((this.context.getServerStatus() & ServerStatus.IN_TRANSACTION) == 0) {
         this.context.setRedirectUrl(null);
@@ -692,54 +711,50 @@ public class StandardClient implements Client, AutoCloseable {
                   + " 'mariadb/mysql://[<user>[:<password>]@]<host>[:<port>]/[<db>[?<opt1>=<value1>[&<opt2>=<value2>]]]'");
           return;
         }
+        String redirectHost =
+            matcher.group(7) != null
+                ? URLDecoder.decode(matcher.group(7), StandardCharsets.UTF_8)
+                : matcher.group(6);
+        int redirectPort = matcher.group(9) != null ? Integer.parseInt(matcher.group(9)) : 3306;
+
+        if (this.getHostAddress() != null
+            && redirectHost.equals(this.getHostAddress().host)
+            && redirectPort == this.getHostAddress().port) {
+          // redirection to the same host, skip loop redirection
+          return;
+        }
+
+        // actually only options accepted are user and password
+        // there might be additional possible options in the future
+        String redirectUser = matcher.group(3);
+        String redirectPwd = matcher.group(5);
+        Configuration.Builder redirectConfBuilder =
+            this.context.getConf().toBuilder()
+                .addresses(HostAddress.from(redirectHost, redirectPort, true));
+        if (redirectUser != null) redirectConfBuilder.user(redirectUser);
+        if (redirectPwd != null) redirectConfBuilder.password(redirectPwd);
         try {
-          String redirectHost =
-              matcher.group(7) != null
-                  ? URLDecoder.decode(matcher.group(7), "utf8")
-                  : matcher.group(6);
-          int redirectPort = matcher.group(9) != null ? Integer.parseInt(matcher.group(9)) : 3306;
+          Configuration redirectConf = redirectConfBuilder.build();
+          HostAddress redirectHostAddress = redirectConf.addresses().get(0);
 
-          if (this.getHostAddress() != null
-              && redirectHost.equals(this.getHostAddress().host)
-              && redirectPort == this.getHostAddress().port) {
-            // redirection to the same host, skip loop redirection
-            return;
-          }
+          StandardClient redirectClient =
+              new StandardClient(redirectConf, redirectHostAddress, lock, false);
 
-          // actually only options accepted are user and password
-          // there might be additional possible options in the future
-          String redirectUser = matcher.group(3);
-          String redirectPwd = matcher.group(5);
-          Configuration.Builder redirectConfBuilder =
-              this.context.getConf().toBuilder()
-                  .addresses(HostAddress.from(redirectHost, redirectPort, true));
-          if (redirectUser != null) redirectConfBuilder.user(redirectUser);
-          if (redirectPwd != null) redirectConfBuilder.password(redirectPwd);
-          try {
-            Configuration redirectConf = redirectConfBuilder.build();
-            HostAddress redirectHostAddress = redirectConf.addresses().get(0);
+          // properly close current connection
+          this.close();
+          logger.info("redirecting connection " + hostAddress + " to " + hidePassword(redirectUrl));
+          // affect redirection to current client
+          this.closed = false;
+          this.socket = redirectClient.socket;
+          this.unixSocketTransport = redirectClient.unixSocketTransport;
+          this.conf = redirectConf;
+          this.hostAddress = redirectHostAddress;
+          this.context = redirectClient.context;
+          this.writer = redirectClient.writer;
+          this.reader = redirectClient.reader;
 
-            StandardClient redirectClient =
-                new StandardClient(redirectConf, redirectHostAddress, lock, false);
-
-            // properly close current connection
-            this.close();
-            logger.info(
-                "redirecting connection " + hostAddress + " to " + hidePassword(redirectUrl));
-            // affect redirection to current client
-            this.closed = false;
-            this.socket = redirectClient.socket;
-            this.conf = redirectConf;
-            this.hostAddress = redirectHostAddress;
-            this.context = redirectClient.context;
-            this.writer = redirectClient.writer;
-            this.reader = redirectClient.reader;
-
-          } catch (SQLException e) {
-            logger.error("fail to redirect to '" + hidePassword(redirectUrl) + "'");
-          }
-        } catch (UnsupportedEncodingException ee) {
-          // eat, still supporting java 8
+        } catch (SQLException e) {
+          logger.error("fail to redirect to '" + hidePassword(redirectUrl) + "'");
         }
       } else {
         this.context.setRedirectUrl(redirectUrl);
@@ -758,7 +773,7 @@ public class StandardClient implements Client, AutoCloseable {
    */
   public static String hidePassword(String redirectUrl) {
     if (redirectUrl == null) return null;
-    return redirectUrl.replaceFirst("(://[^/@:]*:)[^/@]*(@)", "$1***$2");
+    return redirectUrl.replaceFirst("(://[^/@:]*:)[^/]*(@)", "$1***$2");
   }
 
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
@@ -854,8 +869,8 @@ public class StandardClient implements Client, AutoCloseable {
 
     List<String> galeraAllowedStates =
         conf.galeraAllowedState() == null
-            ? Collections.emptyList()
-            : Arrays.asList(conf.galeraAllowedState().split(","));
+            ? List.of()
+            : List.of(conf.galeraAllowedState().split(","));
 
     if (hostAddress != null
         && Boolean.TRUE.equals(hostAddress.primary)
@@ -870,8 +885,8 @@ public class StandardClient implements Client, AutoCloseable {
         && conf.createDatabaseIfNotExist()
         && (hostAddress == null || hostAddress.primary)) {
       String escapedDb = conf.database().replace("`", "``");
-      commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
-      commands.add(String.format("USE `%s`", escapedDb));
+      commands.add("CREATE DATABASE IF NOT EXISTS `" + escapedDb + "`");
+      commands.add("USE `" + escapedDb + "`");
     }
 
     if (conf.initSql() != null && !conf.initSql().isEmpty()) {
@@ -933,7 +948,8 @@ public class StandardClient implements Client, AutoCloseable {
               "HY000",
               sqlException);
         }
-        throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
+        throw exceptionFactory.create(
+            "Initialization command fail: " + sqlException.getMessage(), "08000", sqlException);
       }
 
       if (conf.returnMultiValuesGeneratedIds()) {
@@ -1003,30 +1019,35 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   private void addSessionTrackingCommand(Context context, List<String> commands) {
-    if (!isSessionTrackingSupported(context)) {
+    if (!context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       return;
     }
-
-    StringBuilder concatValues =
-        new StringBuilder(",")
-            .append(
-                context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
-
+    List<String> tracked = new ArrayList<>(8);
+    tracked.add("autocommit");
+    tracked.add("character_set_client");
+    tracked.add("character_set_connection");
+    tracked.add("character_set_results");
+    tracked.add("time_zone");
+    tracked.add(context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation");
     if (conf.returnMultiValuesGeneratedIds()) {
-      concatValues.append(",auto_increment_increment");
+      tracked.add("auto_increment_increment");
+    }
+    if (context.getVersion().isMariaDBServer()
+        && context.getVersion().versionGreaterOrEqual(11, 3, 0)) {
+      tracked.add("redirect_url");
     }
 
+    // The driver sets its own list: anything else only produces notifications it ignores. The
+    // one exception is last_gtid, which MaxScale causal_reads adds at backend connection start
+    // (MXS-4746) and which must survive; it is kept when the session already tracks it, or
+    // tracks everything ('*'). The current value is normalized because MySQL keeps it as typed.
     commands.add(
-        "session_track_system_variables = CONCAT(@@global.session_track_system_variables,'"
-            + concatValues
-            + "')");
-  }
-
-  private boolean isSessionTrackingSupported(Context context) {
-    return context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
-        && ((context.getVersion().isMariaDBServer()
-                && (context.getVersion().versionGreaterOrEqual(10, 2, 2)))
-            || context.getVersion().versionGreaterOrEqual(5, 7, 0));
+        "session_track_system_variables=CONCAT('"
+            + String.join(",", tracked)
+            + "',IF(LOCATE('*',@@session_track_system_variables)>0 OR FIND_IN_SET('last_gtid',"
+            + "LOWER(REPLACE(@@session_track_system_variables,' ','')))>0,',last_gtid',''))");
+    // the current database is kept from the server's schema change reports (USE ...)
+    commands.add("session_track_schema=1");
   }
 
   private void addTimeZoneCommand(Context context, List<String> commands) {
@@ -1063,8 +1084,7 @@ public class StandardClient implements Client, AutoCloseable {
       String isolationVariable =
           context.canUseTransactionIsolation() ? "transaction_isolation" : "tx_isolation";
       commands.add(
-          String.format(
-              "@@session.%s='%s'", isolationVariable, conf.transactionIsolation().getValue()));
+          "@@session." + isolationVariable + "='" + conf.transactionIsolation().getValue() + "'");
     }
   }
 
@@ -1074,7 +1094,7 @@ public class StandardClient implements Client, AutoCloseable {
         && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
       String readOnlyVariable =
           context.canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only";
-      commands.add(String.format("@@session.%s=1", readOnlyVariable));
+      commands.add("@@session." + readOnlyVariable + "=1");
     }
   }
 
@@ -1272,9 +1292,10 @@ public class StandardClient implements Client, AutoCloseable {
 
         // prepare associated to PrepareStatement need to be uncached
         for (Completion result : results) {
-          if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
+          if (result instanceof PrepareResultPacket packet
+              && stmt instanceof ServerPreparedStatement statement) {
             try {
-              ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
+              packet.decrementUse(this, statement);
             } catch (SQLException e) {
               // eat
             }
@@ -1536,7 +1557,7 @@ public class StandardClient implements Client, AutoCloseable {
               traceEnable,
               message,
               redirectConsumer);
-      if (completion instanceof StreamingResult && !((StreamingResult) completion).loaded()) {
+      if (completion instanceof Result result && result.streaming() && !result.loaded()) {
         streamStmt = stmt;
         streamMsg = message;
       }
@@ -1568,8 +1589,12 @@ public class StandardClient implements Client, AutoCloseable {
   private void closeSocket() {
     try {
       try {
+        // After COM_QUIT the server closes its side: wait briefly for that, consuming whatever is
+        // left, so that no unread data remains (the close is a FIN, not a RST) and the server's
+        // FIN comes first (the client is the passive side of the TCP close and takes no TIME_WAIT).
+        // The socket is the SSLSocket when TLS is enabled, so this drains at the TLS level, and the
+        // close below then sends the close_notify alert on an output that is still open
         long maxCurrentMillis = System.currentTimeMillis() + 10;
-        socket.shutdownOutput();
         socket.setSoTimeout(3);
         InputStream is = socket.getInputStream();
         //noinspection StatementWithEmptyBody

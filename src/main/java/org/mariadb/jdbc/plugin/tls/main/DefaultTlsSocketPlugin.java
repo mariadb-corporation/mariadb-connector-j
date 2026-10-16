@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.tls.main;
 
 import java.io.ByteArrayInputStream;
@@ -18,20 +18,16 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.tls.HostnameVerifier;
 import org.mariadb.jdbc.client.tls.MariaDbX509DeferredIdentityTrustManager;
 import org.mariadb.jdbc.client.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.client.tls.MariaDbX509TrustingManager;
@@ -168,8 +164,15 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       return new CachedTrust(new MariaDbX509TrustingManager(), false);
     }
 
+    // the certificate to trust: the serverSslCert option, else the one the credential plugin
+    // vouches for (e.g. AWS-IAM bundles the RDS root certificate authorities)
+    String serverSslCert = conf.serverSslCert();
+    if (serverSslCert == null && conf.trustStore() == null && conf.credentialPlugin() != null) {
+      serverSslCert = conf.credentialPlugin().defaultServerSslCert();
+    }
+
     // if certificate is provided, load it.
-    if (conf.serverSslCert() != null || conf.trustStore() != null) {
+    if (serverSslCert != null || conf.trustStore() != null) {
       KeyStore ks;
       try {
         ks =
@@ -211,8 +214,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
           tmf.init(ks);
           for (TrustManager tm : tmf.getTrustManagers()) {
-            if (tm instanceof X509TrustManager) {
-              return new CachedTrust((X509TrustManager) tm, false);
+            if (tm instanceof X509TrustManager manager) {
+              return new CachedTrust(manager, false);
             }
           }
         } catch (GeneralSecurityException generalSecurityEx) {
@@ -222,7 +225,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               generalSecurityEx);
         }
       } else {
-        try (InputStream inStream = getInputStreamFromPath(conf.serverSslCert())) {
+        try (InputStream inStream = getInputStreamFromPath(serverSslCert)) {
           // generate a keyStore from the provided cert
 
           // Note: KeyStore requires it be loaded even if you don't load anything into it
@@ -232,6 +235,20 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
           Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
           for (Certificate ca : caList) {
             ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+          }
+          if (conf.serverSslCert() == null && conf.fallbackToSystemTrustStore()) {
+            // the plugin's authorities add to the system trust store rather than replace it: the
+            // same service may also sit behind a proxy with a publicly issued certificate
+            TrustManagerFactory tmf =
+                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init((KeyStore) null);
+            for (TrustManager tm : tmf.getTrustManagers()) {
+              if (tm instanceof X509TrustManager manager) {
+                for (Certificate ca : manager.getAcceptedIssuers()) {
+                  ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+                }
+              }
+            }
           }
 
         } catch (IOException ioEx) {
@@ -248,8 +265,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
           tmf.init(ks);
           for (TrustManager tm : tmf.getTrustManagers()) {
-            if (tm instanceof X509TrustManager) {
-              return new CachedTrust((X509TrustManager) tm, false);
+            if (tm instanceof X509TrustManager manager1) {
+              return new CachedTrust(manager1, false);
             }
           }
         } catch (GeneralSecurityException generalSecurityEx) {
@@ -267,8 +284,10 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         tmf.init((KeyStore) null);
 
         for (TrustManager tm : tmf.getTrustManagers()) {
-          if (tm instanceof X509TrustManager) {
-            return new CachedTrust((X509TrustManager) tm, true);
+          if (tm instanceof X509TrustManager manager2) {
+            // unless disabled, a certificate the system trust store cannot validate defers
+            // identity validation to authentication (fingerprint bound to the password)
+            return new CachedTrust(manager2, conf.deferCertificateValidation());
           }
         }
       } catch (Exception e) {
@@ -346,9 +365,15 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     sb.append(sslMode == SslMode.TRUST ? "TRUST" : "VERIFY").append('\n');
     appendFile(sb, conf.serverSslCert());
     appendFile(sb, conf.trustStore());
+    if (conf.serverSslCert() == null
+        && conf.trustStore() == null
+        && conf.credentialPlugin() != null) {
+      appendFile(sb, conf.credentialPlugin().defaultServerSslCert());
+    }
     appendValue(sb, conf.trustStorePassword());
     appendValue(sb, conf.trustStoreType());
     sb.append(conf.fallbackToSystemTrustStore()).append('\n');
+    sb.append(conf.deferCertificateValidation()).append('\n');
     // the system trust store the fallback path relies on (default cacerts when unset)
     appendFile(sb, System.getProperty("javax.net.ssl.trustStore"));
     appendValue(sb, System.getProperty("javax.net.ssl.trustStorePassword"));
@@ -412,18 +437,6 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     } catch (NoSuchAlgorithmException e) {
       // unreachable, SHA-256 always exists
       return input;
-    }
-  }
-
-  @Override
-  public void verify(String host, SSLSession session, long serverThreadId) throws SSLException {
-    try {
-      Certificate[] certs = session.getPeerCertificates();
-      X509Certificate cert = (X509Certificate) certs[0];
-      HostnameVerifier.verify(host, cert, serverThreadId);
-    } catch (SSLException ex) {
-      logger.info(ex.getMessage(), ex);
-      throw ex;
     }
   }
 

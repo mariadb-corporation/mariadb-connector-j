@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.io.PrintWriter;
@@ -61,7 +61,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public Connection getConnection() throws SQLException {
-    return Driver.connect(conf());
+    return NonRegisteringDriver.connect(conf());
   }
 
   /**
@@ -78,7 +78,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-    return Driver.connect(conf().clone(username, password));
+    return NonRegisteringDriver.connect(conf().clone(username, password));
   }
 
   /**
@@ -188,7 +188,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
     Configuration conf = conf();
-    org.mariadb.jdbc.Connection conn = Driver.connect(conf);
+    org.mariadb.jdbc.Connection conn = NonRegisteringDriver.connect(conf);
     MariaDbPoolConnection poolConnection =
         conf.pinGlobalTxToPhysicalConnection()
             ? new MariaDbPoolPinnedConnection(conn)
@@ -200,7 +200,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
     Configuration conf = conf().clone(username, password);
-    org.mariadb.jdbc.Connection conn = Driver.connect(conf);
+    org.mariadb.jdbc.Connection conn = NonRegisteringDriver.connect(conf);
     MariaDbPoolConnection poolConnection =
         conf.pinGlobalTxToPhysicalConnection()
             ? new MariaDbPoolPinnedConnection(conn)

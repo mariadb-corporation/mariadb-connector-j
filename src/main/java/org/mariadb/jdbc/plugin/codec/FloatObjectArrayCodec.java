@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.lang.reflect.Array;
+import java.nio.ByteOrder;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
@@ -35,7 +38,7 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
           DataType.STRING);
 
   public String className() {
-    return float[].class.getName();
+    return Float[].class.getName();
   }
 
   public boolean canDecode(ColumnDecoder column, Class<?> type) {
@@ -72,39 +75,24 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
   }
 
   static final int BYTES_IN_FLOAT = Float.SIZE / Byte.SIZE;
+  private static final VarHandle INT_LE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
 
   public static byte[] toByteArray(Float[] floatArray) {
     byte[] buf = new byte[floatArray.length * BYTES_IN_FLOAT];
     int pos = 0;
     for (Float f : floatArray) {
-      int value = Float.floatToIntBits(f);
-      buf[pos] = (byte) value;
-      buf[pos + 1] = (byte) (value >> 8);
-      buf[pos + 2] = (byte) (value >> 16);
-      buf[pos + 3] = (byte) (value >> 24);
+      INT_LE.set(buf, pos, Float.floatToIntBits(f));
       pos += 4;
     }
     return buf;
   }
 
   public static Float[] toFloatArray(byte[] byteArray) {
-    int len = (int) Math.ceil(byteArray.length / 4.0);
-    Float[] res = new Float[len];
-    int pos = 0;
-    int value;
-    while (pos < len) {
-      if (pos + 1 <= len) {
-        value =
-            ((byteArray[pos * 4] & 0xff)
-                + ((byteArray[pos * 4 + 1] & 0xff) << 8)
-                + ((byteArray[pos * 4 + 2] & 0xff) << 16)
-                + ((byteArray[pos * 4 + 3] & 0xff) << 24));
-      } else {
-        value = (byteArray[pos * 4] & 0xff);
-        if (pos + 1 < byteArray.length) value += ((byteArray[pos * 4 + 1] & 0xff) << 8);
-        if (pos + 2 < byteArray.length) value += ((byteArray[pos * 4 + 2] & 0xff) << 16);
-      }
-      res[pos++] = Float.intBitsToFloat(value);
+    float[] primitive = FloatArrayCodec.toFloatArray(byteArray);
+    Float[] res = new Float[primitive.length];
+    for (int i = 0; i < primitive.length; i++) {
+      res[i] = primitive[i];
     }
     return res;
   }
@@ -120,9 +108,7 @@ public class FloatObjectArrayCodec implements Codec<Float[]> {
       case VARSTRING:
       case VARCHAR:
       case GEOMETRY:
-        byte[] arr = new byte[length.get()];
-        buf.readBytes(arr);
-        return arr;
+        return buf.readBytes(length.get());
 
       default:
         buf.skip(length.get());

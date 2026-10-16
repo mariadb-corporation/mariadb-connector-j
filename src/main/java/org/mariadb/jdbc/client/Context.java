@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client;
 
 import java.util.Calendar;
@@ -289,6 +289,16 @@ public interface Context {
    * @throws java.sql.SQLException if the change is rejected; the connection is also closed
    */
   void setCharset(String charset) throws java.sql.SQLException;
+
+  /**
+   * Indicate server character_set_results change. Throws when the new charset isn't compatible with
+   * the driver's UTF-8 result decoding (only utf8 / utf8mb3 / utf8mb4, or no conversion, are
+   * accepted post-init).
+   *
+   * @param charset results charset, empty when results are sent without conversion
+   * @throws java.sql.SQLException if the change is rejected; the connection is also closed
+   */
+  void setCharsetResults(String charset) throws java.sql.SQLException;
 
   /**
    * Get current connection timezone

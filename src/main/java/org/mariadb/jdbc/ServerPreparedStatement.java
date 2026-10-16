@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.*;
@@ -409,8 +409,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public ResultSet executeQuery() throws SQLException {
     executeInternal();
     handleParameterOutput();
-    if ((currResult instanceof Result)) {
-      return (Result) currResult;
+    if ((currResult instanceof Result result)) {
+      return result;
     }
 
     if (con.getContext().getConf().permitNoResults()) {
@@ -503,7 +503,18 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    */
   protected void validParameters() throws SQLException {
     if (prepareResult != null) {
-      for (int i = 0; i < prepareResult.getParameters().length; i++) {
+      int expected = prepareResult.getParameters().length;
+      if (parameters.size() > expected) {
+        throw exceptionFactory()
+            .create(
+                "Parameter count mismatch: "
+                    + parameters.size()
+                    + " parameter(s) set, but the statement has "
+                    + expected
+                    + " parameter marker(s)",
+                "07001");
+      }
+      for (int i = 0; i < expected; i++) {
         if (!parameters.containsKey(i)) {
           throw exceptionFactory()
               .create("Parameter at position " + (i + 1) + " is not set", "07004");

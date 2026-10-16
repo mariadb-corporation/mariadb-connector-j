@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.sql.ResultSet;
@@ -52,7 +52,11 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
 
       try {
         if (xid.equals(currentXid)) {
-          getConnection().createStatement().execute(command);
+          getConnection().createInternalStatement().execute(command);
+          if (removeMappingAfterExecution) {
+            currentXid = null;
+            xidToConnection.remove(xid);
+          }
         } else {
           Connection con = xidToConnection.get(xid);
           if (con == null) {
@@ -61,8 +65,10 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
             currentXid = xid;
           }
           try (ClosableLock ignore = con.getLock().closeableLock()) {
-            con.createStatement().execute(command);
-            currentXid = null;
+            con.createInternalStatement().execute(command);
+            if (xid.equals(currentXid)) {
+              currentXid = null;
+            }
             if (removeMappingAfterExecution) xidToConnection.remove(xid);
           }
         }
@@ -102,8 +108,7 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
 
     @Override
     public boolean isSameRM(XAResource xaResource) {
-      if (xaResource instanceof MariaDbXAPinnedResource) {
-        MariaDbXAPinnedResource other = (MariaDbXAPinnedResource) xaResource;
+      if (xaResource instanceof MariaDbXAPinnedResource other) {
         return other.getConf().equals(this.getConf());
       }
       return false;
@@ -126,20 +131,13 @@ public class MariaDbPoolPinnedConnection extends MariaDbPoolConnection {
       }
 
       try {
-        ResultSet rs = getConnection().createStatement().executeQuery("XA RECOVER");
+        ResultSet rs = getConnection().createInternalStatement().executeQuery("XA RECOVER");
         ArrayList<MariaDbXid> xidList = new ArrayList<>();
 
         while (rs.next()) {
-          int formatId = rs.getInt(1);
-          int len1 = rs.getInt(2);
-          int len2 = rs.getInt(3);
-          byte[] arr = rs.getBytes(4);
-
-          byte[] globalTransactionId = new byte[len1];
-          byte[] branchQualifier = new byte[len2];
-          System.arraycopy(arr, 0, globalTransactionId, 0, len1);
-          System.arraycopy(arr, len1, branchQualifier, 0, len2);
-          xidList.add(new MariaDbXid(formatId, globalTransactionId, branchQualifier));
+          // lengths and payload are server-supplied: validated before allocation / copy
+          xidList.add(
+              MariaDbXid.fromRecoverRow(rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getBytes(4)));
         }
         Xid[] xids = new Xid[xidList.size()];
         xidList.toArray(xids);

@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.socket;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.mariadb.jdbc.HostAddress;
@@ -21,9 +24,17 @@ public class Writer {
   /** initial buffer size */
   public static final int SMALL_BUFFER_SIZE = 8192;
 
+  // multi-byte integers are written through VarHandle views: one bounds-checked intrinsic access
+  // instead of a shift per byte (the protocol is little-endian)
+  private static final VarHandle SHORT_LE =
+      MethodHandles.byteArrayViewVarHandle(short[].class, ByteOrder.LITTLE_ENDIAN);
+  private static final VarHandle INT_LE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
+  private static final VarHandle LONG_LE =
+      MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
+
   private static final Logger logger = Loggers.getLogger(Writer.class);
   private static final byte QUOTE = (byte) '\'';
-  private static final byte DBL_QUOTE = (byte) '"';
   private static final byte ZERO_BYTE = (byte) '\0';
   private static final byte BACKSLASH = (byte) '\\';
   private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
@@ -52,6 +63,11 @@ public class Writer {
   private String serverThreadLog = "";
   private int mark = -1;
   private boolean bufContainDataAfterMark = false;
+
+  /** consecutive commands that left a grown buffer more than half empty */
+  private static final int RELEASE_AFTER_COMMANDS = 16;
+
+  private int halfEmptyCommands;
 
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
@@ -132,12 +148,12 @@ public class Writer {
   public void writeShort(short value) throws IOException {
     if (2 > buf.length - pos) {
       // not enough space remaining
-      writeBytes(new byte[] {(byte) value, (byte) (value >> 8)}, 0, 2);
+      byte[] arr = new byte[2];
+      SHORT_LE.set(arr, 0, value);
+      writeBytes(arr, 0, 2);
       return;
     }
-
-    buf[pos] = (byte) value;
-    buf[pos + 1] = (byte) (value >> 8);
+    SHORT_LE.set(buf, pos, value);
     pos += 2;
   }
 
@@ -151,18 +167,11 @@ public class Writer {
     if (4 > buf.length - pos) {
       // not enough space remaining
       byte[] arr = new byte[4];
-      arr[0] = (byte) value;
-      arr[1] = (byte) (value >> 8);
-      arr[2] = (byte) (value >> 16);
-      arr[3] = (byte) (value >> 24);
+      INT_LE.set(arr, 0, value);
       writeBytes(arr, 0, 4);
       return;
     }
-
-    buf[pos] = (byte) value;
-    buf[pos + 1] = (byte) (value >> 8);
-    buf[pos + 2] = (byte) (value >> 16);
-    buf[pos + 3] = (byte) (value >> 24);
+    INT_LE.set(buf, pos, value);
     pos += 4;
   }
 
@@ -176,26 +185,11 @@ public class Writer {
     if (8 > buf.length - pos) {
       // not enough space remaining
       byte[] arr = new byte[8];
-      arr[0] = (byte) value;
-      arr[1] = (byte) (value >> 8);
-      arr[2] = (byte) (value >> 16);
-      arr[3] = (byte) (value >> 24);
-      arr[4] = (byte) (value >> 32);
-      arr[5] = (byte) (value >> 40);
-      arr[6] = (byte) (value >> 48);
-      arr[7] = (byte) (value >> 56);
+      LONG_LE.set(arr, 0, value);
       writeBytes(arr, 0, 8);
       return;
     }
-
-    buf[pos] = (byte) value;
-    buf[pos + 1] = (byte) (value >> 8);
-    buf[pos + 2] = (byte) (value >> 16);
-    buf[pos + 3] = (byte) (value >> 24);
-    buf[pos + 4] = (byte) (value >> 32);
-    buf[pos + 5] = (byte) (value >> 40);
-    buf[pos + 6] = (byte) (value >> 48);
-    buf[pos + 7] = (byte) (value >> 56);
+    LONG_LE.set(buf, pos, value);
     pos += 8;
   }
 
@@ -282,36 +276,28 @@ public class Writer {
         // not enough space remaining
         byte[] arr = new byte[3];
         arr[0] = (byte) 0xfc;
-        arr[1] = (byte) length;
-        arr[2] = (byte) (length >>> 8);
+        SHORT_LE.set(arr, 1, (short) length);
         writeBytes(arr, 0, 3);
         return;
       }
 
       buf[pos] = (byte) 0xfc;
-      buf[pos + 1] = (byte) length;
-      buf[pos + 2] = (byte) (length >>> 8);
+      SHORT_LE.set(buf, pos + 1, (short) length);
       pos += 3;
       return;
     }
 
     if (length < 0xFFFFFF) {
 
+      // 0xfd then the 3-byte length: exactly one little-endian int
       if (4 > buf.length - pos) {
         // not enough space remaining
         byte[] arr = new byte[4];
-        arr[0] = (byte) 0xfd;
-        arr[1] = (byte) length;
-        arr[2] = (byte) (length >>> 8);
-        arr[3] = (byte) (length >>> 16);
+        INT_LE.set(arr, 0, 0xfd | ((int) length << 8));
         writeBytes(arr, 0, 4);
         return;
       }
-
-      buf[pos] = (byte) 0xfd;
-      buf[pos + 1] = (byte) length;
-      buf[pos + 2] = (byte) (length >>> 8);
-      buf[pos + 3] = (byte) (length >>> 16);
+      INT_LE.set(buf, pos, 0xfd | ((int) length << 8));
       pos += 4;
       return;
     }
@@ -320,30 +306,17 @@ public class Writer {
       // not enough space remaining
       byte[] arr = new byte[9];
       arr[0] = (byte) 0xfe;
-      arr[1] = (byte) length;
-      arr[2] = (byte) (length >>> 8);
-      arr[3] = (byte) (length >>> 16);
-      arr[4] = (byte) (length >>> 24);
-      arr[5] = (byte) (length >>> 32);
-      arr[6] = (byte) (length >>> 40);
-      arr[7] = (byte) (length >>> 48);
-      arr[8] = (byte) (length >>> 56);
+      LONG_LE.set(arr, 1, length);
       writeBytes(arr, 0, 9);
       return;
     }
 
     buf[pos] = (byte) 0xfe;
-    buf[pos + 1] = (byte) length;
-    buf[pos + 2] = (byte) (length >>> 8);
-    buf[pos + 3] = (byte) (length >>> 16);
-    buf[pos + 4] = (byte) (length >>> 24);
-    buf[pos + 5] = (byte) (length >>> 32);
-    buf[pos + 6] = (byte) (length >>> 40);
-    buf[pos + 7] = (byte) (length >>> 48);
-    buf[pos + 8] = (byte) (length >>> 56);
+    LONG_LE.set(buf, pos + 1, length);
     pos += 9;
   }
 
+  @SuppressWarnings("deprecation")
   public void writeAscii(String str) throws IOException {
     int len = str.length();
     if (len > buf.length - pos) {
@@ -351,16 +324,23 @@ public class Writer {
       writeBytes(arr, 0, arr.length);
       return;
     }
-    for (int off = 0; off < len; ) {
-      this.buf[this.pos++] = (byte) str.charAt(off++);
-    }
+    // copies the low byte of each char, as the previous char loop did: with compact strings
+    // (java 9) this is a plain array copy for ASCII content
+    str.getBytes(0, len, this.buf, this.pos);
+    this.pos += len;
   }
+
+  /**
+   * Above this length the JDK UTF-8 encoder (intrinsic, vectorized for Latin-1 strings) is faster
+   * than the char loop even with its intermediate array; below it the allocation dominates.
+   */
+  private static final int JDK_ENCODER_THRESHOLD = 32;
 
   public void writeString(String str) throws IOException {
     int charsLength = str.length();
 
-    // not enough space remaining
-    if (charsLength * 3 >= buf.length - pos) {
+    // long string, or not enough space remaining
+    if (charsLength >= JDK_ENCODER_THRESHOLD || charsLength * 3 >= buf.length - pos) {
       byte[] arr = str.getBytes(StandardCharsets.UTF_8);
       writeBytes(arr, 0, arr.length);
       return;
@@ -435,7 +415,10 @@ public class Writer {
   }
 
   /**
-   * Write string to socket.
+   * Write a string as the content of a single-quoted literal, escaped as the server lexer expects:
+   * with NO_BACKSLASH_ESCAPES only the quote is doubled; otherwise the quote, the backslash (which
+   * would start an escape sequence) and NUL are backslash-escaped. A double quote needs no escaping
+   * inside a single-quoted literal.
    *
    * @param str string
    * @param noBackslashEscapes escape method
@@ -449,6 +432,18 @@ public class Writer {
     if (charsLength * 3 >= buf.length - pos) {
       byte[] arr = str.getBytes(StandardCharsets.UTF_8);
       writeBytesEscaped(arr, arr.length, noBackslashEscapes);
+      return;
+    }
+
+    // Long string with nothing to escape, the usual case: the intrinsic indexOf scans cost a few
+    // nanoseconds, then the JDK encoder (intrinsic, a memcpy for ASCII) replaces the char loop.
+    // Strings that do need escaping keep the combined encode-and-escape loop below: it beats any
+    // "encode, then escape the bytes" variant on non-ASCII text, and only loses on pure ASCII.
+    if (charsLength >= JDK_ENCODER_THRESHOLD
+        && str.indexOf(QUOTE) < 0
+        && (noBackslashEscapes || (str.indexOf(BACKSLASH) < 0 && str.indexOf(ZERO_BYTE) < 0))) {
+      byte[] arr = str.getBytes(StandardCharsets.UTF_8);
+      writeBytes(arr, 0, arr.length);
       return;
     }
 
@@ -476,7 +471,7 @@ public class Writer {
       for (;
           charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
           charsOffset++) {
-        if (currChar == BACKSLASH || currChar == QUOTE || currChar == 0 || currChar == DBL_QUOTE) {
+        if (currChar == BACKSLASH || currChar == QUOTE || currChar == 0) {
           buf[pos++] = BACKSLASH;
         }
         buf[pos++] = (byte) currChar;
@@ -491,10 +486,7 @@ public class Writer {
           if (currChar == QUOTE) {
             buf[pos++] = QUOTE;
           }
-        } else if (currChar == BACKSLASH
-            || currChar == QUOTE
-            || currChar == ZERO_BYTE
-            || currChar == DBL_QUOTE) {
+        } else if (currChar == BACKSLASH || currChar == QUOTE || currChar == ZERO_BYTE) {
           buf[pos++] = BACKSLASH;
         }
         buf[pos++] = (byte) currChar;
@@ -582,10 +574,7 @@ public class Writer {
             }
           } else {
             for (int i = 0; i < len; i++) {
-              if (bytes[i] == QUOTE
-                  || bytes[i] == BACKSLASH
-                  || bytes[i] == DBL_QUOTE
-                  || bytes[i] == ZERO_BYTE) {
+              if (bytes[i] == QUOTE || bytes[i] == BACKSLASH || bytes[i] == ZERO_BYTE) {
                 buf[pos++] = '\\';
                 if (buf.length <= pos) {
                   writeSocket(false);
@@ -612,10 +601,7 @@ public class Writer {
       }
     } else {
       for (int i = 0; i < len; i++) {
-        if (bytes[i] == QUOTE
-            || bytes[i] == BACKSLASH
-            || bytes[i] == DBL_QUOTE
-            || bytes[i] == ZERO_BYTE) {
+        if (bytes[i] == QUOTE || bytes[i] == BACKSLASH || bytes[i] == ZERO_BYTE) {
           buf[pos++] = BACKSLASH; // add escape slash
         }
         buf[pos++] = bytes[i];
@@ -707,13 +693,7 @@ public class Writer {
    */
   public void flush() throws IOException {
     writeSocket(true);
-
-    // if buf is big, and last query doesn't use at least half of it, resize buf to default
-    // value
-    if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
-      buf = new byte[SMALL_BUFFER_SIZE];
-    }
-
+    releaseUnusedBuffer();
     pos = 4;
     cmdLength = 0;
     mark = -1;
@@ -721,16 +701,28 @@ public class Writer {
 
   public void flushPipeline() throws IOException {
     writeSocket(false);
-
-    // if buf is big, and last query doesn't use at least half of it, resize buf to default
-    // value
-    if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
-      buf = new byte[SMALL_BUFFER_SIZE];
-    }
-
+    releaseUnusedBuffer();
     pos = 4;
     cmdLength = 0;
     mark = -1;
+  }
+
+  /**
+   * A grown buffer goes back to the default size once it has been left half empty by several
+   * commands in a row. Releasing it after a single command made every bulk insert or large query of
+   * a steady workload grow it again (128Kb allocated and zeroed per command).
+   */
+  private void releaseUnusedBuffer() {
+    if (buf.length > SMALL_BUFFER_SIZE) {
+      if (cmdLength * 2 < buf.length) {
+        if (++halfEmptyCommands >= RELEASE_AFTER_COMMANDS) {
+          buf = new byte[SMALL_BUFFER_SIZE];
+          halfEmptyCommands = 0;
+        }
+      } else {
+        halfEmptyCommands = 0;
+      }
+    }
   }
 
   /**
@@ -858,10 +850,8 @@ public class Writer {
    */
   protected void writeSocket(boolean commandEnd) throws IOException {
     if (pos > 4) {
-      buf[0] = (byte) (pos - 4);
-      buf[1] = (byte) ((pos - 4) >>> 8);
-      buf[2] = (byte) ((pos - 4) >>> 16);
-      buf[3] = this.sequence.incrementAndGet();
+      // header: 3-byte little-endian payload length then the sequence byte
+      INT_LE.set(buf, 0, (pos - 4) | ((this.sequence.incrementAndGet() & 0xff) << 24));
       checkMaxAllowedLength(pos - 4);
       out.write(buf, 0, pos);
       if (commandEnd) out.flush();

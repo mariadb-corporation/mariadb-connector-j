@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.tls;
 
 import java.net.Socket;
@@ -122,8 +122,8 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
           if (issuers != null && issuers.length != 0) {
             checkLoop:
             for (Certificate cert : certs) {
-              if (cert instanceof X509Certificate) {
-                X500Principal certificateIssuer = ((X509Certificate) cert).getIssuerX500Principal();
+              if (cert instanceof X509Certificate certificate) {
+                X500Principal certificateIssuer = certificate.getIssuerX500Principal();
                 for (Principal issuer : issuers) {
                   if (certificateIssuer.equals(issuer)) {
                     accurateAliases.add(mapEntry.getKey());

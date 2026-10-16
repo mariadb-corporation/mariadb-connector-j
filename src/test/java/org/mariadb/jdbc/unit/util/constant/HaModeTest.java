@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.unit.util.constant;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.impl.ConnectionHelper;
-import org.mariadb.jdbc.client.socket.impl.SocketUtility;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
@@ -45,7 +44,6 @@ public class HaModeTest {
     new Pools();
     new Loggers();
     new VersionFactory();
-    new SocketUtility();
   }
 
   @Test

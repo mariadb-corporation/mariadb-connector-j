@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.unit.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.TransactionIsolation;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
@@ -98,7 +98,7 @@ public class ConfigurationTest {
         Configuration.parse(base).toBuilder().build().toString());
     String allOptionSet =
         "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&autocommit=false&useCatalogTerm=SCHEMA&createDatabaseIfNotExist=true&useLocalSessionState=true&returnMultiValuesGeneratedIds=true&permitRedirect=false&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
-            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&rewriteBatchedStatements=true&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
+            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&rewriteBatchedStatements=true&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true";
     assertEquals(
         normalizeConnectionString(Configuration.parse(allOptionSet).toString()),
         normalizeConnectionString(
@@ -319,7 +319,7 @@ public class ConfigurationTest {
 
   @Test
   public void testAcceptsUrl() {
-    Driver driver = new Driver();
+    NonRegisteringDriver driver = new NonRegisteringDriver();
     assertFalse(driver.acceptsURL(null));
     assertTrue(driver.acceptsURL("jdbc:mariadb://localhost/test"));
     assertFalse(driver.acceptsURL("jdbc:mysql://localhost/test"));
@@ -387,11 +387,27 @@ public class ConfigurationTest {
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=verify-ca");
     assertSame(SslMode.VERIFY_CA, conf.sslMode());
 
+    // TLS is enabled by default
     conf = Configuration.parse("jdbc:mariadb://localhost/test");
-    assertSame(SslMode.DISABLE, conf.sslMode());
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
+    assertSame(SslMode.VERIFY_FULL, new Configuration.Builder().build().sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode");
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=disable");
     assertSame(SslMode.DISABLE, conf.sslMode());
+    assertEquals("jdbc:mariadb://localhost/test?sslMode=DISABLE", conf.toString());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=disabled");
+    assertSame(SslMode.DISABLE, conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=false");
+    assertSame(SslMode.DISABLE, conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://address=(host=localhost)(sslMode=disable)/test");
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
+    assertSame(SslMode.DISABLE, conf.addresses().get(0).sslMode);
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=0");
     assertSame(SslMode.DISABLE, conf.sslMode());
@@ -424,6 +440,15 @@ public class ConfigurationTest {
         SslMode.VERIFY_CA,
         Configuration.parse("jdbc:mariadb://localhost/test?useSsl&disableSslHostnameVerification")
             .sslMode());
+    // TLS being enabled by default, legacy option must still permit disabling it
+    assertEquals(
+        SslMode.DISABLE,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSsl=false").sslMode());
+    assertEquals(
+        SslMode.DISABLE, Configuration.parse("jdbc:mariadb://localhost/test?useSSL=0").sslMode());
+    assertEquals(
+        SslMode.TRUST,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSsl=false&sslMode=trust").sslMode());
   }
 
   @Test
@@ -934,7 +959,7 @@ public class ConfigurationTest {
             + "+LBCR0B194YbRn6726vWwUUE05yskVN6gllGSCgZ/G8y98DhjQ==\n"
             + "-----END CERTIFICATE-----",
         jdbc.serverSslCert());
-    assertEquals(SslMode.DISABLE, jdbc.sslMode());
+    assertEquals(SslMode.VERIFY_FULL, jdbc.sslMode());
     assertEquals("pwd2", jdbc.password());
   }
 
@@ -1001,7 +1026,6 @@ public class ConfigurationTest {
             .tcpKeepInterval(50)
             .poolValidMinDelay(260)
             .useResetConnection(true)
-            .useReadAheadInput(true)
             .cachePrepStmts(false)
             .serverSslCert("mycertPath")
             .permitRedirect(false)
@@ -1028,7 +1052,7 @@ public class ConfigurationTest {
     String expected =
         normalizeConnectionString(
             "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?allowLocalInfile=false&allowMultiQueries=true&allowPublicKeyRetrieval=true&autocommit=false&blankTableNameMeta=true&cachePrepStmts=false&connectTimeout=22&connectionAttributes=bla=bla&connectionCollation=utf8mb4_vietnamese_ci&connectionTimeZone=SERVER&createDatabaseIfNotExist=true&credentialType=ENV&defaultFetchSize=10&disablePipeline=true&disconnectOnExpiredPasswords=false&dumpQueriesOnException=true&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&fallbackToSystemKeyStore=false&fallbackToSystemTrustStore=false&forceConnectionTimeZoneToSession=false&galeraAllowedState=A,B&geometryDefaultType=default&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&initSql=SET"
-                + " @@a='10'&keyStore=/tmp&keyStorePassword=***&keyStoreType=JKS&localSocketAddress=localSocketAddress&maxAllowedPacket=8000&maxIdleTime=25000&maxPoolSize=16&maxQuerySizeToLog=100&minPoolSize=12&nullDatabaseMeansCurrent=true&password=***&permitRedirect=false&pool=true&poolName=myPool&poolValidMinDelay=260&prepStmtCacheSize=2&preserveInstants=true&registerJmxPool=false&restrictedAuth=mysql_native_password,client_ed25519&retriesAllDown=10&returnMultiValuesGeneratedIds=true&serverRsaPublicKeyFile=RSAPath&serverSslCert=mycertPath&servicePrincipalName=SPN&sessionVariables=blabla&socketFactory=someSocketFactory&socketTimeout=1000&sslMode=TRUST&tcpAbortiveClose=true&tcpKeepAlive=false&tcpKeepCount=50&tcpKeepIdle=10&tcpKeepInterval=50&timezone=UTC&tinyInt1isBit=false&tlsSocketType=TLStype&transactionIsolation=REPEATABLE_READ&transactionReplay=true&trustStore=/tmp/file&trustStorePassword=***&trustStoreType=jks&useAffectedRows=true&useBulkStmts=true&useCatalogTerm=SCHEMA&useCompression=true&useLocalSessionState=true&useReadAheadInput=true&useResetConnection=true&useServerPrepStmts=true&user=me&uuidAsString=true&yearIsDateType=false");
+                + " @@a='10'&keyStore=/tmp&keyStorePassword=***&keyStoreType=JKS&localSocketAddress=localSocketAddress&maxAllowedPacket=8000&maxIdleTime=25000&maxPoolSize=16&maxQuerySizeToLog=100&minPoolSize=12&nullDatabaseMeansCurrent=true&password=***&permitRedirect=false&pool=true&poolName=myPool&poolValidMinDelay=260&prepStmtCacheSize=2&preserveInstants=true&registerJmxPool=false&restrictedAuth=mysql_native_password,client_ed25519&retriesAllDown=10&returnMultiValuesGeneratedIds=true&serverRsaPublicKeyFile=RSAPath&serverSslCert=mycertPath&servicePrincipalName=SPN&sessionVariables=blabla&socketFactory=someSocketFactory&socketTimeout=1000&sslMode=TRUST&tcpAbortiveClose=true&tcpKeepAlive=false&tcpKeepCount=50&tcpKeepIdle=10&tcpKeepInterval=50&timezone=UTC&tinyInt1isBit=false&tlsSocketType=TLStype&transactionIsolation=REPEATABLE_READ&transactionReplay=true&trustStore=/tmp/file&trustStorePassword=***&trustStoreType=jks&useAffectedRows=true&useBulkStmts=true&useCatalogTerm=SCHEMA&useCompression=true&useLocalSessionState=true&useResetConnection=true&useServerPrepStmts=true&user=me&uuidAsString=true&yearIsDateType=false");
     assertEquals(expected, normalizeConnectionString(conf.toString()));
     assertEquals(expected, normalizeConnectionString(conf.toBuilder().build().toString()));
   }

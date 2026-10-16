@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.column;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
@@ -27,6 +27,7 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
+import org.mariadb.jdbc.util.StringUtils;
 
 /** Column metadata definition */
 public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -167,9 +168,12 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
             + oldDecimalFormat.format(((double) modifiedLdt.getNano()) / 1000000000);
       }
       if (this.decimals == 0) return timestampWithoutMicro;
-      return timestampWithoutMicro
-          + "."
-          + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
+      StringBuilder sb =
+          new StringBuilder(timestampWithoutMicro.length() + 7)
+              .append(timestampWithoutMicro)
+              .append('.');
+      return StringUtils.appendZeroPadded(sb, modifiedLdt.getNano() / 1000, this.decimals)
+          .toString();
     } catch (DateTimeException e) {
       buf.pos(initialPos);
       return buf.readString(length.get());
@@ -210,9 +214,12 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
             + oldDecimalFormat.format(((double) modifiedLdt.getNano()) / 1000000000);
       }
       if (this.decimals == 0) return timestampWithoutMicro;
-      return timestampWithoutMicro
-          + "."
-          + String.format(Locale.US, "%0" + this.decimals + "d", modifiedLdt.getNano() / 1000);
+      StringBuilder sb =
+          new StringBuilder(timestampWithoutMicro.length() + 7)
+              .append(timestampWithoutMicro)
+              .append('.');
+      return StringUtils.appendZeroPadded(sb, modifiedLdt.getNano() / 1000, this.decimals)
+          .toString();
     } catch (DateTimeException e) {
       buf.pos(initialPos);
       int year = buf.readUnsignedShort();

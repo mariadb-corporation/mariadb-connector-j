@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.column;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
 import java.sql.*;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.TimeZone;
@@ -16,6 +17,7 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.util.StringUtils;
 
 /** Column metadata definition */
 public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -141,7 +143,17 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
     int dateYear = buf.readUnsignedShort();
     int dateMonth = buf.readByte();
     int dateDay = buf.readByte();
-    return LocalDate.of(dateYear, dateMonth, dateDay).toString();
+    try {
+      return LocalDate.of(dateYear, dateMonth, dateDay).toString();
+    } catch (DateTimeException e) {
+      // zero day or month permitted by the server when sql_mode doesn't contain NO_ZERO_IN_DATE
+      throw new SQLDataException(
+          String.format(
+              "value '%04d-%02d-%02d' cannot be decoded as Date: %s",
+              dateYear, dateMonth, dateDay, e.getMessage()),
+          "22007",
+          e);
+    }
   }
 
   @Override
@@ -301,16 +313,29 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
         length.set(NULL_LENGTH);
         return null;
       }
-      return new Timestamp(Date.valueOf(s).getTime());
+      try {
+        return new Timestamp(Date.valueOf(s).getTime());
+      } catch (IllegalArgumentException e) {
+        // zero day or month permitted by the server when sql_mode doesn't contain NO_ZERO_IN_DATE
+        throw new SQLDataException(
+            String.format("value '%s' cannot be decoded as Timestamp", s), "22007", e);
+      }
     }
 
-    String[] datePart = buf.readAscii(length.get()).split("-");
+    String val = buf.readAscii(length.get());
+    int[] ymd;
+    try {
+      ymd = StringUtils.parseYearMonthDay(val);
+    } catch (NumberFormatException nfe) {
+      ymd = null;
+    }
+    if (ymd == null) {
+      throw new SQLDataException(
+          String.format("value '%s' cannot be decoded as Timestamp", val), "22007");
+    }
     synchronized (calParam) {
       calParam.clear();
-      calParam.set(
-          Integer.parseInt(datePart[0]),
-          Integer.parseInt(datePart[1]) - 1,
-          Integer.parseInt(datePart[2]));
+      calParam.set(ymd[0], ymd[1] - 1, ymd[2]);
       return new Timestamp(calParam.getTimeInMillis());
     }
   }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -203,6 +203,56 @@ public class PreparedStatementTest extends Common {
       assertFalse(rs.next());
     } finally {
       conn.rollback();
+    }
+  }
+
+  @Test
+  public void parameterCountMismatch() throws SQLException {
+    // server prepared statements: COM_STMT_EXECUTE is laid out from the parameter count, so more
+    // parameters than markers must be rejected, whether the prepare is pipelined with the first
+    // execution, done beforehand, cached or not. The connection must stay usable afterwards.
+    for (String opts :
+        new String[] {
+          "&useServerPrepStmts=true",
+          "&useServerPrepStmts=true&disablePipeline=true",
+          "&useServerPrepStmts=true&cachePrepStmts=false"
+        }) {
+      try (Connection con = createCon(opts)) {
+        try (PreparedStatement ps = con.prepareStatement("SELECT ?, ?")) {
+          ps.setInt(1, 1);
+          ps.setInt(2, 2);
+          ps.setInt(3, 3);
+          // first execution (prepare unknown) and second (prepare known)
+          for (int i = 0; i < 2; i++) {
+            Common.assertThrowsContains(
+                SQLException.class,
+                ps::executeQuery,
+                "3 parameter(s) set, but the statement has 2 parameter marker(s)");
+          }
+          Common.assertThrowsContains(
+              SQLException.class,
+              ps::addBatch,
+              "3 parameter(s) set, but the statement has 2 parameter marker(s)");
+
+          ps.clearParameters();
+          ps.setInt(1, 1);
+          ps.setInt(2, 2);
+          ResultSet rs = ps.executeQuery();
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertEquals(2, rs.getInt(2));
+        }
+        // fewer parameters than markers on a first, pipelined execution
+        try (PreparedStatement ps = con.prepareStatement("SELECT ?, ?, ?")) {
+          ps.setInt(1, 1);
+          Common.assertThrowsContains(SQLException.class, ps::executeQuery, "Parameter");
+          ps.setInt(2, 2);
+          ps.setInt(3, 3);
+          ResultSet rs = ps.executeQuery();
+          assertTrue(rs.next());
+          assertEquals(3, rs.getInt(3));
+        }
+      }
     }
   }
 
@@ -1475,7 +1525,7 @@ public class PreparedStatementTest extends Common {
       stmt.execute(
           "CREATE TABLE testBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
       try (PreparedStatement prep =
-          conn.prepareStatement("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)")) {
+          conn.prepareStatement("INSERT INTO testBatchParameterClearAfterError VALUES(?, ?)")) {
         prep.setInt(1, 1);
         prep.setInt(2, 1);
         prep.addBatch();
@@ -1505,7 +1555,7 @@ public class PreparedStatementTest extends Common {
       stmt.execute(
           "CREATE TABLE testBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
       try (PreparedStatement prep =
-          conn.prepareStatement("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)")) {
+          conn.prepareStatement("INSERT INTO testBatchParameterClearAfterError VALUES(?, ?)")) {
         prep.setInt(1, 1);
         prep.setInt(2, 1);
         prep.addBatch();

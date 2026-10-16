@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
@@ -25,8 +25,7 @@ public class BitSetCodec implements Codec<BitSet> {
    * @return BitSet value
    */
   public static BitSet parseBit(ReadableByteBuf buf, MutableInt length) {
-    byte[] arr = new byte[length.get()];
-    buf.readBytes(arr);
+    byte[] arr = buf.readBytes(length.get());
     revertOrder(arr);
     return BitSet.valueOf(arr);
   }

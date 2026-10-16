@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
@@ -103,9 +103,7 @@ public class FloatArrayCodec implements Codec<float[]> {
       case VARSTRING:
       case VARCHAR:
       case GEOMETRY:
-        byte[] arr = new byte[length.get()];
-        buf.readBytes(arr);
-        return arr;
+        return buf.readBytes(length.get());
 
       default:
         buf.skip(length.get());

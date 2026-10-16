@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.message;
 
 import java.io.FileInputStream;
@@ -18,6 +18,7 @@ import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
+import org.mariadb.jdbc.client.result.SequentialResult;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
 import org.mariadb.jdbc.client.socket.Reader;
@@ -244,7 +245,8 @@ public interface ClientMessage {
           try {
             byte[] fileBuf = new byte[65536];
             int len;
-            while ((len = is.read(fileBuf)) > 0) {
+            // readNBytes fills the chunk even when the stream returns short reads
+            while ((len = is.readNBytes(fileBuf, 0, fileBuf.length)) > 0) {
               writer.writeBytes(fileBuf, 0, len);
               writer.flush();
             }
@@ -345,6 +347,36 @@ public interface ClientMessage {
           int status = context.getServerStatus();
           if ((status & ServerStatus.MORE_RESULTS_EXISTS) != 0) {
             context.setServerStatus(status & ~ServerStatus.MORE_RESULTS_EXISTS);
+          }
+
+          if (fetchSize < 0) {
+            // Integer.MIN_VALUE: sequential access, rows are read from the socket one column at a
+            // time. Only possible on a forward-only result-set
+            if (resultSetType == ResultSet.TYPE_FORWARD_ONLY) {
+              return new SequentialResult(
+                  stmt,
+                  binaryProtocol(),
+                  maxRows,
+                  ci,
+                  reader,
+                  context,
+                  lock,
+                  resultSetType,
+                  closeOnCompletion,
+                  traceEnable);
+            }
+            context.setServerStatus(status);
+            return new CompleteResult(
+                stmt,
+                binaryProtocol(),
+                maxRows,
+                ci,
+                reader,
+                context,
+                resultSetType,
+                closeOnCompletion,
+                traceEnable,
+                mightBeBulkResult());
           }
 
           return new StreamingResult(

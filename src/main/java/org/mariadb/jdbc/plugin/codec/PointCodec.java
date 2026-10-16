@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
@@ -52,7 +52,7 @@ public class PointCodec implements Codec<Point> {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
-      if (geo instanceof Point) return (Point) geo;
+      if (geo instanceof Point point) return point;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as Point",

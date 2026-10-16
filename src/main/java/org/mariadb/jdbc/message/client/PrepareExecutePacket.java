@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.message.client;
 
 import static org.mariadb.jdbc.message.client.CommandConstants.COM_STMT_EXECUTE;
@@ -62,6 +62,8 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
     this.localInfileInputStream = localInfileInputStream;
     this.prepareResult = null;
   }
+
+  private boolean parameterCountMismatch;
 
   @Override
   public int encode(Writer writer, Context context, Prepare newPrepareResult)
@@ -171,24 +173,50 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
         PrepareResultPacket previousCached =
             (PrepareResultPacket)
                 context.putPrepareCacheCmd(
-                    sql,
-                    prepare,
-                    stmt instanceof ServerPreparedStatement
-                        ? (ServerPreparedStatement) stmt
-                        : null);
+                    sql, prepare, stmt instanceof ServerPreparedStatement sps ? sps : null);
         if (stmt != null) {
           ((BasePreparedStatement) stmt)
               .setPrepareResult(previousCached != null ? previousCached : prepare);
         }
         this.prepareResult = previousCached != null ? previousCached : prepare;
-        return this.prepareResult;
+      } else {
+        PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);
+        if (stmt != null) {
+          ((BasePreparedStatement) stmt).setPrepareResult(prepareResult);
+        }
+        this.prepareResult = prepareResult;
       }
-      PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);
-      if (stmt != null) {
-        ((BasePreparedStatement) stmt).setPrepareResult(prepareResult);
+      parameterCountMismatch = parameters.size() != this.prepareResult.getParameters().length;
+      return this.prepareResult;
+    } else if (parameterCountMismatch) {
+      try {
+        RedoableWithPrepareClientMessage.super.readPacket(
+            stmt,
+            0,
+            maxRows,
+            resultSetConcurrency,
+            resultSetType,
+            closeOnCompletion,
+            reader,
+            writer,
+            context,
+            exceptionFactory,
+            lock,
+            traceEnable,
+            message,
+            redirectFct);
+      } catch (SQLException e) {
+        // the server rejected or misread the execution: the mismatch is the error to report
       }
-      this.prepareResult = prepareResult;
-      return prepareResult;
+      throw exceptionFactory
+          .withSql(this.description())
+          .create(
+              "Parameter count mismatch: "
+                  + parameters.size()
+                  + " parameter(s) set, but the statement has "
+                  + this.prepareResult.getParameters().length
+                  + " parameter marker(s)",
+              "07001");
     } else {
       return RedoableWithPrepareClientMessage.super.readPacket(
           stmt,

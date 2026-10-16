@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.util.Iterator;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Context;
@@ -110,7 +109,6 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    * {@code null} when nothing is registered.
    */
   private static AuthDialogCallback dialogCallback() {
-    Iterator<AuthDialogCallback> it = ServiceLoader.load(AuthDialogCallback.class).iterator();
-    return it.hasNext() ? it.next() : null;
+    return ServiceLoader.load(AuthDialogCallback.class).findFirst().orElse(null);
   }
 }

@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.sql.*;
 import org.junit.jupiter.api.*;
 
@@ -154,13 +156,69 @@ public class Sha256AuthenticationTest extends Common {
       String returnValue = f.getCanonicalPath().replace("\\", "/");
 
       try {
-        Files.readAllBytes(Paths.get(returnValue));
+        Files.readAllBytes(Path.of(returnValue));
       } catch (IOException ex) {
         return null;
       }
       return returnValue;
     }
     return null;
+  }
+
+  /**
+   * CONJ-1372: on a unix socket the server expects the password in clear for the full
+   * authentication, as over TLS, and refuses the RSA key request. A new user has no entry in the
+   * server's cache, so the first connection goes through the full authentication.
+   */
+  @Test
+  public void cachingSha256OverUnixSocket() throws Exception {
+    Assumptions.assumeTrue(
+        "1".equals(System.getenv("local"))
+            && !isWindows()
+            && ((isMariaDBServer() && minVersion(12, 1, 1))
+                || (!isMariaDBServer() && minVersion(8, 0, 0))));
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("select @@socket");
+    Assumptions.assumeTrue(rs.next() && rs.getString(1) != null && !rs.getString(1).isEmpty());
+    String socketPath = rs.getString(1);
+
+    // a user the server has never seen: no entry in its cache, so the first connection goes
+    // through the full authentication
+    String user = "cachingSha256Sock" + new java.util.Random().nextInt(1_000_000);
+    String keyword = isMariaDBServer() ? "VIA" : "WITH";
+    String password =
+        isMariaDBServer() ? "USING PASSWORD('heyPassw-!*20oRd')" : "BY 'heyPassw-!*20oRd'";
+    stmt.execute(
+        "CREATE USER '"
+            + user
+            + "'"
+            + getHostSuffix()
+            + " IDENTIFIED "
+            + keyword
+            + " caching_sha2_password "
+            + password);
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO '" + user + "'" + getHostSuffix());
+    try {
+      String url =
+          "jdbc:mariadb:///"
+              + database
+              + "?localSocket="
+              + socketPath
+              + "&user="
+              + user
+              + "&password=heyPassw-!*20oRd&sslMode=disable";
+      // full authentication, then fast authentication. No RSA exchange is involved on a socket,
+      // so allowPublicKeyRetrieval is not needed; without the fix the driver takes the RSA path
+      for (int i = 0; i < 2; i++) {
+        try (Connection con = DriverManager.getConnection(url)) {
+          ResultSet res = con.createStatement().executeQuery("SELECT CURRENT_USER()");
+          assertTrue(res.next());
+          assertTrue(res.getString(1).startsWith(user + "@"), res.getString(1));
+        }
+      }
+    } finally {
+      dropUserWithoutError((org.mariadb.jdbc.Statement) stmt, "'" + user + "'" + getHostSuffix());
+    }
   }
 
   @Test

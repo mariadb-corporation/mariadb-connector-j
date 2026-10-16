@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.result;
 
 import java.io.IOException;
@@ -17,7 +17,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
@@ -39,8 +38,10 @@ import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 import org.mariadb.jdbc.plugin.codec.ClobCodec;
 import org.mariadb.jdbc.plugin.codec.FloatArrayCodec;
 import org.mariadb.jdbc.plugin.codec.ReaderCodec;
+import org.mariadb.jdbc.plugin.codec.SqlXmlCodec;
 import org.mariadb.jdbc.plugin.codec.StreamCodec;
 import org.mariadb.jdbc.plugin.codec.StringCodec;
+import org.mariadb.jdbc.util.CodecLookup;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Result-set common */
@@ -73,10 +74,10 @@ public abstract class Result implements ResultSet, Completion {
   protected final ReadableByteBuf rowBuf = new ReadableByteBuf(null, 0);
 
   protected final boolean traceEnable;
-  private final int maxIndex;
-  private final MutableInt fieldLength = new MutableInt(0);
+  protected final int maxIndex;
+  protected final MutableInt fieldLength = new MutableInt(0);
   private final boolean forceAlias;
-  private final byte[] nullBitmap;
+  protected final byte[] nullBitmap;
 
   /** data size */
   protected int dataSize = 0;
@@ -445,7 +446,7 @@ public abstract class Result implements ResultSet, Completion {
     }
   }
 
-  private void checkIndex(int index) throws SQLException {
+  protected void checkIndex(int index) throws SQLException {
     if (index < 1 || index > maxIndex) {
       throw new SQLException(
           String.format("Wrong index position. Is %s but must be in 1-%s range", index, maxIndex));
@@ -1515,22 +1516,30 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public SQLXML getSQLXML(int columnIndex) throws SQLException {
-    throw exceptionFactory.notSupported("Method ResultSet.getSQLXML not supported");
+    checkIndex(columnIndex);
+    fieldLength.set(
+        rowDecoder.setPosition(
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
+      return null;
+    }
+    return rowDecoder.decode(
+        SqlXmlCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
   }
 
   @Override
   public SQLXML getSQLXML(String columnLabel) throws SQLException {
-    throw exceptionFactory.notSupported("Method ResultSet.getSQLXML not supported");
+    return getSQLXML(findColumn(columnLabel));
   }
 
   @Override
   public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory.notSupported("Method ResultSet.updateSQLXML not supported");
+    throw exceptionFactory.notSupported("Not supported when using CONCUR_READ_ONLY concurrency");
   }
 
   @Override
   public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory.notSupported("Method ResultSet.updateSQLXML not supported");
+    throw exceptionFactory.notSupported("Not supported when using CONCUR_READ_ONLY concurrency");
   }
 
   @Override
@@ -1729,12 +1738,10 @@ public abstract class Result implements ResultSet, Completion {
           rowDecoder.defaultDecode(metadataList, columnIndex - 1, rowBuf, fieldLength, context);
     }
 
-    Configuration conf = context.getConf();
-    for (Codec<?> codec : conf.codecs()) {
-      if (codec.canDecode(column, type)) {
-        return rowDecoder.decode(
-            (Codec<T>) codec, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
-      }
+    Codec<T> codec = CodecLookup.decoder(context.getConf().codecs(), column, type);
+    if (codec != null) {
+      return rowDecoder.decode(
+          codec, null, rowBuf, fieldLength, metadataList, columnIndex - 1, context);
     }
     rowBuf.skip(fieldLength.get());
     throw new SQLException(

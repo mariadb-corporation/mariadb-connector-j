@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.result.rowdecoder;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
@@ -182,21 +182,42 @@ public class TextRowDecoder implements RowDecoder {
     }
 
     byte len = rowBuf.buf[rowBuf.pos++];
+    int fieldLength;
     switch (len) {
       case (byte) 251:
         return NULL_LENGTH;
       case (byte) 252:
-        return rowBuf.readUnsignedShort();
+        fieldLength = rowBuf.readUnsignedShort();
+        break;
       case (byte) 253:
-        return rowBuf.readUnsignedMedium();
+        fieldLength = rowBuf.readUnsignedMedium();
+        break;
       case (byte) 254:
-        long fieldLength = rowBuf.readLong();
-        if (fieldLength < 0 || fieldLength > Integer.MAX_VALUE) {
-          throw new SQLException("Invalid length-encoded field length " + fieldLength);
+        long longLength = rowBuf.readLong();
+        if (longLength < 0 || longLength > Integer.MAX_VALUE) {
+          throw new SQLException("Invalid length-encoded field length " + longLength);
         }
-        return (int) fieldLength;
+        fieldLength = (int) longLength;
+        break;
       default:
-        return len & 0xff;
+        fieldLength = len & 0xff;
     }
+    return checkFieldLength(fieldLength, rowBuf);
+  }
+
+  /**
+   * The field length is server-declared: column decoders allocate from it, so it must fit in the
+   * row packet before any of them run.
+   */
+  private static int checkFieldLength(int fieldLength, ReadableByteBuf rowBuf) throws SQLException {
+    if (fieldLength > rowBuf.readableBytes()) {
+      throw new SQLException(
+          "Invalid length-encoded field length "
+              + fieldLength
+              + ": exceeds the "
+              + rowBuf.readableBytes()
+              + " bytes remaining in row packet");
+    }
+    return fieldLength;
   }
 }

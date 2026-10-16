@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.sql.SQLException;
@@ -45,9 +45,9 @@ public class HostAddress {
   /**
    * Process-wide latch shared across all {@link HostAddress} instances that point to the same
    * physical endpoint (same host:port, named pipe, or unix socket). Keyed by content rather than
-   * object identity because {@link org.mariadb.jdbc.Driver#connect} parses the URL afresh on every
-   * call, producing new {@code HostAddress} objects — without a shared map, each pooled connection
-   * would re-probe {@code mysql.proc}.
+   * object identity because {@link org.mariadb.jdbc.NonRegisteringDriver#connect} parses the URL
+   * afresh on every call, producing new {@code HostAddress} objects — without a shared map, each
+   * pooled connection would re-probe {@code mysql.proc}.
    */
   private static final ConcurrentMap<String, MysqlProcStatus> MYSQL_PROC_STATUS =
       new ConcurrentHashMap<>();
@@ -289,15 +289,15 @@ public class HostAddress {
 
   @Override
   public String toString() {
-    if (pipe != null) return String.format("address=(pipe=%s)", pipe);
-    if (localSocket != null) return String.format("address=(localSocket=%s)", localSocket);
+    if (pipe != null) return "address=(pipe=" + pipe + ")";
+    if (localSocket != null) return "address=(localSocket=" + localSocket + ")";
     if (sslMode == null && primary != Boolean.FALSE) return port != 3306 ? host + ":" + port : host;
-    return String.format(
-        "address=(host=%s)%s%s%s",
-        host,
-        (port != 3306) ? "(port=" + port + ")" : "",
-        (sslMode != null) ? "(sslMode=" + sslMode.getValue() + ")" : "",
-        ((primary != null) ? ("(type=" + (primary ? "primary)" : "replica)")) : ""));
+    return "address=(host="
+        + host
+        + ")"
+        + ((port != 3306) ? "(port=" + port + ")" : "")
+        + ((sslMode != null) ? "(sslMode=" + sslMode.getValue() + ")" : "")
+        + ((primary != null) ? ("(type=" + (primary ? "primary)" : "replica)")) : "");
   }
 
   @Override

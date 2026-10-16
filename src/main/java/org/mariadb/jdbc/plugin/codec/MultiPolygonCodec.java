@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
@@ -52,7 +52,7 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
-      if (geo instanceof MultiPolygon) return (MultiPolygon) geo;
+      if (geo instanceof MultiPolygon polygon) return polygon;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as MultiPolygon",

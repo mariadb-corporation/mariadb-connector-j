@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
 import java.io.IOException;
 import java.sql.SQLDataException;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
@@ -15,6 +16,7 @@ import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.util.StringUtils;
 
 /** LocalDate codec */
 public class LocalDateCodec implements Codec<LocalDate> {
@@ -63,6 +65,29 @@ public class LocalDateCodec implements Codec<LocalDate> {
       return null;
     }
     return datePart;
+  }
+
+  /**
+   * LocalDate from server values, or SQLDataException when they cannot be represented (zero day or
+   * month, permitted by the server when sql_mode doesn't contain NO_ZERO_IN_DATE).
+   *
+   * @param year year
+   * @param month month
+   * @param dayOfMonth day of month
+   * @return LocalDate
+   * @throws SQLDataException if the value is not a valid date
+   */
+  static LocalDate localDateOf(int year, int month, int dayOfMonth) throws SQLDataException {
+    try {
+      return LocalDate.of(year, month, dayOfMonth);
+    } catch (DateTimeException e) {
+      throw new SQLDataException(
+          String.format(
+              "value '%04d-%02d-%02d' cannot be decoded as LocalDate: %s",
+              year, month, dayOfMonth, e.getMessage()),
+          "22007",
+          e);
+    }
   }
 
   public String className() {
@@ -132,21 +157,20 @@ public class LocalDateCodec implements Codec<LocalDate> {
       case VARCHAR:
       case STRING:
         String val = buf.readString(length.get());
-        String[] stDatePart = val.split("[- ]");
-        if (stDatePart.length < 3) {
-          throw new SQLDataException(
-              String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-        }
-
         try {
-          int year = Integer.parseInt(stDatePart[0]);
-          int month = Integer.parseInt(stDatePart[1]);
-          int dayOfMonth = Integer.parseInt(stDatePart[2]);
+          int[] ymd = StringUtils.parseYearMonthDay(val);
+          if (ymd == null) {
+            throw new SQLDataException(
+                String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
+          }
+          int year = ymd[0];
+          int month = ymd[1];
+          int dayOfMonth = ymd[2];
           if (year == 0 && month == 0 && dayOfMonth == 0) {
             length.set(NULL_LENGTH);
             return null;
           }
-          return LocalDate.of(year, month, dayOfMonth);
+          return localDateOf(year, month, dayOfMonth);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
@@ -161,7 +185,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
       length.set(NULL_LENGTH);
       return null;
     }
-    return LocalDate.of(parts[0], parts[1], parts[2]);
+    return localDateOf(parts[0], parts[1], parts[2]);
   }
 
   @Override
@@ -198,7 +222,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
           length.set(NULL_LENGTH);
           return null;
         }
-        return LocalDate.of(year, month, dayOfMonth);
+        return localDateOf(year, month, dayOfMonth);
 
       case BLOB:
       case TINYBLOB:
@@ -216,21 +240,20 @@ public class LocalDateCodec implements Codec<LocalDate> {
       case VARCHAR:
       case VARSTRING:
         String val = buf.readString(length.get());
-        String[] stDatePart = val.split("[- ]");
-        if (stDatePart.length < 3) {
-          throw new SQLDataException(
-              String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-        }
-
         try {
-          year = Integer.parseInt(stDatePart[0]);
-          month = Integer.parseInt(stDatePart[1]);
-          dayOfMonth = Integer.parseInt(stDatePart[2]);
+          int[] ymd = StringUtils.parseYearMonthDay(val);
+          if (ymd == null) {
+            throw new SQLDataException(
+                String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
+          }
+          year = ymd[0];
+          month = ymd[1];
+          dayOfMonth = ymd[2];
           if (year == 0 && month == 0 && dayOfMonth == 0) {
             length.set(NULL_LENGTH);
             return null;
           }
-          return LocalDate.of(year, month, dayOfMonth);
+          return localDateOf(year, month, dayOfMonth);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
@@ -264,7 +287,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
           return null;
         }
 
-        return LocalDate.of(year, month, dayOfMonth);
+        return localDateOf(year, month, dayOfMonth);
 
       default:
         buf.skip(length.get());
@@ -277,7 +300,17 @@ public class LocalDateCodec implements Codec<LocalDate> {
   public void encodeText(Writer encoder, Context context, LocalDate val, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
-    encoder.writeAscii(val.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    int year = val.getYear();
+    if (year >= 0 && year <= 9999) {
+      // same output as ISO_LOCAL_DATE, without the formatter
+      StringBuilder sb = new StringBuilder(10);
+      StringUtils.appendZeroPadded(sb, year, 4).append('-');
+      StringUtils.appendZeroPadded(sb, val.getMonthValue(), 2).append('-');
+      StringUtils.appendZeroPadded(sb, val.getDayOfMonth(), 2);
+      encoder.writeAscii(sb.toString());
+    } else {
+      encoder.writeAscii(val.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    }
     encoder.writeByte('\'');
   }
 

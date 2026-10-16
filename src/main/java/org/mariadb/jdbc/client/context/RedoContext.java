@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.context;
 
 import org.mariadb.jdbc.Configuration;
@@ -72,8 +72,7 @@ public class RedoContext extends BaseContext {
     // saver in that case; this guard stops us from re-adding the just-finished statement (which
     // would otherwise survive into a subsequently opened transaction and be replayed twice).
     if ((serverStatus & ServerStatus.IN_TRANSACTION) == 0) return;
-    if (msg instanceof RedoableClientMessage) {
-      RedoableClientMessage redoMsg = (RedoableClientMessage) msg;
+    if (msg instanceof RedoableClientMessage redoMsg) {
       redoMsg.saveParameters();
       transactionSaver.add(redoMsg);
     }

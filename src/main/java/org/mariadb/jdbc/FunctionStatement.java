@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.sql.*;
 import org.mariadb.jdbc.client.util.ClosableLock;
 import org.mariadb.jdbc.client.util.Parameters;
+import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.ParameterList;
 
 /** Function callable statement implementation */
@@ -51,7 +52,10 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
 
   @Override
   protected void handleParameterOutput() throws SQLException {
+    // the single row returned by "SELECT f(...)" is the return value, read as OUT parameter 1:
+    // the call itself leaves no result set and no row count
     this.outputResultFromRes(1);
+    currResult = OkPacket.BASIC_OK;
   }
 
   @Override
@@ -66,23 +70,19 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
 
   @Override
   protected void executeInternal() throws SQLException {
-    preValidParameters();
-    super.executeInternal();
-  }
-
-  /**
-   * Ensures that returning value is not taken as a parameter.
-   *
-   * @throws SQLException if any exception
-   */
-  protected void preValidParameters() throws SQLException {
-    // remove first parameter, as it's an output param only
-    Parameters newParameters = new ParameterList(parameters.size() - 1);
-    for (int i = 0; i < parameters.size() - 1; i++) {
-      newParameters.set(i, parameters.get(i + 1));
+    // parameter 1 is the return value: the markers of "SELECT f(?)" start at parameter 2. The
+    // shift only applies to this execution, the values stay in force for the next one
+    Parameters all = parameters;
+    Parameters shifted = new ParameterList(Math.max(0, all.size() - 1));
+    for (int i = 1; i < all.size(); i++) {
+      shifted.set(i - 1, all.get(i));
     }
-    parameters = newParameters;
-    super.validParameters();
+    parameters = shifted;
+    try {
+      super.executeInternal();
+    } finally {
+      parameters = all;
+    }
   }
 
   @Override

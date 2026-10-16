@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin;
 
 import java.sql.SQLException;
@@ -24,6 +24,19 @@ public interface CredentialPlugin extends Supplier<Credential> {
    */
   default boolean mustUseSsl() {
     return false;
+  }
+
+  /**
+   * Server certificate authorities the plugin vouches for, used when the connection sets neither
+   * serverSslCert nor trustStore. Same forms as the serverSslCert option: a URL, a file path or an
+   * inline PEM. Unless fallbackToSystemTrustStore is disabled, the system trust store stays trusted
+   * next to them. An IAM plugin can for instance bundle the certificate authorities of the managed
+   * database service, so that sslMode=verify-full works without configuration.
+   *
+   * @return certificate authorities, or null when the plugin provides none
+   */
+  default String defaultServerSslCert() {
+    return null;
   }
 
   /**

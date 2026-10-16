@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.sql.PseudoColumnUsage;
@@ -151,6 +151,67 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   private static String quoteIdentifier(String string) {
     return "`" + string.replaceAll("`", "``") + "`";
+  }
+
+  /**
+   * Compare two table/schema identifiers following the server rules: case-sensitively when
+   * lower_case_table_names=0, case-insensitively otherwise (CONJ-1344).
+   *
+   * @param identifier identifier read from server output
+   * @param expected identifier provided by the caller
+   * @return true if both denote the same object
+   * @throws SQLException if lower_case_table_names cannot be read
+   */
+  private boolean identifiersMatch(String identifier, String expected) throws SQLException {
+    return connection.getLowercaseTableNames() == 0
+        ? identifier.equals(expected)
+        : identifier.equalsIgnoreCase(expected);
+  }
+
+  /**
+   * Table name as stored by the server, read from the "CREATE TABLE `name` (" first line of a SHOW
+   * CREATE TABLE output. With lower_case_table_names=1 the server stores names lowercased whatever
+   * the case used by the caller, and information_schema based methods return that stored name: SHOW
+   * CREATE TABLE based methods must return the same value rather than echoing the caller parameter
+   *
+   * @param tableDef SHOW CREATE TABLE output
+   * @param fallback value returned if the output cannot be parsed
+   * @return stored table name
+   */
+  private static String storedTableName(String tableDef, String fallback) {
+    int eol = tableDef.indexOf('\n');
+    String firstLine = eol == -1 ? tableDef : tableDef.substring(0, eol);
+    String upper = firstLine.toUpperCase(Locale.ROOT);
+    int pos;
+    if (upper.startsWith("CREATE TABLE ")) {
+      pos = "CREATE TABLE ".length();
+    } else if (upper.startsWith("CREATE TEMPORARY TABLE ")) {
+      pos = "CREATE TEMPORARY TABLE ".length();
+    } else {
+      return fallback;
+    }
+    try {
+      Identifier identifier = new Identifier();
+      parseIdentifier(firstLine.toCharArray(), pos, identifier);
+      return identifier.name;
+    } catch (ParseException | ArrayIndexOutOfBoundsException e) {
+      return fallback;
+    }
+  }
+
+  /**
+   * Database name as stored by the server. With lower_case_table_names=1 database names are stored
+   * lowercased, like table names. SHOW CREATE TABLE output doesn't carry the table's own schema, so
+   * the caller value is normalized instead. (lower_case_table_names=2 stores names as declared: the
+   * caller value is then the best available information without an additional query.)
+   *
+   * @param database database name provided by the caller
+   * @return stored database name
+   * @throws SQLException if lower_case_table_names cannot be read
+   */
+  private String storedDatabaseName(String database) throws SQLException {
+    if (database == null || connection.getLowercaseTableNames() != 1) return database;
+    return database.toLowerCase(Locale.ROOT);
   }
 
   /**
@@ -307,7 +368,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   private Map<String[], String> getExtImportedKeys(
       String tableName, org.mariadb.jdbc.Connection connection) throws SQLException {
-    ResultSet rs = connection.createStatement().executeQuery("SHOW CREATE TABLE " + tableName);
+    ResultSet rs =
+        connection.createInternalStatement().executeQuery("SHOW CREATE TABLE " + tableName);
     rs.next();
     String refTableDef = rs.getString(2);
     Map<String[], String> res = new HashMap<>();
@@ -1016,7 +1078,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schema;
 
     List<String[]> data = new ArrayList<>();
-    Statement stmt = connection.createStatement();
+    Statement stmt = connection.createInternalStatement();
 
     List<String> databases = new ArrayList<>();
 
@@ -1065,8 +1127,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             List<Identifier> primaryKeyCols = new ArrayList<>();
             parseIdentifierList(partChar, pos, primaryKeyCols);
             String pkTableSchema = pkTable.schema != null ? pkTable.schema : db;
-            if (database != null && !database.equals(pkTableSchema)) continue;
-            if (!pkTable.name.equals(table)) continue;
+            if (database != null && !identifiersMatch(pkTableSchema, database)) continue;
+            if (!identifiersMatch(pkTable.name, table)) continue;
             int onUpdateReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
             int onDeleteReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
 
@@ -1082,20 +1144,20 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
             for (int i = 0; i < primaryKeyCols.size(); i++) {
               String[] row = new String[14];
+              // database names as stored: pkTableSchema comes from the table definition or the
+              // SHOW DATABASES listing, db from the SHOW DATABASES listing
               row[0] =
                   conf.useCatalogTerm() == CatalogTerm.UseCatalog
-                      ? (pkTable.schema == null ? database : pkTable.schema)
+                      ? pkTableSchema
                       : "def"; // PKTABLE_CAT
               row[1] =
                   conf.useCatalogTerm() == CatalogTerm.UseSchema
-                      ? (pkTable.schema == null ? database : pkTable.schema)
+                      ? pkTableSchema
                       : null; // PKTABLE_SCHEM
               row[2] = pkTable.name; // PKTABLE_NAME
               row[3] = primaryKeyCols.get(i).name; // PKCOLUMN_NAME
-              row[4] =
-                  conf.useCatalogTerm() == CatalogTerm.UseCatalog ? database : "def"; // FKTABLE_CAT
-              row[5] =
-                  conf.useCatalogTerm() == CatalogTerm.UseSchema ? database : null; // FKTABLE_SCHEM
+              row[4] = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? db : "def"; // FKTABLE_CAT
+              row[5] = conf.useCatalogTerm() == CatalogTerm.UseSchema ? db : null; // FKTABLE_SCHEM
               row[6] = tableName; // FKTABLE_NAME
               row[7] = foreignKeyCols.get(i).name; // FKCOLUMN_NAME
               row[8] = Integer.toString(i + 1); // KEY_SEQ
@@ -1302,14 +1364,19 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     List<String[]> data = new ArrayList<>();
 
-    Statement stmt = connection.createStatement();
+    Statement stmt = connection.createInternalStatement();
     if (database != null) {
       ResultSet rs =
           stmt.executeQuery(
               "SHOW CREATE TABLE " + quoteIdentifier(database) + "." + quoteIdentifier(table));
       rs.next();
       String tableDef = rs.getString(2);
-      parseShowCreateTable(tableDef, database, table, importedKeysWithConstraintNames, data);
+      parseShowCreateTable(
+          tableDef,
+          storedDatabaseName(database),
+          storedTableName(tableDef, table),
+          importedKeysWithConstraintNames,
+          data);
 
     } else {
       List<String> databases = new ArrayList<>();
@@ -1327,7 +1394,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                   "SHOW CREATE TABLE " + quoteIdentifier(db) + "." + quoteIdentifier(table));
           rs.next();
           String tableDef = rs.getString(2);
-          parseShowCreateTable(tableDef, db, table, importedKeysWithConstraintNames, data);
+          parseShowCreateTable(
+              tableDef,
+              db,
+              storedTableName(tableDef, table),
+              importedKeysWithConstraintNames,
+              data);
         } catch (SQLException e) {
           // eat
         }
@@ -1453,6 +1525,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     databaseCond(false, sb, "TABLE_SCHEMA", database, false);
     sb.append(" AND TABLE_NAME = ").append(escapeQuote(table));
     if (!nullable) sb.append(" AND IS_NULLABLE = 'NO'");
+    sb.append(" ORDER BY ORDINAL_POSITION");
 
     return executeQuery(sb.toString());
   }
@@ -1523,12 +1596,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getPseudoColumns(
       String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
       throws SQLException {
-    return connection
-        .createStatement()
-        .executeQuery(
-            "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0"
-                + " COLUMN_SIZE, 0 DECIMAL_DIGITS, 10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' '"
-                + " REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL WHERE 1=0");
+    Statement stmt = connection.createInternalStatement();
+    stmt.setFetchSize(0);
+    return stmt.executeQuery(
+        "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0"
+            + " COLUMN_SIZE, 0 DECIMAL_DIGITS, 10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' '"
+            + " REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL WHERE 1=0");
   }
 
   public boolean allProceduresAreCallable() {
@@ -1541,7 +1614,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   @Override
   public String getURL() {
-    return conf.initialUrl();
+    // conf.initialUrl() is the unredacted url used for configuration identity; the url handed to
+    // the application must never carry credentials (CONJ-1345).
+    return Configuration.buildUrl(conf, true);
   }
 
   public String getUserName() {
@@ -1549,11 +1624,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean isReadOnly() throws SQLException {
-    java.sql.Statement st = connection.createStatement();
-    ResultSet rs = st.executeQuery("SELECT @@READ_ONLY");
-    rs.next();
-    String readOnly = rs.getString(1);
-    return "ON".equals(readOnly) || "1".equals(readOnly);
+    try (ResultSet rs = connection.createInternalStatement().executeQuery("SELECT @@READ_ONLY")) {
+      rs.next();
+      String readOnly = rs.getString(1);
+      return "ON".equals(readOnly) || "1".equals(readOnly);
+    }
   }
 
   public boolean nullsAreSortedHigh() {
@@ -1658,7 +1733,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getSQLKeywords() {
     // taken from https://mariadb.com/kb/en/reserved-words/
-    return "ACCESSIBLE,ADD,ALL,ALTER,ANALYZE,AND,AS,ASC,ASENSITIVE,BEFORE,BETWEEN,BIGINT,BINARY,BLOB,BOTH,BY,CALL,CASCADE,CASE,CHANGE,CHAR,CHARACTER,CHECK,COLLATE,COLUMN,CONDITION,CONSTRAINT,CONTINUE,CONVERT,CREATE,CROSS,CURRENT_DATE,CURRENT_ROLE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR,DATABASE,DATABASES,DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DEC,DECIMAL,DECLARE,DEFAULT,DELAYED,DELETE,DELETE_DOMAIN_ID,DESC,DESCRIBE,DETERMINISTIC,DISTINCT,DISTINCTROW,DIV,DO_DOMAIN_IDS,DOUBLE,DROP,DUAL,EACH,ELSE,ELSEIF,ENCLOSEDESCAPED,EXCEPTEXISTS,EXIT,EXPLAIN,FALSE,FETCH,FLOAT,FLOAT4,FLOAT8,FOR,FORCE,FOREIGN,FROMFULLTEXT,GENERAL,GRANT,GROUP,HAVING,HIGH_PRIORITY,HOUR_MICROSECOND,HOUR_MINUTE,HOUR_SECOND,IF,IGNORE,IGNORE_DOMAIN_IDS,IGNORE_SERVER_IDS,IN,INDEX,INFILE,INNER,INOUT,INSENSITIVE,INSERT,INT,INT1,INT2,INT3,INT4,INT8,INTEGER,INTERSECTINTERVAL,INTO,IS,ITERATE,JOIN,KEY,KEYS,KILL,LEADING,LEAVE,LEFT,LIKE,LIMIT,LINEAR,LINES,LOAD,LOCALTIME,LOCALTIMESTAMP,LOCK,LONG,LONGBLOB,LONGTEXT,LOOP,LOW_PRIORITY,MASTER_HEARTBEAT_PERIOD,MASTER_SSL_VERIFY_SERVER_CERT,MATCH,MAXVALUE,MEDIUMBLOB,MEDIUMINT,MEDIUMTEXT,MIDDLEINT,MINUTE_MICROSECOND,MINUTE_SECOND,MOD,MODIFIES,NATURAL,NOT,NO_WRITE_TO_BINLOG,NULL,NUMERIC,OFFSETON,OPTIMIZE,OPTION,OPTIONALLY,OR,ORDER,OUT,OUTER,OUTFILE,OVER,PAGE_CHECKSUM,PARSE_VCOL_EXPR,PARTITION,PRECISION,PRIMARY,PROCEDURE,PURGE,RANGE,READ,READS,READ_WRITE,REALRECURSIVE,REF_SYSTEM_ID,REFERENCES,REGEXP,RELEASE,RENAME,REPEAT,REPLACE,REQUIRE,RESIGNAL,RESTRICT,RETURN,RETURNING,REVOKE,RIGHT,RLIKE,ROW_NUMBERROWS,SCHEMA,SCHEMAS,SECOND_MICROSECOND,SELECT,SENSITIVE,SEPARATOR,SET,SHOW,SIGNAL,SLOW,SMALLINT,SPATIAL,SPECIFIC,SQL,SQLEXCEPTION,SQLSTATE,SQLWARNING,SQL_BIG_RESULT,SQL_CALC_FOUND_ROWS,SQL_SMALL_RESULT,SSL,STARTING,STATS_AUTO_RECALC,STATS_PERSISTENT,STATS_SAMPLE_PAGES,STRAIGHT_JOIN,TABLE,TERMINATED,THEN,TINYBLOB,TINYINT,TINYTEXT,TO,TRAILING,TRIGGER,TRUE,UNDO,UNION,UNIQUE,UNLOCK,UNSIGNED,UPDATE,USAGE,USE,USING,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,VALUES,VARBINARY,VARCHAR,VARCHARACTER,VARYING,WHEN,WHERE,WHILE,WINDOWWITH,WRITE,XOR,YEAR_MONTH,ZEROFILL";
+    return "ACCESSIBLE,ADD,ALL,ALTER,ANALYZE,AND,AS,ASC,ASENSITIVE,BEFORE,BETWEEN,BIGINT,BINARY,BLOB,BOTH,BY,CALL,CASCADE,CASE,CHANGE,CHAR,CHARACTER,CHECK,COLLATE,COLUMN,CONDITION,CONSTRAINT,CONTINUE,CONVERSION,CONVERT,CREATE,CROSS,CURRENT_DATE,CURRENT_ROLE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR,DATABASE,DATABASES,DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DEC,DECIMAL,DECLARE,DEFAULT,DELAYED,DELETE,DELETE_DOMAIN_ID,DESC,DESCRIBE,DETERMINISTIC,DISTINCT,DISTINCTROW,DIV,DO_DOMAIN_IDS,DOUBLE,DROP,DUAL,EACH,ELSE,ELSEIF,ENCLOSED,ESCAPED,EXCEPT,EXISTS,EXIT,EXPLAIN,FALSE,FETCH,FLOAT,FLOAT4,FLOAT8,FOR,FORCE,FOREIGN,FROM,FULLTEXT,GENERAL,GRANT,GROUP,HAVING,HIGH_PRIORITY,HOUR_MICROSECOND,HOUR_MINUTE,HOUR_SECOND,IF,IGNORE,IGNORE_DOMAIN_IDS,IGNORE_SERVER_IDS,IN,INDEX,INFILE,INNER,INOUT,INSENSITIVE,INSERT,INT,INT1,INT2,INT3,INT4,INT8,INTEGER,INTERSECT,INTERVAL,INTO,IS,ITERATE,JOIN,KEY,KEYS,KILL,LEADING,LEAVE,LEFT,LIKE,LIMIT,LINEAR,LINES,LOAD,LOCALTIME,LOCALTIMESTAMP,LOCK,LONG,LONGBLOB,LONGTEXT,LOOP,LOW_PRIORITY,MASTER_HEARTBEAT_PERIOD,MASTER_SSL_VERIFY_SERVER_CERT,MATCH,MAXVALUE,MEDIUMBLOB,MEDIUMINT,MEDIUMTEXT,MIDDLEINT,MINUTE_MICROSECOND,MINUTE_SECOND,MOD,MODIFIES,NATURAL,NOT,NO_WRITE_TO_BINLOG,NULL,NUMERIC,OFFSET,ON,OPTIMIZE,OPTION,OPTIONALLY,OR,ORDER,OUT,OUTER,OUTFILE,OVER,PAGE_CHECKSUM,PARSE_VCOL_EXPR,PARTITION,PRECISION,PRIMARY,PROCEDURE,PURGE,RANGE,READ,READS,READ_WRITE,REAL,RECURSIVE,REF_SYSTEM_ID,REFERENCES,REGEXP,RELEASE,RENAME,REPEAT,REPLACE,REQUIRE,RESIGNAL,RESTRICT,RETURN,RETURNING,REVOKE,RIGHT,RLIKE,ROW_NUMBER,ROWS,SCHEMA,SCHEMAS,SECOND_MICROSECOND,SELECT,SENSITIVE,SEPARATOR,SET,SHOW,SIGNAL,SLOW,SMALLINT,SPATIAL,SPECIFIC,SQL,SQLEXCEPTION,SQLSTATE,SQLWARNING,SQL_BIG_RESULT,SQL_CALC_FOUND_ROWS,SQL_SMALL_RESULT,SSL,STARTING,STATS_AUTO_RECALC,STATS_PERSISTENT,STATS_SAMPLE_PAGES,STRAIGHT_JOIN,TABLE,TERMINATED,THEN,TINYBLOB,TINYINT,TINYTEXT,TO,TO_DATE,TRAILING,TRIGGER,TRUE,UNDO,UNION,UNIQUE,UNLOCK,UNSIGNED,UPDATE,USAGE,USE,USING,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,VALUES,VARBINARY,VARCHAR,VARCHARACTER,VARYING,VECTOR,WHEN,WHERE,WHILE,WINDOW,WITH,WRITE,XOR,YEAR_MONTH,ZEROFILL";
   }
 
   /**
@@ -3725,8 +3800,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "0", "0", "10"
           });
 
-      if (connection.getContext().getVersion().isMariaDBServer()
-          && connection.getContext().getVersion().versionGreaterOrEqual(11, 7, 1)) {
+      if (connection.getContext().getVersion().versionGreaterOrEqual(11, 7, 1)) {
         datalist.add(
             new String[] {
               "VECTOR",
@@ -3748,6 +3822,30 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
               "0",
               "10"
             });
+
+        if (connection.getContext().getVersion().versionGreaterOrEqual(12, 3, 1)) {
+          datalist.add(
+              new String[] {
+                "XMLTYPE",
+                String.valueOf(Types.SQLXML),
+                "2147483647",
+                "'",
+                "'",
+                "",
+                "1",
+                "\1",
+                "3",
+                "\0",
+                "\0",
+                "\0",
+                "XMLTYPE",
+                "0",
+                "0",
+                "0",
+                "0",
+                "10"
+              });
+        }
       }
       data = new String[datalist.size()][];
       datalist.sort(Comparator.comparingInt(m -> Integer.parseInt(m[1])));

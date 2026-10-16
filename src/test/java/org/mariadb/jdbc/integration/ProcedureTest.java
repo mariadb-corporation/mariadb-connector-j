@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -52,10 +52,13 @@ public class ProcedureTest extends Common {
       cstmt.setLong(1, 44L);
       cstmt.execute();
       assertEquals(88, cstmt.getLong(1));
-      ResultSet rs = cstmt.executeQuery();
-      assertFalse(rs.next());
+      // CONJ-1306: by default executeQuery throws when the call produces no result set
+      Common.assertThrowsContains(
+          SQLException.class,
+          () -> cstmt.executeQuery(),
+          "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
     }
-    try (Connection con = createCon("&permitNoResults=false")) {
+    try (Connection con = createCon("&permitNoResults=true")) {
       try (CallableStatement cstmt = con.prepareCall("{ CALL multiply_by_2(?) }")) {
         cstmt.setLong(1, 42L);
         cstmt.registerOutParameter(1, Types.NUMERIC);
@@ -64,10 +67,8 @@ public class ProcedureTest extends Common {
         cstmt.setLong(1, 43L);
         cstmt.executeUpdate();
         assertEquals(86, cstmt.getLong(1));
-        Common.assertThrowsContains(
-            SQLException.class,
-            () -> cstmt.executeQuery(),
-            "PrepareStatement.executeQuery() command does NOT return a result-set as expected");
+        ResultSet rs = cstmt.executeQuery();
+        assertFalse(rs.next());
       }
     }
   }
@@ -363,9 +364,9 @@ public class ProcedureTest extends Common {
         () -> callableStatement.getNClob(2),
         "Data type INTEGER cannot be decoded as Clob");
     Common.assertThrowsContains(
-        SQLFeatureNotSupportedException.class,
+        SQLDataException.class,
         () -> callableStatement.getSQLXML(2),
-        "SQLXML are not supported");
+        "Data type INTEGER cannot be decoded as SQLXML");
     assertEquals("6", callableStatement.getNString(2));
     Common.assertThrowsContains(
         SQLDataException.class,
@@ -475,9 +476,9 @@ public class ProcedureTest extends Common {
         () -> callableStatement.getNClob("t2"),
         "Data type INTEGER cannot be decoded as Clob");
     Common.assertThrowsContains(
-        SQLFeatureNotSupportedException.class,
+        SQLDataException.class,
         () -> callableStatement.getSQLXML("t2"),
-        "SQLXML are not supported");
+        "Data type INTEGER cannot be decoded as SQLXML");
     assertEquals("6", callableStatement.getNString("t2"));
     Common.assertThrowsContains(
         SQLDataException.class,
@@ -1097,14 +1098,8 @@ public class ProcedureTest extends Common {
           SQLFeatureNotSupportedException.class,
           () -> callableStatement.setRowId("t1", null),
           "RowId parameter are not supported");
-      Common.assertThrowsContains(
-          SQLFeatureNotSupportedException.class,
-          () -> callableStatement.setSQLXML(1, null),
-          "SQLXML parameter are not supported");
-      Common.assertThrowsContains(
-          SQLFeatureNotSupportedException.class,
-          () -> callableStatement.setSQLXML("t1", null),
-          "SQLXML parameter are not supported");
+      callableStatement.setSQLXML(1, null);
+      callableStatement.setSQLXML("t1", null);
     }
   }
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1212,10 +1212,6 @@ public class UpdateResultSetTest extends Common {
           SQLException.class, () -> rs.updateRowId(2, null), "not supported");
       Common.assertThrowsContains(
           SQLException.class, () -> rs.updateRowId("t1", null), "not supported");
-      Common.assertThrowsContains(
-          SQLException.class, () -> rs.updateSQLXML(2, null), "not supported");
-      Common.assertThrowsContains(
-          SQLException.class, () -> rs.updateSQLXML("t1", null), "not supported");
       Common.assertThrowsContains(
           SQLException.class, rs::deleteRow, "Cannot call deleteRow() when inserting a new row");
       Common.assertThrowsContains(

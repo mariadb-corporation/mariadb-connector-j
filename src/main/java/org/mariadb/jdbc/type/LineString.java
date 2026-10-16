@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.type;
 
 import java.util.Arrays;
@@ -59,7 +59,8 @@ public class LineString implements Geometry {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || !(o instanceof LineString)) return false;
-    return open == ((LineString) o).isOpen() && toString().equals(o.toString());
+    LineString other = (LineString) o;
+    return open == other.open && Arrays.equals(points, other.points);
   }
 
   @Override

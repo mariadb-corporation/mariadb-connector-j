@@ -1,17 +1,42 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.util;
 
-public class Version {
+import org.mariadb.jdbc.client.ServerVersion;
+
+/**
+ * Parsed version: the driver's own version, or the version announced by the server in the initial
+ * handshake (then {@link #isMariaDBServer()} tells MariaDB from MySQL).
+ */
+public final class Version implements ServerVersion {
   private final String version;
   private final int majorVersion;
   private final int minorVersion;
   private final int patchVersion;
   private final String qualifier;
 
+  /** MariaDB server version (false for MySQL, and for the driver's own version) */
+  private final boolean mariaDBServer;
+
+  /**
+   * Driver version, not a server version.
+   *
+   * @param versionString version text
+   */
   public Version(String versionString) {
+    this(versionString, false);
+  }
+
+  /**
+   * Version announced by a server.
+   *
+   * @param versionString version text as sent by the server
+   * @param mariaDBServer true for a MariaDB server, false otherwise
+   */
+  public Version(String versionString, boolean mariaDBServer) {
     this.version = versionString;
+    this.mariaDBServer = mariaDBServer;
     int major = 0;
     int minor = 0;
     int patch = 0;
@@ -74,6 +99,11 @@ public class Version {
 
   public String getQualifier() {
     return qualifier;
+  }
+
+  @Override
+  public boolean isMariaDBServer() {
+    return mariaDBServer;
   }
 
   /**

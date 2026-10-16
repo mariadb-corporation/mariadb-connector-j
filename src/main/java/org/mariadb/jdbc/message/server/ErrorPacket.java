@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.message.server;
 
 import org.mariadb.jdbc.client.Context;
@@ -39,8 +39,8 @@ public final class ErrorPacket implements ServerMessage {
       this.message = buf.readStringEof();
       this.sqlState = "HY000";
     }
-    if (logger.isWarnEnabled()) {
-      logger.warn("Error: {}-{}: {}", errorCode, sqlState, message);
+    if (logger.isDebugEnabled()) {
+      logger.debug("Error: {}-{}: {}", errorCode, sqlState, message);
     }
 
     // force current status to in transaction to ensure rollback/commit, since command may have

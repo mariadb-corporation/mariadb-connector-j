@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -432,7 +432,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
@@ -468,7 +468,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500");
     con2.abort(Runnable::run);
   }
 
@@ -556,7 +556,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
@@ -592,7 +592,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500");
     con2.abort(Runnable::run);
   }
 

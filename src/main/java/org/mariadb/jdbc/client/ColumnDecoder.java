@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client;
 
 import java.nio.charset.StandardCharsets;
@@ -8,9 +8,11 @@ import java.sql.Date;
 import java.sql.SQLDataException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.column.UuidColumn;
+import org.mariadb.jdbc.client.column.XmlColumn;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -46,6 +48,11 @@ public interface ColumnDecoder extends Column {
         buf, charset, length, dataType, decimals, flags, stringPos, null, null);
   }
 
+  /** extended type names (MARIADB_CLIENT_EXTENDED_METADATA) mapped to a dedicated column */
+  byte[] EXT_TYPE_UUID = {'u', 'u', 'i', 'd'};
+
+  byte[] EXT_TYPE_XML = {'x', 'm', 'l'};
+
   /**
    * Decode Column from mysql packet
    *
@@ -71,20 +78,28 @@ public interface ColumnDecoder extends Column {
 
       ReadableByteBuf subPacket = buf.readLengthBuffer();
       while (subPacket.readableBytes() > 0) {
-        switch (subPacket.readByte()) {
-          case 0:
-            int nameLen = subPacket.readLength();
-            extTypeName = new byte[nameLen];
-            subPacket.readBytes(extTypeName);
-            break;
-          case 1:
-            int formatLen = subPacket.readLength();
-            extTypeFormat = new byte[formatLen];
-            subPacket.readBytes(extTypeFormat);
-            break;
-          default: // skip data
-            subPacket.skip(subPacket.readLength());
-            break;
+        byte flag = subPacket.readByte();
+        int len = subPacket.readIntLengthEncodedNotNull();
+        // the entry length is server-declared: it must fit in the sub-packet before being read
+        if (subPacket.readableBytes() >= len) {
+          switch (flag) {
+            case 0:
+              extTypeName = subPacket.readBytes(len);
+              break;
+            case 1:
+              extTypeFormat = subPacket.readBytes(len);
+              break;
+            default: // skip data
+              subPacket.skip(len);
+              break;
+          }
+        } else {
+          throw new IllegalArgumentException(
+              "invalid length-encoded value: declared "
+                  + len
+                  + " bytes, "
+                  + subPacket.readableBytes()
+                  + " remaining");
         }
       }
     }
@@ -95,17 +110,19 @@ public interface ColumnDecoder extends Column {
     DataType dataType = DataType.of(buf.readUnsignedByte());
     int flags = buf.readUnsignedShort();
     byte decimals = buf.readByte();
+
     DataType.ColumnConstructor constructor =
-        (extTypeName != null
-                && extTypeName.length == 4
-                && extTypeName[0] == 'u'
-                && extTypeName[1] == 'u'
-                && extTypeName[2] == 'i'
-                && extTypeName[3] == 'd')
-            ? UuidColumn::new
-            : (flags & ColumnFlags.UNSIGNED) == 0
-                ? dataType.getColumnConstructor()
-                : dataType.getUnsignedColumnConstructor();
+        (flags & ColumnFlags.UNSIGNED) == 0
+            ? dataType.getColumnConstructor()
+            : dataType.getUnsignedColumnConstructor();
+
+    if (extTypeName != null) {
+      if (Arrays.equals(extTypeName, EXT_TYPE_UUID)) {
+        constructor = UuidColumn::new;
+      } else if (Arrays.equals(extTypeName, EXT_TYPE_XML)) {
+        constructor = XmlColumn::new;
+      }
+    }
     return constructor.create(
         buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }

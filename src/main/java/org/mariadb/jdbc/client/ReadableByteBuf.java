@@ -1,13 +1,29 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import org.mariadb.jdbc.MariaDbBlob;
 
 /** Packet buffer */
 public final class ReadableByteBuf {
+  // multi-byte integers are read through VarHandle views: one bounds-checked intrinsic access
+  // instead of a shift-and-mask sequence per byte (the protocol is little-endian)
+  private static final VarHandle SHORT_LE =
+      MethodHandles.byteArrayViewVarHandle(short[].class, ByteOrder.LITTLE_ENDIAN);
+  private static final VarHandle INT_LE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
+  private static final VarHandle INT_BE =
+      MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+  private static final VarHandle LONG_LE =
+      MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
+  private static final VarHandle LONG_BE =
+      MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
+
   /** buffer */
   public byte[] buf;
 
@@ -193,6 +209,15 @@ public final class ReadableByteBuf {
     return pos;
   }
 
+  /**
+   * Read a nullable length-encoded integer as an Integer.
+   *
+   * <p>Same range validation as {@link #readIntLengthEncodedNotNull()}: the 8-byte form is rejected
+   * when it does not fit a non-negative int instead of being silently narrowed.
+   *
+   * @return decoded value in range [0, {@link Integer#MAX_VALUE}], or null for the NULL marker
+   * @throws IllegalArgumentException if the encoded value does not fit a non-negative int
+   */
   public Integer readLength() {
     int type = readUnsignedByte();
     switch (type) {
@@ -203,9 +228,36 @@ public final class ReadableByteBuf {
       case 253:
         return readUnsignedMedium();
       case 254:
-        return (int) readLong();
+        long val = readLong();
+        if (val < 0 || val > Integer.MAX_VALUE) {
+          throw new IllegalArgumentException(
+              "invalid length-encoded value: " + Long.toUnsignedString(val));
+        }
+        return (int) val;
       default:
         return type;
+    }
+  }
+
+  /**
+   * Ensure a server-declared length fits in the bytes remaining in this buffer.
+   *
+   * <p>Declared lengths come from the server. Allocating or copying before checking them against
+   * the packet would let a rogue server drive a multi-gigabyte allocation or an out-of-bounds read
+   * from a packet of a few bytes, so every read that consumes a declared length goes through this
+   * check first.
+   *
+   * @param length server-declared length
+   * @throws IllegalArgumentException if the length is negative or exceeds the readable bytes
+   */
+  public void checkLength(int length) {
+    if (length < 0 || length > readableBytes()) {
+      throw new IllegalArgumentException(
+          "invalid length-encoded value: declared "
+              + length
+              + " bytes, but only "
+              + readableBytes()
+              + " remaining in packet");
     }
   }
 
@@ -218,11 +270,15 @@ public final class ReadableByteBuf {
   }
 
   public short readShort() {
-    return (short) ((buf[pos++] & 0xff) + (buf[pos++] << 8));
+    short value = (short) SHORT_LE.get(buf, pos);
+    pos += 2;
+    return value;
   }
 
   public int readUnsignedShort() {
-    return ((buf[pos++] & 0xff) + (buf[pos++] << 8)) & 0xffff;
+    int value = (short) SHORT_LE.get(buf, pos) & 0xffff;
+    pos += 2;
+    return value;
   }
 
   public int readMedium() {
@@ -238,51 +294,53 @@ public final class ReadableByteBuf {
   }
 
   public int readInt() {
-    return ((buf[pos++] & 0xff)
-        + ((buf[pos++] & 0xff) << 8)
-        + ((buf[pos++] & 0xff) << 16)
-        + ((buf[pos++] & 0xff) << 24));
+    int value = (int) INT_LE.get(buf, pos);
+    pos += 4;
+    return value;
   }
 
   public int readIntBE() {
-    return (((buf[pos++] & 0xff) << 24)
-        + ((buf[pos++] & 0xff) << 16)
-        + ((buf[pos++] & 0xff) << 8)
-        + (buf[pos++] & 0xff));
+    int value = (int) INT_BE.get(buf, pos);
+    pos += 4;
+    return value;
   }
 
   public long readUnsignedInt() {
-    return ((buf[pos++] & 0xff)
-        + ((buf[pos++] & 0xff) << 8)
-        + ((buf[pos++] & 0xff) << 16)
-        + ((long) (buf[pos++] & 0xff) << 24));
+    long value = (int) INT_LE.get(buf, pos) & 0xffffffffL;
+    pos += 4;
+    return value;
   }
 
   public long readLong() {
-    return ((buf[pos++] & 0xffL)
-        + ((buf[pos++] & 0xffL) << 8)
-        + ((buf[pos++] & 0xffL) << 16)
-        + ((buf[pos++] & 0xffL) << 24)
-        + ((buf[pos++] & 0xffL) << 32)
-        + ((buf[pos++] & 0xffL) << 40)
-        + ((buf[pos++] & 0xffL) << 48)
-        + ((buf[pos++] & 0xffL) << 56));
+    long value = (long) LONG_LE.get(buf, pos);
+    pos += 8;
+    return value;
   }
 
   public long readLongBE() {
-    return (((buf[pos++] & 0xffL) << 56)
-        + ((buf[pos++] & 0xffL) << 48)
-        + ((buf[pos++] & 0xffL) << 40)
-        + ((buf[pos++] & 0xffL) << 32)
-        + ((buf[pos++] & 0xffL) << 24)
-        + ((buf[pos++] & 0xffL) << 16)
-        + ((buf[pos++] & 0xffL) << 8)
-        + (buf[pos++] & 0xffL));
+    long value = (long) LONG_BE.get(buf, pos);
+    pos += 8;
+    return value;
   }
 
   public void readBytes(byte[] dst) {
     System.arraycopy(buf, pos, dst, 0, dst.length);
     pos += dst.length;
+  }
+
+  /**
+   * Read {@code length} bytes into a new array. The length is not checked here: a caller passing a
+   * server-declared length must first check it against {@link #readableBytes()}, as the column
+   * metadata and OK packet parsers do, so that no allocation is sized from an unchecked value.
+   *
+   * @param length number of bytes to read
+   * @return the bytes read
+   */
+  public byte[] readBytes(int length) {
+    byte[] dst = new byte[length];
+    System.arraycopy(buf, pos, dst, 0, length);
+    pos += length;
+    return dst;
   }
 
   public byte[] readBytesNullEnd() {
@@ -298,6 +356,7 @@ public final class ReadableByteBuf {
 
   public ReadableByteBuf readLengthBuffer() {
     int len = this.readIntLengthEncodedNotNull();
+    checkLength(len);
 
     ReadableByteBuf b = new ReadableByteBuf(buf, pos + len);
     b.pos = pos;

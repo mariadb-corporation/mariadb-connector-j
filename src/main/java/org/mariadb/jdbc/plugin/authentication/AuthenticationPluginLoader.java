@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.authentication;
 
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.ServiceLoader;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.NonRegisteringDriver;
 import org.mariadb.jdbc.plugin.AuthenticationPluginFactory;
+import org.mariadb.jdbc.util.ServiceProviders;
 
 /** permit loading authentication plugins */
 public final class AuthenticationPluginLoader {
+  private static final ServiceProviders<AuthenticationPluginFactory> PROVIDERS =
+      new ServiceProviders<>(
+          AuthenticationPluginFactory.class, NonRegisteringDriver.class.getClassLoader());
+
   private AuthenticationPluginLoader() {}
 
   /**
@@ -26,25 +30,21 @@ public final class AuthenticationPluginLoader {
   public static AuthenticationPluginFactory get(String type, Configuration conf)
       throws SQLException {
 
-    ServiceLoader<AuthenticationPluginFactory> loader =
-        ServiceLoader.load(AuthenticationPluginFactory.class, Driver.class.getClassLoader());
-
     String[] authList = (conf.restrictedAuth() != null) ? conf.restrictedAuth().split(",") : null;
 
-    for (AuthenticationPluginFactory implClass : loader) {
-      if (type.equals(implClass.type())) {
-        if (authList == null || Arrays.stream(authList).anyMatch(type::equals)) {
-          return implClass;
-        } else {
-          throw new SQLException(
-              String.format(
-                  "Client restrict authentication plugin to a limited set of authentication plugin"
-                      + " and doesn't permit requested plugin ('%s'). Current list is"
-                      + " `restrictedAuth=%s`",
-                  type, conf.restrictedAuth()),
-              "08004",
-              1251);
-        }
+    AuthenticationPluginFactory implClass = PROVIDERS.get(type, AuthenticationPluginFactory::type);
+    if (implClass != null) {
+      if (authList == null || Arrays.stream(authList).anyMatch(type::equals)) {
+        return implClass;
+      } else {
+        throw new SQLException(
+            String.format(
+                "Client restrict authentication plugin to a limited set of authentication plugin"
+                    + " and doesn't permit requested plugin ('%s'). Current list is"
+                    + " `restrictedAuth=%s`",
+                type, conf.restrictedAuth()),
+            "08004",
+            1251);
       }
     }
     throw new SQLException(

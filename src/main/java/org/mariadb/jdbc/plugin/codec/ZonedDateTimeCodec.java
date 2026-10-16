@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
@@ -103,7 +103,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           return null;
         }
         TimeZone tz = calParam == null ? TimeZone.getDefault() : calParam.getTimeZone();
-        return LocalDateTime.of(parts[0], parts[1], parts[2], 0, 0, 0).atZone(tz.toZoneId());
+        return LocalDateTimeCodec.localDateTimeOf(parts[0], parts[1], parts[2], 0, 0, 0, 0)
+            .atZone(tz.toZoneId());
 
       case DATETIME:
       case TIMESTAMP:
@@ -113,8 +114,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           return null;
         }
         LocalDateTime ldt =
-            LocalDateTime.of(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
-                .plusNanos(parts[6]);
+            LocalDateTimeCodec.localDateTimeOf(
+                parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6]);
         return TimestampColumn.localDateTimeToZoneDateTime(ldt, calParam, context);
 
       case TIME:
@@ -133,7 +134,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
             .atZone(tzTime.toZoneId());
 
       case YEAR:
-        int year = Integer.parseInt(buf.readAscii(length.get()));
+        int year = (int) buf.atoull(length.get());
         if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
         TimeZone tzYear = calParam == null ? TimeZone.getDefault() : calParam.getTimeZone();
         return LocalDateTime.of(year, 1, 1, 0, 0).atZone(tzYear.toZoneId());
@@ -237,7 +238,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           return null;
         }
         TimeZone tz = calParam == null ? TimeZone.getDefault() : calParam.getTimeZone();
-        return LocalDateTime.of(year, month, (int) dayOfMonth, 0, 0, 0).atZone(tz.toZoneId());
+        return LocalDateTimeCodec.localDateTimeOf(year, month, (int) dayOfMonth, 0, 0, 0, 0)
+            .atZone(tz.toZoneId());
 
       case TIMESTAMP:
       case DATETIME:
@@ -271,8 +273,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
         }
 
         LocalDateTime ldt =
-            LocalDateTime.of(year, month, (int) dayOfMonth, hour, minutes, seconds)
-                .plusNanos(microseconds * 1000);
+            LocalDateTimeCodec.localDateTimeOf(
+                year, month, (int) dayOfMonth, hour, minutes, seconds, (int) (microseconds * 1000));
         return TimestampColumn.localDateTimeToZoneDateTime(ldt, calParam, context);
 
       case YEAR:

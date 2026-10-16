@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.message.client;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.CONNECT_ATTRS;
@@ -68,8 +68,8 @@ public final class HandshakeResponse implements ClientMessage {
       byte exchangeCharset) {
     this.authenticationPluginType = authenticationPluginType;
     this.seed = seed;
-    this.username = credential.getUser();
-    this.password = credential.getPassword();
+    this.username = credential.user();
+    this.password = credential.password();
     this.database = conf.database();
     this.connectionAttributes = conf.connectionAttributes();
     this.host = host;

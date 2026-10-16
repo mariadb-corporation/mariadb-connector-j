@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.message.client;
 
 import static org.mariadb.jdbc.message.client.CommandConstants.COM_QUERY;
@@ -69,8 +69,8 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
     Parameters parameters = paramIterator.next();
 
     int rewritePacketNo = 0;
-    int tailStart = parser.getParamPositions().get(parser.getParamCount() - 1) + 1;
-    int endingPartLen = parser.getQuery().length - tailStart;
+    int tailStart = parser.paramPositions()[parser.paramCount() - 1] + 1;
+    int endingPartLen = parser.query().length - tailStart;
 
     // Implementation After writing a bunch of parameter to buffer is marked. then : - when writing
     // next bunch of parameter, if buffer grow more than max_allowed_packet, send buffer up to mark,
@@ -88,13 +88,13 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
 
       int pos = 0;
       int paramPos;
-      if (parser.getParamCount() > parameters.size()) {
+      if (parser.paramCount() > parameters.size()) {
         throw context.getExceptionFactory().create("wrong number of parameters", "Y0000");
       }
 
-      for (int i = 0; i < parser.getParamCount(); i++) {
-        paramPos = parser.getParamPositions().get(i);
-        writer.writeBytes(parser.getQuery(), pos, paramPos - pos);
+      for (int i = 0; i < parser.paramCount(); i++) {
+        paramPos = parser.paramPositions()[i];
+        writer.writeBytes(parser.query(), pos, paramPos - pos);
         pos = paramPos + 1;
         parameters.get(i).encodeText(writer, context);
       }
@@ -104,7 +104,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
       } else break;
 
       if (writer.throwMaxAllowedLengthOr16M(writer.pos() + endingPartLen)) {
-        writer.writeBytes(parser.getQuery(), tailStart, endingPartLen);
+        writer.writeBytes(parser.query(), tailStart, endingPartLen);
         writer.flush();
         continue;
       }
@@ -115,37 +115,35 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
         // check packet length so to separate in multiple packet
         int parameterLength = 0;
         boolean knownParameterSize = true;
-        if (parser.getParamCount() > parameters.size()) {
+        if (parser.paramCount() > parameters.size()) {
           throw context.getExceptionFactory().create("wrong number of parameters", "Y0000");
         }
-        for (int i = 0; i < parser.getParamCount(); i++) {
+        for (int i = 0; i < parser.paramCount(); i++) {
           int paramSize = parameters.get(i).getApproximateTextProtocolLength();
           if (paramSize == -1) {
             knownParameterSize = false;
             break;
           }
           if (i > 0) {
-            parameterLength +=
-                parser.getParamPositions().get(i) - (parser.getParamPositions().get(i - 1) + 1);
+            parameterLength += parser.paramPositions()[i] - (parser.paramPositions()[i - 1] + 1);
           }
           parameterLength += paramSize;
         }
 
         if (!knownParameterSize
             || writer.throwMaxAllowedLengthOr16M(writer.pos() + parameterLength)) {
-          writer.writeBytes(parser.getQuery(), tailStart, endingPartLen);
+          writer.writeBytes(parser.query(), tailStart, endingPartLen);
           writer.flush();
           break;
         }
 
-        writer.writeBytes(
-            parser.getQuery(), pos, parser.getValuesBracketPositions().get(1) + 1 - pos);
+        writer.writeBytes(parser.query(), pos, parser.valuesBracketPositions().get(1) + 1 - pos);
         writer.writeByte((byte) ',');
 
-        pos = parser.getValuesBracketPositions().get(0);
-        for (int i = 0; i < parser.getParamPositions().size(); i++) {
-          paramPos = parser.getParamPositions().get(i);
-          writer.writeBytes(parser.getQuery(), pos, paramPos - pos);
+        pos = parser.valuesBracketPositions().get(0);
+        for (int i = 0; i < parser.paramPositions().length; i++) {
+          paramPos = parser.paramPositions()[i];
+          writer.writeBytes(parser.query(), pos, paramPos - pos);
           pos = paramPos + 1;
           parameters.get(i).encodeText(writer, context);
         }
@@ -155,7 +153,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
         } else break main_loop;
       }
     }
-    writer.writeBytes(parser.getQuery(), tailStart, endingPartLen);
+    writer.writeBytes(parser.query(), tailStart, endingPartLen);
     writer.flush();
 
     return rewritePacketNo;
@@ -171,7 +169,7 @@ public final class QueryWithParametersRewritePacket implements RedoableClientMes
   }
 
   public String description() {
-    return "REWRITE: " + preSqlCmd + parser.getSql();
+    return "REWRITE: " + preSqlCmd + parser.sql();
   }
 
   @Override

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.io.*;
@@ -192,6 +192,8 @@ public class MariaDbBlob implements Blob, Serializable {
 
   /** Checks if the pattern matches at the given position. */
   private boolean isPatternMatch(byte[] pattern, int position) {
+    // plain loop: mismatch is usually on the first byte, where a ranged Arrays.equals call is
+    // slower
     for (int j = 0; j < pattern.length; j++) {
       if (data[position + j] != pattern[j]) {
         return false;
@@ -389,10 +391,8 @@ public class MariaDbBlob implements Blob, Serializable {
 
     if (length != that.length) return false;
 
-    for (int i = 0; i < length; i++) {
-      if (data[offset + i] != that.data[that.offset + i]) return false;
-    }
-    return true;
+    return Arrays.equals(
+        data, offset, offset + length, that.data, that.offset, that.offset + that.length);
   }
 
   @Override

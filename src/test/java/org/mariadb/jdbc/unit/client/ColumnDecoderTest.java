@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.unit.client;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.column.UuidColumn;
 import org.mariadb.jdbc.unit.type.GeometryTest;
 
 public class ColumnDecoderTest {
@@ -46,5 +47,74 @@ public class ColumnDecoderTest {
     assertEquals("test", columnDecoder.getColumnName());
     assertEquals("test", columnDecoder.getColumnAlias());
     assertEquals("db", columnDecoder.getCatalog());
+  }
+
+  @Test
+  public void validExtendedTypeNameFillingTheSubPacket() {
+    // 6-byte sub-packet: type 0, length 4, "uuid". The entry's data ends exactly where the
+    // sub-packet ends, which is how a server sends it: it must be accepted.
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " 06 00 04 75 75 69 64"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    assertTrue(ColumnDecoder.decode(readBuf) instanceof UuidColumn);
+  }
+
+  @Test
+  public void hugeExtendedTypeNameLengthRejectedBeforeAllocation() {
+    // catalog "def", schema "s", table "t", table alias "t", column alias "c", column "c",
+    // then extended info: 10-byte sub-packet holding type 0 and a 0x7FFFFFFF name length
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " 0A 00 FE FF FF FF 7F 00 00 00 00"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    // must fail with a bounds error, not OutOfMemoryError from a 2 GB allocation
+    assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf));
+  }
+
+  @Test
+  public void reportedPacketHugeEntryLengthRejectedBeforeAllocation() {
+    // CONJ-1382: 38-byte column definition whose extended type name declares 0x7FFFFFF0 bytes.
+    // The value fits an int, so only the bound against the sub-packet prevents a 2 GiB allocation
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " 0A 00 FE F0 FF FF 7F 00 00 00 00"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    assertEquals(38, def.length);
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf));
+  }
+
+  @Test
+  public void hugeExtendedSubPacketLengthRejected() {
+    // the sub-packet itself declares 0x7FFFFFF0 bytes while 2 follow: bounded by the packet
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " FE F0 FF FF 7F 00 00 00 00 00 04"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf));
+  }
+
+  @Test
+  public void negativeExtendedSkipLengthRejectedInsteadOfLooping() {
+    // same column, extended info: 10-byte sub-packet holding an unknown type 2 and a length whose
+    // low 32 bits are 0xFFFFFFF6 (-10 once narrowed). Unchecked, skip(-10) rewinds the sub-packet
+    // by exactly the bytes the iteration consumed, and the loop never ends.
+    byte[] def =
+        GeometryTest.hexStringToByteArray(
+            "03 64 65 66 01 73 01 74 01 74 01 63 01 63"
+                + " 0A 02 FE F6 FF FF FF 00 00 00 00"
+                + " 0C 3F 00 01 00 00 00 10 20 00 00 00 00");
+    ReadableByteBuf readBuf = new ReadableByteBuf(def, def.length);
+    org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(
+        java.time.Duration.ofSeconds(5),
+        () -> assertThrows(IllegalArgumentException.class, () -> ColumnDecoder.decode(readBuf)));
   }
 }

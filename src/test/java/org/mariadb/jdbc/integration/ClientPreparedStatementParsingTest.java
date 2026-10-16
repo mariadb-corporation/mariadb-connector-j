@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,17 +16,17 @@ public class ClientPreparedStatementParsingTest extends Common {
     boolean noBackslashEscapes =
         (sharedConn.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
     ClientParser parser = ClientParser.parameterParts(sql, noBackslashEscapes);
-    assertEquals(paramNumber, parser.getParamCount());
+    assertEquals(paramNumber, parser.paramCount());
     int pos = 0;
     int paramPos;
-    for (int i = 0; i < parser.getParamPositions().size(); i++) {
-      paramPos = parser.getParamPositions().get(i);
-      assertEquals(partsMulti[i], new String(parser.getQuery(), pos, paramPos - pos));
+    for (int i = 0; i < parser.paramPositions().length; i++) {
+      paramPos = parser.paramPositions()[i];
+      assertEquals(partsMulti[i], new String(parser.query(), pos, paramPos - pos));
       pos = paramPos + 1;
     }
     assertEquals(
         partsMulti[partsMulti.length - 1],
-        new String(parser.getQuery(), pos, parser.getQuery().length - pos));
+        new String(parser.query(), pos, parser.query().length - pos));
   }
 
   @Test

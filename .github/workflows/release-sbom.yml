@@ -1,0 +1,36 @@
+---
+name: Attach SBOM to Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  attach-sbom:
+    name: Generate and attach CycloneDX SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          cache: maven
+          distribution: 'temurin'
+
+      # Builds, enriches and validates target/mariadb-java-client-<version>.cdx.json; fails the
+      # job if the SBOM does not pass schema and minimum-elements validation.
+      - name: Generate and validate SBOM
+        id: sbom
+        run: echo "path=$(.github/sbom/generate.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload SBOM to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.sbom.outputs.path }}" --clobber

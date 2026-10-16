@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.plugin.codec;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
@@ -10,11 +10,11 @@ import java.sql.SQLDataException;
 import java.time.Duration;
 import java.util.Calendar;
 import java.util.EnumSet;
-import java.util.Locale;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.util.StringUtils;
 
 /** Duration codec */
 public class DurationCodec implements Codec<Duration> {
@@ -207,14 +207,13 @@ public class DurationCodec implements Codec<Duration> {
     long s = val.getSeconds();
     long microSecond = val.getNano() / 1000;
     encoder.writeByte('\'');
+    StringBuilder sb = new StringBuilder(20).append(s / 3600).append(':');
+    StringUtils.appendZeroPadded(sb, (s % 3600) / 60, 2).append(':');
+    StringUtils.appendZeroPadded(sb, s % 60, 2);
     if (microSecond != 0) {
-      encoder.writeAscii(
-          String.format(
-              Locale.ROOT, "%d:%02d:%02d.%06d", s / 3600, (s % 3600) / 60, (s % 60), microSecond));
-    } else {
-      encoder.writeAscii(
-          String.format(Locale.ROOT, "%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60)));
+      StringUtils.appendZeroPadded(sb.append('.'), microSecond, 6);
     }
+    encoder.writeAscii(sb.toString());
     encoder.writeByte('\'');
   }
 

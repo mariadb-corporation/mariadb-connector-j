@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc;
 
 import java.nio.FloatBuffer;
@@ -150,6 +150,23 @@ public class Connection implements java.sql.Connection {
         defaultFetchSize);
   }
 
+  /**
+   * Statement for the driver's own queries whose result-set may be returned to the user (metadata):
+   * never using sequential access (fetch size Integer.MIN_VALUE), whatever the {@code
+   * defaultFetchSize} option.
+   *
+   * @return forward-only statement
+   */
+  Statement createInternalStatement() {
+    return new Statement(
+        this,
+        lock,
+        Statement.RETURN_GENERATED_KEYS,
+        ResultSet.TYPE_FORWARD_ONLY,
+        ResultSet.CONCUR_READ_ONLY,
+        Math.max(0, defaultFetchSize));
+  }
+
   @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
     return prepareInternal(
@@ -292,7 +309,7 @@ public class Connection implements java.sql.Connection {
    */
   public int getLowercaseTableNames() throws SQLException {
     if (lowercaseTableNames == -1) {
-      try (java.sql.Statement st = createStatement()) {
+      try (java.sql.Statement st = createInternalStatement()) {
         try (ResultSet rs = st.executeQuery("select @@lower_case_table_names")) {
           rs.next();
           lowercaseTableNames = rs.getInt(1);
@@ -353,7 +370,7 @@ public class Connection implements java.sql.Connection {
       return client.getContext().getDatabase();
     }
 
-    try (Statement stmt = createStatement()) {
+    try (Statement stmt = createInternalStatement()) {
       ResultSet rs = stmt.executeQuery("select database()");
       rs.next();
       client.getContext().setDatabase(rs.getString(1));
@@ -396,7 +413,7 @@ public class Connection implements java.sql.Connection {
             ? "SELECT @@session.transaction_isolation"
             : "SELECT @@session.tx_isolation";
 
-    try (Statement stmt = createStatement()) {
+    try (Statement stmt = createInternalStatement()) {
       ResultSet rs = stmt.executeQuery(sql);
       if (rs.next()) {
         final String response = rs.getString(1);
@@ -475,7 +492,7 @@ public class Connection implements java.sql.Connection {
     SQLWarning last = null;
     SQLWarning first = null;
 
-    try (Statement st = this.createStatement()) {
+    try (Statement st = this.createInternalStatement()) {
       try (ResultSet rs = st.executeQuery("show warnings")) {
         // returned result set has 'level', 'code' and 'message' columns, in this order.
         while (rs.next()) {
@@ -582,8 +599,25 @@ public class Connection implements java.sql.Connection {
     // not supported
   }
 
+  /**
+   * Savepoints only exist inside a transaction: in auto-commit mode SAVEPOINT succeeds on the
+   * server but the next statement commits and discards it, so the JDBC specification requires an
+   * exception instead.
+   *
+   * @param action description of the refused action, for the error message
+   * @throws SQLException if the connection is in auto-commit mode
+   */
+  private void checkNotAutoCommit(String action) throws SQLException {
+    if ((client.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) {
+      throw exceptionFactory.create(
+          action + " when the connection is in auto-commit mode", "25000");
+    }
+  }
+
   @Override
   public Savepoint setSavepoint() throws SQLException {
+    checkNotClosed();
+    checkNotAutoCommit("Cannot set a savepoint");
     MariaDbSavepoint savepoint = new MariaDbSavepoint(savepointId.incrementAndGet());
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
@@ -591,6 +625,8 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
+    checkNotClosed();
+    checkNotAutoCommit("Cannot set a savepoint");
     MariaDbSavepoint savepoint = new MariaDbSavepoint(name.replace("`", "``"));
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
@@ -600,14 +636,11 @@ public class Connection implements java.sql.Connection {
   @SuppressWarnings("try")
   public void rollback(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
+    checkNotAutoCommit("Cannot rollback to a savepoint");
     try (ClosableLock ignore = lock.closeableLock()) {
-      if (savepoint instanceof Connection.MariaDbSavepoint) {
+      if (savepoint instanceof Connection.MariaDbSavepoint dbSavepoint) {
         client.execute(
-            new QueryPacket(
-                "ROLLBACK TO SAVEPOINT `"
-                    + ((Connection.MariaDbSavepoint) savepoint).rawValue()
-                    + "`"),
-            true);
+            new QueryPacket("ROLLBACK TO SAVEPOINT `" + dbSavepoint.rawValue() + "`"), true);
       } else {
         throw exceptionFactory.create("Unknown savepoint type");
       }
@@ -619,11 +652,8 @@ public class Connection implements java.sql.Connection {
   public void releaseSavepoint(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
     try (ClosableLock ignore = lock.closeableLock()) {
-      if (savepoint instanceof Connection.MariaDbSavepoint) {
-        client.execute(
-            new QueryPacket(
-                "RELEASE SAVEPOINT `" + ((Connection.MariaDbSavepoint) savepoint).rawValue() + "`"),
-            true);
+      if (savepoint instanceof Connection.MariaDbSavepoint dbSavepoint) {
+        client.execute(new QueryPacket("RELEASE SAVEPOINT `" + dbSavepoint.rawValue() + "`"), true);
       } else {
         throw exceptionFactory.create("Unknown savepoint type");
       }
@@ -694,7 +724,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public SQLXML createSQLXML() throws SQLException {
-    throw exceptionFactory.notSupported("SQLXML type is not supported");
+    return new MariaDbSqlXml();
   }
 
   private void checkNotClosed() throws SQLException {

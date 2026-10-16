@@ -71,6 +71,9 @@ public class Utils {
    */
   public static byte[] hexToBytes(String s) {
     int len = s.length();
+    if (len % 2 != 0) {
+      throw new IllegalArgumentException("Hex string must have an even length");
+    }
     byte[] data = new byte[len / 2];
     for (int i = 0; i < len; i += 2) {
       data[i / 2] =

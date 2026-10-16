@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.column;
 
 import java.sql.*;
@@ -141,7 +141,7 @@ public class YearColumn extends UnsignedSmallIntColumn {
   public Timestamp decodeTimestampText(
       final ReadableByteBuf buf, final MutableInt length, Calendar calParam, final Context context)
       throws SQLDataException {
-    int year = Integer.parseInt(buf.readAscii(length.get()));
+    int year = (int) buf.atoull(length.get());
     if (columnLength <= 2) year += year >= 70 ? 1900 : 2000;
 
     if (calParam == null) {

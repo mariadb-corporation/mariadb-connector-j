@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2026 MariaDB Corporation Ab
+// Copyright (c) 2015-2026 MariaDB plc
 package org.mariadb.jdbc.client.column;
 
 import java.sql.*;
@@ -91,9 +91,7 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
     if (columnLength == 1 && context.getConf().transformedBitIsBoolean()) {
       return ByteCodec.parseBit(buf, length) != 0;
     }
-    byte[] arr = new byte[length.get()];
-    buf.readBytes(arr);
-    return arr;
+    return buf.readBytes(length.get());
   }
 
   @Override
@@ -137,8 +135,7 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
       return String.valueOf(ByteCodec.parseBit(buf, length) != 0);
     }
 
-    byte[] bytes = new byte[length.get()];
-    buf.readBytes(bytes);
+    byte[] bytes = buf.readBytes(length.get());
     StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
     sb.append("b'");
     boolean firstByteNonZero = false;
@@ -162,8 +159,7 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
     if (columnLength == 1 && context.getConf().transformedBitIsBoolean()) {
       return String.valueOf(ByteCodec.parseBit(buf, length) != 0);
     }
-    byte[] bytes = new byte[length.get()];
-    buf.readBytes(bytes);
+    byte[] bytes = buf.readBytes(length.get());
     StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
     sb.append("b'");
     boolean firstByteNonZero = false;
