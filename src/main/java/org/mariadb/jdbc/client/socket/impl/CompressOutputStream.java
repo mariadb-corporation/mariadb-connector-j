@@ -36,6 +36,15 @@ public class CompressOutputStream extends OutputStream {
     this.out = out;
     this.sequence = compressionSequence;
   }
+  /**
+   * Fill the 7-byte compressed packet header: 3-byte little-endian compressed length, sequence
+   * byte, 3-byte little-endian uncompressed length (0 when not compressed).
+   */
+  private void writeHeader(int compressedLength, int uncompressedLength) {
+    int seq = sequence.incrementAndGet() & 0xff;
+    INT_LE.set(header, 0, compressedLength | (seq << 24));
+    INT_LE.set(header, 3, seq | (uncompressedLength << 8));
+  }
 
   /**
    * Writes <code>len</code> bytes from the specified byte array starting at offset <code>off</code>
@@ -60,16 +69,6 @@ public class CompressOutputStream extends OutputStream {
    * @throws IOException if an I/O error occurs. In particular, an <code>IOException</code> is
    *     thrown if the output stream is closed.
    */
-  /**
-   * Fill the 7-byte compressed packet header: 3-byte little-endian compressed length, sequence
-   * byte, 3-byte little-endian uncompressed length (0 when not compressed).
-   */
-  private void writeHeader(int compressedLength, int uncompressedLength) {
-    int seq = sequence.incrementAndGet() & 0xff;
-    INT_LE.set(header, 0, compressedLength | (seq << 24));
-    INT_LE.set(header, 3, seq | (uncompressedLength << 8));
-  }
-
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
     if (len + ((longPacketBuffer != null) ? longPacketBuffer.length : 0) < MIN_COMPRESSION_SIZE) {

@@ -78,12 +78,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   public abstract boolean isFunction();
 
   /**
-   * Output result without output parameters
-   *
-   * @param i index
-   * @throws SQLException if any exception
-   */
-  /**
    * Sequential access (fetch size Integer.MIN_VALUE) is not available on callable statements, since
    * all results must be read to retrieve output parameters.
    *
@@ -98,6 +92,13 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     super.setFetchSize(rows);
   }
 
+
+  /**
+   * Output result without output parameters
+   *
+   * @param i index
+   * @throws SQLException if any exception
+   */
   protected void outputResultFromRes(int i) throws SQLException {
     this.outputResult = (Result) this.results.remove(this.results.size() - i);
     this.outputResult.next();

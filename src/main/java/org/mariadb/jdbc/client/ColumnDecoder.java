@@ -48,17 +48,17 @@ public interface ColumnDecoder extends Column {
         buf, charset, length, dataType, decimals, flags, stringPos, null, null);
   }
 
+  /** extended type names (MARIADB_CLIENT_EXTENDED_METADATA) mapped to a dedicated column */
+  byte[] EXT_TYPE_UUID = {'u', 'u', 'i', 'd'};
+
+  byte[] EXT_TYPE_XML = {'x', 'm', 'l'};
+
   /**
    * Decode Column from mysql packet
    *
    * @param buf packet
    * @return column
    */
-  /** extended type names (MARIADB_CLIENT_EXTENDED_METADATA) mapped to a dedicated column */
-  byte[] EXT_TYPE_UUID = {'u', 'u', 'i', 'd'};
-
-  byte[] EXT_TYPE_XML = {'x', 'm', 'l'};
-
   static ColumnDecoder decode(ReadableByteBuf buf) {
     // skip first strings
     int[] stringPos = new int[5];
