@@ -160,7 +160,7 @@ jobs:
       - name: Install the connector
         run: mvn -B -q install -DskipTests -Dgpg.skip -Dmaven.javadoc.skip=true
       - name: Build and test the plugin
-        run: mvn -B -f aws/pom.xml spotless:check verify
+        run: mvn -B -f aws/pom.xml spotless:check verify -Dgpg.skip
       - name: Check the bundled RDS root certificates against the published bundle
         run: |
           aws/scripts/rds-ca-bundle.sh check \
