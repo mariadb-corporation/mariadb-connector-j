@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Statement;
@@ -28,18 +29,21 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public interface ClientMessage {
 
-  /** Precompiled pattern for LOAD DATA LOCAL INFILE with parameter placeholder */
-  Pattern LOAD_LOCAL_PATTERN_PARAM =
+  /** LOAD DATA/XML LOCAL INFILE statement prefix, matched at a statement start only */
+  Pattern LOAD_LOCAL_INFILE_PREFIX =
       Pattern.compile(
-          "^((\\s--|#).*(\\r"
-              + "\\n"
-              + "|\\r"
-              + "|\\n"
-              + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+          "LOAD\\s+(?:DATA|XML)\\s+(?:(?:LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s*",
           Pattern.CASE_INSENSITIVE);
 
   /**
-   * Check that file requested correspond to request.
+   * Check that the file requested by the server corresponds to a LOAD DATA LOCAL INFILE statement
+   * of the current command.
+   *
+   * <p>The command is tokenized: string literals, quoted identifiers and comments are skipped, and
+   * only a LOAD [DATA|XML] LOCAL INFILE found at the start of a statement is considered. Text that
+   * merely appears inside a quoted identifier or a literal, e.g. a database or table name returned
+   * by a malicious server and re-used by the driver or the application in a later query, can
+   * therefore never satisfy a local file request.
    *
    * @param sql current command sql
    * @param parameters current command parameter
@@ -49,34 +53,144 @@ public interface ClientMessage {
    */
   static boolean validateLocalFileName(
       String sql, Parameters parameters, String fileName, Context context) {
-    // Check for direct filename match in SQL
-    String escapedFileName = Pattern.quote(fileName.replace("\\", "\\\\"));
-    String reg =
-        "^((\\s--|#).*(\\r"
-            + "\\n"
-            + "|\\r"
-            + "|\\n"
-            + ")|\\s*/\\*([^*]|\\*[^/])*\\*/|.)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'(?-i:"
-            + escapedFileName
-            + ")'";
+    if (sql == null || fileName == null || fileName.isEmpty()) return false;
+    // file name as written in the SQL text: backslashes are escaped in a literal
+    String expected = fileName.replace("\\", "\\\\");
+    boolean backslashEscapes =
+        context == null || (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) == 0;
 
-    Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
-    if (pattern.matcher(sql).find()) {
-      return true;
-    }
+    int len = sql.length();
+    int pos = 0;
+    int paramIndex = 0; // number of '?' placeholders before the current position
+    boolean statementStart = true;
+    Matcher loadMatcher = LOAD_LOCAL_INFILE_PREFIX.matcher(sql);
 
-    // Check for parameterized query
-    if (parameters != null) {
-      if (LOAD_LOCAL_PATTERN_PARAM.matcher(sql).find() && parameters.size() > 0) {
-        String paramString = parameters.get(0).bestEffortStringValue(context);
-        if (paramString != null) {
-          return paramString.equals("'" + fileName.replace("\\", "\\\\") + "'");
-        }
-        // parameter value can't be rendered to compare against the requested file, refuse
-        return false;
+    while (pos < len) {
+      char c = sql.charAt(pos);
+
+      if (Character.isWhitespace(c)) {
+        pos++;
+        continue;
       }
+
+      // comments: '# ...', '-- ...' (dashes followed by whitespace) and '/* ... */'
+      if (c == '#'
+          || (c == '-'
+              && pos + 1 < len
+              && sql.charAt(pos + 1) == '-'
+              && (pos + 2 >= len || Character.isWhitespace(sql.charAt(pos + 2))))) {
+        pos = skipToEndOfLine(sql, pos);
+        continue;
+      }
+      if (c == '/' && pos + 1 < len && sql.charAt(pos + 1) == '*') {
+        int endComment = sql.indexOf("*/", pos + 2);
+        pos = endComment == -1 ? len : endComment + 2;
+        continue;
+      }
+
+      if (c == ';') {
+        statementStart = true;
+        pos++;
+        continue;
+      }
+
+      if (statementStart) {
+        statementStart = false;
+        loadMatcher.region(pos, len);
+        if (loadMatcher.lookingAt()) {
+          int after = loadMatcher.end();
+          if (after < len && sql.charAt(after) == '\'') {
+            int endLiteral = skipStringLiteral(sql, after, backslashEscapes);
+            // endLiteral points after the closing quote (or sql end when unterminated)
+            if (endLiteral <= len
+                && sql.charAt(endLiteral - 1) == '\''
+                && endLiteral - 1 > after
+                && sql.substring(after + 1, endLiteral - 1).equals(expected)) {
+              return true;
+            }
+            pos = endLiteral;
+            continue;
+          }
+          if (after < len && sql.charAt(after) == '?') {
+            if (parameters != null && paramIndex < parameters.size()) {
+              String paramString = parameters.get(paramIndex).bestEffortStringValue(context);
+              // null : parameter value can't be rendered to compare against the requested file
+              if (paramString != null && paramString.equals("'" + expected + "'")) {
+                return true;
+              }
+            }
+            paramIndex++;
+            pos = after + 1;
+            continue;
+          }
+          pos = after;
+          continue;
+        }
+      }
+
+      if (c == '\'' || c == '"') {
+        pos = skipStringLiteral(sql, pos, backslashEscapes);
+        continue;
+      }
+      if (c == '`') {
+        int endIdentifier = sql.indexOf('`', pos + 1);
+        pos = endIdentifier == -1 ? len : endIdentifier + 1;
+        continue;
+      }
+      if (c == '?') {
+        paramIndex++;
+      }
+      pos++;
     }
     return false;
+  }
+
+  /**
+   * Skip to the end of the current line.
+   *
+   * @param sql sql text
+   * @param pos current position
+   * @return position of the line terminator, or sql length when there is none
+   */
+  static int skipToEndOfLine(String sql, int pos) {
+    int len = sql.length();
+    while (pos < len) {
+      char c = sql.charAt(pos);
+      if (c == '\n' || c == '\r') return pos;
+      pos++;
+    }
+    return len;
+  }
+
+  /**
+   * Skip a string literal starting at pos (a quote character), handling backslash escapes when
+   * enabled and doubled quotes.
+   *
+   * @param sql sql text
+   * @param pos position of the opening quote
+   * @param backslashEscapes whether backslash escapes the next character
+   * @return position after the closing quote, or sql length when the literal is unterminated
+   */
+  static int skipStringLiteral(String sql, int pos, boolean backslashEscapes) {
+    int len = sql.length();
+    char quote = sql.charAt(pos);
+    pos++;
+    while (pos < len) {
+      char c = sql.charAt(pos);
+      if (backslashEscapes && c == '\\') {
+        pos += 2;
+        continue;
+      }
+      if (c == quote) {
+        if (pos + 1 < len && sql.charAt(pos + 1) == quote) {
+          pos += 2; // doubled quote inside the literal
+          continue;
+        }
+        return pos + 1;
+      }
+      pos++;
+    }
+    return len;
   }
 
   /**
