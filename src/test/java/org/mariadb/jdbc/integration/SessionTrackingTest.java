@@ -55,7 +55,9 @@ public class SessionTrackingTest extends Common {
               SQLNonTransientConnectionException.class,
               () -> stmt.execute("SET NAMES latin1"),
               label);
-      assertTrue(e.getMessage().contains("character set was changed to 'latin1'"), e.getMessage());
+      // SET NAMES changes character_set_client and character_set_results: whichever the server
+      // reports first closes the connection (Enterprise Server orders them differently)
+      assertTrue(e.getMessage().contains("was changed to 'latin1'"), e.getMessage());
       assertEquals("08000", e.getSQLState());
     }
     assertTrue(con.isClosed());
