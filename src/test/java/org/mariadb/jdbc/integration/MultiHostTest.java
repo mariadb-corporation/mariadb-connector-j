@@ -48,6 +48,12 @@ public class MultiHostTest extends Common {
   public void ensureReadOnlyOnReplica() throws Exception {
     // mariadb1.example.com, mariadb2.example.com and mariadb3.example.com DNS alias must be defined
     Assumptions.assumeFalse("maxscale".equals(System.getenv("srv")));
+    // without the aliases, the 100 connection attempts below would only fail for ~30 seconds
+    Assumptions.assumeTrue(
+        resolves("mariadb1.example.com")
+            && resolves("mariadb2.example.com")
+            && resolves("mariadb3.example.com"),
+        "mariadb1/2/3.example.com DNS aliases are not defined");
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -136,7 +142,14 @@ public class MultiHostTest extends Common {
       con.setReadOnly(true);
       assertEquals(java.sql.Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
     } finally {
-      sharedConn.createStatement().execute("DROP DATABASE IF EXISTS sync");
+      // clean up with a dedicated connection: the shared connection may have been lost by a
+      // previous test, and a cleanup failure must not hide the test's own result
+      try (java.sql.Connection cleanupCon = DriverManager.getConnection(mDefUrl);
+          java.sql.Statement cleanupStmt = cleanupCon.createStatement()) {
+        cleanupStmt.execute("DROP DATABASE IF EXISTS sync");
+      } catch (SQLException e) {
+        System.out.println("  ! cleanup of database sync failed: " + e.getMessage());
+      }
     }
   }
 
@@ -584,6 +597,15 @@ public class MultiHostTest extends Common {
                 url
                     + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     con2.abort(Runnable::run);
+  }
+
+  private static boolean resolves(String host) {
+    try {
+      java.net.InetAddress.getByName(host);
+      return true;
+    } catch (java.net.UnknownHostException e) {
+      return false;
+    }
   }
 
   public Connection createProxyConKeep(String opts) throws SQLException {
