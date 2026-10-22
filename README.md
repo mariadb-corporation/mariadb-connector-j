@@ -14,7 +14,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 ## Status
 
 [![CI Tests](https://github.com/mariadb-corporation/mariadb-connector-j/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/mariadb-corporation/mariadb-connector-j/actions/workflows/ci.yml)
-[![Maven Central](https://img.shields.io/maven-central/v/org.mariadb.jdbc/mariadb-java-client.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
+[![Maven Central](https://img.shields.io/maven-central/v/org.mariadb.jdbc/mariadb-java-client.svg)](https://central.sonatype.com/artifact/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 [![codecov][codecov-image]][codecov-url]
 
