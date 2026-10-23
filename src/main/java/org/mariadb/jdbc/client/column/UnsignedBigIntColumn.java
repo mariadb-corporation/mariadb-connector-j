@@ -94,12 +94,16 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   public Object getDefaultBinary(
       final ReadableByteBuf buf, final MutableInt length, final Context context)
       throws SQLDataException {
-    // need BIG ENDIAN, so reverse order
-    byte[] bb = new byte[8];
-    for (int i = 7; i >= 0; i--) {
-      bb[i] = buf.readByte();
-    }
-    return new BigInteger(1, bb);
+    return toUnsignedBigInteger(buf.readLong());
+  }
+
+  /**
+   * Convert the 8 little-endian bytes of a BIGINT UNSIGNED binary value, read as a long, to their
+   * unsigned value. Values below 2^63 are the common case and avoid any BigInteger arithmetic.
+   */
+  private static BigInteger toUnsignedBigInteger(final long value) {
+    if (value >= 0) return BigInteger.valueOf(value);
+    return BigInteger.valueOf(value & Long.MAX_VALUE).setBit(63);
   }
 
   @Override
@@ -128,18 +132,14 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public byte decodeByteBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-    // need BIG ENDIAN, so reverse order
-    byte[] bb = new byte[8];
-    for (int i = 7; i >= 0; i--) {
-      bb[i] = buf.readByte();
-    }
-    BigInteger val = new BigInteger(1, bb);
-    try {
-      return val.byteValueExact();
-    } catch (NumberFormatException | ArithmeticException nfe) {
+    long result = buf.readLong();
+    if (result < 0 || result > Byte.MAX_VALUE) {
       throw new SQLDataException(
-          String.format("value '%s' (%s) cannot be decoded as Byte", val, dataType));
+          String.format(
+              "value '%s' (%s) cannot be decoded as Byte",
+              Long.toUnsignedString(result), dataType));
     }
+    return (byte) result;
   }
 
   @Override
@@ -153,12 +153,7 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   public String decodeStringBinary(
       final ReadableByteBuf buf, final MutableInt length, final Calendar cal, final Context context)
       throws SQLDataException {
-    // need BIG ENDIAN, so reverse order
-    byte[] bb = new byte[8];
-    for (int i = 7; i >= 0; i--) {
-      bb[i] = buf.readByte();
-    }
-    return new BigInteger(1, bb).toString();
+    return Long.toUnsignedString(buf.readLong());
   }
 
   @Override
@@ -196,17 +191,12 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   public int decodeIntBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
 
-    // need BIG ENDIAN, so reverse order
-    byte[] bb = new byte[8];
-    for (int i = 7; i >= 0; i--) {
-      bb[i] = buf.readByte();
+    long result = buf.readLong();
+    if (result < 0 || result > Integer.MAX_VALUE) {
+      throw new SQLDataException(
+          String.format("value '%s' cannot be decoded as Integer", Long.toUnsignedString(result)));
     }
-    BigInteger val = new BigInteger(1, bb);
-    try {
-      return val.intValueExact();
-    } catch (ArithmeticException ae) {
-      throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", val));
-    }
+    return (int) result;
   }
 
   @Override
@@ -227,17 +217,10 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
     if ((buf.getByte(buf.pos() + 7) & 0x80) == 0) {
       return buf.readLong();
     } else {
-      // error too big to return a long
-      byte[] bb = new byte[8];
-      for (int i = 7; i >= 0; i--) {
-        bb[i] = buf.readByte();
-      }
-      BigInteger val = new BigInteger(1, bb);
-      try {
-        return val.longValueExact();
-      } catch (ArithmeticException ae) {
-        throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", val));
-      }
+      // value is >= 2^63: too big for a long
+      throw new SQLDataException(
+          String.format(
+              "value '%s' cannot be decoded as Long", Long.toUnsignedString(buf.readLong())));
     }
   }
 
@@ -250,12 +233,8 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public float decodeFloatBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-    // need BIG ENDIAN, so reverse order
-    byte[] bb = new byte[8];
-    for (int i = 7; i >= 0; i--) {
-      bb[i] = buf.readByte();
-    }
-    return new BigInteger(1, bb).floatValue();
+    long result = buf.readLong();
+    return result >= 0 ? (float) result : toUnsignedBigInteger(result).floatValue();
   }
 
   @Override
@@ -267,12 +246,8 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
   @Override
   public double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException {
-    // need BIG ENDIAN, so reverse order
-    byte[] bb = new byte[8];
-    for (int i = 7; i >= 0; i--) {
-      bb[i] = buf.readByte();
-    }
-    return new BigInteger(1, bb).doubleValue();
+    long result = buf.readLong();
+    return result >= 0 ? (double) result : toUnsignedBigInteger(result).doubleValue();
   }
 
   @Override
