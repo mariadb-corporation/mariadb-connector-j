@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
@@ -168,11 +169,6 @@ public class BinaryRowDecoder implements RowDecoder {
     return (nullBitmap[idx / 8] & (1 << (idx % 8))) > 0 || fieldLength.get() == NULL_LENGTH;
   }
 
-  /**
-   * Set length and pos indicator to asked index.
-   *
-   * @param newIndex index (0 is first).
-   */
   @Override
   public int setPosition(
       final int newIndex,
@@ -182,118 +178,92 @@ public class BinaryRowDecoder implements RowDecoder {
       final byte[] nullBitmap,
       final ColumnDecoder[] metadataList)
       throws SQLException {
-
-    if (fieldIndex.get() >= newIndex) {
-      fieldIndex.set(0);
+    int fi = fieldIndex.get();
+    if (fi < 0 || fi >= newIndex) {
+      // first access on this row, or going backward: restart after the 0x00 header + null-bitmap
+      fi = 0;
       rowBuf.pos(1);
-      rowBuf.readBytes(nullBitmap);
+      for (int i = 0; i < nullBitmap.length; i++) nullBitmap[i] = rowBuf.readByte();
     } else {
-      fieldIndex.incrementAndGet();
-      if (fieldIndex.get() == 0) {
-        // skip header + null-bitmap
-        rowBuf.pos(1);
-        rowBuf.readBytes(nullBitmap);
-      }
+      fi++;
     }
+    if (fi < newIndex) fi = skipTo(fi, newIndex, rowBuf, nullBitmap, metadataList);
+    fieldIndex.set(fi);
 
-    while (fieldIndex.get() < newIndex) {
-      int fi = fieldIndex.get();
+    int idx = fi + 2;
+    if ((nullBitmap[idx >> 3] & (1 << (idx & 7))) != 0) return NULL_LENGTH;
+
+    int fieldLength = fixedLength(metadataList[fi].getType());
+    if (fieldLength == 0) fieldLength = readVariableLength(rowBuf);
+    if (fieldLength > rowBuf.readableBytes()) throw invalidLength(fieldLength, rowBuf);
+    return fieldLength;
+  }
+
+  private static int skipTo(
+      int fi,
+      final int newIndex,
+      final ReadableByteBuf rowBuf,
+      final byte[] nullBitmap,
+      final ColumnDecoder[] metadataList) {
+    while (fi < newIndex) {
       int idx = fi + 2;
-      if ((nullBitmap[idx / 8] & (1 << (idx % 8))) == 0) {
-        // skip bytes
-        switch (metadataList[fi].getType()) {
-          case BIGINT:
-          case DOUBLE:
-            rowBuf.skip(8);
-            break;
-
-          case INTEGER:
-          case MEDIUMINT:
-          case FLOAT:
-            rowBuf.skip(4);
-            break;
-
-          case SMALLINT:
-          case YEAR:
-            rowBuf.skip(2);
-            break;
-
-          case TINYINT:
-            rowBuf.skip(1);
-            break;
-
-          default:
-            rowBuf.skipLengthEncoded();
-            break;
+      if ((nullBitmap[idx >> 3] & (1 << (idx & 7))) == 0) {
+        int len = fixedLength(metadataList[fi].getType());
+        if (len == 0) {
+          rowBuf.skipLengthEncoded();
+        } else {
+          rowBuf.skip(len);
         }
       }
-      fieldIndex.incrementAndGet();
+      fi++;
     }
+    return fi;
+  }
 
-    int fi = fieldIndex.get();
-    int idx = fi + 2;
-    if ((nullBitmap[idx / 8] & (1 << (idx % 8))) > 0) {
-      return NULL_LENGTH;
-    }
-
-    // read asked field position and length
-    int fieldLength;
-    switch (metadataList[fi].getType()) {
+  /** binary-protocol fixed field length for the type, 0 when the field is length-encoded */
+  private static int fixedLength(final DataType type) {
+    switch (type) {
       case BIGINT:
       case DOUBLE:
-        fieldLength = 8;
-        break;
-
+        return 8;
       case INTEGER:
       case MEDIUMINT:
       case FLOAT:
-        fieldLength = 4;
-        break;
-
+        return 4;
       case SMALLINT:
       case YEAR:
-        fieldLength = 2;
-        break;
-
+        return 2;
       case TINYINT:
-        fieldLength = 1;
-        break;
-
+        return 1;
       default:
-        // field with variable length
-        byte len = rowBuf.readByte();
-        switch (len) {
-          case (byte) 252:
-            // length is encoded on 3 bytes (0xfc header + 2 bytes indicating length)
-            fieldLength = rowBuf.readUnsignedShort();
-            break;
+        return 0;
+    }
+  }
 
-          case (byte) 253:
-            // length is encoded on 4 bytes (0xfd header + 3 bytes indicating length)
-            fieldLength = rowBuf.readUnsignedMedium();
-            break;
-
-          case (byte) 254:
-            // length is encoded on 9 bytes (0xfe header + 8 bytes indicating length)
-            long longLength = rowBuf.readLong();
-            if (longLength < 0 || longLength > Integer.MAX_VALUE) {
-              throw new SQLException("Invalid length-encoded field length " + longLength);
-            }
-            fieldLength = (int) longLength;
-            break;
-          default:
-            fieldLength = len & 0xff;
+  private static int readVariableLength(final ReadableByteBuf rowBuf) throws SQLException {
+    byte len = rowBuf.readByte();
+    switch (len) {
+      case (byte) 252:
+        return rowBuf.readUnsignedShort();
+      case (byte) 253:
+        return rowBuf.readUnsignedMedium();
+      case (byte) 254:
+        long longLength = rowBuf.readLong();
+        if (longLength < 0 || longLength > Integer.MAX_VALUE) {
+          throw new SQLException("Invalid length-encoded field length " + longLength);
         }
+        return (int) longLength;
+      default:
+        return len & 0xff;
     }
-    // the length is server-declared and column decoders allocate from it: it must fit in the row
-    if (fieldLength > rowBuf.readableBytes()) {
-      throw new SQLException(
-          "Invalid length-encoded field length "
-              + fieldLength
-              + ": exceeds the "
-              + rowBuf.readableBytes()
-              + " bytes remaining in row packet");
-    }
-    return fieldLength;
+  }
+
+  private static SQLException invalidLength(final int fieldLength, final ReadableByteBuf rowBuf) {
+    return new SQLException(
+        "Invalid length-encoded field length "
+            + fieldLength
+            + ": exceeds the "
+            + rowBuf.readableBytes()
+            + " bytes remaining in row packet");
   }
 }

@@ -114,22 +114,20 @@ public class Reader {
    */
   public byte[] readPacket(boolean traceEnable) throws IOException {
     int packetLength = readHeader();
-    checkMaxAllowedLength(packetLength);
+    if (packetLength > maxAllowedPacket) throw maxAllowedPacketException(packetLength);
     byte[] rawBytes = new byte[packetLength];
     readFully(rawBytes, 0, packetLength);
-
-    if (traceEnable) {
-      INT_LE.set(header, 0, packetLength | (headerSequence << 24));
-      logger.trace(
-          "read: {}\n{}",
-          serverThreadLog,
-          LoggerHelper.hex(header, rawBytes, 0, packetLength, maxQuerySizeToLog));
-    }
-
-    if (packetLength == MAX_PACKET_SIZE) {
-      return readMultiPacket(rawBytes, traceEnable);
-    }
+    if (traceEnable) trace(rawBytes, packetLength);
+    if (packetLength == MAX_PACKET_SIZE) return readMultiPacket(rawBytes, traceEnable);
     return rawBytes;
+  }
+
+  private void trace(byte[] rawBytes, int packetLength) {
+    INT_LE.set(header, 0, packetLength | (headerSequence << 24));
+    logger.trace(
+        "read: {}\n{}",
+        serverThreadLog,
+        LoggerHelper.hex(header, rawBytes, 0, packetLength, maxQuerySizeToLog));
   }
 
   /**
@@ -264,6 +262,19 @@ public class Reader {
    * @param length number of bytes to read
    * @throws IOException if socket exception occur or the stream ends early
    */
+  private void fillHeader() throws IOException {
+    // the header may straddle two fills: move what is left to the front and read on
+    int available = bufLen - bufPos;
+    System.arraycopy(buf, bufPos, buf, 0, available);
+    bufPos = 0;
+    bufLen = available;
+    do {
+      int count = inputStream.read(buf, bufLen, buf.length - bufLen);
+      if (count < 0) throw eof(bufLen, 4);
+      bufLen += count;
+    } while (bufLen < 4);
+  }
+
   public void readFully(byte[] dest, int off, int length) throws IOException {
     int remaining = length;
     int available = bufLen - bufPos;
@@ -278,26 +289,12 @@ public class Reader {
       if (remaining >= buf.length) {
         // the buffer is empty here: large payloads go straight into the destination
         int count = inputStream.read(dest, off, remaining);
-        if (count < 0) {
-          throw new EOFException(
-              "unexpected end of stream, read "
-                  + (length - remaining)
-                  + " bytes from "
-                  + length
-                  + " (socket was closed by server)");
-        }
+        if (count < 0) throw eof(length - remaining, length);
         off += count;
         remaining -= count;
       } else {
         int read = inputStream.read(buf, 0, buf.length);
-        if (read < 0) {
-          throw new EOFException(
-              "unexpected end of stream, read "
-                  + (length - remaining)
-                  + " bytes from "
-                  + length
-                  + " (socket was closed by server)");
-        }
+        if (read < 0) throw eof(length - remaining, length);
         bufLen = read;
         int count = Math.min(read, remaining);
         System.arraycopy(buf, 0, dest, off, count);
@@ -319,15 +316,26 @@ public class Reader {
 
   private void checkMaxAllowedLength(long length) throws MaxAllowedPacketException {
     // checked on every packet: a primitive, never null (the default applies when unset)
-    if (length > maxAllowedPacket) {
-      throw new MaxAllowedPacketException(
-          "received packet size ("
-              + length
-              + ") is greater than maxAllowedPacket ("
-              + maxAllowedPacket
-              + ")",
-          true);
-    }
+    if (length > maxAllowedPacket) throw maxAllowedPacketException(length);
+  }
+
+  private MaxAllowedPacketException maxAllowedPacketException(long length) {
+    return new MaxAllowedPacketException(
+        "received packet size ("
+            + length
+            + ") is greater than maxAllowedPacket ("
+            + maxAllowedPacket
+            + ")",
+        true);
+  }
+
+  private static EOFException eof(int read, int expected) {
+    return new EOFException(
+        "unexpected end of stream, read "
+            + read
+            + " bytes from "
+            + expected
+            + " (socket was closed by server)");
   }
 
   public MutableByte getSequence() {
@@ -371,23 +379,7 @@ public class Reader {
    * @throws IOException if socket error occurs or the stream ended
    */
   private int readHeader() throws IOException {
-    if (bufLen - bufPos < 4) {
-      // the header may straddle two fills: move what is left to the front and read on
-      int available = bufLen - bufPos;
-      System.arraycopy(buf, bufPos, buf, 0, available);
-      bufPos = 0;
-      bufLen = available;
-      do {
-        int count = inputStream.read(buf, bufLen, buf.length - bufLen);
-        if (count < 0) {
-          throw new EOFException(
-              "unexpected end of stream, read "
-                  + bufLen
-                  + " bytes from 4 (socket was closed by server)");
-        }
-        bufLen += count;
-      } while (bufLen < 4);
-    }
+    if (bufLen - bufPos < 4) fillHeader();
     int h = (int) INT_LE.get(buf, bufPos);
     bufPos += 4;
     headerSequence = (byte) (h >>> 24);
