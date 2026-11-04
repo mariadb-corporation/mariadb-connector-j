@@ -315,11 +315,10 @@ public class LocalDateCodec implements Codec<LocalDate> {
       Writer encoder, Context context, LocalDate value, Calendar providedCal, Long maxLength)
       throws IOException {
     LocalDate val = value;
-    encoder.writeByte(7); // length
+    encoder.writeByte(4); // length
     encoder.writeShort((short) val.getYear());
     encoder.writeByte(val.getMonthValue());
     encoder.writeByte(val.getDayOfMonth());
-    encoder.writeBytes(new byte[] {0, 0, 0});
   }
 
   public int getBinaryEncodeType() {
