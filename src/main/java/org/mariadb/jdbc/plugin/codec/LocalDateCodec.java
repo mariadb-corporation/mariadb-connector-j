@@ -273,11 +273,10 @@ public class LocalDateCodec implements Codec<LocalDate> {
   public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     LocalDate val = (LocalDate) value;
-    encoder.writeByte(7); // length
+    encoder.writeByte(4); // length
     encoder.writeShort((short) val.getYear());
     encoder.writeByte(val.getMonthValue());
     encoder.writeByte(val.getDayOfMonth());
-    encoder.writeBytes(new byte[] {0, 0, 0});
   }
 
   public int getBinaryEncodeType() {
