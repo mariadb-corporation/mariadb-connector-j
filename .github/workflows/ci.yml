@@ -61,6 +61,7 @@ jobs:
           registry-user: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_USER || (secrets.DOCKER_TOKEN != '' && secrets.DOCKER_LOGIN || '') }}
           registry-password: ${{ matrix.db-type == 'enterprise' && secrets.ENTERPRISE_TOKEN || secrets.DOCKER_TOKEN }}
           maxscale-tag: ${{ matrix.maxscale-tag || ''}}
+          maxscale-license-key: ${{ secrets.MAXSCALE_LICENSE_KEY }}
           os: ${{ matrix.os }}
 
       - uses: actions/setup-java@v5
