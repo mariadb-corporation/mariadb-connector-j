@@ -105,7 +105,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
    */
   public Writer setCharacterStream(long pos) throws SQLException {
     int bytePosition = utf8Position((int) pos - 1);
-    OutputStream stream = setBinaryStream(bytePosition + 1);
+    OutputStream stream = setBinaryStream(bytePosition + 1 - offset);
     return new OutputStreamWriter(stream, StandardCharsets.UTF_8);
   }
 
@@ -180,7 +180,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   }
 
   public OutputStream setAsciiStream(long pos) throws SQLException {
-    return setBinaryStream(utf8Position((int) pos - 1) + 1);
+    return setBinaryStream(utf8Position((int) pos - 1) + 1 - offset);
   }
 
   /** Return character length of the Clob. Assume UTF8 encoding. */
