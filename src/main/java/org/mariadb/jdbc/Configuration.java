@@ -2067,12 +2067,12 @@ public class Configuration {
 
   /**
    * When enabled (the default), {@link java.sql.Connection#setReadOnly(boolean)} on a single-host
-   * connection propagates the read-only state to the server by issuing {@code SET SESSION
-   * TRANSACTION READ ONLY} / {@code READ WRITE}, for servers &gt;= 5.6.5. This lets the server (and
-   * engines that can use it) reject DML on a read-only connection and take an optimistic read-only
-   * transaction path. Multi-host replica connections are already put in read-only mode at
-   * connection time, so this option does not change their behavior. When disabled, {@code
-   * setReadOnly()} sends no statement on a single-host connection.
+   * connection, or on a multi-host connection with primary hosts only, propagates the read-only
+   * state to the server by issuing {@code SET SESSION TRANSACTION READ ONLY} / {@code READ WRITE},
+   * for servers &gt;= 5.6.5. This lets the server (and engines that can use it) reject DML on a
+   * read-only connection and take an optimistic read-only transaction path. Multi-host replica
+   * connections are already put in read-only mode at connection time, so this option does not
+   * change their behavior. When disabled, {@code setReadOnly()} sends no statement.
    *
    * @return true if {@code setReadOnly()} propagates the read-only state to the server
    */
@@ -3470,11 +3470,11 @@ public class Configuration {
 
     /**
      * When enabled (the default), {@link java.sql.Connection#setReadOnly(boolean)} on a single-host
-     * connection propagates the read-only state to the server by issuing {@code SET SESSION
-     * TRANSACTION READ ONLY} / {@code READ WRITE}, for servers &gt;= 5.6.5, so the server rejects
-     * DML on a read-only connection. Multi-host replica connections are already read-only at
-     * connection time. When disabled, {@code setReadOnly()} sends no statement on a single-host
-     * connection.
+     * connection, or on a multi-host connection with primary hosts only, propagates the read-only
+     * state to the server by issuing {@code SET SESSION TRANSACTION READ ONLY} / {@code READ
+     * WRITE}, for servers &gt;= 5.6.5, so the server rejects DML on a read-only connection.
+     * Multi-host replica connections are already read-only at connection time. When disabled,
+     * {@code setReadOnly()} sends no statement.
      *
      * @param readOnlyPropagatesToServer propagate read-only state to the server on setReadOnly()
      * @return this {@link Builder}

@@ -147,6 +147,218 @@ public class MultiHostTest extends Common {
     }
   }
 
+  private boolean serverReadOnly(Connection con) throws SQLException {
+    String variable =
+        con.getContext().canUseTransactionIsolation() ? "transaction_read_only" : "tx_read_only";
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@session." + variable)) {
+      assertTrue(rs.next());
+      return rs.getBoolean(1);
+    }
+  }
+
+  /**
+   * Two primaries: the host behind the proxy is used first, the direct host is the failover one.
+   * Each call creates a new proxy: the driver avoids a host that failed for some time, a new proxy
+   * is a host that never failed.
+   */
+  private String twoPrimariesUrl() throws SQLException {
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    try {
+      proxy = new TcpProxy(hostAddress.host, hostAddress.port);
+    } catch (IOException i) {
+      throw new SQLException("proxy error", i);
+    }
+
+    String url =
+        mDefUrl.replaceAll(
+            "//(" + hostname + "|" + hostname + ":" + port + ")/" + database,
+            String.format(
+                "//address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/"
+                    + database,
+                proxy.getLocalPort(),
+                hostAddress.host,
+                hostAddress.port));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+    return url + "&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500";
+  }
+
+  @Test
+  public void readOnlyMultiPrimary() throws SQLException {
+    Assumptions.assumeFalse(isMaxscale());
+    // primary hosts only: there is no replica connection to switch to, so the read-only state is
+    // propagated to the server, as on a single-host connection
+    String url = mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:loadbalance:");
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS readOnlyMultiPrimary");
+    stmt.execute("CREATE TABLE readOnlyMultiPrimary(id int)");
+    try {
+      try (Connection con = (Connection) DriverManager.getConnection(url)) {
+        Statement s = con.createStatement();
+        assertFalse(serverReadOnly(con));
+        con.setReadOnly(true);
+        assertTrue(serverReadOnly(con));
+        Common.assertThrowsContains(
+            SQLException.class,
+            () -> s.executeUpdate("INSERT INTO readOnlyMultiPrimary VALUES (1)"),
+            "READ ONLY");
+        con.setReadOnly(false);
+        assertFalse(serverReadOnly(con));
+        assertEquals(1, s.executeUpdate("INSERT INTO readOnlyMultiPrimary VALUES (2)"));
+      }
+
+      // disabled: no statement sent, DML still allowed while read-only
+      try (Connection con =
+          (Connection) DriverManager.getConnection(url + "&readOnlyPropagatesToServer=false")) {
+        con.setReadOnly(true);
+        assertFalse(serverReadOnly(con));
+        assertEquals(
+            1, con.createStatement().executeUpdate("INSERT INTO readOnlyMultiPrimary VALUES (3)"));
+
+        // option off: setReadOnly() sends nothing to the server, so a lost connection is not
+        // reconnected
+        long threadId = con.getThreadId();
+        con.abort(Runnable::run);
+        con.setReadOnly(false);
+        assertEquals(threadId, con.getThreadId());
+      }
+    } finally {
+      stmt.execute("DROP TABLE IF EXISTS readOnlyMultiPrimary");
+    }
+  }
+
+  @Test
+  public void readOnlyMultiPrimaryFailover() throws Exception {
+    Assumptions.assumeFalse(isMaxscale());
+
+    String url = twoPrimariesUrl();
+
+    // host lost after setReadOnly(true): the new session starts read-write, the read-only state
+    // must be carried over to it
+    try (Connection con = (Connection) DriverManager.getConnection(url)) {
+      long threadId = con.getThreadId();
+      con.setReadOnly(true);
+      assertTrue(serverReadOnly(con));
+
+      proxy.restart(50);
+      assertTrue(con.isValid(1));
+      assertNotEquals(threadId, con.getThreadId());
+      assertTrue(serverReadOnly(con));
+
+      con.setReadOnly(false);
+      assertFalse(serverReadOnly(con));
+    }
+
+    // resetting the connection after a failover puts the new session back to read-write
+    url = twoPrimariesUrl();
+    try (Connection con = (Connection) DriverManager.getConnection(url)) {
+      con.setReadOnly(true);
+      proxy.restart(50);
+      assertTrue(con.isValid(1));
+      assertTrue(serverReadOnly(con));
+      con.reset();
+      assertFalse(con.isReadOnly());
+      assertFalse(serverReadOnly(con));
+    }
+
+    // host lost when setReadOnly(true) is called: the state is set on the failover host
+    url = twoPrimariesUrl();
+    try (Connection con = (Connection) DriverManager.getConnection(url)) {
+      long threadId = con.getThreadId();
+      proxy.restart(50);
+      con.setReadOnly(true);
+      assertNotEquals(threadId, con.getThreadId());
+      assertTrue(serverReadOnly(con));
+    }
+
+    // option disabled: nothing is carried over
+    url = twoPrimariesUrl();
+    try (Connection con =
+        (Connection) DriverManager.getConnection(url + "&readOnlyPropagatesToServer=false")) {
+      long threadId = con.getThreadId();
+      con.setReadOnly(true);
+      proxy.restart(50);
+      assertTrue(con.isValid(1));
+      assertNotEquals(threadId, con.getThreadId());
+      assertFalse(serverReadOnly(con));
+    }
+  }
+
+  @Test
+  public void readOnlyMultiPrimaryFailoverInTransaction() throws Exception {
+    Assumptions.assumeFalse(isMaxscale());
+
+    String url = twoPrimariesUrl();
+
+    Statement sharedStmt = sharedConn.createStatement();
+    sharedStmt.execute("DROP TABLE IF EXISTS readOnlyMultiPrimaryTx");
+    sharedStmt.execute("CREATE TABLE readOnlyMultiPrimaryTx(id int)");
+    try {
+      // the failover host is read-only before the transaction is replayed on it, so the replayed
+      // transaction is read-only as well
+      try (Connection con =
+          (Connection) DriverManager.getConnection(url + "&transactionReplay=true")) {
+        long threadId = con.getThreadId();
+        Statement stmt = con.createStatement();
+        con.setReadOnly(true);
+        con.setAutoCommit(false);
+        stmt.executeQuery("SELECT * FROM readOnlyMultiPrimaryTx");
+
+        proxy.restart(50);
+        Common.assertThrowsContains(
+            SQLException.class,
+            () -> stmt.executeUpdate("INSERT INTO readOnlyMultiPrimaryTx VALUES (1)"),
+            "READ ONLY");
+        assertNotEquals(threadId, con.getThreadId());
+      }
+
+      // host lost when setReadOnly(true) is called inside a transaction: the transaction is
+      // replayed on the failover host
+      url = twoPrimariesUrl();
+      try (Connection con =
+          (Connection) DriverManager.getConnection(url + "&transactionReplay=true")) {
+        long threadId = con.getThreadId();
+        Statement stmt = con.createStatement();
+        con.setAutoCommit(false);
+        stmt.executeUpdate("INSERT INTO readOnlyMultiPrimaryTx VALUES (4)");
+
+        proxy.restart(50);
+        con.setReadOnly(true);
+        assertNotEquals(threadId, con.getThreadId());
+        con.commit();
+
+        ResultSet rs = sharedStmt.executeQuery("SELECT COUNT(*) FROM readOnlyMultiPrimaryTx");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(serverReadOnly(con));
+      }
+
+      // read-only transaction lost without replay: the failover host is read-only as well
+      url = twoPrimariesUrl();
+      try (Connection con = (Connection) DriverManager.getConnection(url)) {
+        long threadId = con.getThreadId();
+        Statement stmt = con.createStatement();
+        con.setReadOnly(true);
+        con.setAutoCommit(false);
+        stmt.executeQuery("SELECT * FROM readOnlyMultiPrimaryTx");
+
+        proxy.restart(50);
+        Common.assertThrowsContains(
+            SQLTransientConnectionException.class,
+            () -> stmt.executeQuery("SELECT * FROM readOnlyMultiPrimaryTx"),
+            "In progress transaction was lost");
+        assertNotEquals(threadId, con.getThreadId());
+        assertTrue(serverReadOnly(con));
+      }
+    } finally {
+      sharedStmt.execute("DROP TABLE IF EXISTS readOnlyMultiPrimaryTx");
+    }
+  }
+
   @Test
   public void syncState() throws Exception {
     try (Connection con = createProxyConKeep("")) {

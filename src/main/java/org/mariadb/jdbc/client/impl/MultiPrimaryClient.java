@@ -55,6 +55,9 @@ public class MultiPrimaryClient implements Client {
   /** current client */
   protected Client currentClient;
 
+  /** read-only state propagated to the server, to set it again on a new connection */
+  private boolean readOnly = false;
+
   /**
    * Constructor
    *
@@ -215,6 +218,11 @@ public class MultiPrimaryClient implements Client {
 
       currentClient = connectHost(false, false);
       syncNewState(oldClient);
+      if (readOnly) {
+        // the new session starts read-write
+        currentClient.setReadOnly(true);
+        currentClient.getContext().addStateFlag(ConnectionState.STATE_READ_ONLY);
+      }
       return oldClient;
 
     } catch (SQLNonTransientConnectionException sqle) {
@@ -587,6 +595,21 @@ public class MultiPrimaryClient implements Client {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
     }
+
+    if (!conf.readOnlyPropagatesToServer()) {
+      return;
+    }
+
+    // every host is a primary: there is no replica connection to switch to, so the read-only state
+    // is propagated to the current host, as on a single-host connection
+    try {
+      currentClient.setReadOnly(readOnly);
+    } catch (SQLNonTransientConnectionException e) {
+      Client oldClient = reConnect();
+      replayIfPossible(oldClient, true);
+      currentClient.setReadOnly(readOnly);
+    }
+    this.readOnly = readOnly;
   }
 
   @Override
