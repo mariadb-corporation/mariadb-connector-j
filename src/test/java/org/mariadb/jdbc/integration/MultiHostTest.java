@@ -337,6 +337,59 @@ public class MultiHostTest extends Common {
         assertTrue(serverReadOnly(con));
       }
 
+      // setReadOnly() called inside a transaction only applies to the next transactions: the
+      // transaction is replayed with the access mode it began with
+      sharedStmt.execute("TRUNCATE TABLE readOnlyMultiPrimaryTx");
+      url = twoPrimariesUrl();
+      try (Connection con =
+          (Connection) DriverManager.getConnection(url + "&transactionReplay=true")) {
+        long threadId = con.getThreadId();
+        Statement stmt = con.createStatement();
+        con.setAutoCommit(false);
+        stmt.executeUpdate("INSERT INTO readOnlyMultiPrimaryTx VALUES (5)");
+        con.setReadOnly(true);
+        stmt.executeUpdate("INSERT INTO readOnlyMultiPrimaryTx VALUES (6)");
+
+        proxy.restart(50);
+        stmt.executeUpdate("INSERT INTO readOnlyMultiPrimaryTx VALUES (7)");
+        assertNotEquals(threadId, con.getThreadId());
+        con.commit();
+
+        ResultSet rs = sharedStmt.executeQuery("SELECT COUNT(*) FROM readOnlyMultiPrimaryTx");
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        // next transactions are read-only
+        assertTrue(serverReadOnly(con));
+        Common.assertThrowsContains(
+            SQLException.class,
+            () -> stmt.executeUpdate("INSERT INTO readOnlyMultiPrimaryTx VALUES (8)"),
+            "READ ONLY");
+      }
+
+      // reverse: read-only transaction, setReadOnly(false) inside it. The replayed transaction is
+      // still read-only, next ones are read-write
+      url = twoPrimariesUrl();
+      try (Connection con =
+          (Connection) DriverManager.getConnection(url + "&transactionReplay=true")) {
+        long threadId = con.getThreadId();
+        Statement stmt = con.createStatement();
+        con.setReadOnly(true);
+        con.setAutoCommit(false);
+        stmt.executeQuery("SELECT * FROM readOnlyMultiPrimaryTx");
+        con.setReadOnly(false);
+
+        proxy.restart(50);
+        Common.assertThrowsContains(
+            SQLException.class,
+            () -> stmt.executeUpdate("INSERT INTO readOnlyMultiPrimaryTx VALUES (9)"),
+            "READ ONLY");
+        assertNotEquals(threadId, con.getThreadId());
+        con.rollback();
+        assertFalse(serverReadOnly(con));
+        assertEquals(1, stmt.executeUpdate("INSERT INTO readOnlyMultiPrimaryTx VALUES (10)"));
+        con.commit();
+      }
+
       // read-only transaction lost without replay: the failover host is read-only as well
       url = twoPrimariesUrl();
       try (Connection con = (Connection) DriverManager.getConnection(url)) {

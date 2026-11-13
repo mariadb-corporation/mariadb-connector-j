@@ -17,6 +17,7 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 public class RedoContext extends BaseContext {
 
   private final TransactionSaver transactionSaver;
+  private boolean transactionReadOnly = false;
 
   /**
    * Constructor
@@ -55,8 +56,21 @@ public class RedoContext extends BaseContext {
    * @param serverStatus server status
    */
   public void setServerStatus(int serverStatus) {
+    if ((this.serverStatus & ServerStatus.IN_TRANSACTION) == 0
+        && (serverStatus & ServerStatus.IN_TRANSACTION) != 0) {
+      transactionReadOnly = isServerReadOnly();
+    }
     this.serverStatus = serverStatus;
     if ((serverStatus & ServerStatus.IN_TRANSACTION) == 0) transactionSaver.clear();
+  }
+
+  /**
+   * Access mode of the current transaction: the session read-only state when it began.
+   *
+   * @return true if the current transaction began while the session was read-only
+   */
+  public boolean isTransactionReadOnly() {
+    return transactionReadOnly;
   }
 
   /**

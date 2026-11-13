@@ -55,9 +55,6 @@ public class MultiPrimaryClient implements Client {
   /** current client */
   protected Client currentClient;
 
-  /** read-only state propagated to the server, to set it again on a new connection */
-  private boolean readOnly = false;
-
   /**
    * Constructor
    *
@@ -218,11 +215,6 @@ public class MultiPrimaryClient implements Client {
 
       currentClient = connectHost(false, false);
       syncNewState(oldClient);
-      if (readOnly) {
-        // the new session starts read-write
-        currentClient.setReadOnly(true);
-        currentClient.getContext().addStateFlag(ConnectionState.STATE_READ_ONLY);
-      }
       return oldClient;
 
     } catch (SQLNonTransientConnectionException sqle) {
@@ -288,7 +280,26 @@ public class MultiPrimaryClient implements Client {
               oldCli.getHostAddress()),
           "25S03");
     }
-    ((ReplayClient) currentClient).transactionReplay(ctx.getTransactionSaver());
+    boolean sessionReadOnly = ctx.isServerReadOnly();
+    if (ctx.isTransactionReadOnly() == sessionReadOnly) {
+      ((ReplayClient) currentClient).transactionReplay(ctx.getTransactionSaver());
+      return;
+    }
+
+    currentClient.setReadOnly(ctx.isTransactionReadOnly());
+    try {
+      ((ReplayClient) currentClient).transactionReplay(ctx.getTransactionSaver());
+    } catch (SQLException e) {
+      try {
+        currentClient.setReadOnly(sessionReadOnly);
+      } catch (SQLException ignored) {
+        // connection is lost again, initial error is thrown
+      }
+      throw e;
+    }
+    // replayed commands may contain the SET SESSION TRANSACTION statement: state is forced
+    currentClient.getContext().setServerReadOnly(!sessionReadOnly);
+    currentClient.setReadOnly(sessionReadOnly);
   }
 
   /**
@@ -351,6 +362,11 @@ public class MultiPrimaryClient implements Client {
   }
 
   private void syncReadOnlyState(Context oldCtx) throws SQLException {
+    if (oldCtx.isServerReadOnly()) {
+      currentClient.setReadOnly(true);
+      currentClient.getContext().addStateFlag(ConnectionState.STATE_READ_ONLY);
+      return;
+    }
     if (!isReadOnlySyncRequired(oldCtx)) {
       return;
     }
@@ -609,7 +625,6 @@ public class MultiPrimaryClient implements Client {
       replayIfPossible(oldClient, true);
       currentClient.setReadOnly(readOnly);
     }
-    this.readOnly = readOnly;
   }
 
   @Override
