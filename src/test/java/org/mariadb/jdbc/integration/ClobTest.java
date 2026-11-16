@@ -11,6 +11,7 @@ import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbClob;
 
@@ -103,6 +104,71 @@ public class ClobTest extends Common {
     writer.write("1234567890lmnopqrstu", 1, 19);
     writer.flush();
     assertEquals("a234567890lmnopqrstu", clob.getSubString(1, 100));
+  }
+
+  @Test
+  public void setCharacterStreamWithOffset() throws SQLException, IOException {
+    // a Clob that is a slice of a larger buffer, like a Clob read from a result set row
+    final byte[] bytes = "xxabcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+    MariaDbClob clob = new MariaDbClob(bytes, 2, bytes.length - 2);
+    Writer writer = clob.setCharacterStream(1);
+    writer.write("12");
+    writer.flush();
+    assertEquals("12cde🙏fgh", clob.getSubString(1, 100));
+
+    clob = new MariaDbClob(bytes, 2, bytes.length - 2);
+    writer = clob.setCharacterStream(7);
+    writer.write("ij");
+    writer.flush();
+    assertEquals("abcde🙏ijh", clob.getSubString(1, 100));
+
+    // an empty slice, written beyond the size of the initial buffer
+    char[] large = new char[10_000];
+    Arrays.fill(large, 'z');
+    clob = new MariaDbClob(bytes, 2, 0);
+    writer = clob.setCharacterStream(1);
+    writer.write(large);
+    writer.flush();
+    assertEquals(new String(large), clob.getSubString(1, large.length + 1));
+  }
+
+  @Test
+  public void setAsciiStreamWithOffset() throws SQLException, IOException {
+    final byte[] bytes = "xxabcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+    MariaDbClob clob = new MariaDbClob(bytes, 2, bytes.length - 2);
+    OutputStream stream = clob.setAsciiStream(1);
+    stream.write("12".getBytes(StandardCharsets.UTF_8));
+    stream.flush();
+    assertEquals("12cde🙏fgh", clob.getSubString(1, 100));
+
+    byte[] large = new byte[10_000];
+    Arrays.fill(large, (byte) 'z');
+    clob = new MariaDbClob(bytes, 2, 0);
+    stream = clob.setAsciiStream(1);
+    stream.write(large);
+    stream.flush();
+    assertEquals(new String(large, StandardCharsets.UTF_8), clob.getSubString(1, large.length + 1));
+  }
+
+  @Test
+  public void setCharacterStreamOnResultSetClob() throws Exception {
+    Statement stmt = sharedConn.createStatement();
+    try (ResultSet rs = stmt.executeQuery("SELECT 'abc£de', ''")) {
+      assertTrue(rs.next());
+      Clob clob = rs.getClob(1);
+      try (Writer writer = clob.setCharacterStream(1)) {
+        writer.write("xy");
+      }
+      assertEquals("xyc£de", clob.getSubString(1, 100));
+
+      Clob empty = rs.getClob(2);
+      char[] large = new char[10_000];
+      Arrays.fill(large, 'z');
+      try (Writer writer = empty.setCharacterStream(1)) {
+        writer.write(large);
+      }
+      assertEquals(new String(large), empty.getSubString(1, large.length + 1));
+    }
   }
 
   @Test
