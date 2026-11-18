@@ -29,6 +29,8 @@ public class PoolReturnRaceTest extends Common {
       Connection original = pool.getPoolConnection().getConnection();
       LinkedBlockingDeque<MariaDbInnerPoolConnection> queue =
           new LinkedBlockingDeque<MariaDbInnerPoolConnection>() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public void addFirst(MariaDbInnerPoolConnection item) {
               super.addFirst(item);
