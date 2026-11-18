@@ -214,8 +214,9 @@ public class Pool implements AutoCloseable, PoolMBean {
                   if (!idleConnections.contains(item)) {
                     item.getConnection().setPoolConnection(null);
                     item.getConnection().reset();
-                    idleConnections.addFirst(item);
+                    // Restore the close listener before another borrower can take this connection.
                     item.getConnection().setPoolConnection(item);
+                    idleConnections.addFirst(item);
                   }
                 } catch (SQLException sqle) {
 
