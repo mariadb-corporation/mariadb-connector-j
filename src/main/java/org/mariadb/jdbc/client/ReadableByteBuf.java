@@ -384,6 +384,10 @@ public final class ReadableByteBuf {
   }
 
   public String readStringEof() {
+    if (pos > limit) {
+      throw new IllegalArgumentException(
+          "invalid packet: position " + pos + " is beyond packet length " + limit);
+    }
     int initialPosition = pos;
     pos = limit;
     return new String(buf, initialPosition, pos - initialPosition, StandardCharsets.UTF_8);

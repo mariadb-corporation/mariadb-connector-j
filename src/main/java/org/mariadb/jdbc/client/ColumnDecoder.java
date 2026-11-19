@@ -33,7 +33,9 @@ public interface ColumnDecoder extends Column {
     stringPos[3] = buf.skipIdentifier(); // column alias pos
     stringPos[4] = buf.skipIdentifier(); // column pos
     buf.skipIdentifier();
-
+    if (buf.readableBytes() <= 11) {
+      throw new IllegalArgumentException("wrong column definition encoding");
+    }
     buf.skip(); // skip length always 0x0c
     short charset = buf.readShort();
     int length = buf.readInt();
@@ -68,7 +70,9 @@ public interface ColumnDecoder extends Column {
     stringPos[3] = buf.skipIdentifier(); // column alias pos
     stringPos[4] = buf.skipIdentifier(); // column pos
     buf.skipIdentifier();
-
+    if (buf.readableBytes() <= 12) {
+      throw new IllegalArgumentException("wrong column definition encoding");
+    }
     byte[] extTypeName = null;
     byte[] extTypeFormat = null;
     // fast skipping extended info (usually not set)

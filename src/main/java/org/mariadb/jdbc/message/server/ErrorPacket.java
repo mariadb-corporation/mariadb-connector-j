@@ -27,11 +27,20 @@ public final class ErrorPacket implements ServerMessage {
    * @param context current context
    */
   public ErrorPacket(ReadableByteBuf buf, Context context) {
+    // header + error code : a shorter packet would be read from bytes it doesn't hold
+    if (buf.readableBytes() < 3) {
+      throw new IllegalArgumentException(
+          "malformed error packet: " + buf.readableBytes() + " bytes, at least 3 expected");
+    }
     buf.skip();
     this.errorCode = buf.readShort();
-    byte next = buf.getByte(buf.pos());
-    if (next == (byte) '#') {
+    if (buf.readableBytes() > 0 && buf.getByte(buf.pos()) == (byte) '#') {
       buf.skip(); // skip '#'
+      // sql state is always 5 bytes
+      if (buf.readableBytes() < 5) {
+        throw new IllegalArgumentException(
+            "malformed error packet: sql state of " + buf.readableBytes() + " bytes, 5 expected");
+      }
       this.sqlState = buf.readAscii(5);
       this.message = buf.readStringEof();
     } else {
