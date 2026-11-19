@@ -239,6 +239,21 @@ public class StandardClient implements Client, AutoCloseable {
     } catch (SQLException sqlException) {
       destroySocket();
       throw sqlException;
+    } catch (RuntimeException runtimeException) {
+      // a malformed server packet must not escape as an unchecked exception, nor leak the socket
+      destroySocket();
+
+      String errorMsg =
+          String.format(
+              "Could not connect to %s:%s : unexpected server exchange (%s)",
+              host, socket.getPort(), runtimeException);
+      if (host == null) {
+        errorMsg =
+            String.format(
+                "Could not connect to socket : unexpected server exchange (%s)", runtimeException);
+      }
+
+      throw exceptionFactory.create(errorMsg, "08000", runtimeException);
     }
   }
 
@@ -968,6 +983,13 @@ public class StandardClient implements Client, AutoCloseable {
                   : "Socket error",
               "08000",
               ioException);
+    } catch (IllegalArgumentException | IndexOutOfBoundsException malformedException) {
+      // malformed server packet : stream state is unknown, connection cannot be used anymore
+      destroySocket();
+      throw exceptionFactory
+          .withSql(message.description())
+          .create(
+              "Malformed server packet (" + malformedException + ")", "08000", malformedException);
     }
   }
 
