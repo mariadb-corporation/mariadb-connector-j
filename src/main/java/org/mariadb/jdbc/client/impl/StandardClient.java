@@ -304,13 +304,8 @@ public class StandardClient implements Client, AutoCloseable {
 
       String errorMsg =
           String.format(
-              "Could not connect to %s:%s : unexpected server exchange (%s)",
-              host, socket.getPort(), runtimeException);
-      if (host == null) {
-        errorMsg =
-            String.format(
-                "Could not connect to socket : unexpected server exchange (%s)", runtimeException);
-      }
+              "Could not connect to %s : unexpected server exchange (%s)",
+              hostAddress, runtimeException);
 
       throw exceptionFactory.create(errorMsg, "08000", runtimeException);
     }
