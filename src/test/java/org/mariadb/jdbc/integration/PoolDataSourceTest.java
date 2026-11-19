@@ -713,6 +713,74 @@ public class PoolDataSourceTest extends Common {
     }
   }
 
+  /**
+   * Indicate if a server session still exists, waiting up to maxWaitMs for it to disappear since
+   * the server ends a session asynchronously.
+   */
+  private static boolean sessionStillExists(long threadId, int maxWaitMs) throws SQLException {
+    long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(maxWaitMs);
+    while (true) {
+      try (Statement stmt = sharedConn.createStatement();
+          ResultSet rs =
+              stmt.executeQuery(
+                  "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = " + threadId)) {
+        rs.next();
+        if (rs.getInt(1) == 0) return false;
+      }
+      if (System.nanoTime() > end) return true;
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return true;
+      }
+    }
+  }
+
+  @Test
+  public void closeDedicatedUserConnection() throws SQLException {
+    // credentials differing from the pool's give a dedicated connection : closing it must end the
+    // server session, since no pool will ever reuse it
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
+      Connection conn = ds.getConnection("poolUser", "!Passw0rd3Works");
+      long threadId = ((org.mariadb.jdbc.Connection) conn).getThreadId();
+      try {
+        assertTrue(conn.isValid(1));
+        conn.close();
+        assertFalse(
+            sessionStillExists(threadId, 2000),
+            "dedicated connection session " + threadId + " still exists after close()");
+        assertTrue(conn.isClosed());
+      } finally {
+        if (sessionStillExists(threadId, 0)) {
+          try (Statement stmt = sharedConn.createStatement()) {
+            stmt.execute("KILL " + threadId);
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  public void closePoolUserConnection() throws SQLException {
+    // without credentials, the connection comes from the pool : closing it must release it to the
+    // pool, keeping the server session for the next borrower
+    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1")) {
+      Connection conn = ds.getConnection();
+      long threadId = ((org.mariadb.jdbc.Connection) conn).getThreadId();
+      assertTrue(conn.isValid(1));
+      conn.close();
+      assertTrue(sessionStillExists(threadId, 0), "pooled session must survive close()");
+
+      // maxPoolSize=1 : getting a connection again proves the first one was released
+      try (Connection conn2 = ds.getConnection()) {
+        assertTrue(conn2.isValid(1));
+        assertEquals(threadId, ((org.mariadb.jdbc.Connection) conn2).getThreadId());
+      }
+    }
+  }
+
   @Test
   @SuppressWarnings("try")
   public void various() throws SQLException {
