@@ -89,7 +89,7 @@ public class MariaDbPoolDataSource
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-    return pool().getPoolConnection(username, password).getConnection();
+    return pool().getConnection(username, password);
   }
 
   /**

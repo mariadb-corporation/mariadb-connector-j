@@ -393,8 +393,9 @@ public class Pool implements AutoCloseable, PoolMBean {
   }
 
   /**
-   * Get new connection from pool if user and password correspond to pool. If username and password
-   * are different from pool, will return a dedicated connection.
+   * Get new pooled connection from pool if user and password correspond to pool. If username and
+   * password are different from pool, will return a dedicated pooled connection, not handled by
+   * pool : caller is then responsible for closing the returned pooled connection.
    *
    * @param username username
    * @param password password
@@ -403,17 +404,41 @@ public class Pool implements AutoCloseable, PoolMBean {
    */
   public MariaDbInnerPoolConnection getPoolConnection(String username, String password)
       throws SQLException {
-    boolean sameUser = username == null ? conf.user() == null : username.equals(conf.user());
-    boolean samePassword =
-        (password == null || password.isEmpty())
-            ? conf.password() == null
-            : password.equals(conf.password());
-    if (sameUser && samePassword) {
+    if (isPoolCredential(username, password)) {
       return getPoolConnection();
     }
 
     Configuration tmpConf = conf.clone(username, password);
     return new MariaDbInnerPoolConnection(NonRegisteringDriver.connect(tmpConf));
+  }
+
+  /**
+   * Get new connection from pool if user and password correspond to pool. If username and password
+   * are different from pool, will return a dedicated connection, not handled by pool : closing it
+   * closes the underlying connection to server.
+   *
+   * @param username username
+   * @param password password
+   * @return connection
+   * @throws SQLException if any error occur during connection
+   */
+  public Connection getConnection(String username, String password) throws SQLException {
+    if (isPoolCredential(username, password)) {
+      return getPoolConnection().getConnection();
+    }
+
+    // no pool connection wrapper : nothing would listen to the close event, so close() must close
+    // the connection itself
+    return NonRegisteringDriver.connect(conf.clone(username, password));
+  }
+
+  private boolean isPoolCredential(String username, String password) {
+    boolean sameUser = username == null ? conf.user() == null : username.equals(conf.user());
+    boolean samePassword =
+        (password == null || password.isEmpty())
+            ? conf.password() == null
+            : password.equals(conf.password());
+    return sameUser && samePassword;
   }
 
   private String generatePoolTag(int poolIndex) {
