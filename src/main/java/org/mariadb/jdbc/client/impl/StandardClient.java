@@ -169,6 +169,8 @@ public class StandardClient implements Client, AutoCloseable {
       handleTimeoutError(e);
     } catch (IOException e) {
       handleIOError(e);
+    } catch (RuntimeException e) {
+      handleUnexpectedExchangeError(e);
     }
   }
 
@@ -479,6 +481,20 @@ public class StandardClient implements Client, AutoCloseable {
     destroySocket();
     throw exceptionFactory.create(
         String.format("Could not connect to %s : %s", hostAddress, e.getMessage()), "08000", e);
+  }
+
+  /**
+   * A malformed server packet must not escape as an unchecked exception, nor leak the socket.
+   *
+   * @param e unchecked exception thrown while connecting
+   * @throws SQLException always
+   */
+  private void handleUnexpectedExchangeError(RuntimeException e) throws SQLException {
+    destroySocket();
+    throw exceptionFactory.create(
+        String.format("Could not connect to %s : unexpected server exchange (%s)", hostAddress, e),
+        "08000",
+        e);
   }
 
   private void sendHandshakeResponse(
@@ -1576,6 +1592,13 @@ public class StandardClient implements Client, AutoCloseable {
       throw exceptionFactory
           .withSql(message.description())
           .create("Socket error", "08000", ioException);
+    } catch (IllegalArgumentException | IndexOutOfBoundsException malformedException) {
+      // malformed server packet : stream state is unknown, connection cannot be used anymore
+      destroySocket();
+      throw exceptionFactory
+          .withSql(message.description())
+          .create(
+              "Malformed server packet (" + malformedException + ")", "08000", malformedException);
     }
   }
 

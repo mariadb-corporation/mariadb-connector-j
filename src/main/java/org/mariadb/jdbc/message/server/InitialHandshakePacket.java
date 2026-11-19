@@ -16,6 +16,7 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 public final class InitialHandshakePacket implements ServerMessage {
 
   private static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
+  private static final int MIN_SEED_LENGTH = 20;
 
   private final long threadId;
   private final byte[] seed;
@@ -63,6 +64,9 @@ public final class InitialHandshakePacket implements ServerMessage {
    * @return Parsed packet
    */
   public static InitialHandshakePacket decode(ReadableByteBuf reader) {
+    if (reader.readableBytes() < 1) {
+      throw new IllegalArgumentException("malformed initial handshake packet: empty packet");
+    }
     byte protocolVersion = reader.readByte();
     if (protocolVersion != 0x0a) {
       throw new IllegalArgumentException(
@@ -70,6 +74,14 @@ public final class InitialHandshakePacket implements ServerMessage {
     }
 
     String serverVersion = reader.readStringNullEnd();
+    // fixed-width part : thread id (4), seed (8), filler (1), capabilities (2), collation (1),
+    // status (2), capabilities (2), salt length (1), filler (6), MariaDB capabilities (4)
+    if (reader.readableBytes() < 31) {
+      throw new IllegalArgumentException(
+          "malformed initial handshake packet: "
+              + reader.readableBytes()
+              + " bytes after server version, at least 31 expected");
+    }
     long threadId = reader.readInt();
     final byte[] seed1 = new byte[8];
     reader.readBytes(seed1);
@@ -94,6 +106,14 @@ public final class InitialHandshakePacket implements ServerMessage {
     if ((serverCapabilities4FirstBytes & Capabilities.SECURE_CONNECTION) != 0) {
       final byte[] seed2;
       if (saltLength > 0) {
+        if (saltLength > reader.readableBytes()) {
+          throw new IllegalArgumentException(
+              "malformed initial handshake packet: declared seed of "
+                  + saltLength
+                  + " bytes, "
+                  + reader.readableBytes()
+                  + " remaining in packet");
+        }
         seed2 = new byte[saltLength];
         reader.readBytes(seed2);
       } else {
@@ -104,6 +124,16 @@ public final class InitialHandshakePacket implements ServerMessage {
       System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
     } else {
       seed = seed1;
+    }
+    // every supported server sends a 20 bytes seed (8 + 12) : a shorter one would weaken the
+    // authentication challenge, so it is refused rather than used
+    if (seed.length < MIN_SEED_LENGTH) {
+      throw new IllegalArgumentException(
+          "malformed initial handshake packet: seed of "
+              + seed.length
+              + " bytes, at least "
+              + MIN_SEED_LENGTH
+              + " expected");
     }
     reader.skip();
 

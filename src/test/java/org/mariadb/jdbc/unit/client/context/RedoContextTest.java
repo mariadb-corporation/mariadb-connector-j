@@ -41,8 +41,9 @@ public class RedoContextTest {
   }
 
   /**
-   * Builds a minimal MariaDB initial-handshake packet. All capability flags are 0 so that
-   * SECURE_CONNECTION / PLUGIN_AUTH branches are skipped, keeping the layout minimal.
+   * Builds a minimal MariaDB initial-handshake packet. Only SECURE_CONNECTION capability is set,
+   * for the packet to carry the 20 bytes seed the driver requires, PLUGIN_AUTH branch being
+   * skipped to keep the layout minimal.
    */
   private static byte[] buildHandshake() {
     ByteBuffer buf = ByteBuffer.allocate(128);
@@ -52,14 +53,15 @@ public class RedoContextTest {
     buf.put(new byte[] {1, 0, 0, 0}); // thread id (4 bytes)
     buf.put(new byte[8]); // seed part 1 (8 bytes)
     buf.put((byte) 0x00); // filler
-    buf.put(new byte[] {0, 0}); // capabilities lower 2 bytes = 0
+    buf.put(new byte[] {0, (byte) 0x80}); // capabilities lower 2 bytes = SECURE_CONNECTION
     buf.put((byte) 0x00); // default collation
     buf.put(new byte[] {0, 0}); // server status = 0
     buf.put(new byte[] {0, 0}); // capabilities upper 2 bytes = 0
     buf.put((byte) 0x00); // (no PLUGIN_AUTH) skipped salt-length byte
     buf.put(new byte[6]); // reserved skip(6)
     buf.put(new byte[4]); // mariadb additional capabilities
-    buf.put((byte) 0x00); // trailing skip
+    buf.put("abcdefghijkl".getBytes(StandardCharsets.US_ASCII)); // seed part 2 (12 bytes)
+    buf.put((byte) 0x00); // seed null terminator
     return Arrays.copyOf(buf.array(), buf.position());
   }
 
